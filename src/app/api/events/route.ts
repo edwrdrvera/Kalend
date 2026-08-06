@@ -6,7 +6,6 @@ export async function GET() {
   try {
     const allEvents = await db.select().from(events);
 
-    // FIX: Remove the brackets around allEvents
     return NextResponse.json({ success: true, data: allEvents });
   } catch (error) {
     console.error("Database Error:", error);
