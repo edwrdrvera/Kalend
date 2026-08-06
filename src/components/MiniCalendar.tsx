@@ -13,11 +13,12 @@ import {
   addDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
 
 interface MiniCalendarProps {
   currentDate: Date;
+  viewDate: Date;
   onDateSelect: (date: Date) => void;
+  onViewDateChange: (date: Date) => void;
 }
 
 function MiniCalendarHeader({
@@ -137,11 +138,14 @@ function MiniCalendarGrid({
   );
 }
 
-export default function MiniCalendar({ currentDate, onDateSelect }: MiniCalendarProps) {
-  const [viewDate, setViewDate] = useState(currentDate);
-
-  const handleNextMonth = () => setViewDate((prev) => addMonths(prev, 1));
-  const handlePrevMonth = () => setViewDate((prev) => subMonths(prev, 1));
+export default function MiniCalendar({
+  currentDate,
+  viewDate,
+  onDateSelect,
+  onViewDateChange,
+}: MiniCalendarProps) {
+  const handleNextMonth = () => onViewDateChange(addMonths(viewDate, 1));
+  const handlePrevMonth = () => onViewDateChange(subMonths(viewDate, 1));
 
   return (
     <div className="px-5 pb-6">

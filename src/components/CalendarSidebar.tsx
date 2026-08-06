@@ -5,10 +5,17 @@ import MiniCalendar from "./MiniCalendar";
 
 interface CalendarSidebarProps {
   currentDate: Date;
+  viewDate: Date;
   onDateSelect: (date: Date) => void;
+  onViewDateChange: (date: Date) => void;
 }
 
-export default function CalendarSidebar({ currentDate, onDateSelect }: CalendarSidebarProps) {
+export default function CalendarSidebar({
+  currentDate,
+  viewDate,
+  onDateSelect,
+  onViewDateChange,
+}: CalendarSidebarProps) {
   return (
     <aside className="w-64 border-r border-neutral-800 bg-[#191919] flex shrink-0 flex-col h-full overflow-y-auto">
       <div className="p-4 flex items-center justify-between">
@@ -17,7 +24,12 @@ export default function CalendarSidebar({ currentDate, onDateSelect }: CalendarS
         </button>
       </div>
 
-      <MiniCalendar currentDate={currentDate} onDateSelect={onDateSelect} />
+      <MiniCalendar
+        currentDate={currentDate}
+        viewDate={viewDate}
+        onDateSelect={onDateSelect}
+        onViewDateChange={onViewDateChange}
+      />
     </aside>
   );
 }
