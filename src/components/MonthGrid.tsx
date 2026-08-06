@@ -16,6 +16,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CalendarEvent } from "./Calendar";
+import { getEventColorClasses } from "@/lib/event-colors";
 
 interface MonthGridProps {
   viewDate: Date;
@@ -26,29 +27,6 @@ interface MonthGridProps {
 }
 
 const MAX_VISIBLE_EVENTS = 3;
-
-// Tailwind can't see class names built with string interpolation (e.g.
-// `bg-${color}-500`) — its scanner only picks up whole class strings that
-// appear literally in source, so color-coding driven by the event's
-// freeform `color` string needs an explicit lookup table like this instead.
-const EVENT_COLOR_CLASSES: Record<string, string> = {
-  blue: "bg-blue-500/20 text-blue-300",
-  green: "bg-green-500/20 text-green-300",
-  purple: "bg-purple-500/20 text-purple-300",
-  orange: "bg-orange-500/20 text-orange-300",
-  red: "bg-red-500/20 text-red-300",
-  indigo: "bg-indigo-500/20 text-indigo-300",
-  pink: "bg-pink-500/20 text-pink-300",
-  yellow: "bg-yellow-500/20 text-yellow-300",
-  teal: "bg-teal-500/20 text-teal-300",
-};
-
-const DEFAULT_EVENT_COLOR_CLASSES = "bg-neutral-700/40 text-neutral-300";
-
-function getEventColorClasses(color: string | null): string {
-  if (!color) return DEFAULT_EVENT_COLOR_CLASSES;
-  return EVENT_COLOR_CLASSES[color] ?? DEFAULT_EVENT_COLOR_CLASSES;
-}
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
