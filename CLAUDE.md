@@ -46,7 +46,7 @@ Other drizzle-kit commands: `bunx drizzle-kit push` (skip migration files, push 
   - `api/ping` — trivial health check.
   - `api/test` — mock/scratch endpoint (hardcoded data, echoes POST body); treat as a template for wiring new endpoints, not production logic.
 - **DB schema convention**: tables defined with `drizzle-orm/pg-core` (`pgTable`), snake_case column names, `uuid` primary keys via `defaultRandom()`. Each schema file exports inferred `Select`/`Insert` types (e.g. `Event`, `NewEvent`) for use on the frontend — follow this pattern when adding new tables.
-- Supabase is used for both Postgres hosting and (per the project plan) auth — `@supabase/supabase-js` and `@supabase/ssr` are dependencies, though auth wiring is not yet implemented in `src/`.
+- Supabase is used for both Postgres hosting and (per the project plan) auth. Client factories live in `src/lib/supabase/`: `client.ts` (`createClient()` via `createBrowserClient`, for Client Components) and `server.ts` (`async createClient()` via `createServerClient`, for Server Components/Route Handlers — reads/writes cookies through `next/headers`). Copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`. No login/signup routes or middleware session refresh exist yet — see `feature/auth-login-signup-pages` and `feature/auth-middleware-protected-routes` in `TASKS.md`.
 
 
 ## Git & Workflow Strategy
