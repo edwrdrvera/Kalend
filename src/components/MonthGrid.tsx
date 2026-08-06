@@ -24,6 +24,7 @@ interface MonthGridProps {
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
+  onCreateEvent: (day: Date) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
@@ -162,22 +163,26 @@ function DayCell({
   selectedDate,
   events,
   onDateSelect,
+  onCreateEvent,
 }: {
   day: Date;
   monthStart: Date;
   selectedDate: Date;
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
+  onCreateEvent: (day: Date) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
+  const handleCellClick = () => {
+    onDateSelect(day);
+    onCreateEvent(day);
+  };
+
   return (
-    <button
-      onClick={() => onDateSelect(day)}
-      className={getCellClasses(day, monthStart)}
-    >
+    <button onClick={handleCellClick} className={getCellClasses(day, monthStart)}>
       <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
         {format(day, "d")}
       </span>
@@ -207,6 +212,7 @@ export default function MonthGrid({
   events,
   onDateSelect,
   onViewDateChange,
+  onCreateEvent,
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
@@ -229,6 +235,7 @@ export default function MonthGrid({
             selectedDate={selectedDate}
             events={events}
             onDateSelect={onDateSelect}
+            onCreateEvent={onCreateEvent}
           />
         ))}
       </div>
