@@ -157,6 +157,13 @@ export default function Calendar() {
         );
       }
 
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        isEdit
+          ? prev.map((event) => (event.id === savedEvent.id ? savedEvent : event))
+          : [...prev, savedEvent]
+      );
+
       setModalOpen(false);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "Something went wrong");
