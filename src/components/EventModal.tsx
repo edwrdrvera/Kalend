@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -59,30 +59,28 @@ export default function EventModal({
   submitting = false,
   error = null,
 }: EventModalProps) {
-  const [title, setTitle] = useState("");
-  const [startAt, setStartAt] = useState("");
-  const [endAt, setEndAt] = useState("");
-  const [color, setColor] = useState<EventColor>(DEFAULT_COLOR);
-
-  // Reset the form to match the target event (edit) or a sensible default
-  // (create) every time the modal opens.
-  useEffect(() => {
-    if (!open) return;
-
-    if (mode === "edit" && event) {
-      setTitle(event.title);
-      setStartAt(toDateTimeLocal(new Date(event.start_at)));
-      setEndAt(toDateTimeLocal(new Date(event.end_at)));
-      setColor(isEventColor(event.color) ? event.color : DEFAULT_COLOR);
-    } else {
-      const start = initialStart ?? new Date();
-      const end = new Date(start.getTime() + DEFAULT_DURATION_MS);
-      setTitle("");
-      setStartAt(toDateTimeLocal(start));
-      setEndAt(toDateTimeLocal(end));
-      setColor(DEFAULT_COLOR);
-    }
-  }, [open, mode, event, initialStart]);
+  // Initial values are derived straight from props via lazy useState
+  // initializers rather than an effect that calls setState on open — the
+  // caller remounts this component (via `key`) each time it should open
+  // with fresh data, so there's nothing to resync after mount.
+  const [title, setTitle] = useState(() =>
+    mode === "edit" && event ? event.title : ""
+  );
+  const [startAt, setStartAt] = useState(() =>
+    mode === "edit" && event
+      ? toDateTimeLocal(new Date(event.start_at))
+      : toDateTimeLocal(initialStart ?? new Date())
+  );
+  const [endAt, setEndAt] = useState(() => {
+    if (mode === "edit" && event) return toDateTimeLocal(new Date(event.end_at));
+    const start = initialStart ?? new Date();
+    return toDateTimeLocal(new Date(start.getTime() + DEFAULT_DURATION_MS));
+  });
+  const [color, setColor] = useState<EventColor>(() =>
+    mode === "edit" && event && isEventColor(event.color)
+      ? event.color
+      : DEFAULT_COLOR
+  );
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -104,6 +104,10 @@ export default function Calendar() {
   const [modalInitialStart, setModalInitialStart] = useState<Date | undefined>();
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+  // Bumped every time the modal is opened so `key={modalKey}` below forces
+  // EventModal to remount with fresh initial state, instead of an effect
+  // resetting its fields after the fact.
+  const [modalKey, setModalKey] = useState(0);
 
   const handleCreateEvent = (day: Date) => {
     setModalMode("create");
@@ -111,6 +115,7 @@ export default function Calendar() {
     setModalInitialStart(day);
     setModalError(null);
     setModalOpen(true);
+    setModalKey((key) => key + 1);
   };
 
   const handleEventClick = (event: CalendarEvent) => {
@@ -118,6 +123,7 @@ export default function Calendar() {
     setModalEvent(event);
     setModalError(null);
     setModalOpen(true);
+    setModalKey((key) => key + 1);
   };
 
   const handleModalSubmit = async (values: EventFormValues) => {
@@ -192,6 +198,7 @@ export default function Calendar() {
         onEventClick={handleEventClick}
       />
       <EventModal
+        key={modalKey}
         open={modalOpen}
         onOpenChange={setModalOpen}
         mode={modalMode}
