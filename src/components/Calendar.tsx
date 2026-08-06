@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
+import EventModal, { type EventFormValues } from "./EventModal";
 
 // Wire shape of an event as returned by GET /api/events: dates arrive as
 // ISO strings over JSON, not the `Date` objects the Drizzle `Event` type
@@ -21,6 +22,18 @@ interface EventsApiResponse {
   data?: CalendarEvent[];
   error?: string;
 }
+
+interface EventMutationResponse {
+  success: boolean;
+  data?: CalendarEvent;
+  error?: string;
+}
+
+// TODO: derive from the authenticated session once
+// feature/auth-middleware-protected-routes lands — there's no login flow
+// yet, so this matches the placeholder user_id already used by
+// src/db/data/data.csv's sample events.
+const PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000";
 
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -85,6 +98,86 @@ export default function Calendar() {
     setViewDate(startOfMonth(date));
   };
 
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [modalEvent, setModalEvent] = useState<CalendarEvent | null>(null);
+  const [modalInitialStart, setModalInitialStart] = useState<Date | undefined>();
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  // Bumped every time the modal is opened so `key={modalKey}` below forces
+  // EventModal to remount with fresh initial state, instead of an effect
+  // resetting its fields after the fact.
+  const [modalKey, setModalKey] = useState(0);
+
+  const handleCreateEvent = (day: Date) => {
+    setModalMode("create");
+    setModalEvent(null);
+    setModalInitialStart(day);
+    setModalError(null);
+    setModalOpen(true);
+    setModalKey((key) => key + 1);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    setModalMode("edit");
+    setModalEvent(event);
+    setModalError(null);
+    setModalOpen(true);
+    setModalKey((key) => key + 1);
+  };
+
+  const handleModalSubmit = async (values: EventFormValues) => {
+    setModalSubmitting(true);
+    setModalError(null);
+
+    try {
+      const isEdit = modalMode === "edit" && modalEvent;
+      const res = await fetch(
+        isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isEdit
+              ? {
+                  title: values.title,
+                  start_at: values.startAt,
+                  end_at: values.endAt,
+                  color: values.color,
+                }
+              : {
+                  title: values.title,
+                  start_at: values.startAt,
+                  end_at: values.endAt,
+                  color: values.color,
+                  user_id: PLACEHOLDER_USER_ID,
+                }
+          ),
+        }
+      );
+      const json: EventMutationResponse = await res.json();
+
+      if (!res.ok || !json.success || !json.data) {
+        throw new Error(
+          json.error ?? `Failed to ${isEdit ? "update" : "create"} event`
+        );
+      }
+
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        isEdit
+          ? prev.map((event) => (event.id === savedEvent.id ? savedEvent : event))
+          : [...prev, savedEvent]
+      );
+
+      setModalOpen(false);
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setModalSubmitting(false);
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -101,6 +194,19 @@ export default function Calendar() {
         events={events}
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
+        onCreateEvent={handleCreateEvent}
+        onEventClick={handleEventClick}
+      />
+      <EventModal
+        key={modalKey}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        mode={modalMode}
+        event={modalEvent}
+        initialStart={modalInitialStart}
+        onSubmit={handleModalSubmit}
+        submitting={modalSubmitting}
+        error={modalError}
       />
     </div>
   );

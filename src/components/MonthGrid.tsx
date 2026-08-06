@@ -16,6 +16,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CalendarEvent } from "./Calendar";
+import { getEventColorClasses } from "@/lib/event-colors";
 
 interface MonthGridProps {
   viewDate: Date;
@@ -23,32 +24,11 @@ interface MonthGridProps {
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
+  onCreateEvent: (day: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
-
-// Tailwind can't see class names built with string interpolation (e.g.
-// `bg-${color}-500`) — its scanner only picks up whole class strings that
-// appear literally in source, so color-coding driven by the event's
-// freeform `color` string needs an explicit lookup table like this instead.
-const EVENT_COLOR_CLASSES: Record<string, string> = {
-  blue: "bg-blue-500/20 text-blue-300",
-  green: "bg-green-500/20 text-green-300",
-  purple: "bg-purple-500/20 text-purple-300",
-  orange: "bg-orange-500/20 text-orange-300",
-  red: "bg-red-500/20 text-red-300",
-  indigo: "bg-indigo-500/20 text-indigo-300",
-  pink: "bg-pink-500/20 text-pink-300",
-  yellow: "bg-yellow-500/20 text-yellow-300",
-  teal: "bg-teal-500/20 text-teal-300",
-};
-
-const DEFAULT_EVENT_COLOR_CLASSES = "bg-neutral-700/40 text-neutral-300";
-
-function getEventColorClasses(color: string | null): string {
-  if (!color) return DEFAULT_EVENT_COLOR_CLASSES;
-  return EVENT_COLOR_CLASSES[color] ?? DEFAULT_EVENT_COLOR_CLASSES;
-}
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
@@ -184,20 +164,42 @@ function DayCell({
   selectedDate,
   events,
   onDateSelect,
+  onCreateEvent,
+  onEventClick,
 }: {
   day: Date;
   monthStart: Date;
   selectedDate: Date;
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
+  onCreateEvent: (day: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
+  const handleCellClick = () => {
+    onDateSelect(day);
+    onCreateEvent(day);
+  };
+
+  const handleCellKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCellClick();
+    }
+  };
+
+  // Not a <button> — event chips inside are their own <button>s, and
+  // buttons can't nest. role="button" + onKeyDown keeps the empty-area
+  // click keyboard-accessible.
   return (
-    <button
-      onClick={() => onDateSelect(day)}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCellClick}
+      onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >
       <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
@@ -205,13 +207,18 @@ function DayCell({
       </span>
       <div className="flex w-full min-w-0 flex-col gap-0.5">
         {visibleEvents.map((event) => (
-          <span
+          <button
             key={event.id}
+            type="button"
             title={event.title}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEventClick(event);
+            }}
             className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(event.color)}`}
           >
             {event.title}
-          </span>
+          </button>
         ))}
         {overflowCount > 0 && (
           <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
@@ -219,7 +226,7 @@ function DayCell({
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -229,6 +236,8 @@ export default function MonthGrid({
   events,
   onDateSelect,
   onViewDateChange,
+  onCreateEvent,
+  onEventClick,
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
@@ -251,6 +260,8 @@ export default function MonthGrid({
             selectedDate={selectedDate}
             events={events}
             onDateSelect={onDateSelect}
+            onCreateEvent={onCreateEvent}
+            onEventClick={onEventClick}
           />
         ))}
       </div>
