@@ -48,9 +48,21 @@ Other drizzle-kit commands: `bunx drizzle-kit push` (skip migration files, push 
 - **DB schema convention**: tables defined with `drizzle-orm/pg-core` (`pgTable`), snake_case column names, `uuid` primary keys via `defaultRandom()`. Each schema file exports inferred `Select`/`Insert` types (e.g. `Event`, `NewEvent`) for use on the frontend — follow this pattern when adding new tables.
 - Supabase is used for both Postgres hosting and (per the project plan) auth. Client factories live in `src/lib/supabase/`: `client.ts` (`createClient()` via `createBrowserClient`, for Client Components) and `server.ts` (`async createClient()` via `createServerClient`, for Server Components/Route Handlers — reads/writes cookies through `next/headers`). Copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`. No login/signup routes or middleware session refresh exist yet — see `feature/auth-login-signup-pages` and `feature/auth-middleware-protected-routes` in `TASKS.md`.
 
-
 ## Git & Workflow Strategy
 - **Base Branch:** `develop` (all feature work targets or branches off `develop`).
 - **Feature Branches:** Create off `develop` using `feature/<feature-name>`.
 - **Primary Branch:** Do not commit directly to `main`.
-- **Commit messages:** Conventional Commits — `<type>: <summary>` (e.g. `feat: add event delete endpoint`, `fix: correct timezone offset in calendar grid`, `chore: bump drizzle-orm`, `docs: update TASKS.md`). Common types in this repo: `feat`, `fix`, `chore`, `docs`. Keep the summary imperative and lowercase after the colon; add a body for anything not self-explanatory from the summary alone.
+
+## Commit & Workflow Rules
+- **Incremental Commits Required:** Break all task implementations down into small, atomic commits instead of bundling an entire feature branch into one commit.
+- **Commit After Logical Steps:** Make a commit immediately after each distinct sub-task (e.g., state hooks, UI components, API routes, type fixes).
+- **Conventional Commits:** Format commit messages as `<type>(<scope>): <summary>` in imperative lowercase (e.g., `feat(calendar): add event fetching state`, `fix(types): resolve type errors`, `chore(db): update schema`).
+
+### Example Micro-Commit Workflow
+When implementing a feature branch like `feature/render-events-on-grid`:
+1. Add event fetch hooks and state management to `src/components/Calendar.tsx` 
+   → Commit: `feat(calendar): add event fetching state`
+2. Update calendar day cells to render event titles with dynamic color coding 
+   → Commit: `feat(calendar): render color-coded events in day cells`
+3. Verify type safety with `bunx tsc --noEmit` and resolve issues 
+   → Commit: `fix(types): resolve type safety errors`
