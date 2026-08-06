@@ -98,6 +98,7 @@ export default function Calendar() {
       <MonthGrid
         selectedDate={selectedDate}
         viewDate={viewDate}
+        events={events}
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
       />
