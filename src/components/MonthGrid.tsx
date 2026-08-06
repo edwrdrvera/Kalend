@@ -25,6 +25,7 @@ interface MonthGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
@@ -164,6 +165,7 @@ function DayCell({
   events,
   onDateSelect,
   onCreateEvent,
+  onEventClick,
 }: {
   day: Date;
   monthStart: Date;
@@ -171,6 +173,7 @@ function DayCell({
   events: CalendarEvent[];
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
@@ -181,20 +184,41 @@ function DayCell({
     onCreateEvent(day);
   };
 
+  const handleCellKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCellClick();
+    }
+  };
+
+  // Not a <button> — event chips inside are their own <button>s, and
+  // buttons can't nest. role="button" + onKeyDown keeps the empty-area
+  // click keyboard-accessible.
   return (
-    <button onClick={handleCellClick} className={getCellClasses(day, monthStart)}>
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCellClick}
+      onKeyDown={handleCellKeyDown}
+      className={getCellClasses(day, monthStart)}
+    >
       <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
         {format(day, "d")}
       </span>
       <div className="flex w-full min-w-0 flex-col gap-0.5">
         {visibleEvents.map((event) => (
-          <span
+          <button
             key={event.id}
+            type="button"
             title={event.title}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEventClick(event);
+            }}
             className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(event.color)}`}
           >
             {event.title}
-          </span>
+          </button>
         ))}
         {overflowCount > 0 && (
           <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
@@ -202,7 +226,7 @@ function DayCell({
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -213,6 +237,7 @@ export default function MonthGrid({
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
+  onEventClick,
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
@@ -236,6 +261,7 @@ export default function MonthGrid({
             events={events}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
+            onEventClick={onEventClick}
           />
         ))}
       </div>

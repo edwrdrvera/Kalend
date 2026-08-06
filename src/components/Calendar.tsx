@@ -100,13 +100,22 @@ export default function Calendar() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+  const [modalEvent, setModalEvent] = useState<CalendarEvent | null>(null);
   const [modalInitialStart, setModalInitialStart] = useState<Date | undefined>();
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
   const handleCreateEvent = (day: Date) => {
     setModalMode("create");
+    setModalEvent(null);
     setModalInitialStart(day);
+    setModalError(null);
+    setModalOpen(true);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    setModalMode("edit");
+    setModalEvent(event);
     setModalError(null);
     setModalOpen(true);
   };
@@ -116,21 +125,36 @@ export default function Calendar() {
     setModalError(null);
 
     try {
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: values.title,
-          start_at: values.startAt,
-          end_at: values.endAt,
-          color: values.color,
-          user_id: PLACEHOLDER_USER_ID,
-        }),
-      });
+      const isEdit = modalMode === "edit" && modalEvent;
+      const res = await fetch(
+        isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            isEdit
+              ? {
+                  title: values.title,
+                  start_at: values.startAt,
+                  end_at: values.endAt,
+                  color: values.color,
+                }
+              : {
+                  title: values.title,
+                  start_at: values.startAt,
+                  end_at: values.endAt,
+                  color: values.color,
+                  user_id: PLACEHOLDER_USER_ID,
+                }
+          ),
+        }
+      );
       const json: EventMutationResponse = await res.json();
 
       if (!res.ok || !json.success || !json.data) {
-        throw new Error(json.error ?? "Failed to create event");
+        throw new Error(
+          json.error ?? `Failed to ${isEdit ? "update" : "create"} event`
+        );
       }
 
       setModalOpen(false);
@@ -158,11 +182,13 @@ export default function Calendar() {
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
         onCreateEvent={handleCreateEvent}
+        onEventClick={handleEventClick}
       />
       <EventModal
         open={modalOpen}
         onOpenChange={setModalOpen}
         mode={modalMode}
+        event={modalEvent}
         initialStart={modalInitialStart}
         onSubmit={handleModalSubmit}
         submitting={modalSubmitting}
