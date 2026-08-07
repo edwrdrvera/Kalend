@@ -109,7 +109,9 @@ export default function EventModal({
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="event-title">Title</Label>
+            <Label htmlFor="event-title" className="sr-only">
+              Title
+            </Label>
             <Input
               id="event-title"
               value={title}
@@ -117,6 +119,11 @@ export default function EventModal({
               placeholder="Event title"
               required
               autoFocus
+              className={cn(
+                "h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input/40 bg-transparent px-0 py-1.5 text-xl font-semibold shadow-none",
+                "placeholder:text-muted-foreground/50",
+                "focus-visible:border-primary focus-visible:ring-0"
+              )}
             />
           </div>
 
