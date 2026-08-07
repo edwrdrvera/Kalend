@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
+import PlaceholderGrid from "./PlaceholderGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
+import type { CalendarView } from "./ViewSwitcher";
 
 // Wire shape of an event as returned by GET /api/events: dates arrive as
 // ISO strings over JSON, not the `Date` objects the Drizzle `Event` type
@@ -38,6 +40,7 @@ const PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000";
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
+  const [view, setView] = useState<CalendarView>("month");
   const [mounted, setMounted] = useState(false);
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -228,15 +231,27 @@ export default function Calendar() {
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
       />
-      <MonthGrid
-        selectedDate={selectedDate}
-        viewDate={viewDate}
-        events={events}
-        onDateSelect={handleDateSelect}
-        onViewDateChange={setViewDate}
-        onCreateEvent={handleCreateEvent}
-        onEventClick={handleEventClick}
-      />
+      {view === "month" ? (
+        <MonthGrid
+          selectedDate={selectedDate}
+          viewDate={viewDate}
+          events={events}
+          onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          view={view}
+          onViewChange={setView}
+        />
+      ) : (
+        <PlaceholderGrid
+          view={view}
+          viewDate={viewDate}
+          onViewDateChange={setViewDate}
+          onDateSelect={handleDateSelect}
+          onViewChange={setView}
+        />
+      )}
       <EventModal
         key={modalKey}
         open={modalOpen}
