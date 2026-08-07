@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   EVENT_COLORS,
@@ -173,6 +174,58 @@ function TimeRangeField({
   );
 }
 
+/** Collapsed: a single circular swatch for the active color. Popout: the
+ *  full palette in a shadcn Popover. Picking a color updates the indicator
+ *  and closes the popover (tracked explicitly — Popover only auto-closes
+ *  on outside click/Escape, not on an arbitrary click inside its content). */
+function ColorPickerField({
+  color,
+  onColorChange,
+}: {
+  color: EventColor;
+  onColorChange: (color: EventColor) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          aria-label={`Change color, currently ${color}`}
+          className={cn(
+            "size-7 shrink-0 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-popover transition-all hover:scale-105 hover:ring-foreground/20",
+            EVENT_COLOR_SWATCH_CLASSES[color]
+          )}
+        />
+        <PopoverContent className="w-auto p-2.5">
+          <div className="flex flex-wrap gap-2">
+            {EVENT_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  onColorChange(c);
+                  setOpen(false);
+                }}
+                aria-label={c}
+                aria-pressed={color === c}
+                className={cn(
+                  "size-6 rounded-full transition-transform",
+                  EVENT_COLOR_SWATCH_CLASSES[c],
+                  color === c
+                    ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"
+                    : "hover:scale-110"
+                )}
+              />
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <span className="text-sm text-muted-foreground capitalize">{color}</span>
+    </div>
+  );
+}
+
 export default function EventModal({
   open,
   onOpenChange,
@@ -258,27 +311,7 @@ export default function EventModal({
             onEndAtChange={setEndAt}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2">
-              {EVENT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  aria-label={c}
-                  aria-pressed={color === c}
-                  className={cn(
-                    "size-6 rounded-full transition-transform",
-                    EVENT_COLOR_SWATCH_CLASSES[c],
-                    color === c
-                      ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"
-                      : "hover:scale-110"
-                  )}
-                />
-              ))}
-            </div>
-          </div>
+          <ColorPickerField color={color} onColorChange={setColor} />
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
