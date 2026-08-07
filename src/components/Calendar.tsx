@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
+import WeekGrid from "./WeekGrid";
 import PlaceholderGrid from "./PlaceholderGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
 import type { CalendarView } from "./ViewSwitcher";
@@ -93,12 +94,15 @@ export default function Calendar() {
     };
   }, [viewDate]);
 
-  // Selecting a day (from either the mini calendar or the main grid) also
-  // moves the shared view to that day's month, so both stay in sync no
-  // matter which one triggered the change.
+  // Selecting a day (from the mini calendar, or any of the main grids) also
+  // moves the shared view to that day, so both stay in sync no matter which
+  // one triggered the change. In month view that means jumping to that
+  // day's month; in week/day view, viewDate becomes the day itself, since
+  // WeekGrid/DayGrid derive the days they show from it directly, jumping to
+  // that day's month would skip past the week or day actually clicked.
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    setViewDate(startOfMonth(date));
+    setViewDate(view === "month" ? startOfMonth(date) : date);
   };
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -231,7 +235,7 @@ export default function Calendar() {
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
       />
-      {view === "month" ? (
+      {view === "month" && (
         <MonthGrid
           selectedDate={selectedDate}
           viewDate={viewDate}
@@ -243,7 +247,21 @@ export default function Calendar() {
           view={view}
           onViewChange={setView}
         />
-      ) : (
+      )}
+      {view === "week" && (
+        <WeekGrid
+          selectedDate={selectedDate}
+          viewDate={viewDate}
+          events={events}
+          onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          view={view}
+          onViewChange={setView}
+        />
+      )}
+      {view === "day" && (
         <PlaceholderGrid
           view={view}
           viewDate={viewDate}
