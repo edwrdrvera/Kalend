@@ -208,7 +208,20 @@ export default function Calendar() {
   if (!mounted) return null;
 
   return (
-    <div className="flex h-full w-full overflow-hidden text-neutral-200">
+    <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
+      {eventsError && (
+        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
+          <span>{eventsError}</span>
+          <button
+            type="button"
+            onClick={() => setEventsError(null)}
+            aria-label="Dismiss"
+            className="text-neutral-400 transition-colors hover:text-neutral-200"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <CalendarSidebar
         currentDate={selectedDate}
         viewDate={viewDate}
@@ -232,6 +245,7 @@ export default function Calendar() {
         event={modalEvent}
         initialStart={modalInitialStart}
         onSubmit={handleModalSubmit}
+        onDelete={handleDeleteEvent}
         submitting={modalSubmitting}
         error={modalError}
       />
