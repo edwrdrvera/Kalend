@@ -274,9 +274,9 @@ export default function EventModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <DialogHeader>
+      <DialogContent className="gap-0 p-6 sm:max-w-md">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <DialogHeader className="gap-1">
             <DialogTitle>{mode === "edit" ? "Edit event" : "New event"}</DialogTitle>
             <DialogDescription>
               {mode === "edit"
@@ -315,8 +315,8 @@ export default function EventModal({
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <DialogFooter>
-            <Button type="submit" disabled={submitting}>
+          <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
+            <Button type="submit" size="lg" disabled={submitting} className="w-full">
               {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}
             </Button>
           </DialogFooter>
