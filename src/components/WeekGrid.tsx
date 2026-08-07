@@ -25,6 +25,7 @@ interface WeekGridProps {
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onEventMove: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -93,6 +94,7 @@ export default function WeekGrid({
   onViewDateChange,
   onCreateEvent,
   onEventClick,
+  onEventMove,
   view,
   onViewChange,
 }: WeekGridProps) {
@@ -118,6 +120,7 @@ export default function WeekGrid({
         days={days}
         events={timedEvents}
         onEventClick={onEventClick}
+        onEventMove={onEventMove}
         onSlotClick={(day, hour) => {
           onDateSelect(day);
           onCreateEvent(setHours(day, hour));
