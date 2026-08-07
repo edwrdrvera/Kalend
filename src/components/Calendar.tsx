@@ -178,10 +178,50 @@ export default function Calendar() {
     }
   };
 
+  // Optimistic: remove from state and close the modal immediately, rather
+  // than waiting on the DELETE response. On failure the event is put back
+  // and eventsError surfaces why.
+  const handleDeleteEvent = async () => {
+    if (!modalEvent) return;
+
+    const eventToDelete = modalEvent;
+    setEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
+    setModalOpen(false);
+
+    try {
+      const res = await fetch(`/api/events/${eventToDelete.id}`, {
+        method: "DELETE",
+      });
+      const json: EventMutationResponse = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? "Failed to delete event");
+      }
+    } catch (err) {
+      setEvents((prev) => [...prev, eventToDelete]);
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to delete event"
+      );
+    }
+  };
+
   if (!mounted) return null;
 
   return (
-    <div className="flex h-full w-full overflow-hidden text-neutral-200">
+    <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
+      {eventsError && (
+        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
+          <span>{eventsError}</span>
+          <button
+            type="button"
+            onClick={() => setEventsError(null)}
+            aria-label="Dismiss"
+            className="text-neutral-400 transition-colors hover:text-neutral-200"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <CalendarSidebar
         currentDate={selectedDate}
         viewDate={viewDate}
@@ -205,6 +245,7 @@ export default function Calendar() {
         event={modalEvent}
         initialStart={modalInitialStart}
         onSubmit={handleModalSubmit}
+        onDelete={handleDeleteEvent}
         submitting={modalSubmitting}
         error={modalError}
       />

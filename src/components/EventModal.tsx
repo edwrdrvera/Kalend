@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { format, isSameDay } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,8 @@ interface EventModalProps {
   /** Pre-populates the start time when mode is "create" (e.g. the clicked day). */
   initialStart?: Date;
   onSubmit: (values: EventFormValues) => void;
+  /** Only called (and only rendered) when mode is "edit". */
+  onDelete?: () => void;
   submitting?: boolean;
   error?: string | null;
 }
@@ -230,6 +232,7 @@ export default function EventModal({
   event,
   initialStart,
   onSubmit,
+  onDelete,
   submitting = false,
   error = null,
 }: EventModalProps) {
@@ -272,6 +275,18 @@ export default function EventModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-6 sm:max-w-md">
+        {mode === "edit" && onDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onDelete}
+            aria-label="Delete event"
+            className="absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 />
+          </Button>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader className="gap-1">
             <DialogTitle>{mode === "edit" ? "Edit event" : "New event"}</DialogTitle>
