@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
+import { Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,129 @@ const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 function toDateTimeLocal(date: Date): string {
   return format(date, "yyyy-MM-dd'T'HH:mm");
+}
+
+function splitDateTimeLocal(value: string): { date: string; time: string } {
+  const [date = "", time = ""] = value.split("T");
+  return { date, time };
+}
+
+function joinDateTimeLocal(date: string, time: string): string {
+  return `${date}T${time || "00:00"}`;
+}
+
+function formatTimeRangeSummary(startValue: string, endValue: string): string {
+  const start = new Date(startValue);
+  const end = new Date(endValue);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "Select a time";
+  }
+
+  if (isSameDay(start, end)) {
+    return `${format(start, "EEEE, MMM d")} · ${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
+  }
+
+  return `${format(start, "EEE, MMM d, h:mm a")} – ${format(end, "EEE, MMM d, h:mm a")}`;
+}
+
+/** Collapsed: a single clickable summary ("Thursday, Aug 6 · 12:00 PM – 1:00
+ *  PM"). Expanded: separate date/time pickers for start and end. Both
+ *  panels stay mounted and cross-fade via a grid-template-rows transition,
+ *  so revealing the pickers is an animation rather than an instant swap. */
+function TimeRangeField({
+  startAt,
+  endAt,
+  onStartAtChange,
+  onEndAtChange,
+}: {
+  startAt: string;
+  endAt: string;
+  onStartAtChange: (value: string) => void;
+  onEndAtChange: (value: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const start = splitDateTimeLocal(startAt);
+  const end = splitDateTimeLocal(endAt);
+
+  return (
+    <div className="flex flex-col">
+      <div
+        inert={expanded}
+        className={cn(
+          "grid transition-all duration-200 ease-in-out",
+          expanded ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+        )}
+      >
+        <div className="overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="-mx-2.5 flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-foreground/90 transition-colors hover:bg-muted/50"
+          >
+            <Clock className="size-4 shrink-0 text-muted-foreground" />
+            <span>{formatTimeRangeSummary(startAt, endAt)}</span>
+          </button>
+        </div>
+      </div>
+
+      <div
+        inert={!expanded}
+        className={cn(
+          "grid transition-all duration-200 ease-in-out",
+          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">Start</Label>
+              <div className="flex gap-1.5">
+                <Input
+                  type="date"
+                  value={start.date}
+                  onChange={(e) =>
+                    onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
+                  }
+                  required={expanded}
+                />
+                <Input
+                  type="time"
+                  value={start.time}
+                  onChange={(e) =>
+                    onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
+                  }
+                  required={expanded}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs text-muted-foreground">End</Label>
+              <div className="flex gap-1.5">
+                <Input
+                  type="date"
+                  value={end.date}
+                  onChange={(e) =>
+                    onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
+                  }
+                  required={expanded}
+                />
+                <Input
+                  type="time"
+                  value={end.time}
+                  onChange={(e) =>
+                    onEndAtChange(joinDateTimeLocal(end.date, e.target.value))
+                  }
+                  required={expanded}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function EventModal({
@@ -127,28 +251,12 @@ export default function EventModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="event-start">Start</Label>
-              <Input
-                id="event-start"
-                type="datetime-local"
-                value={startAt}
-                onChange={(e) => setStartAt(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="event-end">End</Label>
-              <Input
-                id="event-end"
-                type="datetime-local"
-                value={endAt}
-                onChange={(e) => setEndAt(e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          <TimeRangeField
+            startAt={startAt}
+            endAt={endAt}
+            onStartAtChange={setStartAt}
+            onEndAtChange={setEndAt}
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label>Color</Label>
