@@ -178,6 +178,33 @@ export default function Calendar() {
     }
   };
 
+  // Optimistic: remove from state and close the modal immediately, rather
+  // than waiting on the DELETE response. On failure the event is put back
+  // and eventsError surfaces why.
+  const handleDeleteEvent = async () => {
+    if (!modalEvent) return;
+
+    const eventToDelete = modalEvent;
+    setEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
+    setModalOpen(false);
+
+    try {
+      const res = await fetch(`/api/events/${eventToDelete.id}`, {
+        method: "DELETE",
+      });
+      const json: EventMutationResponse = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? "Failed to delete event");
+      }
+    } catch (err) {
+      setEvents((prev) => [...prev, eventToDelete]);
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to delete event"
+      );
+    }
+  };
+
   if (!mounted) return null;
 
   return (
