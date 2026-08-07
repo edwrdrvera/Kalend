@@ -5,7 +5,7 @@ import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
-import PlaceholderGrid from "./PlaceholderGrid";
+import DayGrid from "./DayGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -262,11 +262,14 @@ export default function Calendar() {
         />
       )}
       {view === "day" && (
-        <PlaceholderGrid
-          view={view}
+        <DayGrid
           viewDate={viewDate}
-          onViewDateChange={setViewDate}
+          events={events}
           onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          view={view}
           onViewChange={setView}
         />
       )}
