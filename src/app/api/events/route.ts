@@ -1,12 +1,25 @@
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const allEvents = await db.select().from(events);
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
-    return NextResponse.json({ success: true, data: allEvents });
+    const userEvents = await db
+      .select()
+      .from(events)
+      .where(eq(events.user_id, user.id));
+
+    return NextResponse.json({ success: true, data: userEvents });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(
