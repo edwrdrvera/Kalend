@@ -15,7 +15,7 @@ interface DayGridProps {
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
-  onEventMove: (event: CalendarEvent, start: Date, end: Date) => void;
+  onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
