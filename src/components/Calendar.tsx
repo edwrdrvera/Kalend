@@ -276,6 +276,49 @@ export default function Calendar() {
     }
   };
 
+  const handleEventResize = async (event: CalendarEvent, start: Date, end: Date) => {
+    const previousStartAt = event.start_at;
+    const previousEndAt = event.end_at;
+    const optimisticEvent: CalendarEvent = {
+      ...event,
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+    };
+
+    setEvents((prev) =>
+      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
+    );
+
+    try {
+      const json = await mutateEvent(
+        `/api/events/${event.id}`,
+        "PATCH",
+        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
+        "Failed to update event"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to update event");
+      }
+
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
+      );
+    } catch (err) {
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === event.id
+            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
+            : e
+        )
+      );
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to update event"
+      );
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -322,6 +365,7 @@ export default function Calendar() {
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
           onEventMove={handleEventMove}
+          onEventResize={handleEventResize}
           view={view}
           onViewChange={setView}
         />
@@ -335,6 +379,7 @@ export default function Calendar() {
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
           onEventMove={handleEventMove}
+          onEventResize={handleEventResize}
           view={view}
           onViewChange={setView}
         />

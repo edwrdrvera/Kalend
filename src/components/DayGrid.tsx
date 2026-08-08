@@ -16,6 +16,7 @@ interface DayGridProps {
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
+  onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -31,6 +32,7 @@ export default function DayGrid({
   onCreateEvent,
   onEventClick,
   onEventMove,
+  onEventResize,
   view,
   onViewChange,
 }: DayGridProps) {
@@ -53,6 +55,7 @@ export default function DayGrid({
         events={timedEvents}
         onEventClick={onEventClick}
         onEventMove={onEventMove}
+        onEventResize={onEventResize}
         onSlotClick={(day, hour) => onCreateEvent(setHours(day, hour))}
       />
     </div>
