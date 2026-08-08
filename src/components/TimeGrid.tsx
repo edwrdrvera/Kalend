@@ -506,9 +506,14 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded px-1.5 py-0.5 text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(event.color)}`}
+                    className={`absolute overflow-hidden rounded text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(event.color)}`}
                   >
-                    {event.title}
+                    {/* Absolutely positioned (not just first in flow) so the
+                     *  title always sits at the block's top-left corner —
+                     *  including in a MIN_BLOCK_HEIGHT_PERCENT-clamped short
+                     *  event, where flow content could otherwise center or
+                     *  drift within the padded box. */}
+                    <span className="absolute inset-x-1.5 top-0.5 truncate">{event.title}</span>
 
                     {onEventResize && !moveDrag?.moved && (
                       <>
@@ -545,16 +550,30 @@ export default function TimeGrid({
             // moves the ghost purely via `transform`, written directly to
             // this node on every pointer move so it tracks the cursor
             // exactly instead of jumping between SNAP_MINUTES positions.
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded px-1.5 py-0.5 text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(draggedEvent.color)}`}
+            //
+            // top/height are px, not %: gridRef (this element's parent) can
+            // render taller than DAY_HEIGHT_PX — it's a flex-1 child that
+            // stretches to fill any leftover viewport space below the
+            // 24-hour content — while every real event block is a
+            // percentage of its own day column, which stays exactly
+            // DAY_HEIGHT_PX. Percentages of the two different heights drift
+            // apart the further down the day an event sits, so the ghost
+            // needs the same fixed pixel scale the real blocks get for
+            // free from their day column. left/width stay percentages
+            // since gridRef's width always matches the day columns' summed
+            // width exactly (no analogous stretch happens horizontally).
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(draggedEvent.color)}`}
             style={{
               left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,
-              top: `${(moveDrag.originalStartMinutes / MINUTES_PER_DAY) * 100}%`,
-              height: `${(moveDrag.durationMinutes / MINUTES_PER_DAY) * 100}%`,
+              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
+              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
               transform: "translate3d(0, 0, 0)",
             }}
           >
-            {draggedEvent.title}
+            {/* Same top-left-pinned title treatment as the real block above,
+             *  so the name doesn't drift within the ghost either. */}
+            <span className="absolute inset-x-1.5 top-0.5 truncate">{draggedEvent.title}</span>
           </div>
         )}
       </div>
