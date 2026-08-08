@@ -19,7 +19,10 @@ describe("Supabase Auth Flows", () => {
   });
 
   it("handles login failure with invalid credentials error", async () => {
-    const mockSignIn = mock(async (_credentials: { email: string; password: string }) => {
+    const mockSignIn = mock(async (credentials: { email: string; password: string }) => {
+      if (credentials.email) {
+        return { data: { user: null, session: null }, error: { message: "Invalid login credentials" } };
+      }
       return { data: { user: null, session: null }, error: { message: "Invalid login credentials" } };
     });
 
@@ -63,7 +66,13 @@ describe("Supabase Auth Flows", () => {
   });
 
   it("handles signup error when user is already registered", async () => {
-    const mockSignUp = mock(async (_credentials: { email: string; password: string }) => {
+    const mockSignUp = mock(async (credentials: { email: string; password: string }) => {
+      if (credentials.email) {
+        return {
+          data: { user: null, session: null },
+          error: { message: "User already registered" },
+        };
+      }
       return {
         data: { user: null, session: null },
         error: { message: "User already registered" },
