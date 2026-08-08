@@ -33,21 +33,26 @@ interface CreateEventBody {
   title: string;
   start_at: string;
   end_at: string;
-  // TODO: derive from the authenticated session instead of trusting the
-  // request body once feature/auth-middleware-protected-routes lands.
-  user_id: string;
   color?: string;
 }
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body: CreateEventBody = await request.json();
 
-    if (!body.title || !body.start_at || !body.end_at || !body.user_id) {
+    if (!body.title || !body.start_at || !body.end_at) {
       return NextResponse.json(
         {
           success: false,
-          error: "title, start_at, end_at, and user_id are required",
+          error: "title, start_at, and end_at are required",
         },
         { status: 400 }
       );
@@ -69,7 +74,7 @@ export async function POST(request: Request) {
         title: body.title,
         start_at: startAt,
         end_at: endAt,
-        user_id: body.user_id,
+        user_id: user.id,
         color: body.color,
       })
       .returning();
