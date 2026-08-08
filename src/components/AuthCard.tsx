@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { validateAuthForm } from "@/lib/auth-validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,22 +29,13 @@ export default function AuthCard({ mode }: AuthCardProps) {
     setError(null);
     setInfo(null);
 
-    const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setError("Please enter your email address.");
+    const validation = validateAuthForm(email, password);
+    if (!validation.valid || !validation.trimmedEmail) {
+      setError(validation.error ?? "Invalid input.");
       return;
     }
 
-    if (!password) {
-      setError("Please enter your password.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-
+    const trimmedEmail = validation.trimmedEmail;
     setLoading(true);
 
     try {
