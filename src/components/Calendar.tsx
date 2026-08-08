@@ -4,7 +4,10 @@ import { useState, useEffect } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
+import WeekGrid from "./WeekGrid";
+import DayGrid from "./DayGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
+import type { CalendarView } from "./ViewSwitcher";
 
 // Wire shape of an event as returned by GET /api/events: dates arrive as
 // ISO strings over JSON, not the `Date` objects the Drizzle `Event` type
@@ -29,6 +32,29 @@ interface EventMutationResponse {
   error?: string;
 }
 
+// Shared by create/edit, delete, and move below, which otherwise each
+// re-implement the same fetch-then-check-the-response-shape block. Doesn't
+// enforce `data` being present, since DELETE's response doesn't include
+// it — callers that need `data` (create/edit, move) check for it after.
+async function mutateEvent(
+  url: string,
+  method: "POST" | "PATCH" | "DELETE",
+  body: object | undefined,
+  fallbackError: string
+): Promise<EventMutationResponse> {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json: EventMutationResponse = await res.json();
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error ?? fallbackError);
+  }
+  return json;
+}
+
 // TODO: derive from the authenticated session once
 // feature/auth-middleware-protected-routes lands — there's no login flow
 // yet, so this matches the placeholder user_id already used by
@@ -38,6 +64,7 @@ const PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000";
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
+  const [view, setView] = useState<CalendarView>("month");
   const [mounted, setMounted] = useState(false);
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -90,12 +117,15 @@ export default function Calendar() {
     };
   }, [viewDate]);
 
-  // Selecting a day (from either the mini calendar or the main grid) also
-  // moves the shared view to that day's month, so both stay in sync no
-  // matter which one triggered the change.
+  // Selecting a day (from the mini calendar, or any of the main grids) also
+  // moves the shared view to that day, so both stay in sync no matter which
+  // one triggered the change. In month view that means jumping to that
+  // day's month; in week/day view, viewDate becomes the day itself, since
+  // WeekGrid/DayGrid derive the days they show from it directly, jumping to
+  // that day's month would skip past the week or day actually clicked.
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    setViewDate(startOfMonth(date));
+    setViewDate(view === "month" ? startOfMonth(date) : date);
   };
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -132,35 +162,29 @@ export default function Calendar() {
 
     try {
       const isEdit = modalMode === "edit" && modalEvent;
-      const res = await fetch(
+      const fallbackError = `Failed to ${isEdit ? "update" : "create"} event`;
+      const json = await mutateEvent(
         isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
-        {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            isEdit
-              ? {
-                  title: values.title,
-                  start_at: values.startAt,
-                  end_at: values.endAt,
-                  color: values.color,
-                }
-              : {
-                  title: values.title,
-                  start_at: values.startAt,
-                  end_at: values.endAt,
-                  color: values.color,
-                  user_id: PLACEHOLDER_USER_ID,
-                }
-          ),
-        }
+        isEdit ? "PATCH" : "POST",
+        isEdit
+          ? {
+              title: values.title,
+              start_at: values.startAt,
+              end_at: values.endAt,
+              color: values.color,
+            }
+          : {
+              title: values.title,
+              start_at: values.startAt,
+              end_at: values.endAt,
+              color: values.color,
+              user_id: PLACEHOLDER_USER_ID,
+            },
+        fallbackError
       );
-      const json: EventMutationResponse = await res.json();
 
-      if (!res.ok || !json.success || !json.data) {
-        throw new Error(
-          json.error ?? `Failed to ${isEdit ? "update" : "create"} event`
-        );
+      if (!json.data) {
+        throw new Error(fallbackError);
       }
 
       const savedEvent = json.data;
@@ -189,18 +213,108 @@ export default function Calendar() {
     setModalOpen(false);
 
     try {
-      const res = await fetch(`/api/events/${eventToDelete.id}`, {
-        method: "DELETE",
-      });
-      const json: EventMutationResponse = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error ?? "Failed to delete event");
-      }
+      await mutateEvent(
+        `/api/events/${eventToDelete.id}`,
+        "DELETE",
+        undefined,
+        "Failed to delete event"
+      );
     } catch (err) {
       setEvents((prev) => [...prev, eventToDelete]);
       setEventsError(
         err instanceof Error ? err.message : "Failed to delete event"
+      );
+    }
+  };
+
+  // Optimistic: applies the new start/end immediately (so the drag doesn't
+  // snap back while the request is in flight), then reconciles with the
+  // server response. On failure, only start_at/end_at are rolled back
+  // (not the whole event) so a concurrent edit that succeeded in the
+  // meantime — e.g. a title change via the modal while this move's PATCH
+  // was still in flight — isn't discarded along with the failed move.
+  const handleEventMove = async (event: CalendarEvent, start: Date, end: Date) => {
+    const previousStartAt = event.start_at;
+    const previousEndAt = event.end_at;
+    const optimisticEvent: CalendarEvent = {
+      ...event,
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+    };
+
+    setEvents((prev) =>
+      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
+    );
+
+    try {
+      const json = await mutateEvent(
+        `/api/events/${event.id}`,
+        "PATCH",
+        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
+        "Failed to update event"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to update event");
+      }
+
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
+      );
+    } catch (err) {
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === event.id
+            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
+            : e
+        )
+      );
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to update event"
+      );
+    }
+  };
+
+  const handleEventResize = async (event: CalendarEvent, start: Date, end: Date) => {
+    const previousStartAt = event.start_at;
+    const previousEndAt = event.end_at;
+    const optimisticEvent: CalendarEvent = {
+      ...event,
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+    };
+
+    setEvents((prev) =>
+      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
+    );
+
+    try {
+      const json = await mutateEvent(
+        `/api/events/${event.id}`,
+        "PATCH",
+        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
+        "Failed to update event"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to update event");
+      }
+
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
+      );
+    } catch (err) {
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === event.id
+            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
+            : e
+        )
+      );
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to update event"
       );
     }
   };
@@ -228,15 +342,48 @@ export default function Calendar() {
         onDateSelect={handleDateSelect}
         onViewDateChange={setViewDate}
       />
-      <MonthGrid
-        selectedDate={selectedDate}
-        viewDate={viewDate}
-        events={events}
-        onDateSelect={handleDateSelect}
-        onViewDateChange={setViewDate}
-        onCreateEvent={handleCreateEvent}
-        onEventClick={handleEventClick}
-      />
+      {view === "month" && (
+        <MonthGrid
+          selectedDate={selectedDate}
+          viewDate={viewDate}
+          events={events}
+          onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          view={view}
+          onViewChange={setView}
+        />
+      )}
+      {view === "week" && (
+        <WeekGrid
+          selectedDate={selectedDate}
+          viewDate={viewDate}
+          events={events}
+          onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          onEventMove={handleEventMove}
+          onEventResize={handleEventResize}
+          view={view}
+          onViewChange={setView}
+        />
+      )}
+      {view === "day" && (
+        <DayGrid
+          viewDate={viewDate}
+          events={events}
+          onDateSelect={handleDateSelect}
+          onViewDateChange={setViewDate}
+          onCreateEvent={handleCreateEvent}
+          onEventClick={handleEventClick}
+          onEventMove={handleEventMove}
+          onEventResize={handleEventResize}
+          view={view}
+          onViewChange={setView}
+        />
+      )}
       <EventModal
         key={modalKey}
         open={modalOpen}

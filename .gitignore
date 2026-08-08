@@ -44,3 +44,4 @@ next-env.d.ts
 # Claude Code local state
 .claude/
 TASKS.md
+RESUME_NOTES.md
