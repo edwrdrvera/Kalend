@@ -160,20 +160,12 @@ export default function Calendar() {
       const json = await mutateEvent(
         isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
         isEdit ? "PATCH" : "POST",
-        isEdit
-          ? {
-              title: values.title,
-              start_at: values.startAt,
-              end_at: values.endAt,
-              color: values.color,
-            }
-          : {
-              title: values.title,
-              start_at: values.startAt,
-              end_at: values.endAt,
-              color: values.color,
-              user_id: PLACEHOLDER_USER_ID,
-            },
+        {
+          title: values.title,
+          start_at: values.startAt,
+          end_at: values.endAt,
+          color: values.color,
+        },
         fallbackError
       );
 
