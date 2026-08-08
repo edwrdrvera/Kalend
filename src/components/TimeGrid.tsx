@@ -114,13 +114,21 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
   const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
   // Mirrors `moveDrag` so the rAF callback scheduled below always reads the
   // latest drag state instead of whatever was current when it was queued.
+  // Synced via an effect (not assigned inline) since refs can't be written
+  // during render.
   const moveDragRef = useRef<MoveDrag | null>(null);
-  moveDragRef.current = moveDrag;
-  // Records which event's drag last ended and when, so the click that
-  // follows a real drag's pointerup can be told apart from an unrelated
-  // click — scoped to that one event and bounded to CLICK_SUPPRESS_WINDOW_MS
-  // rather than a flag that could get stuck true if the click never fires.
-  const lastDragRef = useRef<{ eventId: string; time: number } | null>(null);
+  useEffect(() => {
+    moveDragRef.current = moveDrag;
+  });
+  // Holds the id of the event whose drag most recently ended, so the click
+  // that follows a real drag's pointerup can be told apart from an
+  // unrelated click on the same block — cleared automatically after
+  // CLICK_SUPPRESS_WINDOW_MS via suppressClearTimeoutRef below rather than
+  // left for a click to clear, so it can't get stuck if that click never
+  // fires. (A setTimeout, not a Date.now() comparison, so nothing impure
+  // needs to be read from inside the component body.)
+  const lastDraggedEventIdRef = useRef<string | null>(null);
+  const suppressClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Coalesces rapid native pointermove events (which can fire faster than
   // the display refreshes) into at most one state update — and one
   // re-render, re-running layoutDayEvents for every day column — per
@@ -140,7 +148,14 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     }
   }
 
-  useEffect(() => cancelPendingMoveFrame, []);
+  useEffect(() => {
+    return () => {
+      cancelPendingMoveFrame();
+      if (suppressClearTimeoutRef.current !== null) {
+        clearTimeout(suppressClearTimeoutRef.current);
+      }
+    };
+  }, []);
 
   function handleMovePointerDown(
     e: ReactPointerEvent<HTMLButtonElement>,
@@ -223,7 +238,15 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     if (!moveDrag) return;
 
     if (moveDrag.moved) {
-      lastDragRef.current = { eventId: event.id, time: Date.now() };
+      lastDraggedEventIdRef.current = event.id;
+      if (suppressClearTimeoutRef.current !== null) {
+        clearTimeout(suppressClearTimeoutRef.current);
+      }
+      suppressClearTimeoutRef.current = setTimeout(() => {
+        lastDraggedEventIdRef.current = null;
+        suppressClearTimeoutRef.current = null;
+      }, CLICK_SUPPRESS_WINDOW_MS);
+
       const dayStart = startOfDay(days[moveDrag.liveDayIndex]);
       onEventMove?.(
         event,
@@ -236,12 +259,12 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
-    const lastDrag = lastDragRef.current;
-    if (
-      lastDrag &&
-      lastDrag.eventId === event.id &&
-      Date.now() - lastDrag.time < CLICK_SUPPRESS_WINDOW_MS
-    ) {
+    if (lastDraggedEventIdRef.current === event.id) {
+      lastDraggedEventIdRef.current = null;
+      if (suppressClearTimeoutRef.current !== null) {
+        clearTimeout(suppressClearTimeoutRef.current);
+        suppressClearTimeoutRef.current = null;
+      }
       return;
     }
     onEventClick?.(event);
