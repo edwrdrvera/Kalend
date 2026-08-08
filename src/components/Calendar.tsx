@@ -55,12 +55,6 @@ async function mutateEvent(
   return json;
 }
 
-// TODO: derive from the authenticated session once
-// feature/auth-middleware-protected-routes lands — there's no login flow
-// yet, so this matches the placeholder user_id already used by
-// src/db/data/data.csv's sample events.
-const PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000";
-
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
