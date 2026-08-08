@@ -17,10 +17,15 @@ const HOUR_HEIGHT_PX = 56;
 const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
 const MINUTES_PER_DAY = 24 * 60;
 
-// Move drags snap to this increment; a drag shorter than this (in any
-// direction) is treated as a click rather than a move.
+// Move drags snap the drop time to this increment.
 const SNAP_MINUTES = 15;
+// A press on an event block has to travel this many pixels before it counts
+// as a drag rather than a click (which opens the edit modal instead).
 const DRAG_THRESHOLD_PX = 4;
+// A click on an event block within this many ms of that same event's drag
+// ending is treated as the tail end of that drag, not a new click — bounded
+// rather than open-ended so a dropped click can't block future clicks.
+const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 function formatHourLabel(hour: number): string {
   if (hour === 0) return "";
@@ -57,20 +62,27 @@ function useCurrentTime(): Date {
  *  Minutes are relative to midnight of whichever day column is currently
  *  under the pointer, not full `Date`s, so the drag math stays simple;
  *  `handleMovePointerUp` converts back to real dates once the drag ends.
- *  `original*` stay fixed for the whole gesture (the anchor the drag
- *  computes deltas from); `live*` is what gets rendered as the drag moves.
- *  `moved` only flips true once the pointer travels past
- *  `DRAG_THRESHOLD_PX`, so a plain click never fires `onEventMove`. */
+ *  `durationMinutes`/`grabOffsetMinutes` stay fixed for the whole gesture;
+ *  `live*` is recomputed from the raw pointer position on every move (not
+ *  accumulated as a delta), so the block's start always lands on a clean
+ *  `SNAP_MINUTES` mark no matter where in the block it was grabbed or how
+ *  far the drag has travelled. `moved` only flips true once the pointer
+ *  travels past `DRAG_THRESHOLD_PX`, so a plain click never fires
+ *  `onEventMove`. */
 interface MoveDrag {
   eventId: string;
   pointerStartX: number;
   pointerStartY: number;
   originalDayIndex: number;
-  originalStartMinutes: number;
-  originalEndMinutes: number;
+  /** The event's real duration, taken from its start/end — not from the
+   *  rendered block's height, which `layoutDayEvents` clamps to a minimum
+   *  for short events and would otherwise inflate them on every move. */
+  durationMinutes: number;
+  /** Minutes between the pointer and the block's real (unclamped) top edge
+   *  at pickup, so the block doesn't jump to be centered under the cursor. */
+  grabOffsetMinutes: number;
   liveDayIndex: number;
   liveStartMinutes: number;
-  liveEndMinutes: number;
   moved: boolean;
 }
 
@@ -97,33 +109,39 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
-  // Set right before a real drag's onEventMove fires, so the click event
-  // that follows the same pointerup doesn't also open the edit modal.
-  const suppressClickRef = useRef(false);
+  // Records which event's drag last ended and when, so the click that
+  // follows a real drag's pointerup can be told apart from an unrelated
+  // click — scoped to that one event and bounded to CLICK_SUPPRESS_WINDOW_MS
+  // rather than a flag that could get stuck true if the click never fires.
+  const lastDragRef = useRef<{ eventId: string; time: number } | null>(null);
+
+  function clientYToMinutes(clientY: number): number {
+    const top = gridRef.current?.getBoundingClientRect().top ?? 0;
+    return ((clientY - top) / DAY_HEIGHT_PX) * MINUTES_PER_DAY;
+  }
 
   function handleMovePointerDown(
     e: ReactPointerEvent<HTMLButtonElement>,
     event: CalendarEvent,
     dayIndex: number,
-    top: number,
-    height: number
+    day: Date
   ) {
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    const originalStartMinutes = (top / 100) * MINUTES_PER_DAY;
-    const originalEndMinutes = ((top + height) / 100) * MINUTES_PER_DAY;
+    const dayStart = startOfDay(day);
+    const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
+    const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
 
     setMoveDrag({
       eventId: event.id,
       pointerStartX: e.clientX,
       pointerStartY: e.clientY,
       originalDayIndex: dayIndex,
-      originalStartMinutes,
-      originalEndMinutes,
+      durationMinutes: originalEndMinutes - originalStartMinutes,
+      grabOffsetMinutes: clientYToMinutes(e.clientY) - originalStartMinutes,
       liveDayIndex: dayIndex,
       liveStartMinutes: originalStartMinutes,
-      liveEndMinutes: originalEndMinutes,
       moved: false,
     });
   }
@@ -135,12 +153,14 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     const deltaY = e.clientY - moveDrag.pointerStartY;
     if (!moveDrag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
 
-    const duration = moveDrag.originalEndMinutes - moveDrag.originalStartMinutes;
-    const deltaMinutes = snapMinutes((deltaY / DAY_HEIGHT_PX) * MINUTES_PER_DAY);
+    // Snaps the absolute time under the pointer (minus the fixed grab
+    // offset), not the raw movement delta — so the block's start always
+    // lands on a clean SNAP_MINUTES mark even when the event's real start
+    // wasn't already on one.
     const liveStartMinutes = clampMinutes(
-      moveDrag.originalStartMinutes + deltaMinutes,
+      snapMinutes(clientYToMinutes(e.clientY) - moveDrag.grabOffsetMinutes),
       0,
-      MINUTES_PER_DAY - duration
+      MINUTES_PER_DAY - moveDrag.durationMinutes
     );
 
     let liveDayIndex = moveDrag.originalDayIndex;
@@ -156,7 +176,6 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
             ...prev,
             liveDayIndex,
             liveStartMinutes,
-            liveEndMinutes: liveStartMinutes + duration,
             moved: true,
           }
         : prev
@@ -167,12 +186,12 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     if (!moveDrag) return;
 
     if (moveDrag.moved) {
-      suppressClickRef.current = true;
+      lastDragRef.current = { eventId: event.id, time: Date.now() };
       const dayStart = startOfDay(days[moveDrag.liveDayIndex]);
       onEventMove?.(
         event,
         addMinutes(dayStart, moveDrag.liveStartMinutes),
-        addMinutes(dayStart, moveDrag.liveEndMinutes)
+        addMinutes(dayStart, moveDrag.liveStartMinutes + moveDrag.durationMinutes)
       );
     }
     setMoveDrag(null);
@@ -180,8 +199,12 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
+    const lastDrag = lastDragRef.current;
+    if (
+      lastDrag &&
+      lastDrag.eventId === event.id &&
+      Date.now() - lastDrag.time < CLICK_SUPPRESS_WINDOW_MS
+    ) {
       return;
     }
     onEventClick?.(event);
@@ -252,7 +275,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
                     key={event.id}
                     type="button"
                     title={event.title}
-                    onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, top, height)}
+                    onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onPointerMove={handleMovePointerMove}
                     onPointerUp={() => handleMovePointerUp(event)}
                     onPointerCancel={() => setMoveDrag(null)}
@@ -280,7 +303,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
               left: `${(moveDrag.liveDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,
               top: `${(moveDrag.liveStartMinutes / MINUTES_PER_DAY) * 100}%`,
-              height: `${((moveDrag.liveEndMinutes - moveDrag.liveStartMinutes) / MINUTES_PER_DAY) * 100}%`,
+              height: `${(moveDrag.durationMinutes / MINUTES_PER_DAY) * 100}%`,
             }}
           >
             {draggedEvent.title}
