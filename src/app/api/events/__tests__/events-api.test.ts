@@ -15,20 +15,21 @@ const mockDbState = {
   shouldFail: false,
 };
 
-function extractIdFromCondition(condition: any): string | null {
+function extractIdFromCondition(condition: unknown): string | null {
   if (!condition) return null;
   if (typeof condition === "string") return condition;
 
   // Search recursively for target ID string
-  const seen = new Set();
-  const queue = [condition];
+  const seen = new Set<unknown>();
+  const queue: unknown[] = [condition];
   while (queue.length > 0) {
     const curr = queue.shift();
     if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
     seen.add(curr);
 
-    for (const key of Object.keys(curr)) {
-      const val = curr[key];
+    const record = curr as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      const val = record[key];
       if (typeof val === "string") {
         if (val.startsWith("evt-") || val.includes("existent")) return val;
       } else if (val && typeof val === "object") {
@@ -50,18 +51,18 @@ mock.module("@/db", () => {
         }),
       }),
       insert: () => ({
-        values: (vals: any) => ({
+        values: (vals: Record<string, unknown>) => ({
           returning: mock(async () => {
             if (mockDbState.shouldFail) throw new Error("DB Insert failed");
-            const row = { id: "evt-uuid-1", created_at: new Date(), ...vals };
+            const row = { id: "evt-uuid-1", created_at: new Date(), ...vals } as MockEvent;
             mockDbState.events.push(row);
             return [row];
           }),
         }),
       }),
       update: () => ({
-        set: (vals: any) => ({
-          where: (condition: any) => ({
+        set: (vals: Record<string, unknown>) => ({
+          where: (condition: unknown) => ({
             returning: mock(async () => {
               if (mockDbState.shouldFail) throw new Error("DB Update failed");
               const targetId = extractIdFromCondition(condition);
@@ -75,7 +76,7 @@ mock.module("@/db", () => {
         }),
       }),
       delete: () => ({
-        where: (condition: any) => ({
+        where: (condition: unknown) => ({
           returning: mock(async () => {
             if (mockDbState.shouldFail) throw new Error("DB Delete failed");
             const targetId = extractIdFromCondition(condition);
