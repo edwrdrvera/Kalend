@@ -214,10 +214,13 @@ export default function Calendar() {
 
   // Optimistic: applies the new start/end immediately (so the drag doesn't
   // snap back while the request is in flight), then reconciles with the
-  // server response. On failure, restores the pre-drag event the same way
-  // handleDeleteEvent restores a deleted one.
+  // server response. On failure, only start_at/end_at are rolled back
+  // (not the whole event) so a concurrent edit that succeeded in the
+  // meantime — e.g. a title change via the modal while this move's PATCH
+  // was still in flight — isn't discarded along with the failed move.
   const handleEventMove = async (event: CalendarEvent, start: Date, end: Date) => {
-    const previousEvent = event;
+    const previousStartAt = event.start_at;
+    const previousEndAt = event.end_at;
     const optimisticEvent: CalendarEvent = {
       ...event,
       start_at: start.toISOString(),
@@ -249,7 +252,11 @@ export default function Calendar() {
       );
     } catch (err) {
       setEvents((prev) =>
-        prev.map((e) => (e.id === previousEvent.id ? previousEvent : e))
+        prev.map((e) =>
+          e.id === event.id
+            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
+            : e
+        )
       );
       setEventsError(
         err instanceof Error ? err.message : "Failed to update event"
