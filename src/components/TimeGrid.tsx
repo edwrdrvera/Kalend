@@ -42,7 +42,7 @@ function snapMinutes(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-function clampMinutes(value: number, min: number, max: number): number {
+function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
@@ -60,16 +60,13 @@ function useCurrentTime(): Date {
 }
 
 /** Tracks an in-progress drag of a whole event block to a new day/time.
- *  Minutes are relative to midnight of whichever day column is currently
- *  under the pointer, not full `Date`s, so the drag math stays simple;
- *  `handleMovePointerUp` converts back to real dates once the drag ends.
- *  `durationMinutes`/`grabOffsetMinutes` stay fixed for the whole gesture;
- *  `live*` is recomputed from the raw pointer position on every move (not
- *  accumulated as a delta), so the block's start always lands on a clean
- *  `SNAP_MINUTES` mark no matter where in the block it was grabbed or how
- *  far the drag has travelled. `moved` only flips true once the pointer
- *  travels past `DRAG_THRESHOLD_PX`, so a plain click never fires
- *  `onEventMove`. */
+ *  Only the static, once-per-gesture geometry lives here — the fields that
+ *  change on every pointer move (the ghost's live day/time) are written
+ *  straight to `liveDragRef` and the ghost element's own style instead, so
+ *  moving the pointer doesn't re-render TimeGrid (see `applyPointerMove`).
+ *  `moved` only flips true once the pointer travels past
+ *  `DRAG_THRESHOLD_PX`, so a plain click never fires `onEventMove`; that one
+ *  flip is the only state update a move-drag causes before it ends. */
 interface MoveDrag {
   /** Snapshot of the event taken at pickup, so the ghost preview (and the
    *  isBeingDragged check below) don't need to re-scan `events` by id on
@@ -78,6 +75,7 @@ interface MoveDrag {
   pointerStartX: number;
   pointerStartY: number;
   originalDayIndex: number;
+  originalStartMinutes: number;
   /** The event's real duration, taken from its start/end — not from the
    *  rendered block's height, which `layoutDayEvents` clamps to a minimum
    *  for short events and would otherwise inflate them on every move. */
@@ -85,9 +83,16 @@ interface MoveDrag {
   /** Minutes between the pointer and the block's real (unclamped) top edge
    *  at pickup, so the block doesn't jump to be centered under the cursor. */
   grabOffsetMinutes: number;
-  liveDayIndex: number;
-  liveStartMinutes: number;
   moved: boolean;
+}
+
+/** The drag's current day/time, snapped to `SNAP_MINUTES` — written on every
+ *  pointer move and read once, on drop, to build the `onEventMove` call.
+ *  Kept in a ref rather than state since it changes far more often than the
+ *  component needs to re-render. */
+interface LiveDragTarget {
+  dayIndex: number;
+  startMinutes: number;
 }
 
 /** Tracks an in-progress top/bottom edge drag on one event block. Minutes
@@ -148,6 +153,21 @@ export default function TimeGrid({
   useEffect(() => {
     moveDragRef.current = moveDrag;
   });
+  // Where the ghost preview would drop right now, snapped to SNAP_MINUTES.
+  // Written on every pointer move, read once on pointer up — never in
+  // React state, so updating it doesn't trigger a render.
+  const liveDragRef = useRef<LiveDragTarget | null>(null);
+  // True for the rest of the gesture once `applyPointerMove` has fired the
+  // one-time `moved: true` state update, so later frames (which run before
+  // the state update above has actually re-rendered and caught moveDragRef
+  // up) don't fire it again.
+  const hasStartedMoveRef = useRef(false);
+  // The floating ghost block rendered while a move-drag is in progress (see
+  // the JSX below). Its position tracks the raw pointer via a CSS transform
+  // written directly to this node in `applyPointerMove`, bypassing React
+  // state entirely so the ghost never lags a render behind the cursor and
+  // moving it doesn't force every day column to re-render.
+  const ghostRef = useRef<HTMLDivElement>(null);
   // Holds the id of the event whose drag most recently ended, so the click
   // that follows a real drag's pointerup can be told apart from an
   // unrelated click on the same block — cleared automatically after
@@ -158,8 +178,7 @@ export default function TimeGrid({
   const lastDraggedEventIdRef = useRef<string | null>(null);
   const suppressClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Coalesces rapid native pointermove events (which can fire faster than
-  // the display refreshes) into at most one state update — and one
-  // re-render, re-running layoutDayEvents for every day column — per
+  // the display refreshes) into at most one ghost-position update per
   // animation frame, instead of one per raw event.
   const rafIdRef = useRef<number | null>(null);
   const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
@@ -201,15 +220,16 @@ export default function TimeGrid({
     const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
     const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
 
+    hasStartedMoveRef.current = false;
+    liveDragRef.current = { dayIndex, startMinutes: originalStartMinutes };
     setMoveDrag({
       event,
       pointerStartX: e.clientX,
       pointerStartY: e.clientY,
       originalDayIndex: dayIndex,
+      originalStartMinutes,
       durationMinutes: originalEndMinutes - originalStartMinutes,
       grabOffsetMinutes: clientYToMinutes(e.clientY) - originalStartMinutes,
-      liveDayIndex: dayIndex,
-      liveStartMinutes: originalStartMinutes,
       moved: false,
     });
   }
@@ -222,33 +242,54 @@ export default function TimeGrid({
     const deltaY = clientY - drag.pointerStartY;
     if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
 
+    // Flips `moved` exactly once per gesture — this is the only React state
+    // update a move-drag causes before it ends (it's what mounts the ghost
+    // and dims the origin block). `hasStartedMoveRef` guards it rather than
+    // `drag.moved` itself: `moveDragRef` only catches up to this state
+    // change after the next render, and later frames can fire before that
+    // happens.
+    if (!hasStartedMoveRef.current) {
+      hasStartedMoveRef.current = true;
+      setMoveDrag((prev) => (prev ? { ...prev, moved: true } : prev));
+    }
+
+    // The ghost tracks the pointer 1:1 in pixels via a transform written
+    // straight to its DOM node — not the SNAP_MINUTES-rounded position — so
+    // it never visibly steps or lags behind the cursor. The snapped values
+    // used to actually place the event are computed separately below and
+    // only ever read once, on drop.
+    const rect = gridRef.current?.getBoundingClientRect();
+    const dayColumnWidth = rect && days.length > 0 ? rect.width / days.length : 0;
+    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const originalLeftPx = drag.originalDayIndex * dayColumnWidth;
+    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+
+    const clampedDeltaX = rect
+      ? clamp(deltaX, -originalLeftPx, rect.width - dayColumnWidth - originalLeftPx)
+      : deltaX;
+    const clampedDeltaY = clamp(deltaY, -originalTopPx, DAY_HEIGHT_PX - durationPx - originalTopPx);
+
+    if (ghostRef.current) {
+      ghostRef.current.style.transform = `translate3d(${clampedDeltaX}px, ${clampedDeltaY}px, 0)`;
+    }
+
     // Snaps the absolute time under the pointer (minus the fixed grab
     // offset), not the raw movement delta — so the block's start always
     // lands on a clean SNAP_MINUTES mark even when the event's real start
     // wasn't already on one.
-    const liveStartMinutes = clampMinutes(
+    const liveStartMinutes = clamp(
       snapMinutes(clientYToMinutes(clientY) - drag.grabOffsetMinutes),
       0,
       MINUTES_PER_DAY - drag.durationMinutes
     );
 
     let liveDayIndex = drag.originalDayIndex;
-    const rect = gridRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0) {
       const fraction = (clientX - rect.left) / rect.width;
       liveDayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(fraction * days.length)));
     }
 
-    setMoveDrag((prev) =>
-      prev
-        ? {
-            ...prev,
-            liveDayIndex,
-            liveStartMinutes,
-            moved: true,
-          }
-        : prev
-    );
+    liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
   }
 
   function handleMovePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
@@ -268,7 +309,13 @@ export default function TimeGrid({
     cancelPendingMoveFrame();
     if (!moveDrag) return;
 
-    if (moveDrag.moved) {
+    // Reads hasStartedMoveRef/liveDragRef rather than moveDrag.moved — the
+    // ref is updated synchronously in applyPointerMove, while the state
+    // read here can still reflect the render before the pointer crossed
+    // DRAG_THRESHOLD_PX if pointerup lands before that render committed.
+    if (hasStartedMoveRef.current && liveDragRef.current) {
+      const target = liveDragRef.current;
+
       lastDraggedEventIdRef.current = event.id;
       if (suppressClearTimeoutRef.current !== null) {
         clearTimeout(suppressClearTimeoutRef.current);
@@ -278,14 +325,16 @@ export default function TimeGrid({
         suppressClearTimeoutRef.current = null;
       }, CLICK_SUPPRESS_WINDOW_MS);
 
-      const dayStart = startOfDay(days[moveDrag.liveDayIndex]);
+      const dayStart = startOfDay(days[target.dayIndex]);
       onEventMove?.(
         event,
-        addMinutes(dayStart, moveDrag.liveStartMinutes),
-        addMinutes(dayStart, moveDrag.liveStartMinutes + moveDrag.durationMinutes)
+        addMinutes(dayStart, target.startMinutes),
+        addMinutes(dayStart, target.startMinutes + moveDrag.durationMinutes)
       );
     }
     setMoveDrag(null);
+    hasStartedMoveRef.current = false;
+    liveDragRef.current = null;
   }
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
@@ -338,7 +387,7 @@ export default function TimeGrid({
       if (prev.edge === "top") {
         return {
           ...prev,
-          liveStartMinutes: clampMinutes(
+          liveStartMinutes: clamp(
             prev.originalStartMinutes + deltaMinutes,
             0,
             prev.originalEndMinutes - MIN_DURATION_MINUTES
@@ -348,7 +397,7 @@ export default function TimeGrid({
 
       return {
         ...prev,
-        liveEndMinutes: clampMinutes(
+        liveEndMinutes: clamp(
           prev.originalEndMinutes + deltaMinutes,
           prev.originalStartMinutes + MIN_DURATION_MINUTES,
           MINUTES_PER_DAY
@@ -447,6 +496,8 @@ export default function TimeGrid({
                     onPointerCancel={() => {
                       cancelPendingMoveFrame();
                       setMoveDrag(null);
+                      hasStartedMoveRef.current = false;
+                      liveDragRef.current = null;
                     }}
                     onClick={(e) => handleEventClick(e, event)}
                     style={{
@@ -488,12 +539,19 @@ export default function TimeGrid({
 
         {draggedEvent && moveDrag && (
           <div
+            ref={ghostRef}
+            // top/left/width/height are fixed at the block's pre-drag
+            // position and never updated from state — applyPointerMove
+            // moves the ghost purely via `transform`, written directly to
+            // this node on every pointer move so it tracks the cursor
+            // exactly instead of jumping between SNAP_MINUTES positions.
             className={`pointer-events-none absolute z-20 overflow-hidden rounded px-1.5 py-0.5 text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(draggedEvent.color)}`}
             style={{
-              left: `${(moveDrag.liveDayIndex / days.length) * 100}%`,
+              left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,
-              top: `${(moveDrag.liveStartMinutes / MINUTES_PER_DAY) * 100}%`,
+              top: `${(moveDrag.originalStartMinutes / MINUTES_PER_DAY) * 100}%`,
               height: `${(moveDrag.durationMinutes / MINUTES_PER_DAY) * 100}%`,
+              transform: "translate3d(0, 0, 0)",
             }}
           >
             {draggedEvent.title}
