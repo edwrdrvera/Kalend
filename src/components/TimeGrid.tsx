@@ -70,7 +70,10 @@ function useCurrentTime(): Date {
  *  travels past `DRAG_THRESHOLD_PX`, so a plain click never fires
  *  `onEventMove`. */
 interface MoveDrag {
-  eventId: string;
+  /** Snapshot of the event taken at pickup, so the ghost preview (and the
+   *  isBeingDragged check below) don't need to re-scan `events` by id on
+   *  every render while the drag is in progress. */
+  event: CalendarEvent;
   pointerStartX: number;
   pointerStartY: number;
   originalDayIndex: number;
@@ -109,16 +112,35 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
+  // Mirrors `moveDrag` so the rAF callback scheduled below always reads the
+  // latest drag state instead of whatever was current when it was queued.
+  const moveDragRef = useRef<MoveDrag | null>(null);
+  moveDragRef.current = moveDrag;
   // Records which event's drag last ended and when, so the click that
   // follows a real drag's pointerup can be told apart from an unrelated
   // click — scoped to that one event and bounded to CLICK_SUPPRESS_WINDOW_MS
   // rather than a flag that could get stuck true if the click never fires.
   const lastDragRef = useRef<{ eventId: string; time: number } | null>(null);
+  // Coalesces rapid native pointermove events (which can fire faster than
+  // the display refreshes) into at most one state update — and one
+  // re-render, re-running layoutDayEvents for every day column — per
+  // animation frame, instead of one per raw event.
+  const rafIdRef = useRef<number | null>(null);
+  const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
     return ((clientY - top) / DAY_HEIGHT_PX) * MINUTES_PER_DAY;
   }
+
+  function cancelPendingMoveFrame() {
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+  }
+
+  useEffect(() => cancelPendingMoveFrame, []);
 
   function handleMovePointerDown(
     e: ReactPointerEvent<HTMLButtonElement>,
@@ -134,7 +156,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
 
     setMoveDrag({
-      eventId: event.id,
+      event,
       pointerStartX: e.clientX,
       pointerStartY: e.clientY,
       originalDayIndex: dayIndex,
@@ -146,27 +168,28 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     });
   }
 
-  function handleMovePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
-    if (!moveDrag) return;
+  function applyPointerMove(clientX: number, clientY: number) {
+    const drag = moveDragRef.current;
+    if (!drag) return;
 
-    const deltaX = e.clientX - moveDrag.pointerStartX;
-    const deltaY = e.clientY - moveDrag.pointerStartY;
-    if (!moveDrag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
+    const deltaX = clientX - drag.pointerStartX;
+    const deltaY = clientY - drag.pointerStartY;
+    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
 
     // Snaps the absolute time under the pointer (minus the fixed grab
     // offset), not the raw movement delta — so the block's start always
     // lands on a clean SNAP_MINUTES mark even when the event's real start
     // wasn't already on one.
     const liveStartMinutes = clampMinutes(
-      snapMinutes(clientYToMinutes(e.clientY) - moveDrag.grabOffsetMinutes),
+      snapMinutes(clientYToMinutes(clientY) - drag.grabOffsetMinutes),
       0,
-      MINUTES_PER_DAY - moveDrag.durationMinutes
+      MINUTES_PER_DAY - drag.durationMinutes
     );
 
-    let liveDayIndex = moveDrag.originalDayIndex;
+    let liveDayIndex = drag.originalDayIndex;
     const rect = gridRef.current?.getBoundingClientRect();
     if (rect && rect.width > 0) {
-      const fraction = (e.clientX - rect.left) / rect.width;
+      const fraction = (clientX - rect.left) / rect.width;
       liveDayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(fraction * days.length)));
     }
 
@@ -182,7 +205,21 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     );
   }
 
+  function handleMovePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!moveDrag) return;
+
+    latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        const pointer = latestPointerRef.current;
+        if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
+      });
+    }
+  }
+
   function handleMovePointerUp(event: CalendarEvent) {
+    cancelPendingMoveFrame();
     if (!moveDrag) return;
 
     if (moveDrag.moved) {
@@ -210,7 +247,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     onEventClick?.(event);
   }
 
-  const draggedEvent = moveDrag?.moved ? events.find((e) => e.id === moveDrag.eventId) : undefined;
+  const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
     <div className="flex flex-1 overflow-y-auto">
@@ -268,7 +305,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
               )}
 
               {blocks.map(({ event, top, height, left, width }) => {
-                const isBeingDragged = moveDrag?.moved && moveDrag.eventId === event.id;
+                const isBeingDragged = moveDrag?.moved && moveDrag.event.id === event.id;
 
                 return (
                   <button
@@ -278,7 +315,10 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onPointerMove={handleMovePointerMove}
                     onPointerUp={() => handleMovePointerUp(event)}
-                    onPointerCancel={() => setMoveDrag(null)}
+                    onPointerCancel={() => {
+                      cancelPendingMoveFrame();
+                      setMoveDrag(null);
+                    }}
                     onClick={(e) => handleEventClick(e, event)}
                     style={{
                       top: `${top}%`,
