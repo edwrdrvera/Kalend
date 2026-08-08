@@ -10,6 +10,11 @@ interface MockEvent {
   created_at?: Date;
 }
 
+let mockCurrentUser: { id: string; email: string } | null = {
+  id: "user-uuid-123",
+  email: "student@university.edu",
+};
+
 const mockDbState = {
   events: [] as MockEvent[],
   shouldFail: false,
@@ -19,7 +24,6 @@ function extractIdFromCondition(condition: unknown): string | null {
   if (!condition) return null;
   if (typeof condition === "string") return condition;
 
-  // Search recursively for target ID string
   const seen = new Set<unknown>();
   const queue: unknown[] = [condition];
   while (queue.length > 0) {
@@ -41,13 +45,20 @@ function extractIdFromCondition(condition: unknown): string | null {
   return null;
 }
 
+mock.module("@/lib/supabase/auth-user", () => ({
+  getAuthenticatedUser: mock(async () => mockCurrentUser),
+}));
+
 mock.module("@/db", () => {
   return {
     db: {
       select: () => ({
-        from: mock(async () => {
-          if (mockDbState.shouldFail) throw new Error("DB Connection failed");
-          return mockDbState.events;
+        from: () => ({
+          where: mock(async () => {
+            if (mockDbState.shouldFail) throw new Error("DB Connection failed");
+            if (!mockCurrentUser) return [];
+            return mockDbState.events.filter((e) => e.user_id === mockCurrentUser!.id);
+          }),
         }),
       }),
       insert: () => ({
@@ -66,7 +77,9 @@ mock.module("@/db", () => {
             returning: mock(async () => {
               if (mockDbState.shouldFail) throw new Error("DB Update failed");
               const targetId = extractIdFromCondition(condition);
-              const idx = mockDbState.events.findIndex((e) => e.id === targetId);
+              const idx = mockDbState.events.findIndex(
+                (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
+              );
               if (idx === -1) return [];
               const updated = { ...mockDbState.events[idx], ...vals };
               mockDbState.events[idx] = updated;
@@ -80,7 +93,9 @@ mock.module("@/db", () => {
           returning: mock(async () => {
             if (mockDbState.shouldFail) throw new Error("DB Delete failed");
             const targetId = extractIdFromCondition(condition);
-            const idx = mockDbState.events.findIndex((e) => e.id === targetId);
+            const idx = mockDbState.events.findIndex(
+              (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
+            );
             if (idx === -1) return [];
             const [deleted] = mockDbState.events.splice(idx, 1);
             return [deleted];
@@ -97,6 +112,10 @@ import { PATCH, DELETE } from "../[id]/route";
 
 describe("Events API Endpoints", () => {
   beforeEach(() => {
+    mockCurrentUser = {
+      id: "user-uuid-123",
+      email: "student@university.edu",
+    };
     mockDbState.events = [
       {
         id: "evt-uuid-1",
@@ -106,12 +125,30 @@ describe("Events API Endpoints", () => {
         user_id: "user-uuid-123",
         color: "blue",
       },
+      {
+        id: "evt-uuid-other",
+        title: "Other User Private Event",
+        start_at: new Date("2026-08-10T12:00:00Z"),
+        end_at: new Date("2026-08-10T13:00:00Z"),
+        user_id: "other-user-456",
+        color: "red",
+      },
     ];
     mockDbState.shouldFail = false;
   });
 
   describe("GET /api/events", () => {
-    it("returns 200 with all events on success", async () => {
+    it("returns 401 when user is unauthenticated", async () => {
+      mockCurrentUser = null;
+      const response = await GET();
+      expect(response.status).toBe(401);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("Unauthorized");
+    });
+
+    it("returns 200 with only the authenticated user's events", async () => {
       const response = await GET();
       expect(response.status).toBe(200);
 
@@ -120,6 +157,7 @@ describe("Events API Endpoints", () => {
       expect(Array.isArray(json.data)).toBe(true);
       expect(json.data.length).toBe(1);
       expect(json.data[0].title).toBe("CS 101 Lecture");
+      expect(json.data[0].user_id).toBe("user-uuid-123");
     });
 
     it("returns 500 when database throws an error", async () => {
@@ -134,6 +172,26 @@ describe("Events API Endpoints", () => {
   });
 
   describe("POST /api/events", () => {
+    it("returns 401 when user is unauthenticated", async () => {
+      mockCurrentUser = null;
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Math Lecture",
+          start_at: "2026-08-11T10:00:00Z",
+          end_at: "2026-08-11T11:00:00Z",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(401);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("Unauthorized");
+    });
+
     it("returns 400 when required fields are missing", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
@@ -146,7 +204,7 @@ describe("Events API Endpoints", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toBe("title, start_at, end_at, and user_id are required");
+      expect(json.error).toBe("title, start_at, and end_at are required");
     });
 
     it("returns 400 when dates are invalid", async () => {
@@ -157,7 +215,6 @@ describe("Events API Endpoints", () => {
           title: "Math Homework",
           start_at: "invalid-date",
           end_at: "not-a-date",
-          user_id: "user-123",
         }),
       });
 
@@ -169,7 +226,7 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at and end_at must be valid dates");
     });
 
-    it("returns 201 with created event on valid input", async () => {
+    it("returns 201 with created event and binds user_id from session", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +234,6 @@ describe("Events API Endpoints", () => {
           title: "Physics Lab",
           start_at: "2026-08-11T14:00:00Z",
           end_at: "2026-08-11T16:00:00Z",
-          user_id: "user-456",
           color: "purple",
         }),
       });
@@ -188,6 +244,7 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(true);
       expect(json.data.title).toBe("Physics Lab");
+      expect(json.data.user_id).toBe("user-uuid-123");
       expect(json.data.color).toBe("purple");
     });
 
@@ -200,7 +257,6 @@ describe("Events API Endpoints", () => {
           title: "Chemistry Study",
           start_at: "2026-08-12T09:00:00Z",
           end_at: "2026-08-12T10:00:00Z",
-          user_id: "user-789",
         }),
       });
 
@@ -214,6 +270,18 @@ describe("Events API Endpoints", () => {
   });
 
   describe("PATCH /api/events/[id]", () => {
+    it("returns 401 when user is unauthenticated", async () => {
+      mockCurrentUser = null;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Updated Title" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(401);
+    });
+
     it("returns 400 when no updatable fields are provided", async () => {
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
@@ -274,7 +342,22 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("Event not found");
     });
 
-    it("returns 200 with updated event data", async () => {
+    it("returns 404 when attempting to update an event owned by another user", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-other", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Hacked Title" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-other" }) });
+      expect(response.status).toBe(404);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("Event not found");
+    });
+
+    it("returns 200 with updated event data when owned by user", async () => {
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -295,12 +378,35 @@ describe("Events API Endpoints", () => {
   });
 
   describe("DELETE /api/events/[id]", () => {
+    it("returns 401 when user is unauthenticated", async () => {
+      mockCurrentUser = null;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "DELETE",
+      });
+
+      const response = await DELETE(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(401);
+    });
+
     it("returns 404 when event id does not exist", async () => {
       const req = new Request("http://localhost/api/events/non-existent-id", {
         method: "DELETE",
       });
 
       const response = await DELETE(req, { params: Promise.resolve({ id: "non-existent-id" }) });
+      expect(response.status).toBe(404);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("Event not found");
+    });
+
+    it("returns 404 when attempting to delete an event owned by another user", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-other", {
+        method: "DELETE",
+      });
+
+      const response = await DELETE(req, { params: Promise.resolve({ id: "evt-uuid-other" }) });
       expect(response.status).toBe(404);
 
       const json = await response.json();
