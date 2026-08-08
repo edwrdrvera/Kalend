@@ -1,29 +1,51 @@
 # Kalend
 
-> A fast, minimal, and modern calendar and task planner designed for students and developers. Built with Next.js App Router, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, Supabase Auth, and Drizzle ORM on PostgreSQL.
+Kalend is an open-source, minimal calendar and productivity app built with **Next.js App Router (React 19)**, **TypeScript**, **Tailwind CSS v4**, **shadcn/ui**, **Supabase Auth**, and **Drizzle ORM** on **PostgreSQL**.
+
+The project focuses on high-speed interaction, clean dark-mode ergonomics, and zero-setup academic/developer workflows without the maintenance overhead of heavy all-in-one productivity databases.
 
 ---
 
-## Features
+## Current Features
 
-### 📅 Calendar Views & Layouts
-- **Month Grid**: Clean 7×6 monthly calendar view with current-day and selected-day highlighting, out-of-month dimming, and overflow pills (`+N more`).
+### 📅 Calendar Engine & Views
+- **Month Grid**: 7×6 monthly calendar view with current-day/selected-day highlighting, out-of-month dimming, and overflow pills (`+N more`).
 - **Week View**: 7-day column grid with day-name headers, today/selected day indicators, 24-hour time slots, and a live red current-time marker.
 - **Day View**: Single-day timeline view sharing the same precise 24-hour time grid and navigation controls.
-- **All-Day & Multi-Day Row**: Dedicated horizontal lane stacking for untimed and multi-day events across Day and Week views.
+- **All-Day & Multi-Day Row**: Dedicated horizontal lane stacking (`AllDayRow`) for untimed and multi-day events across Day and Week views.
 - **Collapsible Sidebar**: Smoothly animated sidebar toggle with an interactive mini month-picker that synchronizes with the main calendar view.
 
-### ⚡ Direct Event Manipulation
-- **Drag-to-Resize**: Grab the top or bottom handles of any event block in Week or Day view to dynamically adjust duration with 15-minute slot snapping and optimistic updates.
-- **Drag-to-Move**: Drag entire event blocks across days and time slots with live preview, pointer thresholding, and click suppression.
+### ⚡ Event Interactions
+- **Drag-to-Resize**: Drag top or bottom handles of event blocks in Week and Day views to adjust duration with 15-minute slot snapping and optimistic rollback on failure.
+- **Drag-to-Move**: Drag whole event blocks across days and time slots with live preview, pointer thresholding, and click suppression.
 - **Minimal Event Modal**: Borderless oversized title input, progressive disclosure time-range picker, popover color selector, and optimistic delete flows.
 
 ### 🔐 Authentication & Session Security
-- **Supabase Auth**: Dedicated `/login` and `/signup` pages with dark-themed cards, client-side input validation, error handling, and loading spinners.
+- **Supabase Auth**: Dedicated `/login` and `/signup` pages with dark-themed cards, client-side input validation, error alerts, and loading states.
 - **SSR Middleware**: Automatic session refresh via `@supabase/ssr` with route protection that keeps unauthorized visitors on `/login` and redirects authenticated users to the calendar.
 
-### 🎨 Dark-First Design System
-- Tailored dark palette (`#121212` background, `#191919` surface, `#262626` borders, `blue-600` primary accents) configured directly via CSS variables in `@theme`.
+---
+
+## Planned Roadmap & Upcoming Features
+
+The core calendar and authentication engine is complete. The following features are actively planned and organized across upcoming development phases:
+
+### 📋 Phase 3 — Integrated Task & Deadline Management
+- [ ] **Task Data Layer**: Dedicated `tasks` schema and CRUD API endpoints (`/api/tasks`).
+- [ ] **Task Sidebar & List View**: Interactive task drawer/sidebar to manage homework, project deliverables, and to-do items.
+- [ ] **Calendar Deadline Overlays**: Render task due dates and assignment deadlines directly on Month, Week, and Day calendar grids next to scheduled classes.
+
+### 🎓 Phase 4 — Academic Course Organization & Templates
+- [ ] **Course Scoping & Color-Coding**: Define courses (e.g. *CS 101*, *MATH 240*, *PHYS 211*) so lecture blocks, labs, and assignments inherit uniform course colors.
+- [ ] **First-Run Template Picker**: Onboarding wizard to generate pre-configured course loads and semester schedules with 1 click.
+- [ ] **Syllabus & Schedule Quick-Import**: Paste raw course hours or upload a syllabus to auto-generate recurring weekly lecture blocks and midterm dates.
+- [ ] **LMS Calendar Feed (.ics)**: Subscribe to university Canvas / Blackboard calendar feeds to auto-sync assignment deadlines.
+
+### ⚡ Phase 5 — Developer Polish & Mobile Responsiveness
+- [ ] **Responsive Mobile Layout**: Mobile-first views with auto-collapsing drawer and gesture navigation.
+- [ ] **`Cmd+K` Quick-Capture Command Bar**: Keyboard-driven event and task creation (e.g. `type: "CS101 MWF 10am"`).
+- [ ] **Continuous Integration (CI)**: Automated GitHub Actions workflow running TypeScript verification, linting, and tests on all PRs.
+- [ ] **Route-Level Error Boundaries**: Dedicated `loading.tsx`, `error.tsx`, and `not-found.tsx` fallback states.
 
 ---
 
@@ -96,7 +118,7 @@ Kalend/
 
 ### Prerequisites
 - [Bun](https://bun.sh/) (v1.1+ recommended)
-- A [Supabase](https://supabase.com/) project (or local PostgreSQL instance)
+- A [Supabase](https://supabase.com/) project (or local PostgreSQL database)
 
 ### 1. Clone the Repository
 ```bash
@@ -127,13 +149,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR-ANON-KEY]
 ```
 
 ### 4. Run Database Migrations
-Apply the initial schema migrations to your PostgreSQL database:
+Apply the schema migrations to your PostgreSQL database:
 
 ```bash
 bunx drizzle-kit migrate
 ```
 
-*(Optional: Launch Drizzle Studio to inspect database records via GUI)*:
+*(Optional: Launch Drizzle Studio GUI)*:
 ```bash
 bunx drizzle-kit studio
 ```
@@ -150,15 +172,11 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## Development & Testing
 
 ### Run Automated Tests
-Kalend uses Bun's built-in fast test runner:
-
 ```bash
 bun test
 ```
 
-### TypeScript Type-Checking
-Verify complete type safety across components, API routes, and test files:
-
+### TypeScript Verification
 ```bash
 bun run ./node_modules/typescript/bin/tsc --noEmit
 ```
@@ -177,14 +195,12 @@ bun run build
 
 ## Database & Migration Workflow
 
-When updating database schema definitions:
-
-1. **Edit Schema**: Modify or add tables under `src/db/schema/` (e.g. `events.ts`).
-2. **Generate Migration**: Create offline SQL migration files without connecting to the DB:
+1. **Edit Schema**: Modify or add tables under `src/db/schema/` (e.g. `events.ts`, `tasks.ts`).
+2. **Generate Migration**: Create offline SQL migration files:
    ```bash
    bunx drizzle-kit generate
    ```
-3. **Apply Migration**: Execute the SQL files against your database:
+3. **Apply Migration**: Apply SQL files to the database:
    ```bash
    bunx drizzle-kit migrate
    ```
