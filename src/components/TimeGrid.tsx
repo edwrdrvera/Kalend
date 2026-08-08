@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarEvent } from "./Calendar";
 import { getEventColorClasses } from "@/lib/event-colors";
@@ -172,7 +178,7 @@ export default function TimeGrid({ days, events, onSlotClick, onEventClick, onEv
     setMoveDrag(null);
   }
 
-  function handleEventClick(e: ReactPointerEvent<HTMLButtonElement>, event: CalendarEvent) {
+  function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
     if (suppressClickRef.current) {
       suppressClickRef.current = false;

@@ -212,6 +212,51 @@ export default function Calendar() {
     }
   };
 
+  // Optimistic: applies the new start/end immediately (so the drag doesn't
+  // snap back while the request is in flight), then reconciles with the
+  // server response. On failure, restores the pre-drag event the same way
+  // handleDeleteEvent restores a deleted one.
+  const handleEventMove = async (event: CalendarEvent, start: Date, end: Date) => {
+    const previousEvent = event;
+    const optimisticEvent: CalendarEvent = {
+      ...event,
+      start_at: start.toISOString(),
+      end_at: end.toISOString(),
+    };
+
+    setEvents((prev) =>
+      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
+    );
+
+    try {
+      const res = await fetch(`/api/events/${event.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start_at: optimisticEvent.start_at,
+          end_at: optimisticEvent.end_at,
+        }),
+      });
+      const json: EventMutationResponse = await res.json();
+
+      if (!res.ok || !json.success || !json.data) {
+        throw new Error(json.error ?? "Failed to update event");
+      }
+
+      const savedEvent = json.data;
+      setEvents((prev) =>
+        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
+      );
+    } catch (err) {
+      setEvents((prev) =>
+        prev.map((e) => (e.id === previousEvent.id ? previousEvent : e))
+      );
+      setEventsError(
+        err instanceof Error ? err.message : "Failed to update event"
+      );
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -257,6 +302,7 @@ export default function Calendar() {
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
+          onEventMove={handleEventMove}
           view={view}
           onViewChange={setView}
         />
@@ -269,6 +315,7 @@ export default function Calendar() {
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
+          onEventMove={handleEventMove}
           view={view}
           onViewChange={setView}
         />
