@@ -32,6 +32,29 @@ interface EventMutationResponse {
   error?: string;
 }
 
+// Shared by create/edit, delete, and move below, which otherwise each
+// re-implement the same fetch-then-check-the-response-shape block. Doesn't
+// enforce `data` being present, since DELETE's response doesn't include
+// it — callers that need `data` (create/edit, move) check for it after.
+async function mutateEvent(
+  url: string,
+  method: "POST" | "PATCH" | "DELETE",
+  body: object | undefined,
+  fallbackError: string
+): Promise<EventMutationResponse> {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json: EventMutationResponse = await res.json();
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error ?? fallbackError);
+  }
+  return json;
+}
+
 // TODO: derive from the authenticated session once
 // feature/auth-middleware-protected-routes lands — there's no login flow
 // yet, so this matches the placeholder user_id already used by
@@ -139,35 +162,29 @@ export default function Calendar() {
 
     try {
       const isEdit = modalMode === "edit" && modalEvent;
-      const res = await fetch(
+      const fallbackError = `Failed to ${isEdit ? "update" : "create"} event`;
+      const json = await mutateEvent(
         isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
-        {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            isEdit
-              ? {
-                  title: values.title,
-                  start_at: values.startAt,
-                  end_at: values.endAt,
-                  color: values.color,
-                }
-              : {
-                  title: values.title,
-                  start_at: values.startAt,
-                  end_at: values.endAt,
-                  color: values.color,
-                  user_id: PLACEHOLDER_USER_ID,
-                }
-          ),
-        }
+        isEdit ? "PATCH" : "POST",
+        isEdit
+          ? {
+              title: values.title,
+              start_at: values.startAt,
+              end_at: values.endAt,
+              color: values.color,
+            }
+          : {
+              title: values.title,
+              start_at: values.startAt,
+              end_at: values.endAt,
+              color: values.color,
+              user_id: PLACEHOLDER_USER_ID,
+            },
+        fallbackError
       );
-      const json: EventMutationResponse = await res.json();
 
-      if (!res.ok || !json.success || !json.data) {
-        throw new Error(
-          json.error ?? `Failed to ${isEdit ? "update" : "create"} event`
-        );
+      if (!json.data) {
+        throw new Error(fallbackError);
       }
 
       const savedEvent = json.data;
@@ -196,14 +213,12 @@ export default function Calendar() {
     setModalOpen(false);
 
     try {
-      const res = await fetch(`/api/events/${eventToDelete.id}`, {
-        method: "DELETE",
-      });
-      const json: EventMutationResponse = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error ?? "Failed to delete event");
-      }
+      await mutateEvent(
+        `/api/events/${eventToDelete.id}`,
+        "DELETE",
+        undefined,
+        "Failed to delete event"
+      );
     } catch (err) {
       setEvents((prev) => [...prev, eventToDelete]);
       setEventsError(
@@ -232,18 +247,15 @@ export default function Calendar() {
     );
 
     try {
-      const res = await fetch(`/api/events/${event.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          start_at: optimisticEvent.start_at,
-          end_at: optimisticEvent.end_at,
-        }),
-      });
-      const json: EventMutationResponse = await res.json();
+      const json = await mutateEvent(
+        `/api/events/${event.id}`,
+        "PATCH",
+        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
+        "Failed to update event"
+      );
 
-      if (!res.ok || !json.success || !json.data) {
-        throw new Error(json.error ?? "Failed to update event");
+      if (!json.data) {
+        throw new Error("Failed to update event");
       }
 
       const savedEvent = json.data;
