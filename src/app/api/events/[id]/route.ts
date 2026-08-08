@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
-import { eq } from "drizzle-orm";
+import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -16,6 +17,14 @@ interface UpdateEventBody {
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body: UpdateEventBody = await request.json();
 
@@ -56,7 +65,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const [updatedEvent] = await db
       .update(events)
       .set(updates)
-      .where(eq(events.id, id))
+      .where(and(eq(events.id, id), eq(events.user_id, user.id)))
       .returning();
 
     if (!updatedEvent) {
@@ -78,11 +87,19 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const [deletedEvent] = await db
       .delete(events)
-      .where(eq(events.id, id))
+      .where(and(eq(events.id, id), eq(events.user_id, user.id)))
       .returning();
 
     if (!deletedEvent) {
