@@ -68,6 +68,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (startAt >= endAt) {
+      return NextResponse.json(
+        { success: false, error: "start_at must be before end_at" },
+        { status: 400 }
+      );
+    }
+
     const [newEvent] = await db
       .insert(events)
       .values({
