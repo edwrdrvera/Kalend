@@ -226,6 +226,25 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at and end_at must be valid dates");
     });
 
+    it("returns 400 when start_at is not before end_at", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Impossible Event",
+          start_at: "2026-08-11T03:00:00Z",
+          end_at: "2026-08-11T03:00:00Z",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("start_at must be before end_at");
+    });
+
     it("returns 201 with created event and binds user_id from session", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
