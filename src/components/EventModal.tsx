@@ -258,16 +258,26 @@ export default function EventModal({
       ? event.color
       : DEFAULT_COLOR
   );
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setValidationError(null);
 
     if (!title.trim() || !startAt || !endAt) return;
 
+    const start = new Date(startAt);
+    const end = new Date(endAt);
+
+    if (start >= end) {
+      setValidationError("Start time must be before end time.");
+      return;
+    }
+
     onSubmit({
       title: title.trim(),
-      startAt: new Date(startAt).toISOString(),
-      endAt: new Date(endAt).toISOString(),
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
       color,
     });
   };
@@ -328,7 +338,9 @@ export default function EventModal({
             </div>
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {(validationError ?? error) && (
+            <p className="text-sm text-destructive">{validationError ?? error}</p>
+          )}
 
           <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
             <Button type="submit" size="lg" disabled={submitting} className="w-full">

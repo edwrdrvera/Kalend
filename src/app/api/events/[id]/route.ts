@@ -62,6 +62,21 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       );
     }
 
+    // Only enforced when both are present in the same request, matching how
+    // every caller (create/edit modal, drag-move, drag-resize) sends them
+    // together. A partial patch touching just one side can't be validated
+    // here without an extra read of the existing row.
+    if (
+      updates.start_at !== undefined &&
+      updates.end_at !== undefined &&
+      updates.start_at >= updates.end_at
+    ) {
+      return NextResponse.json(
+        { success: false, error: "start_at must be before end_at" },
+        { status: 400 }
+      );
+    }
+
     const [updatedEvent] = await db
       .update(events)
       .set(updates)
