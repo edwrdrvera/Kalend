@@ -129,7 +129,7 @@ function TimeRangeField({
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">Start</Label>
-              <div className="flex gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Input
                   type="date"
                   value={start.date}
@@ -150,7 +150,7 @@ function TimeRangeField({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs text-muted-foreground">End</Label>
-              <div className="flex gap-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Input
                   type="date"
                   value={end.date}
