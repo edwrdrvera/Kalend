@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { format, isPast } from "date-fns";
-import { Check, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { CalendarTask } from "./Calendar";
@@ -162,6 +162,8 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
   );
 }
 
+const COLLAPSED_STORAGE_KEY = "kalend:tasks-panel-collapsed";
+
 export default function TaskList({
   tasks,
   loading,
@@ -169,52 +171,94 @@ export default function TaskList({
   onToggleComplete,
   onDeleteTask,
 }: TaskListProps) {
+  // Collapsed by default so the panel doesn't cost permanent sidebar space
+  // for someone who isn't using tasks. Only reachable client-side (this
+  // component never renders during SSR, see Calendar's `mounted` gate), so
+  // reading localStorage directly in the initializer is safe, no hydration
+  // mismatch to worry about.
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSED_STORAGE_KEY) !== "false"
+  );
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next));
+      return next;
+    });
+  };
+
   const dated = tasks
     .filter((t) => t.due_at)
     .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime());
   const undated = tasks.filter((t) => !t.due_at);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-neutral-800 px-5 pt-4">
-      <h2 className="text-sm font-semibold text-neutral-200">Tasks</h2>
-
-      <CreateTaskForm onCreateTask={onCreateTask} />
-
-      {loading ? (
-        <p className="text-xs text-neutral-500">Loading tasks…</p>
-      ) : tasks.length === 0 ? (
-        <p className="text-xs text-neutral-500">No tasks yet.</p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {dated.length > 0 && (
-            <div className="flex flex-col">
-              {dated.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onToggleComplete={onToggleComplete}
-                  onDeleteTask={onDeleteTask}
-                />
-              ))}
-            </div>
+    <div className="flex flex-col border-t border-neutral-800 px-5 py-4">
+      <button
+        type="button"
+        onClick={toggleCollapsed}
+        aria-expanded={!collapsed}
+        className="flex items-center justify-between text-sm font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
+      >
+        <span>Tasks</span>
+        <ChevronDown
+          className={cn(
+            "size-4 text-neutral-500 transition-transform duration-200",
+            collapsed && "-rotate-90"
           )}
-          {undated.length > 0 && (
-            <div className="flex flex-col">
-              {dated.length > 0 && (
-                <span className="px-1 pb-1 text-xs text-neutral-600">No date</span>
-              )}
-              {undated.map((task) => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  onToggleComplete={onToggleComplete}
-                  onDeleteTask={onDeleteTask}
-                />
-              ))}
-            </div>
-          )}
+        />
+      </button>
+
+      <div
+        inert={collapsed}
+        className={cn(
+          "grid transition-all duration-200 ease-in-out",
+          collapsed ? "grid-rows-[0fr] opacity-0" : "mt-3 grid-rows-[1fr] opacity-100"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-3">
+            <CreateTaskForm onCreateTask={onCreateTask} />
+
+            {loading ? (
+              <p className="text-xs text-neutral-500">Loading tasks…</p>
+            ) : tasks.length === 0 ? (
+              <p className="text-xs text-neutral-500">No tasks yet.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {dated.length > 0 && (
+                  <div className="flex flex-col">
+                    {dated.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                      />
+                    ))}
+                  </div>
+                )}
+                {undated.length > 0 && (
+                  <div className="flex flex-col">
+                    {dated.length > 0 && (
+                      <span className="px-1 pb-1 text-xs text-neutral-600">No date</span>
+                    )}
+                    {undated.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        onToggleComplete={onToggleComplete}
+                        onDeleteTask={onDeleteTask}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
