@@ -502,10 +502,12 @@ export default function Calendar() {
           selectedDate={selectedDate}
           viewDate={viewDate}
           events={events}
+          tasks={tasks}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
+          onTaskClick={handleToggleTaskComplete}
           view={view}
           onViewChange={setView}
         />
@@ -515,10 +517,12 @@ export default function Calendar() {
           selectedDate={selectedDate}
           viewDate={viewDate}
           events={events}
+          tasks={tasks}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
+          onTaskClick={handleToggleTaskComplete}
           onEventMove={handleEventMove}
           onEventResize={handleEventResize}
           view={view}
@@ -529,10 +533,12 @@ export default function Calendar() {
         <DayGrid
           viewDate={viewDate}
           events={events}
+          tasks={tasks}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
+          onTaskClick={handleToggleTaskComplete}
           onEventMove={handleEventMove}
           onEventResize={handleEventResize}
           view={view}

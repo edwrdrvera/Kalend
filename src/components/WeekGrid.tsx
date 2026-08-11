@@ -10,9 +10,10 @@ import {
   isSameMonth,
   setHours,
 } from "date-fns";
-import type { CalendarEvent } from "./Calendar";
+import type { CalendarEvent, CalendarTask } from "./Calendar";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
+import TaskDueRow from "./TaskDueRow";
 import TimeGrid from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
@@ -21,10 +22,12 @@ interface WeekGridProps {
   viewDate: Date;
   selectedDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
@@ -91,10 +94,12 @@ export default function WeekGrid({
   viewDate,
   selectedDate,
   events,
+  tasks,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
   onEventMove,
   onEventResize,
   view,
@@ -118,6 +123,7 @@ export default function WeekGrid({
       />
       <WeekDaysHeader days={days} selectedDate={selectedDate} onDateSelect={onDateSelect} />
       <AllDayRow days={days} events={events} onEventClick={onEventClick} />
+      <TaskDueRow days={days} tasks={tasks} onTaskClick={onTaskClick} />
       <TimeGrid
         days={days}
         events={timedEvents}

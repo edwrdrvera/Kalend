@@ -14,24 +14,28 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
-import type { CalendarEvent } from "./Calendar";
+import type { CalendarEvent, CalendarTask } from "./Calendar";
 import { getEventColorClasses } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
+import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
 
 interface MonthGridProps {
   viewDate: Date;
   selectedDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onTaskClick: (task: CalendarTask) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
+const MAX_VISIBLE_TASKS = 2;
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
@@ -44,6 +48,12 @@ function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
     const eventEnd = new Date(event.end_at);
     return eventStart <= dayEnd && eventEnd >= dayStart;
   });
+}
+
+/** Tasks due on this exact day. Unlike events, a task's due date is a
+ *  single point in time, not a range, so this is a same-day check. */
+function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
+  return tasks.filter((task) => task.due_at && isSameDay(new Date(task.due_at), day));
 }
 
 function DaysOfWeekRow() {
@@ -122,21 +132,29 @@ function DayCell({
   monthStart,
   selectedDate,
   events,
+  tasks,
   onDateSelect,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
 }: {
   day: Date;
   monthStart: Date;
   selectedDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onTaskClick: (task: CalendarTask) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
+
+  const dayTasks = getTasksForDay(day, tasks);
+  const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
+  const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
   const handleCellClick = () => {
     onDateSelect(day);
@@ -184,6 +202,14 @@ function DayCell({
             +{overflowCount} more
           </span>
         )}
+        {visibleTasks.map((task) => (
+          <TaskChip key={task.id} task={task} onClick={onTaskClick} />
+        ))}
+        {taskOverflowCount > 0 && (
+          <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
+            +{taskOverflowCount} more
+          </span>
+        )}
       </div>
     </div>
   );
@@ -193,10 +219,12 @@ export default function MonthGrid({
   viewDate,
   selectedDate,
   events,
+  tasks,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
   view,
   onViewChange,
 }: MonthGridProps) {
@@ -222,9 +250,11 @@ export default function MonthGrid({
             monthStart={monthStart}
             selectedDate={selectedDate}
             events={events}
+            tasks={tasks}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}
+            onTaskClick={onTaskClick}
           />
         ))}
       </div>

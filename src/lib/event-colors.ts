@@ -1,6 +1,7 @@
-// Shared color palette for events, used by both the month grid (rendering
-// event pills) and the event modal (color picker). Kept in one place so the
-// two never drift out of sync.
+// Shared color palette for events (and tasks, which reuse this same enum —
+// see TASK_COLOR_CLASSES below), used by the month/week/day grids (rendering
+// event pills and task chips) and the event modal (color picker). Kept in
+// one place so they never drift out of sync.
 export const EVENT_COLORS = [
   "blue",
   "green",
@@ -55,3 +56,24 @@ export const EVENT_COLOR_SWATCH_CLASSES: Record<EventColor, string> = {
   yellow: "bg-yellow-500",
   teal: "bg-teal-500",
 };
+
+// Outlined, not filled, so a task chip on the calendar grid never reads as
+// an event pill at a glance.
+export const TASK_COLOR_CLASSES: Record<EventColor, string> = {
+  blue: "border-blue-500/60 text-blue-300",
+  green: "border-green-500/60 text-green-300",
+  purple: "border-purple-500/60 text-purple-300",
+  orange: "border-orange-500/60 text-orange-300",
+  red: "border-red-500/60 text-red-300",
+  indigo: "border-indigo-500/60 text-indigo-300",
+  pink: "border-pink-500/60 text-pink-300",
+  yellow: "border-yellow-500/60 text-yellow-300",
+  teal: "border-teal-500/60 text-teal-300",
+};
+
+export const DEFAULT_TASK_COLOR_CLASSES = "border-neutral-600 text-neutral-300";
+
+export function getTaskColorClasses(color: string | null): string {
+  if (!color || !isEventColor(color)) return DEFAULT_TASK_COLOR_CLASSES;
+  return TASK_COLOR_CLASSES[color];
+}
