@@ -75,17 +75,29 @@ function TaskRow({
   );
 }
 
-/** Quick-add: title is the only required field, an "+ due date" toggle
- *  reveals a plain date input rather than forcing a due date up front (a
- *  task with no due date just sits undated, in the "No date" section
- *  below). A given date defaults to end-of-day, since a task due "some day"
- *  usually doesn't come with a specific time attached. */
+/** Idle: a plain "Add a task" row, styled to invite a click but taking no
+ *  more space than a single line. Clicking it swaps in the real form
+ *  (title input + a "+ due date" toggle for a plain date input, since a
+ *  task due "some day" usually doesn't come with a specific time attached).
+ *  A given date defaults to end-of-day. Submitting (or Escape, or the
+ *  cancel button) collapses back to the idle row, rather than leaving the
+ *  form open, so the panel returns to its resting size between adds. */
 function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [showDueDate, setShowDueDate] = useState(false);
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const close = () => {
+    setOpen(false);
+    setTitle("");
+    setShowDueDate(false);
+    setDueDate("");
+    setError(null);
+    setSubmitting(false);
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,15 +109,25 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
     try {
       const dueAt = dueDate ? new Date(`${dueDate}T23:59:00`).toISOString() : undefined;
       await onCreateTask(title.trim(), dueAt);
-      setTitle("");
-      setShowDueDate(false);
-      setDueDate("");
+      close();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
-    } finally {
       setSubmitting(false);
     }
   };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-sm text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
+      >
+        <Plus className="size-3.5" />
+        Add a task
+      </button>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
@@ -113,8 +135,12 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a task"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") close();
+          }}
+          placeholder="Task title"
           aria-label="New task title"
+          autoFocus
           className="h-8 flex-1 text-sm"
         />
         <button
@@ -124,6 +150,14 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
           className="flex size-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-40"
         >
           <Plus className="size-4" />
+        </button>
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Cancel"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+        >
+          <X className="size-4" />
         </button>
       </div>
 
