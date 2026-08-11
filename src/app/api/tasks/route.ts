@@ -69,7 +69,10 @@ export async function POST(request: Request) {
       .insert(tasks)
       .values({
         title: body.title,
-        due_at: dueAt,
+        // Omit the key entirely when no due date was given, instead of
+        // passing `due_at: undefined`, so the column gets a real `null`
+        // rather than an explicit-but-empty insert value.
+        ...(dueAt !== undefined ? { due_at: dueAt } : {}),
         user_id: user.id,
         color: body.color,
       })
