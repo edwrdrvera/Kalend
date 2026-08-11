@@ -1,9 +1,10 @@
 "use client";
 
 import { format, addDays, subDays, setHours } from "date-fns";
-import type { CalendarEvent } from "./Calendar";
+import type { CalendarEvent, CalendarTask } from "./Calendar";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
+import TaskDueRow from "./TaskDueRow";
 import TimeGrid from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
@@ -11,10 +12,12 @@ import type { CalendarView } from "./ViewSwitcher";
 interface DayGridProps {
   viewDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
+  onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
@@ -27,10 +30,12 @@ interface DayGridProps {
 export default function DayGrid({
   viewDate,
   events,
+  tasks,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
   onEventMove,
   onEventResize,
   view,
@@ -50,6 +55,7 @@ export default function DayGrid({
         onViewChange={onViewChange}
       />
       <AllDayRow days={days} events={events} onEventClick={onEventClick} />
+      <TaskDueRow days={days} tasks={tasks} onTaskClick={onTaskClick} />
       <TimeGrid
         days={days}
         events={timedEvents}
