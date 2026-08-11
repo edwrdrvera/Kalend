@@ -4,12 +4,19 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MiniCalendar from "./MiniCalendar";
+import TaskList from "./TaskList";
+import type { CalendarTask } from "./Calendar";
 
 interface CalendarSidebarProps {
   currentDate: Date;
   viewDate: Date;
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
+  tasks: CalendarTask[];
+  tasksLoading: boolean;
+  onCreateTask: (title: string, dueAt?: string) => Promise<void>;
+  onToggleTaskComplete: (task: CalendarTask) => void;
+  onDeleteTask: (task: CalendarTask) => void;
 }
 
 export default function CalendarSidebar({
@@ -17,6 +24,11 @@ export default function CalendarSidebar({
   viewDate,
   onDateSelect,
   onViewDateChange,
+  tasks,
+  tasksLoading,
+  onCreateTask,
+  onToggleTaskComplete,
+  onDeleteTask,
 }: CalendarSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -38,12 +50,19 @@ export default function CalendarSidebar({
         </button>
       </div>
 
-      <div inert={collapsed} className={cn("w-64 transition-opacity duration-150", collapsed && "opacity-0")}>
+      <div inert={collapsed} className={cn("flex w-64 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
         <MiniCalendar
           currentDate={currentDate}
           viewDate={viewDate}
           onDateSelect={onDateSelect}
           onViewDateChange={onViewDateChange}
+        />
+        <TaskList
+          tasks={tasks}
+          loading={tasksLoading}
+          onCreateTask={onCreateTask}
+          onToggleComplete={onToggleTaskComplete}
+          onDeleteTask={onDeleteTask}
         />
       </div>
     </aside>
