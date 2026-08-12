@@ -15,6 +15,20 @@
       "when": 1786230936389,
       "tag": "0001_tough_husk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786497239945,
+      "tag": "0002_enable_events_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786497240074,
+      "tag": "0003_enable_tasks_rls",
+      "breakpoints": true
     }
   ]
 }
