@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// NOTE ON RATE LIMITING: signInWithPassword/signUp below call Supabase's
+// Auth API directly from the browser, they never pass through this app's
+// own server, so there is nowhere in our code to add a rate limiter that
+// would actually see these attempts. Brute-force protection is enforced by
+// Supabase itself (project's auth rate limit config: 30 sign-in/sign-up
+// requests per 5 minutes per IP address). See issue #62.
 interface AuthCardProps {
   mode: "login" | "signup";
 }
