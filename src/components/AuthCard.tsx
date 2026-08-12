@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { validateAuthForm } from "@/lib/auth-validation";
+import { PASSWORD_REQUIREMENTS_HINT, validateAuthForm } from "@/lib/auth-validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
     setError(null);
     setInfo(null);
 
-    const validation = validateAuthForm(email, password);
+    const validation = validateAuthForm(email, password, mode);
     if (!validation.valid || !validation.trimmedEmail) {
       setError(validation.error ?? "Invalid input.");
       return;
@@ -151,6 +151,9 @@ export default function AuthCard({ mode }: AuthCardProps) {
               className="border-neutral-800 bg-[#121212] text-neutral-100 placeholder:text-neutral-500 focus-visible:border-blue-600 focus-visible:ring-blue-600/30"
               required
             />
+            {!isLogin && (
+              <p className="text-xs text-neutral-500">{PASSWORD_REQUIREMENTS_HINT}</p>
+            )}
           </div>
 
           <Button
