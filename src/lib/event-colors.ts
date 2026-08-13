@@ -16,6 +16,11 @@ export const EVENT_COLORS = [
 
 export type EventColor = (typeof EVENT_COLORS)[number];
 
+// Matches the `color` column's DB default on events/tasks/categories, and
+// what a fresh create form (event, task, or category) starts on before the
+// user picks a color of their own.
+export const DEFAULT_EVENT_COLOR: EventColor = "blue";
+
 export function isEventColor(color: string | null | undefined): color is EventColor {
   return !!color && (EVENT_COLORS as readonly string[]).includes(color);
 }

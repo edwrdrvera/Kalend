@@ -5,7 +5,8 @@ import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
-import type { CalendarTask } from "./Calendar";
+import CategoryManager from "./CategoryManager";
+import type { CalendarCategory, CalendarTask } from "./Calendar";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -14,9 +15,17 @@ interface CalendarSidebarProps {
   onViewDateChange: (date: Date) => void;
   tasks: CalendarTask[];
   tasksLoading: boolean;
-  onCreateTask: (title: string, dueAt?: string) => Promise<void>;
+  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
+  categories: CalendarCategory[];
+  categoriesLoading: boolean;
+  onCreateCategory: (name: string, color: string) => Promise<void>;
+  onUpdateCategory: (
+    category: CalendarCategory,
+    updates: { name?: string; color?: string }
+  ) => void;
+  onDeleteCategory: (category: CalendarCategory) => void;
 }
 
 export default function CalendarSidebar({
@@ -29,6 +38,11 @@ export default function CalendarSidebar({
   onCreateTask,
   onToggleTaskComplete,
   onDeleteTask,
+  categories,
+  categoriesLoading,
+  onCreateCategory,
+  onUpdateCategory,
+  onDeleteCategory,
 }: CalendarSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -60,9 +74,17 @@ export default function CalendarSidebar({
         <TaskList
           tasks={tasks}
           loading={tasksLoading}
+          categories={categories}
           onCreateTask={onCreateTask}
           onToggleComplete={onToggleTaskComplete}
           onDeleteTask={onDeleteTask}
+        />
+        <CategoryManager
+          categories={categories}
+          loading={categoriesLoading}
+          onCreateCategory={onCreateCategory}
+          onUpdateCategory={onUpdateCategory}
+          onDeleteCategory={onDeleteCategory}
         />
       </div>
     </aside>

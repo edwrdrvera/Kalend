@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { isEventColor, type EventColor } from "@/lib/event-colors";
+import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
 import type { CalendarCategory, CalendarEvent } from "./Calendar";
@@ -44,7 +44,6 @@ interface EventModalProps {
   error?: string | null;
 }
 
-const DEFAULT_COLOR: EventColor = "blue";
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 function toDateTimeLocal(date: Date): string {
@@ -207,7 +206,7 @@ export default function EventModal({
   const [color, setColor] = useState<EventColor>(() =>
     mode === "edit" && event && isEventColor(event.color)
       ? event.color
-      : DEFAULT_COLOR
+      : DEFAULT_EVENT_COLOR
   );
   const [categoryId, setCategoryId] = useState<string | null>(() =>
     mode === "edit" && event ? event.category_id : null
