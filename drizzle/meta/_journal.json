@@ -36,6 +36,13 @@
       "when": 1786647567817,
       "tag": "0004_natural_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786647624550,
+      "tag": "0005_enable_categories_rls",
+      "breakpoints": true
     }
   ]
 }
