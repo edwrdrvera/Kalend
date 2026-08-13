@@ -13,6 +13,9 @@ interface UpdateTaskBody {
   due_at?: string | null;
   completed?: boolean;
   color?: string;
+  // string sets the link, null clears it (falls back to `color`), omitted
+  // leaves it untouched — same convention as `due_at` above.
+  category_id?: string | null;
 }
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -42,6 +45,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     if (body.completed !== undefined) updates.completed = body.completed;
     if (body.color !== undefined) updates.color = body.color;
+    if (body.category_id !== undefined) updates.category_id = body.category_id;
 
     // due_at: null explicitly clears the due date (moves the task back to
     // the undated inbox); omitted leaves it untouched.

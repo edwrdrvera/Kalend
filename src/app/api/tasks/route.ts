@@ -33,6 +33,7 @@ interface CreateTaskBody {
   title: string;
   due_at?: string;
   color?: string;
+  category_id?: string | null;
 }
 
 export async function POST(request: Request) {
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         ...(dueAt !== undefined ? { due_at: dueAt } : {}),
         user_id: user.id,
         color: body.color,
+        category_id: body.category_id ?? null,
       })
       .returning();
 

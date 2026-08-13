@@ -286,6 +286,41 @@ describe("Events API Endpoints", () => {
       expect(json.success).toBe(false);
       expect(json.error).toBe("Internal Server Error");
     });
+
+    it("links the event to a category when category_id is given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: "category-uuid-1",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(201);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe("category-uuid-1");
+    });
+
+    it("returns null category_id when none is given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+        }),
+      });
+
+      const response = await POST(req);
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
+    });
   });
 
   describe("PATCH /api/events/[id]", () => {
@@ -422,6 +457,34 @@ describe("Events API Endpoints", () => {
       expect(json.success).toBe(true);
       expect(json.data.title).toBe("CS 101 Lecture - Rescheduled");
       expect(json.data.color).toBe("green");
+    });
+
+    it("sets category_id when given", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: "category-uuid-1" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe("category-uuid-1");
+    });
+
+    it("clears category_id when explicitly set to null, falling back to the event's own color", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
     });
   });
 
