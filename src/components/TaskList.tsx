@@ -5,26 +5,32 @@ import { format, isPast } from "date-fns";
 import { Check, ChevronDown, Plus, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { CalendarTask } from "./Calendar";
+import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
+import CategorySelect from "./CategorySelect";
+import type { CalendarCategory, CalendarTask } from "./Calendar";
 
 interface TaskListProps {
   tasks: CalendarTask[];
   loading: boolean;
-  onCreateTask: (title: string, dueAt?: string) => Promise<void>;
+  categories: CalendarCategory[];
+  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
 }
 
 function TaskRow({
   task,
+  categories,
   onToggleComplete,
   onDeleteTask,
 }: {
   task: CalendarTask;
+  categories: CalendarCategory[];
   onToggleComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
 }) {
   const overdue = task.due_at && !task.completed && isPast(new Date(task.due_at));
+  const displayColor = resolveDisplayColor(task.color, task.category_id, categories);
 
   return (
     <div className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-neutral-800/60">
@@ -42,6 +48,14 @@ function TaskRow({
       >
         <Check className="size-3" strokeWidth={3} />
       </button>
+
+      <span
+        aria-hidden
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          isEventColor(displayColor) ? EVENT_COLOR_SWATCH_CLASSES[displayColor] : "bg-neutral-600"
+        )}
+      />
 
       <span
         className={cn(
@@ -82,11 +96,18 @@ function TaskRow({
  *  A given date defaults to end-of-day. Submitting (or Escape, or the
  *  cancel button) collapses back to the idle row, rather than leaving the
  *  form open, so the panel returns to its resting size between adds. */
-function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?: string) => Promise<void> }) {
+function CreateTaskForm({
+  categories,
+  onCreateTask,
+}: {
+  categories: CalendarCategory[];
+  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [showDueDate, setShowDueDate] = useState(false);
   const [dueDate, setDueDate] = useState("");
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,6 +116,7 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
     setTitle("");
     setShowDueDate(false);
     setDueDate("");
+    setCategoryId(null);
     setError(null);
     setSubmitting(false);
   };
@@ -108,7 +130,7 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
 
     try {
       const dueAt = dueDate ? new Date(`${dueDate}T23:59:00`).toISOString() : undefined;
-      await onCreateTask(title.trim(), dueAt);
+      await onCreateTask(title.trim(), dueAt, categoryId);
       close();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
@@ -191,6 +213,13 @@ function CreateTaskForm({ onCreateTask }: { onCreateTask: (title: string, dueAt?
         </button>
       )}
 
+      <CategorySelect
+        categories={categories}
+        categoryId={categoryId}
+        onChange={setCategoryId}
+        className="-ml-2 self-start"
+      />
+
       {error && <p className="text-xs text-red-400">{error}</p>}
     </form>
   );
@@ -201,6 +230,7 @@ const COLLAPSED_STORAGE_KEY = "kalend:tasks-panel-collapsed";
 export default function TaskList({
   tasks,
   loading,
+  categories,
   onCreateTask,
   onToggleComplete,
   onDeleteTask,
@@ -253,7 +283,7 @@ export default function TaskList({
       >
         <div className="overflow-hidden">
           <div className="flex flex-col gap-3">
-            <CreateTaskForm onCreateTask={onCreateTask} />
+            <CreateTaskForm categories={categories} onCreateTask={onCreateTask} />
 
             {loading ? (
               <p className="text-xs text-neutral-500">Loading tasks…</p>
@@ -267,6 +297,7 @@ export default function TaskList({
                       <TaskRow
                         key={task.id}
                         task={task}
+                        categories={categories}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
                       />
@@ -282,6 +313,7 @@ export default function TaskList({
                       <TaskRow
                         key={task.id}
                         task={task}
+                        categories={categories}
                         onToggleComplete={onToggleComplete}
                         onDeleteTask={onDeleteTask}
                       />

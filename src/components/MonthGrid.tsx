@@ -14,8 +14,8 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
-import type { CalendarEvent, CalendarTask } from "./Calendar";
-import { getEventColorClasses } from "@/lib/event-colors";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "./Calendar";
+import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
@@ -25,6 +25,7 @@ interface MonthGridProps {
   selectedDate: Date;
   events: CalendarEvent[];
   tasks: CalendarTask[];
+  categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
@@ -133,6 +134,7 @@ function DayCell({
   selectedDate,
   events,
   tasks,
+  categories,
   onDateSelect,
   onCreateEvent,
   onEventClick,
@@ -143,6 +145,7 @@ function DayCell({
   selectedDate: Date;
   events: CalendarEvent[];
   tasks: CalendarTask[];
+  categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date) => void;
   onEventClick: (event: CalendarEvent) => void;
@@ -192,7 +195,7 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(event.color)}`}
+            className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>
@@ -203,7 +206,7 @@ function DayCell({
           </span>
         )}
         {visibleTasks.map((task) => (
-          <TaskChip key={task.id} task={task} onClick={onTaskClick} />
+          <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
         ))}
         {taskOverflowCount > 0 && (
           <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
@@ -220,6 +223,7 @@ export default function MonthGrid({
   selectedDate,
   events,
   tasks,
+  categories,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
@@ -251,6 +255,7 @@ export default function MonthGrid({
             selectedDate={selectedDate}
             events={events}
             tasks={tasks}
+            categories={categories}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}

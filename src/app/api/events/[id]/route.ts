@@ -13,6 +13,9 @@ interface UpdateEventBody {
   start_at?: string;
   end_at?: string;
   color?: string;
+  // string sets the link, null clears it (falls back to `color`), omitted
+  // leaves it untouched — same convention as `due_at` on tasks.
+  category_id?: string | null;
 }
 
 export async function PATCH(request: Request, { params }: RouteContext) {
@@ -32,6 +35,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     if (body.title !== undefined) updates.title = body.title;
     if (body.color !== undefined) updates.color = body.color;
+    if (body.category_id !== undefined) updates.category_id = body.category_id;
 
     if (body.start_at !== undefined) {
       const startAt = new Date(body.start_at);

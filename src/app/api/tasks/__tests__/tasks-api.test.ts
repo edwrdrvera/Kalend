@@ -292,6 +292,32 @@ describe("Tasks API Endpoints", () => {
       expect(json.success).toBe(false);
       expect(json.error).toBe("Internal Server Error");
     });
+
+    it("links the task to a category when category_id is given", async () => {
+      const req = new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Submit essay", category_id: "category-uuid-1" }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(201);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe("category-uuid-1");
+    });
+
+    it("returns null category_id when none is given", async () => {
+      const req = new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Submit essay" }),
+      });
+
+      const response = await POST(req);
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
+    });
   });
 
   describe("PATCH /api/tasks/[id]", () => {
@@ -424,6 +450,34 @@ describe("Tasks API Endpoints", () => {
       expect(json.success).toBe(true);
       expect(json.data.title).toBe("Finish problem set - extended");
       expect(json.data.color).toBe("green");
+    });
+
+    it("sets category_id when given", async () => {
+      const req = new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: "category-uuid-1" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe("category-uuid-1");
+    });
+
+    it("clears category_id when explicitly set to null, falling back to the task's own color", async () => {
+      const req = new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
     });
   });
 

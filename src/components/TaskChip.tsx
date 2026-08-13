@@ -2,11 +2,12 @@
 
 import { isPast } from "date-fns";
 import { cn } from "@/lib/utils";
-import { getTaskColorClasses } from "@/lib/event-colors";
-import type { CalendarTask } from "./Calendar";
+import { getTaskColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import type { CalendarCategory, CalendarTask } from "./Calendar";
 
 interface TaskChipProps {
   task: CalendarTask;
+  categories: CalendarCategory[];
   onClick?: (task: CalendarTask) => void;
   className?: string;
 }
@@ -16,7 +17,7 @@ interface TaskChipProps {
  *  block. Shared by MonthGrid's day cells and TaskDueRow (week/day).
  *  Clicking it toggles complete, same as the sidebar task list, there's no
  *  separate task-edit view yet to open instead. */
-export default function TaskChip({ task, onClick, className }: TaskChipProps) {
+export default function TaskChip({ task, categories, onClick, className }: TaskChipProps) {
   const overdue = !task.completed && task.due_at && isPast(new Date(task.due_at));
 
   return (
@@ -34,7 +35,7 @@ export default function TaskChip({ task, onClick, className }: TaskChipProps) {
           ? "border-neutral-700 text-neutral-500 line-through"
           : overdue
             ? "border-red-500/60 text-red-400"
-            : getTaskColorClasses(task.color),
+            : getTaskColorClasses(resolveDisplayColor(task.color, task.category_id, categories)),
         className
       )}
     >

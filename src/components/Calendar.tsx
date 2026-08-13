@@ -18,6 +18,7 @@ export interface CalendarEvent {
   start_at: string;
   end_at: string;
   color: string | null;
+  category_id: string | null;
 }
 
 interface EventsApiResponse {
@@ -40,6 +41,7 @@ export interface CalendarTask {
   due_at: string | null;
   completed: boolean;
   color: string | null;
+  category_id: string | null;
 }
 
 interface TasksApiResponse {
@@ -51,6 +53,25 @@ interface TasksApiResponse {
 interface TaskMutationResponse {
   success: boolean;
   data?: CalendarTask;
+  error?: string;
+}
+
+// Wire shape of a category as returned by GET /api/categories.
+export interface CalendarCategory {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
+interface CategoriesApiResponse {
+  success: boolean;
+  data?: CalendarCategory[];
+  error?: string;
+}
+
+interface CategoryMutationResponse {
+  success: boolean;
+  data?: CalendarCategory;
   error?: string;
 }
 
@@ -89,6 +110,25 @@ async function mutateTask(
     body: body ? JSON.stringify(body) : undefined,
   });
   const json: TaskMutationResponse = await res.json();
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error ?? fallbackError);
+  }
+  return json;
+}
+
+async function mutateCategory(
+  url: string,
+  method: "POST" | "PATCH" | "DELETE",
+  body: object | undefined,
+  fallbackError: string
+): Promise<CategoryMutationResponse> {
+  const res = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json: CategoryMutationResponse = await res.json();
 
   if (!res.ok || !json.success) {
     throw new Error(json.error ?? fallbackError);
@@ -197,15 +237,139 @@ export default function Calendar() {
     };
   }, []);
 
+  const [categories, setCategories] = useState<CalendarCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  // Fetched once on mount, same as tasks: categories aren't date-scoped, the
+  // full list is needed everywhere a category can be picked or a color
+  // looked up.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchCategories() {
+      setCategoriesLoading(true);
+      setCategoriesError(null);
+
+      try {
+        const res = await fetch("/api/categories");
+        const json: CategoriesApiResponse = await res.json();
+
+        if (!res.ok || !json.success || !json.data) {
+          throw new Error(json.error ?? "Failed to load categories");
+        }
+
+        if (!cancelled) {
+          setCategories(json.data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCategoriesError(
+            err instanceof Error ? err.message : "Failed to load categories"
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setCategoriesLoading(false);
+        }
+      }
+    }
+
+    fetchCategories();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Not optimistic, same reasoning as handleCreateTask: CategoryManager
+  // shows its own inline error on failure.
+  const handleCreateCategory = async (name: string, color: string) => {
+    const json = await mutateCategory(
+      "/api/categories",
+      "POST",
+      { name, color },
+      "Failed to create category"
+    );
+
+    if (!json.data) {
+      throw new Error("Failed to create category");
+    }
+
+    setCategories((prev) => [...prev, json.data as CalendarCategory]);
+  };
+
+  // Optimistic, same pattern as handleToggleTaskComplete: recoloring or
+  // renaming updates every event/task under this category immediately,
+  // since their display color is looked up live (see resolveDisplayColor),
+  // not copied.
+  const handleUpdateCategory = async (
+    category: CalendarCategory,
+    updates: { name?: string; color?: string }
+  ) => {
+    const previousCategory = category;
+    const optimisticCategory: CalendarCategory = { ...category, ...updates };
+
+    setCategories((prev) =>
+      prev.map((c) => (c.id === category.id ? optimisticCategory : c))
+    );
+
+    try {
+      const json = await mutateCategory(
+        `/api/categories/${category.id}`,
+        "PATCH",
+        updates,
+        "Failed to update category"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to update category");
+      }
+
+      const savedCategory = json.data;
+      setCategories((prev) =>
+        prev.map((c) => (c.id === savedCategory.id ? savedCategory : c))
+      );
+    } catch (err) {
+      setCategories((prev) =>
+        prev.map((c) => (c.id === category.id ? previousCategory : c))
+      );
+      setCategoriesError(
+        err instanceof Error ? err.message : "Failed to update category"
+      );
+    }
+  };
+
+  // Optimistic, same pattern as handleDeleteTask. The database detaches any
+  // linked events/tasks itself (category_id is ON DELETE SET NULL), so
+  // there's nothing extra to reconcile in events/tasks state here.
+  const handleDeleteCategory = async (category: CalendarCategory) => {
+    setCategories((prev) => prev.filter((c) => c.id !== category.id));
+
+    try {
+      await mutateCategory(
+        `/api/categories/${category.id}`,
+        "DELETE",
+        undefined,
+        "Failed to delete category"
+      );
+    } catch (err) {
+      setCategories((prev) => [...prev, category]);
+      setCategoriesError(
+        err instanceof Error ? err.message : "Failed to delete category"
+      );
+    }
+  };
+
   // Not optimistic, unlike the handlers below: the create form (TaskList)
   // shows its own inline error on failure (same idea as EventModal's
   // `error` prop), so this just throws and lets the caller handle it,
   // rather than writing to the global tasksError banner.
-  const handleCreateTask = async (title: string, dueAt?: string) => {
+  const handleCreateTask = async (title: string, dueAt?: string, categoryId?: string | null) => {
     const json = await mutateTask(
       "/api/tasks",
       "POST",
-      { title, due_at: dueAt },
+      { title, due_at: dueAt, category_id: categoryId },
       "Failed to create task"
     );
 
@@ -312,6 +476,7 @@ export default function Calendar() {
           start_at: values.startAt,
           end_at: values.endAt,
           color: values.color,
+          category_id: values.categoryId,
         },
         fallbackError
       );
@@ -456,7 +621,7 @@ export default function Calendar() {
 
   return (
     <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
-      {(eventsError || tasksError) && (
+      {(eventsError || tasksError || categoriesError) && (
         <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
           {eventsError && (
             <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
@@ -484,6 +649,19 @@ export default function Calendar() {
               </button>
             </div>
           )}
+          {categoriesError && (
+            <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
+              <span>{categoriesError}</span>
+              <button
+                type="button"
+                onClick={() => setCategoriesError(null)}
+                aria-label="Dismiss"
+                className="text-neutral-400 transition-colors hover:text-neutral-200"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       )}
       <CalendarSidebar
@@ -496,6 +674,11 @@ export default function Calendar() {
         onCreateTask={handleCreateTask}
         onToggleTaskComplete={handleToggleTaskComplete}
         onDeleteTask={handleDeleteTask}
+        categories={categories}
+        categoriesLoading={categoriesLoading}
+        onCreateCategory={handleCreateCategory}
+        onUpdateCategory={handleUpdateCategory}
+        onDeleteCategory={handleDeleteCategory}
       />
       {view === "month" && (
         <MonthGrid
@@ -503,6 +686,7 @@ export default function Calendar() {
           viewDate={viewDate}
           events={events}
           tasks={tasks}
+          categories={categories}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
@@ -518,6 +702,7 @@ export default function Calendar() {
           viewDate={viewDate}
           events={events}
           tasks={tasks}
+          categories={categories}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
@@ -534,6 +719,7 @@ export default function Calendar() {
           viewDate={viewDate}
           events={events}
           tasks={tasks}
+          categories={categories}
           onDateSelect={handleDateSelect}
           onViewDateChange={setViewDate}
           onCreateEvent={handleCreateEvent}
@@ -552,6 +738,7 @@ export default function Calendar() {
         mode={modalMode}
         event={modalEvent}
         initialStart={modalInitialStart}
+        categories={categories}
         onSubmit={handleModalSubmit}
         onDelete={handleDeleteEvent}
         submitting={modalSubmitting}

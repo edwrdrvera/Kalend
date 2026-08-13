@@ -14,21 +14,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import {
-  EVENT_COLORS,
-  EVENT_COLOR_SWATCH_CLASSES,
-  isEventColor,
-  type EventColor,
-} from "@/lib/event-colors";
-import type { CalendarEvent } from "./Calendar";
+import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
+import ColorSwatchPicker from "./ColorSwatchPicker";
+import CategorySelect from "./CategorySelect";
+import type { CalendarCategory, CalendarEvent } from "./Calendar";
 
 export interface EventFormValues {
   title: string;
   startAt: string;
   endAt: string;
   color: EventColor;
+  categoryId: string | null;
 }
 
 interface EventModalProps {
@@ -39,6 +36,7 @@ interface EventModalProps {
   event?: CalendarEvent | null;
   /** Pre-populates the start time when mode is "create" (e.g. the clicked day). */
   initialStart?: Date;
+  categories: CalendarCategory[];
   onSubmit: (values: EventFormValues) => void;
   /** Only called (and only rendered) when mode is "edit". */
   onDelete?: () => void;
@@ -46,7 +44,6 @@ interface EventModalProps {
   error?: string | null;
 }
 
-const DEFAULT_COLOR: EventColor = "blue";
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 function toDateTimeLocal(date: Date): string {
@@ -176,54 +173,6 @@ function TimeRangeField({
   );
 }
 
-/** Collapsed: a single circular swatch for the active color. Popout: the
- *  full palette in a shadcn Popover. Picking a color updates the indicator
- *  and closes the popover (tracked explicitly — Popover only auto-closes
- *  on outside click/Escape, not on an arbitrary click inside its content). */
-function ColorPickerField({
-  color,
-  onColorChange,
-}: {
-  color: EventColor;
-  onColorChange: (color: EventColor) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        aria-label={`Change color, currently ${color}`}
-        className={cn(
-          "mt-1.5 size-7 shrink-0 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-popover transition-all hover:scale-105 hover:ring-foreground/20",
-          EVENT_COLOR_SWATCH_CLASSES[color]
-        )}
-      />
-      <PopoverContent className="w-auto p-2.5">
-        <div className="flex flex-wrap gap-2">
-          {EVENT_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => {
-                onColorChange(c);
-                setOpen(false);
-              }}
-              aria-label={c}
-              aria-pressed={color === c}
-              className={cn(
-                "size-6 rounded-full transition-transform",
-                EVENT_COLOR_SWATCH_CLASSES[c],
-                color === c
-                  ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"
-                  : "hover:scale-110"
-              )}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 export default function EventModal({
   open,
@@ -231,6 +180,7 @@ export default function EventModal({
   mode,
   event,
   initialStart,
+  categories,
   onSubmit,
   onDelete,
   submitting = false,
@@ -256,9 +206,23 @@ export default function EventModal({
   const [color, setColor] = useState<EventColor>(() =>
     mode === "edit" && event && isEventColor(event.color)
       ? event.color
-      : DEFAULT_COLOR
+      : DEFAULT_EVENT_COLOR
+  );
+  const [categoryId, setCategoryId] = useState<string | null>(() =>
+    mode === "edit" && event ? event.category_id : null
   );
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // While a category is linked, the swatch shows (and submits) that
+  // category's color instead of the event's own — same live lookup used on
+  // the calendar grids (resolveDisplayColor) — and is non-interactive,
+  // since picking a color here wouldn't do anything until the category is
+  // cleared. `color` itself stays untouched underneath so the user's own
+  // color choice is still there if they later clear the category.
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const categoryColor =
+    selectedCategory && isEventColor(selectedCategory.color) ? selectedCategory.color : null;
+  const swatchColor = categoryColor ?? color;
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -279,6 +243,7 @@ export default function EventModal({
       startAt: start.toISOString(),
       endAt: end.toISOString(),
       color,
+      categoryId,
     });
   };
 
@@ -327,7 +292,12 @@ export default function EventModal({
           </div>
 
           <div className="flex items-start gap-3">
-            <ColorPickerField color={color} onColorChange={setColor} />
+            <ColorSwatchPicker
+              color={swatchColor}
+              onColorChange={setColor}
+              disabled={categoryColor !== null}
+              className="mt-1.5"
+            />
             <div className="min-w-0 flex-1">
               <TimeRangeField
                 startAt={startAt}
@@ -337,6 +307,13 @@ export default function EventModal({
               />
             </div>
           </div>
+
+          <CategorySelect
+            categories={categories}
+            categoryId={categoryId}
+            onChange={setCategoryId}
+            className="self-start"
+          />
 
           {(validationError ?? error) && (
             <p className="text-sm text-destructive">{validationError ?? error}</p>

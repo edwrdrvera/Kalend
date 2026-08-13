@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { tasks } from "@/db/schema/tasks";
+import { categories } from "@/db/schema/categories";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -14,12 +14,12 @@ export async function GET() {
       );
     }
 
-    const userTasks = await db
+    const userCategories = await db
       .select()
-      .from(tasks)
-      .where(eq(tasks.user_id, user.id));
+      .from(categories)
+      .where(eq(categories.user_id, user.id));
 
-    return NextResponse.json({ success: true, data: userTasks });
+    return NextResponse.json({ success: true, data: userCategories });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(
@@ -29,11 +29,9 @@ export async function GET() {
   }
 }
 
-interface CreateTaskBody {
-  title: string;
-  due_at?: string;
+interface CreateCategoryBody {
+  name: string;
   color?: string;
-  category_id?: string | null;
 }
 
 export async function POST(request: Request) {
@@ -46,42 +44,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const body: CreateTaskBody = await request.json();
+    const body: CreateCategoryBody = await request.json();
 
-    if (!body.title || !body.title.trim()) {
+    if (!body.name || !body.name.trim()) {
       return NextResponse.json(
-        { success: false, error: "title is required" },
+        { success: false, error: "name is required" },
         { status: 400 }
       );
     }
 
-    let dueAt: Date | undefined;
-    if (body.due_at !== undefined) {
-      dueAt = new Date(body.due_at);
-      if (Number.isNaN(dueAt.getTime())) {
-        return NextResponse.json(
-          { success: false, error: "due_at must be a valid date" },
-          { status: 400 }
-        );
-      }
-    }
-
-    const [newTask] = await db
-      .insert(tasks)
+    const [newCategory] = await db
+      .insert(categories)
       .values({
-        title: body.title,
-        // Omit the key entirely when no due date was given, instead of
-        // passing `due_at: undefined`, so the column gets a real `null`
-        // rather than an explicit-but-empty insert value.
-        ...(dueAt !== undefined ? { due_at: dueAt } : {}),
+        name: body.name.trim(),
         user_id: user.id,
         color: body.color,
-        category_id: body.category_id ?? null,
       })
       .returning();
 
     return NextResponse.json(
-      { success: true, data: newTask },
+      { success: true, data: newCategory },
       { status: 201 }
     );
   } catch (error) {
