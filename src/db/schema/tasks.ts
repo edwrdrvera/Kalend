@@ -9,7 +9,7 @@ export const tasks = pgTable("tasks", {
   completed: boolean("completed").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
   color: text("color").default("blue"),
-  category_id: uuid("category_id").references(() => categories.id)
+  category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" })
 });
 
 // Types for your Frontend
