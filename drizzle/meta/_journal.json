@@ -29,6 +29,13 @@
       "when": 1786497240074,
       "tag": "0003_enable_tasks_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786647567817,
+      "tag": "0004_natural_valkyrie",
+      "breakpoints": true
     }
   ]
 }
