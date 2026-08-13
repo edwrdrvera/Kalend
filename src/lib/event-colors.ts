@@ -77,3 +77,21 @@ export function getTaskColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_TASK_COLOR_CLASSES;
   return TASK_COLOR_CLASSES[color];
 }
+
+// Shared by events and tasks: when linked to a category, the color shown on
+// the calendar is looked up live from that category (so recoloring a
+// category updates everything under it immediately) instead of the item's
+// own `color` field. Falls back to `ownColor` when there's no category_id,
+// or the linked category no longer exists (e.g. stale client state right
+// after a delete elsewhere).
+export function resolveDisplayColor(
+  ownColor: string | null,
+  categoryId: string | null | undefined,
+  categories: readonly { id: string; color: string | null }[]
+): string | null {
+  if (categoryId) {
+    const category = categories.find((c) => c.id === categoryId);
+    if (category) return category.color;
+  }
+  return ownColor;
+}
