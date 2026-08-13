@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { categories } from "./categories";
 
 export const events = pgTable("events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -7,7 +8,8 @@ export const events = pgTable("events", {
   start_at: timestamp("start_at", { withTimezone: true }).notNull(),
   end_at: timestamp("end_at", { withTimezone: true }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
-  color: text("color").default("blue")
+  color: text("color").default("blue"),
+  category_id: uuid("category_id").references(() => categories.id)
 });
 
 // Types for your Frontend

@@ -1,4 +1,5 @@
 import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { categories } from "./categories";
 
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -7,7 +8,8 @@ export const tasks = pgTable("tasks", {
   due_at: timestamp("due_at", { withTimezone: true }),
   completed: boolean("completed").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
-  color: text("color").default("blue")
+  color: text("color").default("blue"),
+  category_id: uuid("category_id").references(() => categories.id)
 });
 
 // Types for your Frontend
