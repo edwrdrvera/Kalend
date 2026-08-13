@@ -167,6 +167,15 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### 6. Seed Sample Data (Optional)
+Sign up (or log in) once in the app, then find your user id in the Supabase dashboard under **Authentication > Users** (or run `select id, email from auth.users;` in the SQL editor). Load the sample events from `src/db/data/data.csv` into your account:
+
+```bash
+SEED_USER_ID=<your-uuid> bun run db:seed
+```
+
+Safe to run more than once: rows already present (matched by title and start time) are skipped instead of duplicated.
+
 ---
 
 ## Development & Testing

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
-    "start": "bun --bun next start"
+    "start": "bun --bun next start",
+    "db:seed": "bun run src/db/seed.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
