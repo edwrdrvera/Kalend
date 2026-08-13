@@ -1,7 +1,7 @@
 "use client";
 
-import type { CalendarEvent } from "./Calendar";
-import { getEventColorClasses } from "@/lib/event-colors";
+import type { CalendarCategory, CalendarEvent } from "./Calendar";
+import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutAllDayEvents } from "@/lib/time-grid-layout";
 
 const LANE_HEIGHT_PX = 24;
@@ -11,13 +11,14 @@ interface AllDayRowProps {
    *  right days. */
   days: Date[];
   events: CalendarEvent[];
+  categories: CalendarCategory[];
   onEventClick?: (event: CalendarEvent) => void;
 }
 
 /** Row above `TimeGrid` for multi-day events, shown as bars spanning the
  *  days they cover instead of squeezed into a single hour column. Shared by
  *  the Week and Day views (Day view just passes a single-entry `days`). */
-export default function AllDayRow({ days, events, onEventClick }: AllDayRowProps) {
+export default function AllDayRow({ days, events, categories, onEventClick }: AllDayRowProps) {
   const blocks = layoutAllDayEvents(days, events);
   if (blocks.length === 0) return null;
 
@@ -50,7 +51,7 @@ export default function AllDayRow({ days, events, onEventClick }: AllDayRowProps
               left: `${(startCol / days.length) * 100}%`,
               width: `${((endCol - startCol + 1) / days.length) * 100}%`,
             }}
-            className={`absolute overflow-hidden truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(event.color)}`}
+            className={`absolute overflow-hidden truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>

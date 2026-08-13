@@ -1,7 +1,7 @@
 "use client";
 
 import { isSameDay } from "date-fns";
-import type { CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarTask } from "./Calendar";
 import TaskChip from "./TaskChip";
 
 interface TaskDueRowProps {
@@ -9,6 +9,7 @@ interface TaskDueRowProps {
    *  with the right day. */
   days: Date[];
   tasks: CalendarTask[];
+  categories: CalendarCategory[];
   onTaskClick?: (task: CalendarTask) => void;
 }
 
@@ -20,7 +21,7 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
  *  due date is a single point in time, not a range, so there's no
  *  column-spanning to lay out, just each day's tasks stacked in its own
  *  column. Shared by Week and Day view, same as AllDayRow. */
-export default function TaskDueRow({ days, tasks, onTaskClick }: TaskDueRowProps) {
+export default function TaskDueRow({ days, tasks, categories, onTaskClick }: TaskDueRowProps) {
   const hasAnyTasks = days.some((day) => getTasksForDay(day, tasks).length > 0);
   if (!hasAnyTasks) return null;
 
@@ -34,7 +35,7 @@ export default function TaskDueRow({ days, tasks, onTaskClick }: TaskDueRowProps
         {days.map((day) => (
           <div key={day.getTime()} className="flex flex-col gap-0.5 border-l border-neutral-800 p-1">
             {getTasksForDay(day, tasks).map((task) => (
-              <TaskChip key={task.id} task={task} onClick={onTaskClick} />
+              <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
             ))}
           </div>
         ))}

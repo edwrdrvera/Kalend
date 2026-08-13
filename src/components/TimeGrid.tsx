@@ -8,8 +8,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { isSameDay, startOfDay, addMinutes } from "date-fns";
-import type { CalendarEvent } from "./Calendar";
-import { getEventColorClasses } from "@/lib/event-colors";
+import type { CalendarCategory, CalendarEvent } from "./Calendar";
+import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -115,6 +115,7 @@ interface TimeGridProps {
   /** One column per entry — a single day for the Day view, seven for Week. */
   days: Date[];
   events: CalendarEvent[];
+  categories: CalendarCategory[];
   onSlotClick?: (day: Date, hour: number) => void;
   onEventClick?: (event: CalendarEvent) => void;
   /** Fires once a whole-block drag is released, with the event's new
@@ -135,6 +136,7 @@ interface TimeGridProps {
 export default function TimeGrid({
   days,
   events,
+  categories,
   onSlotClick,
   onEventClick,
   onEventMove,
@@ -506,7 +508,7 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(event.color)}`}
+                    className={`absolute overflow-hidden rounded text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -562,7 +564,7 @@ export default function TimeGrid({
             // free from their day column. left/width stay percentages
             // since gridRef's width always matches the day columns' summed
             // width exactly (no analogous stretch happens horizontally).
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(draggedEvent.color)}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
             style={{
               left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,
