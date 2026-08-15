@@ -67,9 +67,7 @@ export default function CategorySelect({
             {categoryId === null && <Check className="size-3.5" />}
           </button>
           {categories.length > 0 && <div className="my-1 border-t border-neutral-800" />}
-          {categories.length === 0 ? (
-            <p className="px-2 py-1.5 text-xs text-neutral-500">No categories yet.</p>
-          ) : (
+          {categories.length === 0 ? null : (
             categories.map((category) => (
               <button
                 key={category.id}

@@ -287,9 +287,7 @@ export default function TaskList({
 
             {loading ? (
               <p className="text-xs text-neutral-500">Loading tasks…</p>
-            ) : tasks.length === 0 ? (
-              <p className="text-xs text-neutral-500">No tasks yet.</p>
-            ) : (
+            ) : tasks.length === 0 ? null : (
               <div className="flex flex-col gap-3">
                 {dated.length > 0 && (
                   <div className="flex flex-col">

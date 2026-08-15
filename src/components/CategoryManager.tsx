@@ -217,9 +217,7 @@ export default function CategoryManager({
 
             {loading ? (
               <p className="text-xs text-neutral-500">Loading categories…</p>
-            ) : categories.length === 0 ? (
-              <p className="text-xs text-neutral-500">No categories yet.</p>
-            ) : (
+            ) : categories.length === 0 ? null : (
               <div className="flex flex-col">
                 {categories.map((category) => (
                   <CategoryRow
