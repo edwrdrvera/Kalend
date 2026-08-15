@@ -195,7 +195,7 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full truncate rounded-r-sm rounded-l-none px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`w-full truncate rounded-r-[3px] rounded-l-none px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>

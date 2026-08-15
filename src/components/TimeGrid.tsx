@@ -508,7 +508,7 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded-r-sm rounded-l-none text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+                    className={`absolute overflow-hidden rounded-r-[3px] rounded-l-none text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -564,7 +564,7 @@ export default function TimeGrid({
             // free from their day column. left/width stay percentages
             // since gridRef's width always matches the day columns' summed
             // width exactly (no analogous stretch happens horizontally).
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-r-sm rounded-l-none text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-r-[3px] rounded-l-none text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
             style={{
               left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,
