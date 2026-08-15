@@ -49,7 +49,7 @@ export default function DayGrid({
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <CalendarHeader
-        title={format(viewDate, "EEEE, MMM d, yyyy")}
+        title={format(viewDate, "EEEE, MMMM d, yyyy")}
         onPrev={() => onViewDateChange(subDays(viewDate, 1))}
         onNext={() => onViewDateChange(addDays(viewDate, 1))}
         onToday={() => onDateSelect(new Date())}
