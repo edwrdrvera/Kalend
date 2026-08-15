@@ -51,7 +51,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
               left: `${(startCol / days.length) * 100}%`,
               width: `${((endCol - startCol + 1) / days.length) * 100}%`,
             }}
-            className={`absolute overflow-hidden truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`absolute overflow-hidden truncate rounded-r-sm rounded-l-none px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>
