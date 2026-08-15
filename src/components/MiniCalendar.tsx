@@ -32,8 +32,8 @@ function MiniCalendarHeader({
 }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-sm font-semibold text-neutral-200">
-        {format(viewDate, "MMMM yyyy")}
+      <h2 className="text-sm font-semibold text-neutral-200 uppercase">
+        {format(viewDate, "MMM yyyy")}
       </h2>
       <div className="flex gap-1 text-neutral-400">
         <button

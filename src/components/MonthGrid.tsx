@@ -238,7 +238,7 @@ export default function MonthGrid({
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <CalendarHeader
-        title={format(viewDate, "MMMM yyyy")}
+        title={format(viewDate, "MMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}
         onNext={() => onViewDateChange(addMonths(monthStart, 1))}
         onToday={() => onDateSelect(new Date())}
