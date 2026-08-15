@@ -10,9 +10,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-/** Settings entry point in the sidebar header. Menu content is a
- *  placeholder for now (issue #72) — no real settings exist yet, this just
- *  establishes the button and menu ahead of them. */
+/** Settings entry point pinned to the sidebar's bottom-right corner. Menu
+ *  content is a placeholder for now (issue #72) — no real settings exist
+ *  yet, this just establishes the button and menu ahead of them. Opens
+ *  upward (`side="top"`) since the trigger sits at the bottom of the
+ *  sidebar, with no room below it for the menu to open into. */
 export default function SettingsMenu() {
   return (
     <Popover>
@@ -22,7 +24,7 @@ export default function SettingsMenu() {
       >
         <Settings size={18} />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64">
+      <PopoverContent align="end" side="top" className="w-64">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription>More settings are coming soon.</PopoverDescription>

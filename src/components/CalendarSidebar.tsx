@@ -63,10 +63,9 @@ export default function CalendarSidebar({
         >
           <Menu size={18} />
         </button>
-        {!collapsed && <SettingsMenu />}
       </div>
 
-      <div inert={collapsed} className={cn("flex w-64 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
+      <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
         <MiniCalendar
           currentDate={currentDate}
           viewDate={viewDate}
@@ -88,6 +87,9 @@ export default function CalendarSidebar({
           onUpdateCategory={onUpdateCategory}
           onDeleteCategory={onDeleteCategory}
         />
+        <div className="mt-auto flex justify-end p-4">
+          <SettingsMenu />
+        </div>
       </div>
     </aside>
   );
