@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
+import SettingsMenu from "./SettingsMenu";
 import type { CalendarCategory, CalendarTask } from "./Calendar";
 
 interface CalendarSidebarProps {
@@ -64,7 +65,7 @@ export default function CalendarSidebar({
         </button>
       </div>
 
-      <div inert={collapsed} className={cn("flex w-64 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
+      <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
         <MiniCalendar
           currentDate={currentDate}
           viewDate={viewDate}
@@ -86,6 +87,9 @@ export default function CalendarSidebar({
           onUpdateCategory={onUpdateCategory}
           onDeleteCategory={onDeleteCategory}
         />
+        <div className="mt-auto flex justify-end p-4">
+          <SettingsMenu />
+        </div>
       </div>
     </aside>
   );
