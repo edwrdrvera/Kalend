@@ -59,7 +59,7 @@ function CategoryRow({
           if (e.key === "Escape") setName(category.name);
         }}
         aria-label="Category name"
-        className="min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-sm text-neutral-200 outline-none focus:text-neutral-100"
+        className="min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-xs text-neutral-200 outline-none focus:text-neutral-100"
       />
 
       <button
@@ -117,7 +117,7 @@ function CreateCategoryForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-sm text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
+        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
       >
         <Plus className="size-3.5" />
         Add a category
@@ -138,7 +138,7 @@ function CreateCategoryForm({
           placeholder="Category name"
           aria-label="New category name"
           autoFocus
-          className="h-8 flex-1 text-sm"
+          className="h-8 flex-1 text-xs"
         />
         <button
           type="submit"
@@ -193,7 +193,7 @@ export default function CategoryManager({
         type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="flex items-center justify-between text-sm font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
+        className="flex items-center justify-between text-xs font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
       >
         <span>Categories</span>
         <ChevronDown

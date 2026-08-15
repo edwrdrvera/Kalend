@@ -59,7 +59,7 @@ function TaskRow({
 
       <span
         className={cn(
-          "min-w-0 flex-1 truncate text-sm",
+          "min-w-0 flex-1 truncate text-xs",
           task.completed ? "text-neutral-500 line-through" : "text-neutral-200"
         )}
       >
@@ -143,7 +143,7 @@ function CreateTaskForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-sm text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
+        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
       >
         <Plus className="size-3.5" />
         Add a task
@@ -163,7 +163,7 @@ function CreateTaskForm({
           placeholder="Task title"
           aria-label="New task title"
           autoFocus
-          className="h-8 flex-1 text-sm"
+          className="h-8 flex-1 text-xs"
         />
         <button
           type="submit"
@@ -263,7 +263,7 @@ export default function TaskList({
         type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="flex items-center justify-between text-sm font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
+        className="flex items-center justify-between text-xs font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
       >
         <span>Tasks</span>
         <ChevronDown

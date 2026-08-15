@@ -74,14 +74,13 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base =
-    "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left transition-colors overflow-hidden";
+  const base = "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left overflow-hidden";
 
   if (!isSameMonth(day, viewMonth)) {
     return `${base} bg-neutral-900/40 text-neutral-600`;
   }
 
-  return `${base} hover:bg-neutral-900`;
+  return base;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
@@ -185,7 +184,7 @@ function DayCell({
       <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
         {format(day, "d")}
       </span>
-      <div className="flex w-full min-w-0 flex-col gap-0.5">
+      <div className="flex w-full min-w-0 -ml-1.5 flex-col gap-0.5">
         {visibleEvents.map((event) => (
           <button
             key={event.id}
@@ -195,7 +194,7 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full truncate rounded-r-sm rounded-l-none px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`w-full truncate rounded-r-[3px] rounded-l-none px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>

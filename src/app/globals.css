@@ -48,6 +48,14 @@
 }
 
 :root {
+    /* SF Pro isn't licensed for embedding/distribution outside Apple's own
+     * platforms, so it can't be self-hosted or pulled from next/font like
+     * Geist was. -apple-system/BlinkMacSystemFont instead point at the
+     * OS's own San Francisco (SF Pro) install on macOS/iOS/Safari, with
+     * "SF Pro Display" as an explicit fallback for anyone with it
+     * installed locally, then a normal system-font stack on other
+     * platforms, where SF Pro isn't available at all. */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

@@ -13,7 +13,6 @@ interface CalendarSidebarProps {
   currentDate: Date;
   viewDate: Date;
   onDateSelect: (date: Date) => void;
-  onViewDateChange: (date: Date) => void;
   tasks: CalendarTask[];
   tasksLoading: boolean;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
@@ -33,7 +32,6 @@ export default function CalendarSidebar({
   currentDate,
   viewDate,
   onDateSelect,
-  onViewDateChange,
   tasks,
   tasksLoading,
   onCreateTask,
@@ -70,7 +68,6 @@ export default function CalendarSidebar({
           currentDate={currentDate}
           viewDate={viewDate}
           onDateSelect={onDateSelect}
-          onViewDateChange={onViewDateChange}
         />
         <TaskList
           tasks={tasks}

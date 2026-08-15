@@ -668,7 +668,6 @@ export default function Calendar() {
         currentDate={selectedDate}
         viewDate={viewDate}
         onDateSelect={handleDateSelect}
-        onViewDateChange={setViewDate}
         tasks={tasks}
         tasksLoading={tasksLoading}
         onCreateTask={handleCreateTask}

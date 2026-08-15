@@ -26,7 +26,7 @@ export default function CalendarHeader({
 }: CalendarHeaderProps) {
   return (
     <div className="flex items-center justify-between border-b border-neutral-800 px-6 py-4 shrink-0">
-      <h1 className="text-lg font-semibold text-neutral-100">{title}</h1>
+      <h1 className="text-lg font-bold tracking-tight text-neutral-100 uppercase">{title}</h1>
       <div className="flex items-center gap-3">
         <ViewSwitcher view={view} onViewChange={onViewChange} />
         <button
