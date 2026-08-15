@@ -29,19 +29,24 @@ export function isEventColor(color: string | null | undefined): color is EventCo
 // `bg-${color}-500`) — its scanner only picks up whole class strings that
 // appear literally in source, so color-coding driven by the event's
 // freeform `color` string needs an explicit lookup table like this instead.
+//
+// A solid `border-l` bar carries the color, with only a faint tint behind
+// it — a bar reads as a distinct color at a glance even on small month-grid
+// chips, where a fully-tinted fill on a tiny pill tends to blur together.
 export const EVENT_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "bg-blue-500/20 text-blue-300",
-  green: "bg-green-500/20 text-green-300",
-  purple: "bg-purple-500/20 text-purple-300",
-  orange: "bg-orange-500/20 text-orange-300",
-  red: "bg-red-500/20 text-red-300",
-  indigo: "bg-indigo-500/20 text-indigo-300",
-  pink: "bg-pink-500/20 text-pink-300",
-  yellow: "bg-yellow-500/20 text-yellow-300",
-  teal: "bg-teal-500/20 text-teal-300",
+  blue: "border-l-2 border-blue-500 bg-blue-500/15 text-blue-300",
+  green: "border-l-2 border-green-500 bg-green-500/15 text-green-300",
+  purple: "border-l-2 border-purple-500 bg-purple-500/15 text-purple-300",
+  orange: "border-l-2 border-orange-500 bg-orange-500/15 text-orange-300",
+  red: "border-l-2 border-red-500 bg-red-500/15 text-red-300",
+  indigo: "border-l-2 border-indigo-500 bg-indigo-500/15 text-indigo-300",
+  pink: "border-l-2 border-pink-500 bg-pink-500/15 text-pink-300",
+  yellow: "border-l-2 border-yellow-500 bg-yellow-500/15 text-yellow-300",
+  teal: "border-l-2 border-teal-500 bg-teal-500/15 text-teal-300",
 };
 
-export const DEFAULT_EVENT_COLOR_CLASSES = "bg-neutral-700/40 text-neutral-300";
+export const DEFAULT_EVENT_COLOR_CLASSES =
+  "border-l-2 border-neutral-500 bg-neutral-700/40 text-neutral-300";
 
 export function getEventColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_EVENT_COLOR_CLASSES;
