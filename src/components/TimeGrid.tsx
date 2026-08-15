@@ -463,7 +463,7 @@ export default function TimeGrid({
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}
-                  className="border-b border-neutral-800 transition-colors hover:bg-neutral-900"
+                  className="border-b border-neutral-800"
                 />
               ))}
 

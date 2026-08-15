@@ -74,14 +74,13 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base =
-    "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left transition-colors overflow-hidden";
+  const base = "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left overflow-hidden";
 
   if (!isSameMonth(day, viewMonth)) {
     return `${base} bg-neutral-900/40 text-neutral-600`;
   }
 
-  return `${base} hover:bg-neutral-900`;
+  return base;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
