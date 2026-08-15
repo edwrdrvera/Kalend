@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   format,
   addMonths,
@@ -18,23 +19,31 @@ interface MiniCalendarProps {
   currentDate: Date;
   viewDate: Date;
   onDateSelect: (date: Date) => void;
-  onViewDateChange: (date: Date) => void;
 }
 
+/** Shows the browsed month/year only once it's diverged from the main
+ *  calendar's month (`mainViewDate`) — when they match, the main header
+ *  already says which month this is, so the label would be redundant. */
 function MiniCalendarHeader({
-  viewDate,
+  browseDate,
+  mainViewDate,
   onPrevMonth,
   onNextMonth,
 }: {
-  viewDate: Date;
+  browseDate: Date;
+  mainViewDate: Date;
   onPrevMonth: () => void;
   onNextMonth: () => void;
 }) {
+  const showLabel = !isSameMonth(browseDate, mainViewDate);
+
   return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-sm font-semibold text-neutral-200 uppercase">
-        {format(viewDate, "MMM yyyy")}
-      </h2>
+    <div className={`flex items-center mb-4 ${showLabel ? "justify-between" : "justify-end"}`}>
+      {showLabel && (
+        <h2 className="text-sm font-semibold text-neutral-200 uppercase">
+          {format(browseDate, "MMM yyyy")}
+        </h2>
+      )}
       <div className="flex gap-1 text-neutral-400">
         <button
           onClick={onPrevMonth}
@@ -142,23 +151,35 @@ export default function MiniCalendar({
   currentDate,
   viewDate,
   onDateSelect,
-  onViewDateChange,
 }: MiniCalendarProps) {
-  const handleNextMonth = () => onViewDateChange(addMonths(viewDate, 1));
-  const handlePrevMonth = () => onViewDateChange(subMonths(viewDate, 1));
+  // The month this mini calendar is browsing, kept separate from the main
+  // calendar's viewDate so its own prev/next arrows can page through
+  // months without dragging the main grid along. Re-synced below whenever
+  // the main calendar's month changes for some other reason (its own nav,
+  // selecting a date, Today), so this only drifts from the main view while
+  // the user is actively browsing it here.
+  const [browseDate, setBrowseDate] = useState(viewDate);
+
+  useEffect(() => {
+    setBrowseDate(viewDate);
+  }, [viewDate]);
+
+  const handleNextMonth = () => setBrowseDate((current) => addMonths(current, 1));
+  const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
 
   return (
     <div className="px-5 pb-6">
-      <MiniCalendarHeader 
-        viewDate={viewDate} 
-        onPrevMonth={handlePrevMonth} 
-        onNextMonth={handleNextMonth} 
+      <MiniCalendarHeader
+        browseDate={browseDate}
+        mainViewDate={viewDate}
+        onPrevMonth={handlePrevMonth}
+        onNextMonth={handleNextMonth}
       />
       <MiniCalendarDaysOfWeek />
-      <MiniCalendarGrid 
-        viewDate={viewDate} 
-        currentDate={currentDate} 
-        onDateSelect={onDateSelect} 
+      <MiniCalendarGrid
+        viewDate={browseDate}
+        currentDate={currentDate}
+        onDateSelect={onDateSelect}
       />
     </div>
   );
