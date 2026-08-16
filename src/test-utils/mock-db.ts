@@ -7,6 +7,12 @@
  * of Drizzle's condition tree (the opaque object `eq()` / `and()` produce).
  * ID strings are matched by a caller-supplied prefix (e.g. "evt-", "task-")
  * or the substring "existent" (used for not-found test cases).
+ *
+ * Crucially, the mock does NOT apply its own user_id filter. Instead it
+ * checks whether the route handler's `where` condition actually contains
+ * the authenticated user's ID. If the handler forgot `eq(table.user_id,
+ * user.id)`, the mock returns all rows (including other users'), causing
+ * test assertions to fail and surfacing the missing filter.
  */
 import { mock } from "bun:test";
 
@@ -27,20 +33,16 @@ export interface MockAuthUser {
   email: string;
 }
 
-// ── ID extraction ───────────────────────────────────────────────────────
+// ── Condition introspection ─────────────────────────────────────────────
 
-/**
- * Walks the opaque condition object Drizzle's `eq()` / `and()` produce and
- * returns the first string value matching `idPrefix` or containing
- * "existent". This is how the mock resolves which row a PATCH/DELETE
- * targets.
- */
-export function extractIdFromCondition(
-  condition: unknown,
-  idPrefix: string
-): string | null {
-  if (!condition) return null;
-  if (typeof condition === "string") return condition;
+/** BFS walk that collects every string value from a Drizzle condition tree. */
+function collectStrings(condition: unknown): Set<string> {
+  const strings = new Set<string>();
+  if (!condition) return strings;
+  if (typeof condition === "string") {
+    strings.add(condition);
+    return strings;
+  }
 
   const seen = new Set<unknown>();
   const queue: unknown[] = [condition];
@@ -53,14 +55,33 @@ export function extractIdFromCondition(
     for (const key of Object.keys(record)) {
       const val = record[key];
       if (typeof val === "string") {
-        if (val.startsWith(idPrefix) || val.includes("existent")) return val;
+        strings.add(val);
       } else if (val && typeof val === "object") {
         queue.push(val);
       }
     }
   }
+  return strings;
+}
 
+/**
+ * Returns the first string in the condition matching `idPrefix` or
+ * containing "existent". This is how the mock resolves which row a
+ * PATCH/DELETE targets.
+ */
+export function extractIdFromCondition(
+  condition: unknown,
+  idPrefix: string
+): string | null {
+  for (const s of collectStrings(condition)) {
+    if (s.startsWith(idPrefix) || s.includes("existent")) return s;
+  }
   return null;
+}
+
+/** True if `value` appears somewhere in the condition tree. */
+function conditionContains(condition: unknown, value: string): boolean {
+  return collectStrings(condition).has(value);
 }
 
 // ── Mock setup ──────────────────────────────────────────────────────────
@@ -98,11 +119,20 @@ export function setupMockDb<T extends BaseRow>(
     db: {
       select: () => ({
         from: () => ({
-          where: mock(async () => {
+          // The mock does NOT filter by user_id itself. It checks whether
+          // the handler's where condition contains the authenticated user's
+          // ID. If the handler forgot eq(table.user_id, user.id), the
+          // condition won't contain the ID, so the mock returns ALL rows
+          // (including other users'), and the test assertion that expects
+          // only the current user's data will fail.
+          where: mock(async (condition: unknown) => {
             if (dbState.shouldFail) throw new Error("DB Connection failed");
             const user = getUser();
             if (!user) return [];
-            return dbState.rows.filter((r) => r.user_id === user.id);
+            const scopedByUser = conditionContains(condition, user.id);
+            return scopedByUser
+              ? dbState.rows.filter((r) => r.user_id === user.id)
+              : dbState.rows;
           }),
         }),
       }),
@@ -133,8 +163,9 @@ export function setupMockDb<T extends BaseRow>(
               if (dbState.shouldFail) throw new Error("DB Update failed");
               const targetId = extractIdFromCondition(condition, idPrefix);
               const user = getUser();
+              const scopedByUser = user && conditionContains(condition, user.id);
               const idx = dbState.rows.findIndex(
-                (r) => r.id === targetId && (!user || r.user_id === user.id)
+                (r) => r.id === targetId && (!scopedByUser || r.user_id === user!.id)
               );
               if (idx === -1) return [];
               const updated = { ...dbState.rows[idx], ...vals };
@@ -150,8 +181,9 @@ export function setupMockDb<T extends BaseRow>(
             if (dbState.shouldFail) throw new Error("DB Delete failed");
             const targetId = extractIdFromCondition(condition, idPrefix);
             const user = getUser();
+            const scopedByUser = user && conditionContains(condition, user.id);
             const idx = dbState.rows.findIndex(
-              (r) => r.id === targetId && (!user || r.user_id === user.id)
+              (r) => r.id === targetId && (!scopedByUser || r.user_id === user!.id)
             );
             if (idx === -1) return [];
             const [deleted] = dbState.rows.splice(idx, 1);
