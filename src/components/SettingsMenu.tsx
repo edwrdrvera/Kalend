@@ -20,7 +20,7 @@ export default function SettingsMenu() {
     <Popover>
       <PopoverTrigger
         aria-label="Settings"
-        className="shrink-0 rounded-md p-1 text-neutral-400 transition-colors hover:bg-neutral-800"
+        className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
       >
         <Settings size={18} />
       </PopoverTrigger>

@@ -89,15 +89,15 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-sm rounded-xl border border-neutral-800 bg-[#191919] p-8 shadow-2xl">
+      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-2xl">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white shadow-md">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
             <Calendar className="size-5" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-neutral-100">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             {isLogin ? "Welcome to Kalend" : "Create an account"}
           </h1>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             {isLogin
               ? "Sign in to access your calendar and tasks"
               : "Sign up to start planning your academic schedule"}
@@ -124,7 +124,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs text-neutral-300">
+            <Label htmlFor="email" className="text-xs text-muted-foreground">
               Email
             </Label>
             <Input
@@ -136,13 +136,13 @@ export default function AuthCard({ mode }: AuthCardProps) {
               disabled={loading}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border-neutral-800 bg-[#121212] text-neutral-100 placeholder:text-neutral-500 focus-visible:border-blue-600 focus-visible:ring-blue-600/30"
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs text-neutral-300">
+            <Label htmlFor="password" className="text-xs text-muted-foreground">
               Password
             </Label>
             <Input
@@ -154,18 +154,18 @@ export default function AuthCard({ mode }: AuthCardProps) {
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-neutral-800 bg-[#121212] text-neutral-100 placeholder:text-neutral-500 focus-visible:border-blue-600 focus-visible:ring-blue-600/30"
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
               required
             />
             {!isLogin && (
-              <p className="text-xs text-neutral-500">{PASSWORD_REQUIREMENTS_HINT}</p>
+              <p className="text-xs text-muted-foreground">{PASSWORD_REQUIREMENTS_HINT}</p>
             )}
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary"
           >
             {loading ? (
               <>
@@ -180,13 +180,13 @@ export default function AuthCard({ mode }: AuthCardProps) {
           </Button>
         </form>
 
-        <div className="mt-6 border-t border-neutral-800/80 pt-4 text-center text-xs text-neutral-400">
+        <div className="mt-6 border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
           {isLogin ? (
             <p>
               Don&apos;t have an account?{" "}
               <Link
                 href="/signup"
-                className="font-medium text-blue-400 hover:text-blue-300 underline-offset-4 hover:underline"
+                className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline"
               >
                 Sign up
               </Link>
@@ -196,7 +196,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="font-medium text-blue-400 hover:text-blue-300 underline-offset-4 hover:underline"
+                className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline"
               >
                 Sign in
               </Link>

@@ -48,7 +48,7 @@ export default function CalendarSidebar({
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-neutral-800 bg-[#191919] transition-[width] duration-200 ease-in-out",
+        "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-200 ease-in-out",
         collapsed ? "w-12" : "w-64"
       )}
     >
@@ -57,7 +57,7 @@ export default function CalendarSidebar({
           onClick={() => setCollapsed((value) => !value)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-pressed={collapsed}
-          className="p-1 hover:bg-neutral-800 rounded-md transition-colors text-neutral-400 shrink-0"
+          className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground shrink-0"
         >
           <Menu size={18} />
         </button>

@@ -87,13 +87,13 @@ async function mutateResource<T>(
 
 function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
+    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
       <span>{message}</span>
       <button
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="text-neutral-400 transition-colors hover:text-neutral-200"
+        className="text-muted-foreground transition-colors hover:text-foreground"
       >
         ✕
       </button>
@@ -541,7 +541,7 @@ export default function Calendar() {
   if (!mounted) return null;
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
+    <div className="relative flex h-full w-full overflow-hidden text-foreground">
       {(eventsError || tasksError || categoriesError) && (
         <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
           {eventsError && <ErrorToast message={eventsError} onDismiss={() => setEventsError(null)} />}
