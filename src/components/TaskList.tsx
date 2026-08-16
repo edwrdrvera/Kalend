@@ -129,7 +129,9 @@ function CreateTaskForm({
     setError(null);
 
     try {
-      const dueAt = dueDate ? new Date(`${dueDate}T23:59:00`).toISOString() : undefined;
+      // Explicit UTC so the stored date doesn't shift when the browser's
+      // local timezone offset is applied during toISOString() conversion.
+      const dueAt = dueDate ? new Date(`${dueDate}T23:59:00Z`).toISOString() : undefined;
       await onCreateTask(title.trim(), dueAt, categoryId);
       close();
     } catch (err) {
