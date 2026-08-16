@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "./schema/events";
+import * as schema from "./schema";
 
 // NOTE ON ROW LEVEL SECURITY: `events` and `tasks` have RLS policies
 // (drizzle/0002_enable_events_rls.sql, drizzle/0003_enable_tasks_rls.sql),
