@@ -8,6 +8,7 @@ export const categories = pgTable("categories", {
   created_at: timestamp("created_at").defaultNow()
 });
 
-// Types for your Frontend
+// Drizzle inferred types (server-side). For component props, use the
+// wire types from Calendar.tsx.
 export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
