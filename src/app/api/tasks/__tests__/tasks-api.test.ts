@@ -1,4 +1,5 @@
-import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach } from "bun:test";
+import { setupMockDb, type MockDbState, type MockAuthUser } from "@/test-utils/mock-db";
 
 interface MockTask {
   id: string;
@@ -10,107 +11,22 @@ interface MockTask {
   created_at?: Date;
 }
 
-let mockCurrentUser: { id: string; email: string } | null = {
+let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
 };
 
-const mockDbState = {
-  tasks: [] as MockTask[],
+const mockDbState: MockDbState<MockTask> = {
+  rows: [],
   shouldFail: false,
 };
 
-function extractIdFromCondition(condition: unknown): string | null {
-  if (!condition) return null;
-  if (typeof condition === "string") return condition;
-
-  const seen = new Set<unknown>();
-  const queue: unknown[] = [condition];
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
-    seen.add(curr);
-
-    const record = curr as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      const val = record[key];
-      if (typeof val === "string") {
-        if (val.startsWith("task-") || val.includes("existent")) return val;
-      } else if (val && typeof val === "object") {
-        queue.push(val);
-      }
-    }
-  }
-
-  return null;
-}
-
-mock.module("@/lib/supabase/auth-user", () => ({
-  getAuthenticatedUser: mock(async () => mockCurrentUser),
-}));
-
-mock.module("@/db", () => {
-  return {
-    db: {
-      select: () => ({
-        from: () => ({
-          where: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Connection failed");
-            if (!mockCurrentUser) return [];
-            return mockDbState.tasks.filter((t) => t.user_id === mockCurrentUser!.id);
-          }),
-        }),
-      }),
-      insert: () => ({
-        values: (vals: Record<string, unknown>) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Insert failed");
-            const row = {
-              id: "task-uuid-1",
-              created_at: new Date(),
-              completed: false,
-              due_at: null,
-              ...vals,
-            } as MockTask;
-            mockDbState.tasks.push(row);
-            return [row];
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: Record<string, unknown>) => ({
-          where: (condition: unknown) => ({
-            returning: mock(async () => {
-              if (mockDbState.shouldFail) throw new Error("DB Update failed");
-              const targetId = extractIdFromCondition(condition);
-              const idx = mockDbState.tasks.findIndex(
-                (t) => t.id === targetId && (!mockCurrentUser || t.user_id === mockCurrentUser.id)
-              );
-              if (idx === -1) return [];
-              const updated = { ...mockDbState.tasks[idx], ...vals };
-              mockDbState.tasks[idx] = updated;
-              return [updated];
-            }),
-          }),
-        }),
-      }),
-      delete: () => ({
-        where: (condition: unknown) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Delete failed");
-            const targetId = extractIdFromCondition(condition);
-            const idx = mockDbState.tasks.findIndex(
-              (t) => t.id === targetId && (!mockCurrentUser || t.user_id === mockCurrentUser.id)
-            );
-            if (idx === -1) return [];
-            const [deleted] = mockDbState.tasks.splice(idx, 1);
-            return [deleted];
-          }),
-        }),
-      }),
-    },
-  };
-});
+setupMockDb(
+  "task-",
+  mockDbState,
+  () => mockCurrentUser,
+  { completed: false, due_at: null } as Partial<MockTask>
+);
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -122,7 +38,7 @@ describe("Tasks API Endpoints", () => {
       id: "user-uuid-123",
       email: "student@university.edu",
     };
-    mockDbState.tasks = [
+    mockDbState.rows = [
       {
         id: "task-uuid-1",
         title: "Finish problem set",

@@ -1,4 +1,5 @@
-import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach } from "bun:test";
+import { setupMockDb, type MockDbState, type MockAuthUser } from "@/test-utils/mock-db";
 
 interface MockEvent {
   id: string;
@@ -10,101 +11,17 @@ interface MockEvent {
   created_at?: Date;
 }
 
-let mockCurrentUser: { id: string; email: string } | null = {
+let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
 };
 
-const mockDbState = {
-  events: [] as MockEvent[],
+const mockDbState: MockDbState<MockEvent> = {
+  rows: [],
   shouldFail: false,
 };
 
-function extractIdFromCondition(condition: unknown): string | null {
-  if (!condition) return null;
-  if (typeof condition === "string") return condition;
-
-  const seen = new Set<unknown>();
-  const queue: unknown[] = [condition];
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
-    seen.add(curr);
-
-    const record = curr as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      const val = record[key];
-      if (typeof val === "string") {
-        if (val.startsWith("evt-") || val.includes("existent")) return val;
-      } else if (val && typeof val === "object") {
-        queue.push(val);
-      }
-    }
-  }
-
-  return null;
-}
-
-mock.module("@/lib/supabase/auth-user", () => ({
-  getAuthenticatedUser: mock(async () => mockCurrentUser),
-}));
-
-mock.module("@/db", () => {
-  return {
-    db: {
-      select: () => ({
-        from: () => ({
-          where: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Connection failed");
-            if (!mockCurrentUser) return [];
-            return mockDbState.events.filter((e) => e.user_id === mockCurrentUser!.id);
-          }),
-        }),
-      }),
-      insert: () => ({
-        values: (vals: Record<string, unknown>) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Insert failed");
-            const row = { id: "evt-uuid-1", created_at: new Date(), ...vals } as MockEvent;
-            mockDbState.events.push(row);
-            return [row];
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: Record<string, unknown>) => ({
-          where: (condition: unknown) => ({
-            returning: mock(async () => {
-              if (mockDbState.shouldFail) throw new Error("DB Update failed");
-              const targetId = extractIdFromCondition(condition);
-              const idx = mockDbState.events.findIndex(
-                (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
-              );
-              if (idx === -1) return [];
-              const updated = { ...mockDbState.events[idx], ...vals };
-              mockDbState.events[idx] = updated;
-              return [updated];
-            }),
-          }),
-        }),
-      }),
-      delete: () => ({
-        where: (condition: unknown) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Delete failed");
-            const targetId = extractIdFromCondition(condition);
-            const idx = mockDbState.events.findIndex(
-              (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
-            );
-            if (idx === -1) return [];
-            const [deleted] = mockDbState.events.splice(idx, 1);
-            return [deleted];
-          }),
-        }),
-      }),
-    },
-  };
-});
+setupMockDb("evt-", mockDbState, () => mockCurrentUser);
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -116,7 +33,7 @@ describe("Events API Endpoints", () => {
       id: "user-uuid-123",
       email: "student@university.edu",
     };
-    mockDbState.events = [
+    mockDbState.rows = [
       {
         id: "evt-uuid-1",
         title: "CS 101 Lecture",
@@ -197,6 +114,25 @@ describe("Events API Endpoints", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Incomplete Event" }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("title, start_at, and end_at are required");
+    });
+
+    it("returns 400 when title is blank", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "   ",
+          start_at: "2026-08-11T10:00:00Z",
+          end_at: "2026-08-11T11:00:00Z",
+        }),
       });
 
       const response = await POST(req);

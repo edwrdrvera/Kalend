@@ -33,7 +33,7 @@ function TaskRow({
   const displayColor = resolveDisplayColor(task.color, task.category_id, categories);
 
   return (
-    <div className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-neutral-800/60">
+    <div className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/60">
       <button
         type="button"
         onClick={() => onToggleComplete(task)}
@@ -42,8 +42,8 @@ function TaskRow({
         className={cn(
           "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors",
           task.completed
-            ? "border-neutral-500 bg-neutral-500 text-neutral-900"
-            : "border-neutral-600 text-transparent hover:border-neutral-400"
+            ? "border-muted-foreground bg-muted-foreground text-foreground"
+            : "border-muted-foreground/70 text-transparent hover:border-muted-foreground"
         )}
       >
         <Check className="size-3" strokeWidth={3} />
@@ -53,14 +53,14 @@ function TaskRow({
         aria-hidden
         className={cn(
           "size-1.5 shrink-0 rounded-full",
-          isEventColor(displayColor) ? EVENT_COLOR_SWATCH_CLASSES[displayColor] : "bg-neutral-600"
+          isEventColor(displayColor) ? EVENT_COLOR_SWATCH_CLASSES[displayColor] : "bg-muted-foreground/70"
         )}
       />
 
       <span
         className={cn(
           "min-w-0 flex-1 truncate text-xs",
-          task.completed ? "text-neutral-500 line-through" : "text-neutral-200"
+          task.completed ? "text-muted-foreground line-through" : "text-foreground"
         )}
       >
         {task.title}
@@ -70,7 +70,7 @@ function TaskRow({
         <span
           className={cn(
             "shrink-0 text-xs",
-            overdue ? "text-red-400" : "text-neutral-500"
+            overdue ? "text-red-400" : "text-muted-foreground"
           )}
         >
           {format(new Date(task.due_at), "MMM d")}
@@ -81,7 +81,7 @@ function TaskRow({
         type="button"
         onClick={() => onDeleteTask(task)}
         aria-label="Delete task"
-        className="shrink-0 text-neutral-500 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
       >
         <Trash2 className="size-3.5" />
       </button>
@@ -129,7 +129,9 @@ function CreateTaskForm({
     setError(null);
 
     try {
-      const dueAt = dueDate ? new Date(`${dueDate}T23:59:00`).toISOString() : undefined;
+      // Explicit UTC so the stored date doesn't shift when the browser's
+      // local timezone offset is applied during toISOString() conversion.
+      const dueAt = dueDate ? new Date(`${dueDate}T23:59:00Z`).toISOString() : undefined;
       await onCreateTask(title.trim(), dueAt, categoryId);
       close();
     } catch (err) {
@@ -143,7 +145,7 @@ function CreateTaskForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-neutral-500 transition-colors hover:bg-neutral-800/60 hover:text-neutral-300"
+        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <Plus className="size-3.5" />
         Add a task
@@ -169,7 +171,7 @@ function CreateTaskForm({
           type="submit"
           disabled={!title.trim() || submitting}
           aria-label="Add task"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-neutral-200 disabled:pointer-events-none disabled:opacity-40"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
         >
           <Plus className="size-4" />
         </button>
@@ -177,7 +179,7 @@ function CreateTaskForm({
           type="button"
           onClick={close}
           aria-label="Cancel"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-800 hover:text-neutral-200"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>
@@ -198,7 +200,7 @@ function CreateTaskForm({
               setDueDate("");
             }}
             aria-label="Remove due date"
-            className="text-neutral-500 hover:text-neutral-300"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="size-3.5" />
           </button>
@@ -207,7 +209,7 @@ function CreateTaskForm({
         <button
           type="button"
           onClick={() => setShowDueDate(true)}
-          className="self-start text-xs text-neutral-500 hover:text-neutral-300"
+          className="self-start text-xs text-muted-foreground hover:text-foreground"
         >
           + due date
         </button>
@@ -258,17 +260,17 @@ export default function TaskList({
   const undated = tasks.filter((t) => !t.due_at);
 
   return (
-    <div className="flex flex-col border-t border-neutral-800 px-5 py-4">
+    <div className="flex flex-col border-t border-border px-5 py-4">
       <button
         type="button"
         onClick={toggleCollapsed}
         aria-expanded={!collapsed}
-        className="flex items-center justify-between text-xs font-semibold text-neutral-200 transition-colors hover:text-neutral-100"
+        className="flex items-center justify-between text-xs font-semibold text-foreground transition-colors hover:text-foreground"
       >
         <span>Tasks</span>
         <ChevronDown
           className={cn(
-            "size-4 text-neutral-500 transition-transform duration-200",
+            "size-4 text-muted-foreground transition-transform duration-200",
             collapsed && "-rotate-90"
           )}
         />
@@ -286,7 +288,7 @@ export default function TaskList({
             <CreateTaskForm categories={categories} onCreateTask={onCreateTask} />
 
             {loading ? (
-              <p className="text-xs text-neutral-500">Loading tasks…</p>
+              <p className="text-xs text-muted-foreground">Loading tasks…</p>
             ) : tasks.length === 0 ? null : (
               <div className="flex flex-col gap-3">
                 {dated.length > 0 && (
@@ -305,7 +307,7 @@ export default function TaskList({
                 {undated.length > 0 && (
                   <div className="flex flex-col">
                     {dated.length > 0 && (
-                      <span className="px-1 pb-1 text-xs text-neutral-600">No date</span>
+                      <span className="px-1 pb-1 text-xs text-muted-foreground/60">No date</span>
                     )}
                     {undated.map((task) => (
                       <TaskRow

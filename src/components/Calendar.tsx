@@ -27,12 +27,6 @@ interface EventsApiResponse {
   error?: string;
 }
 
-interface EventMutationResponse {
-  success: boolean;
-  data?: CalendarEvent;
-  error?: string;
-}
-
 // Wire shape of a task as returned by GET /api/tasks, same ISO-string
 // caveat as CalendarEvent above.
 export interface CalendarTask {
@@ -50,12 +44,6 @@ interface TasksApiResponse {
   error?: string;
 }
 
-interface TaskMutationResponse {
-  success: boolean;
-  data?: CalendarTask;
-  error?: string;
-}
-
 // Wire shape of a category as returned by GET /api/categories.
 export interface CalendarCategory {
   id: string;
@@ -69,28 +57,27 @@ interface CategoriesApiResponse {
   error?: string;
 }
 
-interface CategoryMutationResponse {
+// Generic fetch-then-check wrapper used by every create/edit/delete/move
+// handler below. Doesn't enforce `data` being present since DELETE's
+// response doesn't include it; callers that need `data` check after.
+interface MutationResponse<T> {
   success: boolean;
-  data?: CalendarCategory;
+  data?: T;
   error?: string;
 }
 
-// Shared by create/edit, delete, and move below, which otherwise each
-// re-implement the same fetch-then-check-the-response-shape block. Doesn't
-// enforce `data` being present, since DELETE's response doesn't include
-// it — callers that need `data` (create/edit, move) check for it after.
-async function mutateEvent(
+async function mutateResource<T>(
   url: string,
   method: "POST" | "PATCH" | "DELETE",
   body: object | undefined,
   fallbackError: string
-): Promise<EventMutationResponse> {
+): Promise<MutationResponse<T>> {
   const res = await fetch(url, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  const json: EventMutationResponse = await res.json();
+  const json: MutationResponse<T> = await res.json();
 
   if (!res.ok || !json.success) {
     throw new Error(json.error ?? fallbackError);
@@ -98,42 +85,20 @@ async function mutateEvent(
   return json;
 }
 
-async function mutateTask(
-  url: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: object | undefined,
-  fallbackError: string
-): Promise<TaskMutationResponse> {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json: TaskMutationResponse = await res.json();
-
-  if (!res.ok || !json.success) {
-    throw new Error(json.error ?? fallbackError);
-  }
-  return json;
-}
-
-async function mutateCategory(
-  url: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: object | undefined,
-  fallbackError: string
-): Promise<CategoryMutationResponse> {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json: CategoryMutationResponse = await res.json();
-
-  if (!res.ok || !json.success) {
-    throw new Error(json.error ?? fallbackError);
-  }
-  return json;
+function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
+      <span>{message}</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="text-muted-foreground transition-colors hover:text-foreground"
+      >
+        ✕
+      </button>
+    </div>
+  );
 }
 
 export default function Calendar() {
@@ -285,7 +250,7 @@ export default function Calendar() {
   // Not optimistic, same reasoning as handleCreateTask: CategoryManager
   // shows its own inline error on failure.
   const handleCreateCategory = async (name: string, color: string) => {
-    const json = await mutateCategory(
+    const json = await mutateResource<CalendarCategory>(
       "/api/categories",
       "POST",
       { name, color },
@@ -315,7 +280,7 @@ export default function Calendar() {
     );
 
     try {
-      const json = await mutateCategory(
+      const json = await mutateResource<CalendarCategory>(
         `/api/categories/${category.id}`,
         "PATCH",
         updates,
@@ -347,7 +312,7 @@ export default function Calendar() {
     setCategories((prev) => prev.filter((c) => c.id !== category.id));
 
     try {
-      await mutateCategory(
+      await mutateResource<CalendarCategory>(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
@@ -366,7 +331,7 @@ export default function Calendar() {
   // `error` prop), so this just throws and lets the caller handle it,
   // rather than writing to the global tasksError banner.
   const handleCreateTask = async (title: string, dueAt?: string, categoryId?: string | null) => {
-    const json = await mutateTask(
+    const json = await mutateResource<CalendarTask>(
       "/api/tasks",
       "POST",
       { title, due_at: dueAt, category_id: categoryId },
@@ -389,7 +354,7 @@ export default function Calendar() {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? optimisticTask : t)));
 
     try {
-      const json = await mutateTask(
+      const json = await mutateResource<CalendarTask>(
         `/api/tasks/${task.id}`,
         "PATCH",
         { completed: optimisticTask.completed },
@@ -415,7 +380,7 @@ export default function Calendar() {
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
 
     try {
-      await mutateTask(`/api/tasks/${task.id}`, "DELETE", undefined, "Failed to delete task");
+      await mutateResource<CalendarTask>(`/api/tasks/${task.id}`, "DELETE", undefined, "Failed to delete task");
     } catch (err) {
       setTasks((prev) => [...prev, task]);
       setTasksError(err instanceof Error ? err.message : "Failed to delete task");
@@ -468,7 +433,7 @@ export default function Calendar() {
     try {
       const isEdit = modalMode === "edit" && modalEvent;
       const fallbackError = `Failed to ${isEdit ? "update" : "create"} event`;
-      const json = await mutateEvent(
+      const json = await mutateResource<CalendarEvent>(
         isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
         isEdit ? "PATCH" : "POST",
         {
@@ -511,7 +476,7 @@ export default function Calendar() {
     setModalOpen(false);
 
     try {
-      await mutateEvent(
+      await mutateResource<CalendarEvent>(
         `/api/events/${eventToDelete.id}`,
         "DELETE",
         undefined,
@@ -525,13 +490,12 @@ export default function Calendar() {
     }
   };
 
-  // Optimistic: applies the new start/end immediately (so the drag doesn't
-  // snap back while the request is in flight), then reconciles with the
-  // server response. On failure, only start_at/end_at are rolled back
-  // (not the whole event) so a concurrent edit that succeeded in the
-  // meantime — e.g. a title change via the modal while this move's PATCH
-  // was still in flight — isn't discarded along with the failed move.
-  const handleEventMove = async (event: CalendarEvent, start: Date, end: Date) => {
+  // Shared by drag-move and drag-resize: both apply the new start/end
+  // optimistically (so the drag doesn't snap back while the request is in
+  // flight), then reconcile with the server response. On failure, only
+  // start_at/end_at are rolled back (not the whole event) so a concurrent
+  // edit that succeeded in the meantime isn't discarded with the failed move.
+  const handleEventTimeChange = async (event: CalendarEvent, start: Date, end: Date) => {
     const previousStartAt = event.start_at;
     const previousEndAt = event.end_at;
     const optimisticEvent: CalendarEvent = {
@@ -545,50 +509,7 @@ export default function Calendar() {
     );
 
     try {
-      const json = await mutateEvent(
-        `/api/events/${event.id}`,
-        "PATCH",
-        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
-        "Failed to update event"
-      );
-
-      if (!json.data) {
-        throw new Error("Failed to update event");
-      }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
-      );
-    } catch (err) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === event.id
-            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
-            : e
-        )
-      );
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to update event"
-      );
-    }
-  };
-
-  const handleEventResize = async (event: CalendarEvent, start: Date, end: Date) => {
-    const previousStartAt = event.start_at;
-    const previousEndAt = event.end_at;
-    const optimisticEvent: CalendarEvent = {
-      ...event,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-    };
-
-    setEvents((prev) =>
-      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
-    );
-
-    try {
-      const json = await mutateEvent(
+      const json = await mutateResource<CalendarEvent>(
         `/api/events/${event.id}`,
         "PATCH",
         { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
@@ -620,48 +541,12 @@ export default function Calendar() {
   if (!mounted) return null;
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
+    <div className="relative flex h-full w-full overflow-hidden text-foreground">
       {(eventsError || tasksError || categoriesError) && (
         <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
-          {eventsError && (
-            <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
-              <span>{eventsError}</span>
-              <button
-                type="button"
-                onClick={() => setEventsError(null)}
-                aria-label="Dismiss"
-                className="text-neutral-400 transition-colors hover:text-neutral-200"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-          {tasksError && (
-            <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
-              <span>{tasksError}</span>
-              <button
-                type="button"
-                onClick={() => setTasksError(null)}
-                aria-label="Dismiss"
-                className="text-neutral-400 transition-colors hover:text-neutral-200"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-          {categoriesError && (
-            <div className="flex items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
-              <span>{categoriesError}</span>
-              <button
-                type="button"
-                onClick={() => setCategoriesError(null)}
-                aria-label="Dismiss"
-                className="text-neutral-400 transition-colors hover:text-neutral-200"
-              >
-                ✕
-              </button>
-            </div>
-          )}
+          {eventsError && <ErrorToast message={eventsError} onDismiss={() => setEventsError(null)} />}
+          {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} />}
+          {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} />}
         </div>
       )}
       <CalendarSidebar
@@ -707,8 +592,8 @@ export default function Calendar() {
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
           onTaskClick={handleToggleTaskComplete}
-          onEventMove={handleEventMove}
-          onEventResize={handleEventResize}
+          onEventMove={handleEventTimeChange}
+          onEventResize={handleEventTimeChange}
           view={view}
           onViewChange={setView}
         />
@@ -724,8 +609,8 @@ export default function Calendar() {
           onCreateEvent={handleCreateEvent}
           onEventClick={handleEventClick}
           onTaskClick={handleToggleTaskComplete}
-          onEventMove={handleEventMove}
-          onEventResize={handleEventResize}
+          onEventMove={handleEventTimeChange}
+          onEventResize={handleEventTimeChange}
           view={view}
           onViewChange={setView}
         />

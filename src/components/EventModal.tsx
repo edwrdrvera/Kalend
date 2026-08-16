@@ -233,6 +233,11 @@ export default function EventModal({
     const start = new Date(startAt);
     const end = new Date(endAt);
 
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      setValidationError("Start and end must be valid dates.");
+      return;
+    }
+
     if (start >= end) {
       setValidationError("Start time must be before end time.");
       return;

@@ -30,7 +30,7 @@ export default function CategorySelect({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         className={cn(
-          "flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs text-neutral-400 transition-colors hover:bg-neutral-800/60 hover:text-neutral-200",
+          "flex min-w-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
           className
         )}
       >
@@ -41,7 +41,7 @@ export default function CategorySelect({
                 "size-2 shrink-0 rounded-full",
                 isEventColor(selected.color)
                   ? EVENT_COLOR_SWATCH_CLASSES[selected.color]
-                  : "bg-neutral-500"
+                  : "bg-muted-foreground"
               )}
             />
             <span className="truncate">{selected.name}</span>
@@ -61,12 +61,12 @@ export default function CategorySelect({
               onChange(null);
               setOpen(false);
             }}
-            className="flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-neutral-300 transition-colors hover:bg-neutral-800"
+            className="flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
           >
             <span>No category</span>
             {categoryId === null && <Check className="size-3.5" />}
           </button>
-          {categories.length > 0 && <div className="my-1 border-t border-neutral-800" />}
+          {categories.length > 0 && <div className="my-1 border-t border-border" />}
           {categories.length === 0 ? null : (
             categories.map((category) => (
               <button
@@ -76,7 +76,7 @@ export default function CategorySelect({
                   onChange(category.id);
                   setOpen(false);
                 }}
-                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm text-neutral-300 transition-colors hover:bg-neutral-800"
+                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span
@@ -84,7 +84,7 @@ export default function CategorySelect({
                       "size-2 shrink-0 rounded-full",
                       isEventColor(category.color)
                         ? EVENT_COLOR_SWATCH_CLASSES[category.color]
-                        : "bg-neutral-500"
+                        : "bg-muted-foreground"
                     )}
                   />
                   <span className="truncate">{category.name}</span>

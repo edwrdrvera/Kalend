@@ -12,6 +12,7 @@ export const tasks = pgTable("tasks", {
   category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" })
 });
 
-// Types for your Frontend
+// Drizzle inferred types (server-side, dates are Date objects). For
+// component props, use the wire types from Calendar.tsx (ISO strings).
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;

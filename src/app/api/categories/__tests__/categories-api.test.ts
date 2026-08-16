@@ -1,4 +1,5 @@
-import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach } from "bun:test";
+import { setupMockDb, type MockDbState, type MockAuthUser } from "@/test-utils/mock-db";
 
 interface MockCategory {
   id: string;
@@ -8,112 +9,25 @@ interface MockCategory {
   created_at?: Date;
 }
 
-let mockCurrentUser: { id: string; email: string } | null = {
+let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
 };
 
-const mockDbState = {
-  categories: [] as MockCategory[],
+const mockDbState: MockDbState<MockCategory> = {
+  rows: [],
   shouldFail: false,
 };
 
-function extractIdFromCondition(condition: unknown): string | null {
-  if (!condition) return null;
-  if (typeof condition === "string") return condition;
-
-  const seen = new Set<unknown>();
-  const queue: unknown[] = [condition];
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
-    seen.add(curr);
-
-    const record = curr as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      const val = record[key];
-      if (typeof val === "string") {
-        if (val.startsWith("category-") || val.includes("existent")) return val;
-      } else if (val && typeof val === "object") {
-        queue.push(val);
-      }
-    }
-  }
-
-  return null;
-}
-
-mock.module("@/lib/supabase/auth-user", () => ({
-  getAuthenticatedUser: mock(async () => mockCurrentUser),
-}));
-
-mock.module("@/db", () => {
-  return {
-    db: {
-      select: () => ({
-        from: () => ({
-          where: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Connection failed");
-            if (!mockCurrentUser) return [];
-            return mockDbState.categories.filter((c) => c.user_id === mockCurrentUser!.id);
-          }),
-        }),
-      }),
-      insert: () => ({
-        // Mirrors real Drizzle/postgres-js behavior: a key present with an
-        // `undefined` value is treated the same as an omitted key (falls
-        // back to the column default), not as an explicit overwrite.
-        values: (vals: Record<string, unknown>) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Insert failed");
-            const definedVals = Object.fromEntries(
-              Object.entries(vals).filter(([, v]) => v !== undefined)
-            );
-            const row = {
-              id: "category-uuid-1",
-              created_at: new Date(),
-              color: "blue",
-              ...definedVals,
-            } as MockCategory;
-            mockDbState.categories.push(row);
-            return [row];
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: Record<string, unknown>) => ({
-          where: (condition: unknown) => ({
-            returning: mock(async () => {
-              if (mockDbState.shouldFail) throw new Error("DB Update failed");
-              const targetId = extractIdFromCondition(condition);
-              const idx = mockDbState.categories.findIndex(
-                (c) => c.id === targetId && (!mockCurrentUser || c.user_id === mockCurrentUser.id)
-              );
-              if (idx === -1) return [];
-              const updated = { ...mockDbState.categories[idx], ...vals };
-              mockDbState.categories[idx] = updated;
-              return [updated];
-            }),
-          }),
-        }),
-      }),
-      delete: () => ({
-        where: (condition: unknown) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Delete failed");
-            const targetId = extractIdFromCondition(condition);
-            const idx = mockDbState.categories.findIndex(
-              (c) => c.id === targetId && (!mockCurrentUser || c.user_id === mockCurrentUser.id)
-            );
-            if (idx === -1) return [];
-            const [deleted] = mockDbState.categories.splice(idx, 1);
-            return [deleted];
-          }),
-        }),
-      }),
-    },
-  };
-});
+// filterUndefined: true mirrors real Drizzle/postgres-js behavior where a
+// key present with an `undefined` value falls back to the column default.
+setupMockDb(
+  "category-",
+  mockDbState,
+  () => mockCurrentUser,
+  { color: "blue" } as Partial<MockCategory>,
+  true
+);
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -125,7 +39,7 @@ describe("Categories API Endpoints", () => {
       id: "user-uuid-123",
       email: "student@university.edu",
     };
-    mockDbState.categories = [
+    mockDbState.rows = [
       {
         id: "category-uuid-1",
         name: "CS 101",
