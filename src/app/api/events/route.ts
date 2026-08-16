@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     const body: CreateEventBody = await request.json();
 
-    if (!body.title || !body.start_at || !body.end_at) {
+    if (!body.title?.trim() || !body.start_at || !body.end_at) {
       return NextResponse.json(
         {
           success: false,
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const [newEvent] = await db
       .insert(events)
       .values({
-        title: body.title,
+        title: body.title.trim(),
         start_at: startAt,
         end_at: endAt,
         user_id: user.id,
