@@ -4,9 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -85,10 +82,10 @@ export default function ForgotPasswordForm() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs text-muted-foreground">
+              <label htmlFor="email" className="text-xs text-muted-foreground">
                 Email
-              </Label>
-              <Input
+              </label>
+              <input
                 id="email"
                 name="email"
                 type="email"
@@ -97,25 +94,25 @@ export default function ForgotPasswordForm() {
                 disabled={loading}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
+                className="input input-sm w-full"
                 required
               />
             </div>
 
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary"
+              className="btn btn-primary btn-sm w-full"
             >
               {loading ? (
                 <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
+                  <Loader2 className="size-4 animate-spin" />
                   Sending...
                 </>
               ) : (
                 "Send reset link"
               )}
-            </Button>
+            </button>
           </form>
         )}
 

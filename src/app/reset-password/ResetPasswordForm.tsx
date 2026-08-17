@@ -5,9 +5,6 @@ import { useRouter } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validatePassword, PASSWORD_REQUIREMENTS_HINT } from "@/lib/auth-validation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function ResetPasswordForm() {
   const router = useRouter();
@@ -80,10 +77,10 @@ export default function ResetPasswordForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs text-muted-foreground">
+            <label htmlFor="password" className="text-xs text-muted-foreground">
               New password
-            </Label>
-            <Input
+            </label>
+            <input
               id="password"
               name="password"
               type="password"
@@ -92,7 +89,7 @@ export default function ResetPasswordForm() {
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
+              className="input input-sm w-full"
               required
             />
             <p className="text-xs text-muted-foreground">
@@ -101,10 +98,10 @@ export default function ResetPasswordForm() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="confirm" className="text-xs text-muted-foreground">
+            <label htmlFor="confirm" className="text-xs text-muted-foreground">
               Confirm password
-            </Label>
-            <Input
+            </label>
+            <input
               id="confirm"
               name="confirm"
               type="password"
@@ -113,25 +110,25 @@ export default function ResetPasswordForm() {
               disabled={loading}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
+              className="input input-sm w-full"
               required
             />
           </div>
 
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary"
+            className="btn btn-primary btn-sm w-full"
           >
             {loading ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin" />
                 Saving...
               </>
             ) : (
               "Save new password"
             )}
-          </Button>
+          </button>
         </form>
       </div>
     </div>

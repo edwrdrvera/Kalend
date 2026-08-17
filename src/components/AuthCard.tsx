@@ -6,9 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PASSWORD_REQUIREMENTS_HINT, validateAuthForm } from "@/lib/auth-validation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 // NOTE ON RATE LIMITING: signInWithPassword/signUp below call Supabase's
 // Auth API directly from the browser, they never pass through this app's
@@ -129,10 +126,10 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs text-muted-foreground">
+            <label htmlFor="email" className="text-xs text-muted-foreground">
               Email
-            </Label>
-            <Input
+            </label>
+            <input
               id="email"
               name="email"
               type="email"
@@ -141,16 +138,16 @@ export default function AuthCard({ mode }: AuthCardProps) {
               disabled={loading}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
+              className="input input-sm w-full"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-xs text-muted-foreground">
+            <label htmlFor="password" className="text-xs text-muted-foreground">
               Password
-            </Label>
-            <Input
+            </label>
+            <input
               id="password"
               name="password"
               type="password"
@@ -159,7 +156,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
               disabled={loading}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/30"
+              className="input input-sm w-full"
               required
             />
             {!isLogin && (
@@ -178,14 +175,14 @@ export default function AuthCard({ mode }: AuthCardProps) {
             </div>
           )}
 
-          <Button
+          <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary"
+            className="btn btn-primary btn-sm w-full"
           >
             {loading ? (
               <>
-                <Loader2 className="size-4 animate-spin mr-2" />
+                <Loader2 className="size-4 animate-spin" />
                 {isLogin ? "Signing in..." : "Creating account..."}
               </>
             ) : isLogin ? (
@@ -193,7 +190,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
             ) : (
               "Create account"
             )}
-          </Button>
+          </button>
         </form>
 
         <div className="mt-6 border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
