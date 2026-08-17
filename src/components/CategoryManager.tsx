@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
@@ -146,7 +146,7 @@ function CreateCategoryForm({
           aria-label="Add category"
           className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
         >
-          <Plus className="size-4" />
+          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
         </button>
         <button
           type="button"
