@@ -53,30 +53,37 @@ export default function CategorySelect({
           </>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-1.5">
-        <div className="flex flex-col">
-          <button
-            type="button"
-            onClick={() => {
-              onChange(null);
-              setOpen(false);
-            }}
-            className="flex items-center justify-between rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
-          >
-            <span>No category</span>
-            {categoryId === null && <Check className="size-3.5" />}
-          </button>
-          {categories.length > 0 && <div className="my-1 border-t border-border" />}
-          {categories.length === 0 ? null : (
-            categories.map((category) => (
+      <PopoverContent className="w-56 p-1">
+        <ul className="menu menu-sm p-0">
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex items-center justify-between",
+                categoryId === null && "active"
+              )}
+            >
+              <span>No category</span>
+              {categoryId === null && <Check className="size-3.5" />}
+            </button>
+          </li>
+          {categories.length > 0 && <li className="border-t border-border my-1" />}
+          {categories.map((category) => (
+            <li key={category.id}>
               <button
-                key={category.id}
                 type="button"
                 onClick={() => {
                   onChange(category.id);
                   setOpen(false);
                 }}
-                className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
+                className={cn(
+                  "flex items-center justify-between gap-2",
+                  categoryId === category.id && "active"
+                )}
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <span
@@ -91,9 +98,9 @@ export default function CategorySelect({
                 </span>
                 {categoryId === category.id && <Check className="size-3.5 shrink-0" />}
               </button>
-            ))
-          )}
-        </div>
+            </li>
+          ))}
+        </ul>
       </PopoverContent>
     </Popover>
   );
