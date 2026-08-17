@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PASSWORD_REQUIREMENTS_HINT, validateAuthForm } from "@/lib/auth-validation";
@@ -22,10 +22,15 @@ interface AuthCardProps {
 
 export default function AuthCard({ mode }: AuthCardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    searchParams.get("error") === "expired_link"
+      ? "That reset link has expired or was already used. Please request a new one."
+      : null
+  );
   const [info, setInfo] = useState<string | null>(null);
 
   const isLogin = mode === "login";
@@ -161,6 +166,17 @@ export default function AuthCard({ mode }: AuthCardProps) {
               <p className="text-xs text-muted-foreground">{PASSWORD_REQUIREMENTS_HINT}</p>
             )}
           </div>
+
+          {isLogin && (
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           <Button
             type="submit"

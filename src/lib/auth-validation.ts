@@ -28,6 +28,23 @@ export const PASSWORD_REQUIREMENTS_HINT =
  * login just needs a non-empty password, so a user's existing password
  * (set before this rule existed) still works.
  */
+/**
+ * Validates a password against signup/reset strength rules (length, common
+ * password blocklist). Returns null when valid, or an error string.
+ */
+export function validatePassword(password: string): string | null {
+  if (!password) {
+    return "Please enter a password.";
+  }
+  if (password.length < MIN_SIGNUP_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_SIGNUP_PASSWORD_LENGTH} characters long.`;
+  }
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    return "That password is too common. Please choose a less predictable one.";
+  }
+  return null;
+}
+
 export function validateAuthForm(
   email: string,
   password: string,
@@ -50,18 +67,9 @@ export function validateAuthForm(
     return { valid: true, trimmedEmail };
   }
 
-  if (password.length < MIN_SIGNUP_PASSWORD_LENGTH) {
-    return {
-      valid: false,
-      error: `Password must be at least ${MIN_SIGNUP_PASSWORD_LENGTH} characters long.`,
-    };
-  }
-
-  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-    return {
-      valid: false,
-      error: "That password is too common. Please choose a less predictable one.",
-    };
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return { valid: false, error: passwordError };
   }
 
   return { valid: true, trimmedEmail };
