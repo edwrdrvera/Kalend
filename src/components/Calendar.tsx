@@ -85,10 +85,27 @@ async function mutateResource<T>(
   return json;
 }
 
-function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+function ErrorToast({
+  message,
+  onDismiss,
+  onRetry,
+}: {
+  message: string;
+  onDismiss: () => void;
+  onRetry?: () => void;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
       <span>{message}</span>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          Retry
+        </button>
+      )}
       <button
         type="button"
         onClick={onDismiss}
@@ -101,6 +118,14 @@ function ErrorToast({ message, onDismiss }: { message: string; onDismiss: () => 
   );
 }
 
+function LoadingSpinner() {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+    </div>
+  );
+}
+
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
@@ -108,8 +133,16 @@ export default function Calendar() {
   const [mounted, setMounted] = useState(false);
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
+  // Initialized to true because the fetch fires immediately on mount.
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  // True until the first events fetch resolves (success or failure), so the
+  // loading spinner only shows on the very first load, not on subsequent
+  // re-fetches when navigating months with an empty calendar.
+  const [initialLoading, setInitialLoading] = useState(true);
+  // Bumping this triggers a re-fetch of all three data sources, used by the
+  // retry button in error toasts.
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -146,6 +179,7 @@ export default function Calendar() {
       } finally {
         if (!cancelled) {
           setEventsLoading(false);
+          setInitialLoading(false);
         }
       }
     }
@@ -155,10 +189,10 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, [viewDate]);
+  }, [viewDate, retryCount]);
 
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const [tasksError, setTasksError] = useState<string | null>(null);
 
   // Fetched once on mount, not tied to viewDate like events: the task list
@@ -200,10 +234,10 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
 
   const [categories, setCategories] = useState<CalendarCategory[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
   // Fetched once on mount, same as tasks: categories aren't date-scoped, the
@@ -245,7 +279,12 @@ export default function Calendar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [retryCount]);
+
+  const handleRetry = () => {
+    setInitialLoading(true);
+    setRetryCount((c) => c + 1);
+  };
 
   // Not optimistic, same reasoning as handleCreateTask: CategoryManager
   // shows its own inline error on failure.
@@ -544,9 +583,9 @@ export default function Calendar() {
     <div className="relative flex h-full w-full overflow-hidden text-foreground">
       {(eventsError || tasksError || categoriesError) && (
         <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
-          {eventsError && <ErrorToast message={eventsError} onDismiss={() => setEventsError(null)} />}
-          {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} />}
-          {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} />}
+          {eventsError && <ErrorToast message={eventsError} onDismiss={() => setEventsError(null)} onRetry={handleRetry} />}
+          {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} onRetry={handleRetry} />}
+          {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} onRetry={handleRetry} />}
         </div>
       )}
       <CalendarSidebar
@@ -564,56 +603,64 @@ export default function Calendar() {
         onUpdateCategory={handleUpdateCategory}
         onDeleteCategory={handleDeleteCategory}
       />
-      {view === "month" && (
-        <MonthGrid
-          selectedDate={selectedDate}
-          viewDate={viewDate}
-          events={events}
-          tasks={tasks}
-          categories={categories}
-          onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
-          onEventClick={handleEventClick}
-          onTaskClick={handleToggleTaskComplete}
-          view={view}
-          onViewChange={setView}
-        />
-      )}
-      {view === "week" && (
-        <WeekGrid
-          selectedDate={selectedDate}
-          viewDate={viewDate}
-          events={events}
-          tasks={tasks}
-          categories={categories}
-          onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
-          onEventClick={handleEventClick}
-          onTaskClick={handleToggleTaskComplete}
-          onEventMove={handleEventTimeChange}
-          onEventResize={handleEventTimeChange}
-          view={view}
-          onViewChange={setView}
-        />
-      )}
-      {view === "day" && (
-        <DayGrid
-          viewDate={viewDate}
-          events={events}
-          tasks={tasks}
-          categories={categories}
-          onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
-          onEventClick={handleEventClick}
-          onTaskClick={handleToggleTaskComplete}
-          onEventMove={handleEventTimeChange}
-          onEventResize={handleEventTimeChange}
-          view={view}
-          onViewChange={setView}
-        />
+      {initialLoading ? (
+        <div className="flex-1">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <>
+          {view === "month" && (
+            <MonthGrid
+              selectedDate={selectedDate}
+              viewDate={viewDate}
+              events={events}
+              tasks={tasks}
+              categories={categories}
+              onDateSelect={handleDateSelect}
+              onViewDateChange={setViewDate}
+              onCreateEvent={handleCreateEvent}
+              onEventClick={handleEventClick}
+              onTaskClick={handleToggleTaskComplete}
+              view={view}
+              onViewChange={setView}
+            />
+          )}
+          {view === "week" && (
+            <WeekGrid
+              selectedDate={selectedDate}
+              viewDate={viewDate}
+              events={events}
+              tasks={tasks}
+              categories={categories}
+              onDateSelect={handleDateSelect}
+              onViewDateChange={setViewDate}
+              onCreateEvent={handleCreateEvent}
+              onEventClick={handleEventClick}
+              onTaskClick={handleToggleTaskComplete}
+              onEventMove={handleEventTimeChange}
+              onEventResize={handleEventTimeChange}
+              view={view}
+              onViewChange={setView}
+            />
+          )}
+          {view === "day" && (
+            <DayGrid
+              viewDate={viewDate}
+              events={events}
+              tasks={tasks}
+              categories={categories}
+              onDateSelect={handleDateSelect}
+              onViewDateChange={setViewDate}
+              onCreateEvent={handleCreateEvent}
+              onEventClick={handleEventClick}
+              onTaskClick={handleToggleTaskComplete}
+              onEventMove={handleEventTimeChange}
+              onEventResize={handleEventTimeChange}
+              view={view}
+              onViewChange={setView}
+            />
+          )}
+        </>
       )}
       <EventModal
         key={modalKey}
