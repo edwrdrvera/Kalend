@@ -162,6 +162,17 @@ export default function AuthCard({ mode }: AuthCardProps) {
             )}
           </div>
 
+          {isLogin && (
+            <div className="flex justify-end">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
           <Button
             type="submit"
             disabled={loading}
