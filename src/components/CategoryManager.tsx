@@ -2,7 +2,6 @@
 
 import { useState, type FormEvent } from "react";
 import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
@@ -129,7 +128,7 @@ function CreateCategoryForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <ColorSwatchPicker color={color} onColorChange={setColor} className="size-6" />
-        <Input
+        <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => {
@@ -138,7 +137,7 @@ function CreateCategoryForm({
           placeholder="Category name"
           aria-label="New category name"
           autoFocus
-          className="h-8 flex-1 text-xs"
+          className="input input-xs flex-1 text-xs"
         />
         <button
           type="submit"

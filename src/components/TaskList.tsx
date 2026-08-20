@@ -3,7 +3,6 @@
 import { useState, type FormEvent } from "react";
 import { format, isPast } from "date-fns";
 import { Check, ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
@@ -156,7 +155,7 @@ function CreateTaskForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <Input
+        <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
@@ -165,7 +164,7 @@ function CreateTaskForm({
           placeholder="Task title"
           aria-label="New task title"
           autoFocus
-          className="h-8 flex-1 text-xs"
+          className="input input-xs flex-1 text-xs"
         />
         <button
           type="submit"
@@ -187,11 +186,11 @@ function CreateTaskForm({
 
       {showDueDate ? (
         <div className="flex items-center gap-1.5">
-          <Input
+          <input
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="h-7 flex-1 text-xs"
+            className="input input-xs flex-1 text-xs"
           />
           <button
             type="button"

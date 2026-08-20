@@ -11,9 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
@@ -125,44 +122,48 @@ function TimeRangeField({
         <div className="overflow-hidden">
           <div className="grid grid-cols-2 gap-3 pt-1">
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">Start</Label>
+              <label className="text-xs text-muted-foreground">Start</label>
               <div className="flex flex-col gap-1.5">
-                <Input
+                <input
                   type="date"
                   value={start.date}
                   onChange={(e) =>
                     onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
                   }
                   required={expanded}
+                  className="input input-xs w-full"
                 />
-                <Input
+                <input
                   type="time"
                   value={start.time}
                   onChange={(e) =>
                     onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
                   }
                   required={expanded}
+                  className="input input-xs w-full"
                 />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs text-muted-foreground">End</Label>
+              <label className="text-xs text-muted-foreground">End</label>
               <div className="flex flex-col gap-1.5">
-                <Input
+                <input
                   type="date"
                   value={end.date}
                   onChange={(e) =>
                     onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
                   }
                   required={expanded}
+                  className="input input-xs w-full"
                 />
-                <Input
+                <input
                   type="time"
                   value={end.time}
                   onChange={(e) =>
                     onEndAtChange(joinDateTimeLocal(end.date, e.target.value))
                   }
                   required={expanded}
+                  className="input input-xs w-full"
                 />
               </div>
             </div>
@@ -256,16 +257,14 @@ export default function EventModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-6 sm:max-w-md">
         {mode === "edit" && onDelete && (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="icon-sm"
             onClick={onDelete}
             aria-label="Delete event"
-            className="absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="btn btn-ghost btn-sm btn-square absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
-            <Trash2 />
-          </Button>
+            <Trash2 className="size-4" />
+          </button>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader className="gap-1">
@@ -278,21 +277,17 @@ export default function EventModal({
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="event-title" className="sr-only">
+            <label htmlFor="event-title" className="sr-only">
               Title
-            </Label>
-            <Input
+            </label>
+            <input
               id="event-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Event title"
               required
               autoFocus
-              className={cn(
-                "h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input/40 bg-transparent px-0 py-1.5 text-xl font-semibold shadow-none",
-                "placeholder:text-muted-foreground/50",
-                "focus-visible:border-primary focus-visible:ring-0"
-              )}
+              className="h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input/40 bg-transparent px-0 py-1.5 text-xl font-semibold shadow-none outline-none placeholder:text-muted-foreground/50 focus:border-primary"
             />
           </div>
 
@@ -325,9 +320,9 @@ export default function EventModal({
           )}
 
           <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
-            <Button type="submit" size="lg" disabled={submitting} className="w-full">
+            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm w-full">
               {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}
-            </Button>
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>
