@@ -32,9 +32,9 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
   const [initialLoading, setInitialLoading] = useState(true);
 
   // Re-fetches on mount and whenever the visible month changes. GET
-  // /api/events isn't date-filtered yet (see TASKS.md), so this currently
-  // re-fetches the same full set on navigation — kept anyway so a
-  // date-range query param can be added later without touching this hook.
+  // /api/events isn't date-filtered yet, so this currently re-fetches
+  // the same full set on navigation — kept anyway so a date-range query
+  // param can be added later without touching this hook.
   useEffect(() => {
     let cancelled = false;
 

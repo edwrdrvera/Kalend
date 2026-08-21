@@ -8,8 +8,7 @@ import { cookies } from "next/headers";
  *
  * Note: `setAll` will throw when called from a Server Component (which can't
  * set cookies). That's expected and safe to ignore as long as session
- * refreshing happens in middleware — see `feature/auth-middleware-protected-routes`
- * in TASKS.md.
+ * refreshing happens in middleware.
  */
 export async function createClient() {
   const cookieStore = await cookies();
