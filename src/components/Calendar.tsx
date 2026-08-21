@@ -12,11 +12,11 @@ import type {
   CalendarEvent,
   CalendarTask,
   CalendarCategory,
-  EventsApiResponse,
   TasksApiResponse,
   CategoriesApiResponse,
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
+import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 
 function ErrorToast({
   message,
@@ -65,64 +65,15 @@ export default function Calendar() {
   const [view, setView] = useState<CalendarView>("month");
   const [mounted, setMounted] = useState(false);
 
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  // Initialized to true because the fetch fires immediately on mount.
-  const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventsError, setEventsError] = useState<string | null>(null);
-  // True until the first events fetch resolves (success or failure), so the
-  // loading spinner only shows on the very first load, not on subsequent
-  // re-fetches when navigating months with an empty calendar.
-  const [initialLoading, setInitialLoading] = useState(true);
-  // Bumping this triggers a re-fetch of all three data sources, used by the
-  // retry button in error toasts.
+  const events = useCalendarEvents(viewDate);
+
+  // Bumping this triggers a re-fetch of tasks and categories, used by the
+  // retry button in error toasts. Events have their own retry via the hook.
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Re-fetches on mount and whenever the visible month changes. GET
-  // /api/events isn't date-filtered yet (see TASKS.md), so this currently
-  // re-fetches the same full set on navigation — kept anyway so a
-  // date-range query param can be added later without touching this hook.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchEvents() {
-      setEventsLoading(true);
-      setEventsError(null);
-
-      try {
-        const res = await fetch("/api/events");
-        const json: EventsApiResponse = await res.json();
-
-        if (!res.ok || !json.success || !json.data) {
-          throw new Error(json.error ?? "Failed to load events");
-        }
-
-        if (!cancelled) {
-          setEvents(json.data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setEventsError(
-            err instanceof Error ? err.message : "Failed to load events"
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setEventsLoading(false);
-          setInitialLoading(false);
-        }
-      }
-    }
-
-    fetchEvents();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [viewDate, retryCount]);
 
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
@@ -215,7 +166,7 @@ export default function Calendar() {
   }, [retryCount]);
 
   const handleRetry = () => {
-    setInitialLoading(true);
+    events.retry();
     setRetryCount((c) => c + 1);
   };
 
@@ -403,32 +354,11 @@ export default function Calendar() {
     setModalError(null);
 
     try {
-      const isEdit = modalMode === "edit" && modalEvent;
-      const fallbackError = `Failed to ${isEdit ? "update" : "create"} event`;
-      const json = await mutateResource<CalendarEvent>(
-        isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
-        isEdit ? "PATCH" : "POST",
-        {
-          title: values.title,
-          start_at: values.startAt,
-          end_at: values.endAt,
-          color: values.color,
-          category_id: values.categoryId,
-        },
-        fallbackError
-      );
-
-      if (!json.data) {
-        throw new Error(fallbackError);
+      if (modalMode === "edit" && modalEvent) {
+        await events.updateEvent(modalEvent.id, values);
+      } else {
+        await events.createEvent(values);
       }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        isEdit
-          ? prev.map((event) => (event.id === savedEvent.id ? savedEvent : event))
-          : [...prev, savedEvent]
-      );
-
       setModalOpen(false);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "Something went wrong");
@@ -437,86 +367,21 @@ export default function Calendar() {
     }
   };
 
-  // Optimistic: remove from state and close the modal immediately, rather
-  // than waiting on the DELETE response. On failure the event is put back
-  // and eventsError surfaces why.
+  // Optimistic delete is handled by the hook; this thin wrapper reads from
+  // modal state and closes the modal.
   const handleDeleteEvent = async () => {
     if (!modalEvent) return;
-
-    const eventToDelete = modalEvent;
-    setEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
     setModalOpen(false);
-
-    try {
-      await mutateResource<CalendarEvent>(
-        `/api/events/${eventToDelete.id}`,
-        "DELETE",
-        undefined,
-        "Failed to delete event"
-      );
-    } catch (err) {
-      setEvents((prev) => [...prev, eventToDelete]);
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to delete event"
-      );
-    }
-  };
-
-  // Shared by drag-move and drag-resize: both apply the new start/end
-  // optimistically (so the drag doesn't snap back while the request is in
-  // flight), then reconcile with the server response. On failure, only
-  // start_at/end_at are rolled back (not the whole event) so a concurrent
-  // edit that succeeded in the meantime isn't discarded with the failed move.
-  const handleEventTimeChange = async (event: CalendarEvent, start: Date, end: Date) => {
-    const previousStartAt = event.start_at;
-    const previousEndAt = event.end_at;
-    const optimisticEvent: CalendarEvent = {
-      ...event,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-    };
-
-    setEvents((prev) =>
-      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
-    );
-
-    try {
-      const json = await mutateResource<CalendarEvent>(
-        `/api/events/${event.id}`,
-        "PATCH",
-        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
-        "Failed to update event"
-      );
-
-      if (!json.data) {
-        throw new Error("Failed to update event");
-      }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
-      );
-    } catch (err) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === event.id
-            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
-            : e
-        )
-      );
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to update event"
-      );
-    }
+    await events.deleteEvent(modalEvent);
   };
 
   if (!mounted) return null;
 
   return (
     <div className="relative flex h-full w-full overflow-hidden text-foreground">
-      {(eventsError || tasksError || categoriesError) && (
+      {(events.error || tasksError || categoriesError) && (
         <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
-          {eventsError && <ErrorToast message={eventsError} onDismiss={() => setEventsError(null)} onRetry={handleRetry} />}
+          {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
           {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} onRetry={handleRetry} />}
           {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} onRetry={handleRetry} />}
         </div>
@@ -536,7 +401,7 @@ export default function Calendar() {
         onUpdateCategory={handleUpdateCategory}
         onDeleteCategory={handleDeleteCategory}
       />
-      {initialLoading ? (
+      {events.initialLoading ? (
         <div className="flex-1">
           <LoadingSpinner />
         </div>
@@ -546,7 +411,7 @@ export default function Calendar() {
             <MonthGrid
               selectedDate={selectedDate}
               viewDate={viewDate}
-              events={events}
+              events={events.data}
               tasks={tasks}
               categories={categories}
               onDateSelect={handleDateSelect}
@@ -562,7 +427,7 @@ export default function Calendar() {
             <WeekGrid
               selectedDate={selectedDate}
               viewDate={viewDate}
-              events={events}
+              events={events.data}
               tasks={tasks}
               categories={categories}
               onDateSelect={handleDateSelect}
@@ -570,8 +435,8 @@ export default function Calendar() {
               onCreateEvent={handleCreateEvent}
               onEventClick={handleEventClick}
               onTaskClick={handleToggleTaskComplete}
-              onEventMove={handleEventTimeChange}
-              onEventResize={handleEventTimeChange}
+              onEventMove={events.changeEventTime}
+              onEventResize={events.changeEventTime}
               view={view}
               onViewChange={setView}
             />
@@ -579,7 +444,7 @@ export default function Calendar() {
           {view === "day" && (
             <DayGrid
               viewDate={viewDate}
-              events={events}
+              events={events.data}
               tasks={tasks}
               categories={categories}
               onDateSelect={handleDateSelect}
@@ -587,8 +452,8 @@ export default function Calendar() {
               onCreateEvent={handleCreateEvent}
               onEventClick={handleEventClick}
               onTaskClick={handleToggleTaskComplete}
-              onEventMove={handleEventTimeChange}
-              onEventResize={handleEventTimeChange}
+              onEventMove={events.changeEventTime}
+              onEventResize={events.changeEventTime}
               view={view}
               onViewChange={setView}
             />

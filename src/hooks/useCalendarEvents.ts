@@ -24,9 +24,10 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
 
-  // Flipped after the first fetch completes, so the consumer can show a
+  // Flipped after the first *successful* fetch, so the consumer can show a
   // full-screen spinner only on first load, not on re-fetches when
-  // navigating months with an empty calendar.
+  // navigating months. Stays false on failure so a retry after a failed
+  // first load re-shows the spinner.
   const hasLoadedOnce = useRef(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -51,6 +52,10 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
 
         if (!cancelled) {
           setEvents(json.data);
+          if (!hasLoadedOnce.current) {
+            hasLoadedOnce.current = true;
+            setInitialLoading(false);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -61,10 +66,6 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
       } finally {
         if (!cancelled) {
           setLoading(false);
-          if (!hasLoadedOnce.current) {
-            hasLoadedOnce.current = true;
-            setInitialLoading(false);
-          }
         }
       }
     }
