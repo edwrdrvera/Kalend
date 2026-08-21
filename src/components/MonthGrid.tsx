@@ -14,7 +14,7 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
-import type { CalendarCategory, CalendarEvent, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import TaskChip from "./TaskChip";

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CalendarCategory, CalendarEvent } from "./Calendar";
+import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutAllDayEvents } from "@/lib/time-grid-layout";
 

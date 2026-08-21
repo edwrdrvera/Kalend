@@ -3,7 +3,7 @@
 import { isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import { getTaskColorClasses, resolveDisplayColor } from "@/lib/event-colors";
-import type { CalendarCategory, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskChipProps {
   task: CalendarTask;
