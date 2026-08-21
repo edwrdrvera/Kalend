@@ -5,7 +5,7 @@ import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
-import type { CalendarCategory } from "./Calendar";
+import type { CalendarCategory } from "@/lib/calendar-types";
 
 interface CategoryManagerProps {
   categories: CalendarCategory[];

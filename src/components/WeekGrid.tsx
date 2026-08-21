@@ -10,7 +10,7 @@ import {
   isSameMonth,
   setHours,
 } from "date-fns";
-import type { CalendarCategory, CalendarEvent, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
 import TaskDueRow from "./TaskDueRow";

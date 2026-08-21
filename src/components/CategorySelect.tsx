@@ -5,7 +5,7 @@ import { Check, Tag } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor } from "@/lib/event-colors";
-import type { CalendarCategory } from "./Calendar";
+import type { CalendarCategory } from "@/lib/calendar-types";
 
 interface CategorySelectProps {
   categories: CalendarCategory[];

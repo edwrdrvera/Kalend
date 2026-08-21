@@ -6,7 +6,7 @@ import { Check, ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
-import type { CalendarCategory, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskListProps {
   tasks: CalendarTask[];

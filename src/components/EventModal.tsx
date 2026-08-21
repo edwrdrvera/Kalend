@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
-import type { CalendarCategory, CalendarEvent } from "./Calendar";
+import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
 export interface EventFormValues {
   title: string;

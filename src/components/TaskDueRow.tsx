@@ -1,7 +1,7 @@
 "use client";
 
 import { isSameDay } from "date-fns";
-import type { CalendarCategory, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 import TaskChip from "./TaskChip";
 
 interface TaskDueRowProps {

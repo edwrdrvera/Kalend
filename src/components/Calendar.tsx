@@ -8,82 +8,15 @@ import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
 import type { CalendarView } from "./ViewSwitcher";
-
-// Wire shape of an event as returned by GET /api/events: dates arrive as
-// ISO strings over JSON, not the `Date` objects the Drizzle `Event` type
-// declares server-side.
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start_at: string;
-  end_at: string;
-  color: string | null;
-  category_id: string | null;
-}
-
-interface EventsApiResponse {
-  success: boolean;
-  data?: CalendarEvent[];
-  error?: string;
-}
-
-// Wire shape of a task as returned by GET /api/tasks, same ISO-string
-// caveat as CalendarEvent above.
-export interface CalendarTask {
-  id: string;
-  title: string;
-  due_at: string | null;
-  completed: boolean;
-  color: string | null;
-  category_id: string | null;
-}
-
-interface TasksApiResponse {
-  success: boolean;
-  data?: CalendarTask[];
-  error?: string;
-}
-
-// Wire shape of a category as returned by GET /api/categories.
-export interface CalendarCategory {
-  id: string;
-  name: string;
-  color: string | null;
-}
-
-interface CategoriesApiResponse {
-  success: boolean;
-  data?: CalendarCategory[];
-  error?: string;
-}
-
-// Generic fetch-then-check wrapper used by every create/edit/delete/move
-// handler below. Doesn't enforce `data` being present since DELETE's
-// response doesn't include it; callers that need `data` check after.
-interface MutationResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-async function mutateResource<T>(
-  url: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: object | undefined,
-  fallbackError: string
-): Promise<MutationResponse<T>> {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json: MutationResponse<T> = await res.json();
-
-  if (!res.ok || !json.success) {
-    throw new Error(json.error ?? fallbackError);
-  }
-  return json;
-}
+import type {
+  CalendarEvent,
+  CalendarTask,
+  CalendarCategory,
+  EventsApiResponse,
+  TasksApiResponse,
+  CategoriesApiResponse,
+} from "@/lib/calendar-types";
+import { mutateResource } from "@/lib/api";
 
 function ErrorToast({
   message,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { isMultiDayEvent, layoutDayEvents, layoutAllDayEvents } from "../time-grid-layout";
-import type { CalendarEvent } from "@/components/Calendar";
+import type { CalendarEvent } from "@/lib/calendar-types";
 
 /** Builds a minimal CalendarEvent stub with only the fields the layout
  *  functions actually read. Keeps tests focused on geometry, not on

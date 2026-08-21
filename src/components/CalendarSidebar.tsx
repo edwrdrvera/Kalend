@@ -7,7 +7,7 @@ import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
-import type { CalendarCategory, CalendarTask } from "./Calendar";
+import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
   currentDate: Date;

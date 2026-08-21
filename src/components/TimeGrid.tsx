@@ -8,7 +8,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { isSameDay, startOfDay, addMinutes } from "date-fns";
-import type { CalendarCategory, CalendarEvent } from "./Calendar";
+import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
