@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Claude Code local state
 .claude/
+
+# Vendored agent skills (regenerate from skills-lock.json)
+.agents/skills/
