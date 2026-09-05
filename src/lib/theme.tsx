@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 export type Theme = "light" | "dark";
 
@@ -22,6 +22,9 @@ export function resolveInitialTheme(
 
 interface ThemeContextValue {
   theme: Theme;
+  /** false on the server and until the mount effect has read localStorage.
+   *  Components that render theme-dependent UI should wait for this. */
+  mounted: boolean;
   toggleTheme: () => void;
 }
 
@@ -33,9 +36,15 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark"); // server-safe default
+  const [mounted, setMounted] = useState(false);
+  // Guard: skip localStorage write on the very first render so the sync effect
+  // doesn't clobber a stored preference before the mount effect has read it.
+  const syncReady = useRef(false);
 
-  // Sync the <html> class and localStorage whenever theme changes.
+  // Sync the <html> class and localStorage whenever theme changes — but only
+  // after the mount effect has resolved the real initial value.
   useEffect(() => {
+    if (!syncReady.current) return;
     const root = document.documentElement;
     if (theme === "dark") {
       root.classList.add("dark");
@@ -49,7 +58,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
-  // Read the stored/OS preference on mount.
+  // On mount: read the stored preference (or OS default), set it, then allow
+  // the sync effect to run on subsequent changes.
   useEffect(() => {
     let stored: string | null = null;
     try {
@@ -60,7 +70,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const prefersColorSchemeDark = window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches;
-    setTheme(resolveInitialTheme(stored, prefersColorSchemeDark));
+    const resolved = resolveInitialTheme(stored, prefersColorSchemeDark);
+    // Apply the class directly here (don't wait for the sync effect) so the
+    // DOM matches state as soon as we know the real theme.
+    if (resolved === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    syncReady.current = true;
+    setTheme(resolved);
+    setMounted(true);
   }, []);
 
   function toggleTheme() {
@@ -68,7 +88,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ThemeContext value={{ theme, toggleTheme }}>
+    <ThemeContext value={{ theme, mounted, toggleTheme }}>
       {children}
     </ThemeContext>
   );

@@ -54,16 +54,21 @@ export default function CalendarSidebar({
         collapsed ? "w-12" : "w-64"
       )}
     >
+      {/* Top bar is always rendered (outside the inert zone) so ThemeToggle
+          stays reachable even when the sidebar is collapsed. */}
       <div className="p-4 flex items-center justify-between gap-2">
         {!collapsed && <KalendWordmark size="sm" tone="white" animation="scatter" />}
-        <button
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-pressed={collapsed}
-          className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground shrink-0"
-        >
-          <Menu size={18} />
-        </button>
+        <div className="flex items-center gap-1 ml-auto shrink-0">
+          <ThemeToggle />
+          <button
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       </div>
 
       <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
@@ -87,8 +92,7 @@ export default function CalendarSidebar({
           onUpdateCategory={onUpdateCategory}
           onDeleteCategory={onDeleteCategory}
         />
-        <div className="mt-auto flex items-center justify-end gap-1 p-4">
-          <ThemeToggle />
+        <div className="mt-auto flex justify-end p-4">
           <SettingsMenu />
         </div>
       </div>

@@ -35,10 +35,7 @@ export default function RootLayout({
             the no-flash script applying 'dark' before React hydrates. */}
         <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
       </head>
-      <body
-        className="antialiased bg-background text-foreground h-screen w-screen overflow-hidden selection:bg-primary/30"
-        suppressHydrationWarning
-      >
+      <body className="antialiased bg-background text-foreground h-screen w-screen overflow-hidden selection:bg-primary/30">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
