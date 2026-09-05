@@ -9,8 +9,10 @@ export default function LandingNav() {
         <LandingButton href="/login" variant="secondary">
           Log In
         </LandingButton>
-        <LandingButton href="/signup" variant="primary">
-          Get Started
+        {/* Scrolls to the email form in LandingHero, id="waitlist". There's
+            no signup route in this MVP (see src/app/CLAUDE.md). */}
+        <LandingButton href="#waitlist" variant="primary">
+          Join Waitlist
         </LandingButton>
       </div>
     </nav>

@@ -1,4 +1,5 @@
 import LandingButton from "./LandingButton";
+import WaitlistForm from "./WaitlistForm";
 import CalendarMockup from "./CalendarMockup";
 
 export default function LandingHero() {
@@ -17,15 +18,16 @@ export default function LandingHero() {
         Group deadlines, blockers, and reminders into Spaces — a class, a project, a job,
         anything with its own due dates. Then sync it all with Google or Apple Calendar.
       </p>
+      <div className="kal-fade-up mt-7 w-full min-[860px]:w-auto" style={{ animationDelay: "0.2s" }}>
+        <WaitlistForm />
+      </div>
       <div
-        className="kal-fade-up mt-7 flex w-full flex-col items-stretch gap-3 min-[860px]:w-auto min-[860px]:flex-row min-[860px]:items-center"
-        style={{ animationDelay: "0.2s" }}
+        className="kal-fade-up mt-3 flex items-center gap-1 text-[13px] text-[var(--kal-muted)]"
+        style={{ animationDelay: "0.24s" }}
       >
-        <LandingButton href="/signup" variant="primary" size="hero" className="text-center">
-          Get Started
-        </LandingButton>
-        <LandingButton href="/login" variant="secondary" size="hero" className="text-center">
-          Log In
+        Have the demo account?{" "}
+        <LandingButton href="/login" variant="secondary" className="ml-1 px-3 py-1.5 text-xs">
+          Log in
         </LandingButton>
       </div>
       <div
