@@ -69,7 +69,7 @@ function TaskRow({
         <span
           className={cn(
             "shrink-0 text-xs",
-            overdue ? "text-red-400" : "text-muted-foreground"
+            overdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
           )}
         >
           {format(new Date(task.due_at), "MMM d")}
@@ -80,13 +80,18 @@ function TaskRow({
         type="button"
         onClick={() => onDeleteTask(task)}
         aria-label="Delete task"
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
       >
         <Trash2 className="size-3.5" />
       </button>
     </div>
   );
 }
+
+// Shared by the title and due-date inputs in the create form — keeps the
+// token set in one place.
+const TASK_INPUT_CLS =
+  "h-6 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
 
 /** Idle: a plain "Add a task" row, styled to invite a click but taking no
  *  more space than a single line. Clicking it swaps in the real form
@@ -164,7 +169,7 @@ function CreateTaskForm({
           placeholder="Task title"
           aria-label="New task title"
           autoFocus
-          className="input input-xs flex-1 text-xs"
+          className={TASK_INPUT_CLS}
         />
         <button
           type="submit"
@@ -190,7 +195,7 @@ function CreateTaskForm({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="input input-xs flex-1 text-xs"
+            className={TASK_INPUT_CLS}
           />
           <button
             type="button"
@@ -221,7 +226,7 @@ function CreateTaskForm({
         className="-ml-2 self-start"
       />
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </form>
   );
 }
