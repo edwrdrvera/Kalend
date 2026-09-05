@@ -61,14 +61,15 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Light mode — warm off-white palette from the landing page (--kal-*).
-     * Accent is #ea580c in both modes (placeholder; finalized in a later ticket). */
+     * Accent is indigo-600 (#4f46e5): distinct from the orange category color,
+     * passes WCAG AA (7.5:1 with white) and looks right on the warm bg. */
     --background: #faf8f3;
     --foreground: #1c1a16;
     --card: #ffffff;
     --card-foreground: #1c1a16;
     --popover: #ffffff;
     --popover-foreground: #1c1a16;
-    --primary: #ea580c;
+    --primary: #4f46e5;
     --primary-foreground: #ffffff;
     --secondary: #f0ede4;
     --secondary-foreground: #1c1a16;
@@ -79,8 +80,8 @@
     --destructive: #dc2626;
     --border: #e8e3d8;
     --input: #e8e3d8;
-    --ring: #ea580c;
-    --chart-1: #ea580c;
+    --ring: #4f46e5;
+    --chart-1: #4f46e5;
     --chart-2: #756f61;
     --chart-3: #1c1a16;
     --chart-4: #e8e3d8;
@@ -88,24 +89,27 @@
     --radius: 0.625rem;
     --sidebar: #f5f2eb;
     --sidebar-foreground: #1c1a16;
-    --sidebar-primary: #ea580c;
+    --sidebar-primary: #4f46e5;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #e8e3d8;
     --sidebar-accent-foreground: #1c1a16;
     --sidebar-border: #e8e3d8;
-    --sidebar-ring: #ea580c;
+    --sidebar-ring: #4f46e5;
 }
 
 .dark {
-    /* Dark mode — existing dark palette, accent updated to #ea580c to match light mode. */
+    /* Dark mode — indigo-400 (#818cf8) as the primary: lighter shade so it
+     * reads as text on dark surfaces (5.9:1 on #121212) and as the button bg
+     * with dark ink foreground (5.3:1). primary-foreground flips to dark ink
+     * so buttons stay legible on the lighter dark-mode accent. */
     --background: #121212;
     --foreground: #e5e5e5;
     --card: #191919;
     --card-foreground: #e5e5e5;
     --popover: #191919;
     --popover-foreground: #e5e5e5;
-    --primary: #ea580c;
-    --primary-foreground: #ffffff;
+    --primary: #818cf8;
+    --primary-foreground: #1c1a16;
     --secondary: #262626;
     --secondary-foreground: #e5e5e5;
     --muted: #262626;
@@ -115,20 +119,20 @@
     --destructive: #ef4444;
     --border: #262626;
     --input: #262626;
-    --ring: #ea580c;
-    --chart-1: #ea580c;
+    --ring: #818cf8;
+    --chart-1: #818cf8;
     --chart-2: #a3a3a3;
     --chart-3: #e5e5e5;
     --chart-4: #262626;
     --chart-5: #191919;
     --sidebar: #191919;
     --sidebar-foreground: #e5e5e5;
-    --sidebar-primary: #ea580c;
-    --sidebar-primary-foreground: #ffffff;
+    --sidebar-primary: #818cf8;
+    --sidebar-primary-foreground: #1c1a16;
     --sidebar-accent: #262626;
     --sidebar-accent-foreground: #e5e5e5;
     --sidebar-border: #262626;
-    --sidebar-ring: #ea580c;
+    --sidebar-ring: #818cf8;
 }
 
 @layer base {
