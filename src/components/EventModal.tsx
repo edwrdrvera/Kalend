@@ -132,7 +132,7 @@ function TimeRangeField({
                     onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
                 />
                 <input
                   type="time"
@@ -141,7 +141,7 @@ function TimeRangeField({
                     onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ function TimeRangeField({
                     onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
                 />
                 <input
                   type="time"
@@ -164,7 +164,7 @@ function TimeRangeField({
                     onEndAtChange(joinDateTimeLocal(end.date, e.target.value))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
                 />
               </div>
             </div>

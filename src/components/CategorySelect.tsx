@@ -54,7 +54,7 @@ export default function CategorySelect({
         )}
       </PopoverTrigger>
       <PopoverContent className="w-56 p-1">
-        <ul className="menu menu-sm p-0">
+        <ul className="flex flex-col">
           <li>
             <button
               type="button"
@@ -63,8 +63,8 @@ export default function CategorySelect({
                 setOpen(false);
               }}
               className={cn(
-                "flex items-center justify-between",
-                categoryId === null && "active"
+                "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                categoryId === null && "bg-muted text-foreground font-medium"
               )}
             >
               <span>No category</span>
@@ -81,8 +81,8 @@ export default function CategorySelect({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex items-center justify-between gap-2",
-                  categoryId === category.id && "active"
+                  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                  categoryId === category.id && "bg-muted text-foreground font-medium"
                 )}
               >
                 <span className="flex min-w-0 items-center gap-2">
