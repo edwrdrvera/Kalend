@@ -26,7 +26,8 @@ export default function KalendAppIcon({ size = 128, className }: KalendAppIconPr
       aria-label="Kalend"
       className={className}
     >
-      <rect width="120" height="120" rx="26" fill="#ea580c" />
+      {/* fill via CSS so it tracks the --primary token rather than a hardcoded hex */}
+      <rect width="120" height="120" rx="26" style={{ fill: "var(--primary)" }} />
       {DOTS.map((dot) => (
         <circle key={`${dot.cx}-${dot.cy}`} cx={dot.cx} cy={dot.cy} r="9" fill="#ffffff" />
       ))}

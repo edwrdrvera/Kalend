@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
@@ -257,14 +258,16 @@ export default function EventModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-6 sm:max-w-md">
         {mode === "edit" && onDelete && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={onDelete}
             aria-label="Delete event"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md absolute top-2 right-10 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="size-4" />
-          </button>
+          </Button>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader className="gap-1">
@@ -320,9 +323,9 @@ export default function EventModal({
           )}
 
           <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
-            <button type="submit" disabled={submitting} className="inline-flex h-7 w-full items-center justify-center rounded-md bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:pointer-events-none disabled:opacity-50">
+            <Button type="submit" disabled={submitting} size="sm" className="w-full">
               {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
