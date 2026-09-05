@@ -8,6 +8,7 @@ import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
+import ThemeToggle from "./ThemeToggle";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
@@ -86,7 +87,8 @@ export default function CalendarSidebar({
           onUpdateCategory={onUpdateCategory}
           onDeleteCategory={onDeleteCategory}
         />
-        <div className="mt-auto flex justify-end p-4">
+        <div className="mt-auto flex items-center justify-end gap-1 p-4">
+          <ThemeToggle />
           <SettingsMenu />
         </div>
       </div>

@@ -59,50 +59,52 @@
      * installed locally, then a normal system-font stack on other
      * platforms, where SF Pro isn't available at all. */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+
+    /* Light mode — warm off-white palette from the landing page (--kal-*).
+     * Accent is #ea580c in both modes (placeholder; finalized in a later ticket). */
+    --background: #faf8f3;
+    --foreground: #1c1a16;
+    --card: #ffffff;
+    --card-foreground: #1c1a16;
+    --popover: #ffffff;
+    --popover-foreground: #1c1a16;
+    --primary: #ea580c;
+    --primary-foreground: #ffffff;
+    --secondary: #f0ede4;
+    --secondary-foreground: #1c1a16;
+    --muted: #f0ede4;
+    --muted-foreground: #756f61;
+    --accent: #f0ede4;
+    --accent-foreground: #1c1a16;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --border: #e8e3d8;
+    --input: #e8e3d8;
+    --ring: #ea580c;
+    --chart-1: #ea580c;
+    --chart-2: #756f61;
+    --chart-3: #1c1a16;
+    --chart-4: #e8e3d8;
+    --chart-5: #f0ede4;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #f5f2eb;
+    --sidebar-foreground: #1c1a16;
+    --sidebar-primary: #ea580c;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #e8e3d8;
+    --sidebar-accent-foreground: #1c1a16;
+    --sidebar-border: #e8e3d8;
+    --sidebar-ring: #ea580c;
 }
 
 .dark {
-    /* Aligned to the app's existing dark palette (see layout.tsx / Calendar components):
-       background #121212, panels #191919, neutral-800 borders/hover, blue-600 accent. */
+    /* Dark mode — existing dark palette, accent updated to #ea580c to match light mode. */
     --background: #121212;
     --foreground: #e5e5e5;
     --card: #191919;
     --card-foreground: #e5e5e5;
     --popover: #191919;
     --popover-foreground: #e5e5e5;
-    --primary: #2563eb;
+    --primary: #ea580c;
     --primary-foreground: #ffffff;
     --secondary: #262626;
     --secondary-foreground: #e5e5e5;
@@ -113,20 +115,20 @@
     --destructive: oklch(0.704 0.191 22.216);
     --border: #262626;
     --input: #262626;
-    --ring: #3b82f6;
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --ring: #ea580c;
+    --chart-1: #ea580c;
+    --chart-2: #a3a3a3;
+    --chart-3: #e5e5e5;
+    --chart-4: #262626;
+    --chart-5: #191919;
     --sidebar: #191919;
     --sidebar-foreground: #e5e5e5;
-    --sidebar-primary: #2563eb;
+    --sidebar-primary: #ea580c;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #262626;
     --sidebar-accent-foreground: #e5e5e5;
     --sidebar-border: #262626;
-    --sidebar-ring: #3b82f6;
+    --sidebar-ring: #ea580c;
 }
 
 @layer base {
