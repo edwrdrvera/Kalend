@@ -261,7 +261,7 @@ export default function EventModal({
             type="button"
             onClick={onDelete}
             aria-label="Delete event"
-            className="btn btn-ghost btn-sm btn-square absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md absolute top-2 right-10 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Trash2 className="size-4" />
           </button>
@@ -320,7 +320,7 @@ export default function EventModal({
           )}
 
           <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
-            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm w-full">
+            <button type="submit" disabled={submitting} className="inline-flex h-7 w-full items-center justify-center rounded-md bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground transition-colors hover:bg-primary/80 disabled:pointer-events-none disabled:opacity-50">
               {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}
             </button>
           </DialogFooter>

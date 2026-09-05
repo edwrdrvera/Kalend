@@ -40,21 +40,21 @@ function MiniCalendarHeader({
   return (
     <div className={`flex items-center mb-4 ${showLabel ? "justify-between" : "justify-end"}`}>
       {showLabel && (
-        <h2 className="text-sm font-semibold text-neutral-200 uppercase">
+        <h2 className="text-sm font-semibold text-foreground uppercase">
           {format(browseDate, "MMM yyyy")}
         </h2>
       )}
-      <div className="flex gap-1 text-neutral-400">
+      <div className="flex gap-1 text-muted-foreground">
         <button
           onClick={onPrevMonth}
-          className="p-1 hover:bg-neutral-800 hover:text-neutral-200 rounded transition-colors"
+          className="p-1 hover:bg-muted hover:text-foreground rounded transition-colors"
           aria-label="Previous month"
         >
           <ChevronLeft size={16} />
         </button>
         <button
           onClick={onNextMonth}
-          className="p-1 hover:bg-neutral-800 hover:text-neutral-200 rounded transition-colors"
+          className="p-1 hover:bg-muted hover:text-foreground rounded transition-colors"
           aria-label="Next month"
         >
           <ChevronRight size={16} />
@@ -69,7 +69,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-7 text-center text-[10px] font-semibold text-neutral-500">
+        <div key={i} className="w-7 text-center text-[10px] font-semibold text-muted-foreground">
           {day}
         </div>
       ))}
@@ -85,18 +85,18 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   const isTodayCurrent = isSameDay(day, new Date());
 
   if (!isCurrentMonth) {
-    return `${baseClasses} text-neutral-600`;
+    return `${baseClasses} text-muted-foreground/40`;
   }
-  
+
   if (isSelected) {
-    return `${baseClasses} bg-blue-600 text-white`;
+    return `${baseClasses} bg-primary text-primary-foreground`;
   }
-  
+
   if (isTodayCurrent) {
-    return `${baseClasses} bg-neutral-800 text-blue-400`;
+    return `${baseClasses} bg-muted text-primary font-semibold`;
   }
-  
-  return `${baseClasses} text-neutral-300 hover:bg-neutral-800`;
+
+  return `${baseClasses} text-foreground hover:bg-muted`;
 }
 
 function MiniCalendarGrid({

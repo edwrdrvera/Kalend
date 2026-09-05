@@ -30,23 +30,24 @@ export function isEventColor(color: string | null | undefined): color is EventCo
 // appear literally in source, so color-coding driven by the event's
 // freeform `color` string needs an explicit lookup table like this instead.
 //
-// A solid `border-l` bar carries the color, with only a faint tint behind
-// it — a bar reads as a distinct color at a glance even on small month-grid
-// chips, where a fully-tinted fill on a tiny pill tends to blur together.
+// Full-tinted rounded chip: pastel background in light mode (matches the
+// landing-page mockup palette), dark translucent tint in dark mode. The
+// `dark:` prefix works because globals.css registers the custom variant
+// `@custom-variant dark (&:is(.dark *))`.
 export const EVENT_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "border-l-2 border-blue-500 bg-blue-500/15 text-blue-300",
-  green: "border-l-2 border-green-500 bg-green-500/15 text-green-300",
-  purple: "border-l-2 border-purple-500 bg-purple-500/15 text-purple-300",
-  orange: "border-l-2 border-orange-500 bg-orange-500/15 text-orange-300",
-  red: "border-l-2 border-red-500 bg-red-500/15 text-red-300",
-  indigo: "border-l-2 border-indigo-500 bg-indigo-500/15 text-indigo-300",
-  pink: "border-l-2 border-pink-500 bg-pink-500/15 text-pink-300",
-  yellow: "border-l-2 border-yellow-500 bg-yellow-500/15 text-yellow-300",
-  teal: "border-l-2 border-teal-500 bg-teal-500/15 text-teal-300",
+  blue:   "bg-blue-100   text-blue-700   dark:bg-blue-500/15   dark:text-blue-300",
+  green:  "bg-green-100  text-green-700  dark:bg-green-500/15  dark:text-green-300",
+  purple: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
+  orange: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  red:    "bg-red-100    text-red-700    dark:bg-red-500/15    dark:text-red-300",
+  indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  pink:   "bg-pink-100   text-pink-700   dark:bg-pink-500/15   dark:text-pink-300",
+  yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  teal:   "bg-teal-100   text-teal-700   dark:bg-teal-500/15   dark:text-teal-300",
 };
 
 export const DEFAULT_EVENT_COLOR_CLASSES =
-  "border-l-2 border-neutral-500 bg-neutral-700/40 text-neutral-300";
+  "bg-neutral-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-300";
 
 export function getEventColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_EVENT_COLOR_CLASSES;
@@ -56,32 +57,34 @@ export function getEventColorClasses(color: string | null): string {
 // Solid swatch classes for the color-picker UI itself, distinct from the
 // translucent pill styling used on the calendar grid.
 export const EVENT_COLOR_SWATCH_CLASSES: Record<EventColor, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
+  blue:   "bg-blue-500",
+  green:  "bg-green-500",
   purple: "bg-purple-500",
   orange: "bg-orange-500",
-  red: "bg-red-500",
+  red:    "bg-red-500",
   indigo: "bg-indigo-500",
-  pink: "bg-pink-500",
+  pink:   "bg-pink-500",
   yellow: "bg-yellow-500",
-  teal: "bg-teal-500",
+  teal:   "bg-teal-500",
 };
 
 // Outlined, not filled, so a task chip on the calendar grid never reads as
-// an event pill at a glance.
+// an event pill at a glance. Text colors are darker in light mode so they
+// remain legible on the warm off-white background.
 export const TASK_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "border-blue-500/60 text-blue-300",
-  green: "border-green-500/60 text-green-300",
-  purple: "border-purple-500/60 text-purple-300",
-  orange: "border-orange-500/60 text-orange-300",
-  red: "border-red-500/60 text-red-300",
-  indigo: "border-indigo-500/60 text-indigo-300",
-  pink: "border-pink-500/60 text-pink-300",
-  yellow: "border-yellow-500/60 text-yellow-300",
-  teal: "border-teal-500/60 text-teal-300",
+  blue:   "border-blue-400   text-blue-600   dark:border-blue-500/60   dark:text-blue-300",
+  green:  "border-green-400  text-green-600  dark:border-green-500/60  dark:text-green-300",
+  purple: "border-purple-400 text-purple-600 dark:border-purple-500/60 dark:text-purple-300",
+  orange: "border-orange-400 text-orange-600 dark:border-orange-500/60 dark:text-orange-300",
+  red:    "border-red-400    text-red-600    dark:border-red-500/60    dark:text-red-300",
+  indigo: "border-indigo-400 text-indigo-600 dark:border-indigo-500/60 dark:text-indigo-300",
+  pink:   "border-pink-400   text-pink-600   dark:border-pink-500/60   dark:text-pink-300",
+  yellow: "border-yellow-400 text-yellow-600 dark:border-yellow-500/60 dark:text-yellow-300",
+  teal:   "border-teal-400   text-teal-600   dark:border-teal-500/60   dark:text-teal-300",
 };
 
-export const DEFAULT_TASK_COLOR_CLASSES = "border-neutral-600 text-neutral-300";
+export const DEFAULT_TASK_COLOR_CLASSES =
+  "border-neutral-400 text-neutral-600 dark:border-neutral-600 dark:text-neutral-300";
 
 export function getTaskColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_TASK_COLOR_CLASSES;

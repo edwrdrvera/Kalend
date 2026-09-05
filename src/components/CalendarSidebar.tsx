@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "@/lib/theme";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import KalendWordmark from "./KalendWordmark";
@@ -46,6 +47,8 @@ export default function CalendarSidebar({
   onDeleteCategory,
 }: CalendarSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { theme } = useTheme();
+  const wordmarkTone = theme === "dark" ? "white" : "ink";
 
   return (
     <aside
@@ -57,7 +60,7 @@ export default function CalendarSidebar({
       {/* Top bar is always rendered (outside the inert zone) so ThemeToggle
           stays reachable even when the sidebar is collapsed. */}
       <div className="p-4 flex items-center justify-between gap-2">
-        {!collapsed && <KalendWordmark size="sm" tone="white" animation="scatter" />}
+        {!collapsed && <KalendWordmark size="sm" tone={wordmarkTone} animation="scatter" />}
         <div className="flex items-center gap-1 ml-auto shrink-0">
           <ThemeToggle />
           <button

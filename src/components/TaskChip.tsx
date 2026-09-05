@@ -32,9 +32,9 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
       className={cn(
         "flex w-full min-w-0 items-center gap-1 truncate rounded border bg-transparent px-1.5 py-0.5 text-left text-[10px] font-medium",
         task.completed
-          ? "border-neutral-700 text-neutral-500 line-through"
+          ? "border-border text-muted-foreground line-through"
           : overdue
-            ? "border-red-500/60 text-red-400"
+            ? "border-red-500/60 text-red-600 dark:text-red-400"
             : getTaskColorClasses(resolveDisplayColor(task.color, task.category_id, categories)),
         className
       )}

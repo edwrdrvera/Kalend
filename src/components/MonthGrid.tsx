@@ -60,11 +60,11 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="grid grid-cols-7 border-b border-neutral-800 shrink-0">
+    <div className="grid grid-cols-7 border-b border-border shrink-0">
       {days.map((day) => (
         <div
           key={day}
-          className="px-3 py-2 text-center text-xs font-semibold text-neutral-500"
+          className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground"
         >
           {day}
         </div>
@@ -74,10 +74,10 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left overflow-hidden";
+  const base = "flex flex-col items-start gap-1 border-b border-r border-border p-2 text-left overflow-hidden";
 
   if (!isSameMonth(day, viewMonth)) {
-    return `${base} bg-neutral-900/40 text-neutral-600`;
+    return `${base} bg-muted/30`;
   }
 
   return base;
@@ -91,18 +91,18 @@ function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): st
   const isTodayDay = isSameDay(day, new Date());
 
   if (isSelected) {
-    return `${base} bg-blue-600 text-white`;
+    return `${base} bg-primary text-primary-foreground`;
   }
 
   if (isTodayDay) {
-    return `${base} bg-neutral-800 text-blue-400`;
+    return `${base} bg-muted text-primary font-semibold`;
   }
 
   if (!isCurrentMonth) {
-    return `${base} text-neutral-600`;
+    return `${base} text-muted-foreground/40`;
   }
 
-  return `${base} text-neutral-300`;
+  return `${base} text-foreground`;
 }
 
 /** Build a 7x6 (42 cell) grid: the weeks spanning the visible month, padded out
@@ -200,7 +200,7 @@ function DayCell({
           </button>
         ))}
         {overflowCount > 0 && (
-          <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
+          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
             +{overflowCount} more
           </span>
         )}
@@ -208,7 +208,7 @@ function DayCell({
           <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
         ))}
         {taskOverflowCount > 0 && (
-          <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
+          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
             +{taskOverflowCount} more
           </span>
         )}
@@ -245,7 +245,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 border-l border-neutral-800">
+      <div className="grid flex-1 grid-cols-7 grid-rows-6 border-l border-border">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}

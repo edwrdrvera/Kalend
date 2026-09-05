@@ -52,9 +52,9 @@ function getDayNumberClasses(day: Date, selectedDate: Date): string {
   const base =
     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
 
-  if (isSameDay(day, selectedDate)) return `${base} bg-blue-600 text-white`;
-  if (isSameDay(day, new Date())) return `${base} bg-neutral-800 text-blue-400`;
-  return `${base} text-neutral-300`;
+  if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
+  if (isSameDay(day, new Date())) return `${base} bg-muted text-primary font-semibold`;
+  return `${base} text-foreground`;
 }
 
 function WeekDaysHeader({
@@ -67,7 +67,7 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex border-b border-neutral-800">
+    <div className="flex border-b border-border">
       <div className="w-14 shrink-0" />
       <div
         className="grid flex-1"
@@ -78,7 +78,7 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className="flex flex-col items-center gap-1 border-l border-neutral-800 py-2 text-neutral-400 transition-colors hover:bg-neutral-900"
+            className="flex flex-col items-center gap-1 border-l border-border py-2 text-muted-foreground transition-colors hover:bg-muted"
           >
             <span className="text-xs font-semibold">{format(day, "EEE")}</span>
             <span className={getDayNumberClasses(day, selectedDate)}>

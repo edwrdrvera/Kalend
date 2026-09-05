@@ -429,7 +429,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-2 text-right text-[10px] text-neutral-500"
+            className="pr-2 text-right text-[10px] text-muted-foreground"
           >
             <span className="relative -top-2">{formatHourLabel(hour)}</span>
           </div>
@@ -447,7 +447,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className="relative border-l border-neutral-800"
+              className="relative border-l border-border"
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -463,7 +463,7 @@ export default function TimeGrid({
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}
-                  className="border-b border-neutral-800"
+                  className="border-b border-border"
                 />
               ))}
 
