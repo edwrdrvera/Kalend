@@ -1,6 +1,6 @@
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
-import KalendWordmark from "./KalendWordmark";
+import KalendMark from "./KalendMark";
 
 // Login/signup/forgot-password/reset-password all render this shell so the
 // auth flow reads as part of the same brand as the landing page
@@ -40,7 +40,7 @@ export default function AuthCardShell({
     >
       <div className="w-full max-w-sm rounded-2xl border border-[var(--kal-border)] bg-[var(--kal-surface)] p-8 shadow-[0_20px_48px_-24px_rgba(28,26,22,0.18)]">
         <div className="mb-6 flex flex-col items-center text-center">
-          <KalendWordmark size="lg" tone="ink" className="mb-4" />
+          <KalendMark size={40} tone="ink" label="Kalend" className="mb-4" />
           <h1 className="text-xl font-extrabold tracking-tight text-[var(--kal-ink)]">{title}</h1>
           <p className="mt-1 text-sm text-[var(--kal-muted)]">{subtitle}</p>
         </div>
