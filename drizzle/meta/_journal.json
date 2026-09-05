@@ -43,6 +43,13 @@
       "when": 1786647624550,
       "tag": "0005_enable_categories_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788568821044,
+      "tag": "0006_fuzzy_wallop",
+      "breakpoints": true
     }
   ]
 }
