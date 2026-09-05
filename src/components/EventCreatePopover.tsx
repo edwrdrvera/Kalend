@@ -123,6 +123,17 @@ export default function EventCreatePopover({
       ? anchorRect.right + SIDE_GAP
       : anchorRect.left - POPOVER_WIDTH - SIDE_GAP;
 
+  // Tail triangle dimensions.
+  const TAIL_W = 10; // px — how far the tip extends from the panel edge
+  const TAIL_H = 16; // px — top-to-bottom span of the triangle base
+  // Vertically center the tail on the anchor's midpoint; clamp to stay
+  // within the panel's visible area.
+  const anchorCenterY = anchorRect.top + anchorRect.height / 2;
+  const tailTop = Math.max(
+    14,
+    Math.min(anchorCenterY - top - TAIL_H / 2, POPOVER_HEIGHT_ESTIMATE - 14 - TAIL_H)
+  );
+
   // Escape closes
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -184,11 +195,51 @@ export default function EventCreatePopover({
   };
 
   return createPortal(
+    // Outer wrapper: fixed position + entry animation.
+    // drop-shadow (not box-shadow) traces the combined outline of the panel
+    // AND the tail triangle, so the shadow wraps the whole shape as one piece.
     <div
       ref={panelRef}
-      style={{ position: "fixed", top, left, width: POPOVER_WIDTH, zIndex: 50 }}
-      className="rounded-2xl bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10 animate-in fade-in-0 zoom-in-95 duration-100"
+      style={{
+        position: "fixed",
+        top,
+        left,
+        width: POPOVER_WIDTH,
+        zIndex: 50,
+        filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.16))",
+      }}
+      className="animate-in fade-in-0 zoom-in-95 duration-100"
     >
+      {/* Panel + tail as one solid shape. The tail is a clip-path triangle
+          inside the panel div, extending outside its bounds — overflow: visible
+          is the default so it peeks past the rounded rect. The ring renders on
+          the rounded rect; drop-shadow on the wrapper covers the tail tip. */}
+      <div className="relative rounded-2xl bg-popover text-popover-foreground ring-1 ring-foreground/10">
+        {/* Tail — inline SVG so only the two outer slanted edges get the
+            border stroke; the flat edge that abuts the panel has no stroke,
+            making the tail look like a continuous part of the panel body. */}
+        <svg
+          className="absolute overflow-visible"
+          style={{
+            top: tailTop,
+            width: TAIL_W,
+            height: TAIL_H,
+            ...(side === "right" ? { left: -TAIL_W } : { right: -TAIL_W }),
+          }}
+          viewBox={`0 0 ${TAIL_W} ${TAIL_H}`}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d={
+              side === "right"
+                ? `M ${TAIL_W} 0 L 0 ${TAIL_H / 2} L ${TAIL_W} ${TAIL_H}`
+                : `M 0 0 L ${TAIL_W} ${TAIL_H / 2} L 0 ${TAIL_H}`
+            }
+            className="fill-popover stroke-foreground/10"
+            strokeWidth="1"
+            strokeLinejoin="miter"
+          />
+        </svg>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
         {/* Title */}
         <input
@@ -286,6 +337,7 @@ export default function EventCreatePopover({
           {submitting ? "Creating…" : "Create event"}
         </Button>
       </form>
+      </div>
     </div>,
     document.body
   );
