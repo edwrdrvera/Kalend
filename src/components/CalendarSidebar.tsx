@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import KalendWordmark from "./KalendWordmark";
 import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
@@ -52,7 +53,8 @@ export default function CalendarSidebar({
         collapsed ? "w-12" : "w-64"
       )}
     >
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between gap-2">
+        {!collapsed && <KalendWordmark size="sm" tone="white" animation="scatter" />}
         <button
           onClick={() => setCollapsed((value) => !value)}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
