@@ -219,3 +219,60 @@
 .kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(5) { cx: 108px; cy: 60px; r: 5px; }
 .kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(6) { cx: 84px; cy: 96px; r: 5px; }
 .kalend-mark[data-kalend-anim="morphClock"]:hover line { opacity: 1; }
+
+/* Landing page ("/", src/app/(marketing)/) design tokens. A deliberately
+ * separate, one-off palette from the app's own --background/--primary/etc
+ * theme above: the marketing site is light-themed regardless of the app's
+ * dark default, per docs/landing-page-handoff.md. Referenced from landing
+ * components via Tailwind arbitrary values, e.g. bg-[var(--kal-bg)]. */
+:root {
+  --kal-bg: #faf8f3;
+  --kal-surface: #ffffff;
+  --kal-border: #e8e3d8;
+  --kal-ink: #1c1a16;
+  --kal-muted: #756f61;
+  --kal-primary: #2563eb;
+  --kal-accent: #f97316;
+  --kal-accent-hover: #ea580c;
+
+  --kal-cat-blue: #3b82f6;
+  --kal-cat-blue-tint: #dbeafe;
+  --kal-cat-green: #22c55e;
+  --kal-cat-green-tint: #dcfce7;
+  --kal-cat-purple: #a855f7;
+  --kal-cat-purple-tint: #f3e8ff;
+  --kal-cat-orange: #f97316;
+  --kal-cat-orange-tint: #ffedd5;
+  --kal-cat-red: #ef4444;
+  --kal-cat-red-tint: #fee2e2;
+  --kal-cat-indigo: #6366f1;
+  --kal-cat-indigo-tint: #e0e7ff;
+  --kal-cat-pink: #ec4899;
+  --kal-cat-pink-tint: #fce7f3;
+  --kal-cat-yellow: #eab308;
+  --kal-cat-yellow-tint: #fef9c3;
+  --kal-cat-teal: #14b8a6;
+  --kal-cat-teal-tint: #ccfbf1;
+
+  --kal-tile-mint: #8fd8c8;
+  --kal-tile-mustard: #f0c05a;
+  --kal-tile-coral: #f2836b;
+  --kal-tile-ink: #171310;
+}
+
+/* Hero fade-up-on-load animation for the landing page. Elements opt in via
+ * `kal-fade-up` and stagger themselves with an inline animation-delay. */
+@keyframes kal-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.kal-fade-up {
+  opacity: 0;
+  animation: kal-fade-up 0.7s ease-out forwards;
+}
