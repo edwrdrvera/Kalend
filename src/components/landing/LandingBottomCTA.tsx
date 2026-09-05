@@ -1,6 +1,6 @@
-// Final CTA section above the footer. Reiterates the value proposition and
-// gives users who scrolled all the way through a place to convert.
-import WaitlistForm from "./WaitlistForm";
+// Final CTA section above the footer. Links back to the hero form rather
+// than carrying its own button, so there's only one waitlist button on the page.
+import { landingButtonVariants } from "./landing-button-variants";
 
 export default function LandingBottomCTA() {
   return (
@@ -10,11 +10,15 @@ export default function LandingBottomCTA() {
           Your most organised semester starts here.
         </h2>
         <p className="mt-4 max-w-[400px] text-base leading-relaxed text-white/65">
-          Join the waitlist and be the first to know when Kalend opens up.
+          Be the first to know when Kalend opens up.
         </p>
-        <div className="mt-8 [&_button]:bg-[var(--kal-accent)] [&_button]:text-white [&_p]:text-white/50">
-          <WaitlistForm />
-        </div>
+        <a
+          href="#waitlist"
+          className={landingButtonVariants({ variant: "primary", size: "hero" })}
+          style={{ marginTop: "2rem" }}
+        >
+          Join the waitlist
+        </a>
       </div>
     </section>
   );

@@ -16,13 +16,6 @@ export default function LandingFooter() {
             <path d="M8 7h9v9" />
           </svg>
         </a>
-        <span className="text-[var(--kal-border)]" aria-hidden>·</span>
-        <a
-          href="mailto:hello@kalend.app"
-          className="text-[13px] text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
-        >
-          hello@kalend.app
-        </a>
       </div>
     </footer>
   );
