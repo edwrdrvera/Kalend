@@ -49,11 +49,13 @@ function formatWeekRangeTitle(weekStart: Date, weekEnd: Date): string {
 }
 
 function getDayColumnClasses(day: Date): string {
+  // ring-inset renders the border inside the box — no effect on layout, so
+  // the columns stay pixel-perfect aligned with TimeGrid's columns below.
   const base =
-    "flex flex-col items-center gap-1 rounded-lg border py-2 transition-colors cursor-pointer hover:bg-muted/40";
+    "flex flex-col items-center gap-1 rounded-lg py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
   if (isSameDay(day, new Date()))
-    return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/15`;
-  return `${base} border-border bg-card`;
+    return `${base} ring-primary/40 bg-primary/5`;
+  return `${base} ring-border bg-card`;
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
@@ -75,9 +77,9 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="shrink-0 px-2 pt-2 pb-1.5">
+    <div className="shrink-0 pt-2 pb-1.5">
       <div
-        className="grid gap-1.5"
+        className="grid"
         style={{ gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {/* Spacer aligns with the hour-label column in TimeGrid */}
