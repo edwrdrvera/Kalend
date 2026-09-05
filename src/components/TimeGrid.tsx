@@ -116,7 +116,7 @@ interface TimeGridProps {
   days: Date[];
   events: CalendarEvent[];
   categories: CalendarCategory[];
-  onSlotClick?: (day: Date, hour: number) => void;
+  onSlotClick?: (day: Date, hour: number, anchorRect: DOMRect) => void;
   onEventClick?: (event: CalendarEvent) => void;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
@@ -455,11 +455,11 @@ export default function TimeGrid({
                   key={hour}
                   role="button"
                   tabIndex={0}
-                  onClick={() => onSlotClick?.(day, hour)}
+                  onClick={(e) => onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect())}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onSlotClick?.(day, hour);
+                      onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect());
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}

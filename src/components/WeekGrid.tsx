@@ -26,7 +26,7 @@ interface WeekGridProps {
   categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
-  onCreateEvent: (day: Date) => void;
+  onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent) => void;
   onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
@@ -146,9 +146,9 @@ export default function WeekGrid({
         onEventClick={onEventClick}
         onEventMove={onEventMove}
         onEventResize={onEventResize}
-        onSlotClick={(day, hour) => {
+        onSlotClick={(day, hour, anchorRect) => {
           onDateSelect(day);
-          onCreateEvent(setHours(day, hour));
+          onCreateEvent(setHours(day, hour), anchorRect);
         }}
       />
     </div>

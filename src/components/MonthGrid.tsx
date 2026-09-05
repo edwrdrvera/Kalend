@@ -28,7 +28,7 @@ interface MonthGridProps {
   categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
-  onCreateEvent: (day: Date) => void;
+  onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent) => void;
   onTaskClick: (task: CalendarTask) => void;
   view: CalendarView;
@@ -60,11 +60,11 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="grid grid-cols-7 border-b border-border shrink-0">
+    <div className="mb-1.5 grid grid-cols-7 gap-1.5 px-2 pt-2 shrink-0">
       {days.map((day) => (
         <div
           key={day}
-          className="px-3 py-2 text-center text-xs font-semibold text-muted-foreground"
+          className="rounded-full bg-muted py-1.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
         >
           {day}
         </div>
@@ -74,13 +74,21 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 border-b border-r border-border p-2 text-left overflow-hidden";
+  const base = "flex flex-col items-start gap-1 rounded-lg border p-2 text-left overflow-hidden transition-colors";
+  const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
-    return `${base} bg-muted/30`;
+    // Out-of-month cells: faded, no visible border — like the mockup's empty slots.
+    return `${base} border-transparent bg-muted/20`;
   }
 
-  return base;
+  if (isTodayDay) {
+    // Today: primary-colored border + subtle primary tint, matching the
+    // mockup's accent-border treatment (translated from orange to indigo).
+    return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/15`;
+  }
+
+  return `${base} border-border bg-card hover:bg-muted/40 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
@@ -90,12 +98,14 @@ function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): st
   const isSelected = isSameDay(day, selectedDate);
   const isTodayDay = isSameDay(day, new Date());
 
-  if (isSelected) {
+  if (isSelected && !isTodayDay) {
     return `${base} bg-primary text-primary-foreground`;
   }
 
   if (isTodayDay) {
-    return `${base} bg-muted text-primary font-semibold`;
+    // Match mockup: bold primary-colored number, no badge background —
+    // the cell itself carries the today highlight.
+    return `${base} text-primary font-bold`;
   }
 
   if (!isCurrentMonth) {
@@ -146,7 +156,7 @@ function DayCell({
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
-  onCreateEvent: (day: Date) => void;
+  onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent) => void;
   onTaskClick: (task: CalendarTask) => void;
 }) {
@@ -158,15 +168,16 @@ function DayCell({
   const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
   const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
-  const handleCellClick = () => {
+  const handleCellClick = (e: React.MouseEvent<HTMLDivElement>) => {
     onDateSelect(day);
-    onCreateEvent(day);
+    onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
-  const handleCellKeyDown = (e: React.KeyboardEvent) => {
+  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      handleCellClick();
+      onDateSelect(day);
+      onCreateEvent(day, e.currentTarget.getBoundingClientRect());
     }
   };
 
@@ -184,7 +195,7 @@ function DayCell({
       <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
         {format(day, "d")}
       </span>
-      <div className="flex w-full min-w-0 -ml-1.5 flex-col gap-0.5">
+      <div className="flex w-full min-w-0 flex-col gap-0.5">
         {visibleEvents.map((event) => (
           <button
             key={event.id}
@@ -194,7 +205,7 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full truncate rounded-r-[3px] rounded-l-none px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`w-full truncate rounded-[5px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>
@@ -245,7 +256,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 border-l border-border">
+      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-1.5 px-2 pb-2">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}
