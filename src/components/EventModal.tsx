@@ -11,11 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
+import MiniCalendar from "./MiniCalendar";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
 export interface EventFormValues {
@@ -76,10 +78,43 @@ function formatTimeRangeSummary(startValue: string, endValue: string): string {
  *  PM"). Expanded: separate date/time pickers for start and end. Both
  *  panels stay mounted and cross-fade via a grid-template-rows transition,
  *  so revealing the pickers is an animation rather than an instant swap. */
-// Shared by the four date/time inputs in the expanded picker — one edit point
-// if the token set changes.
+// Shared by the date/time inputs in the expanded picker.
 const TIME_INPUT_CLS =
   "h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
+
+/** Custom date picker — opens MiniCalendar in a Popover instead of the
+ *  browser's native date widget, which is unthemeable and looks generic. */
+function DateField({
+  value,
+  onChange,
+}: {
+  value: string; // "yyyy-MM-dd"
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  // Parse at local noon so there's no UTC-midnight timezone shift.
+  const date = value ? new Date(`${value}T12:00:00`) : new Date();
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className={cn(TIME_INPUT_CLS, "cursor-pointer text-left hover:bg-muted/30")}
+      >
+        {value ? format(date, "MMM d, yyyy") : "Select date"}
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-auto p-0">
+        <MiniCalendar
+          currentDate={date}
+          viewDate={date}
+          onDateSelect={(d) => {
+            onChange(format(d, "yyyy-MM-dd"));
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function TimeRangeField({
   startAt,
@@ -130,14 +165,9 @@ function TimeRangeField({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">Start</label>
               <div className="flex flex-col gap-1.5">
-                <input
-                  type="date"
+                <DateField
                   value={start.date}
-                  onChange={(e) =>
-                    onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
-                  }
-                  required={expanded}
-                  className={TIME_INPUT_CLS}
+                  onChange={(d) => onStartAtChange(joinDateTimeLocal(d, start.time))}
                 />
                 <input
                   type="time"
@@ -153,14 +183,9 @@ function TimeRangeField({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">End</label>
               <div className="flex flex-col gap-1.5">
-                <input
-                  type="date"
+                <DateField
                   value={end.date}
-                  onChange={(e) =>
-                    onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
-                  }
-                  required={expanded}
-                  className={TIME_INPUT_CLS}
+                  onChange={(d) => onEndAtChange(joinDateTimeLocal(d, end.time))}
                 />
                 <input
                   type="time"
