@@ -3,9 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PASSWORD_REQUIREMENTS_HINT, validateAuthForm } from "@/lib/auth-validation";
+import { cn } from "@/lib/utils";
+import { landingButtonVariants } from "@/components/landing/landing-button-variants";
+import AuthCardShell, {
+  authInputClassName,
+  authLabelClassName,
+  authLinkClassName,
+} from "./AuthCardShell";
 
 // NOTE ON RATE LIMITING: signInWithPassword/signUp below call Supabase's
 // Auth API directly from the browser, they never pass through this app's
@@ -60,7 +67,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
           return;
         }
 
-        router.push("/");
+        router.push("/app");
         router.refresh();
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -74,7 +81,7 @@ export default function AuthCard({ mode }: AuthCardProps) {
         }
 
         if (data.session) {
-          router.push("/");
+          router.push("/app");
           router.refresh();
         } else {
           setInfo(
@@ -90,133 +97,96 @@ export default function AuthCard({ mode }: AuthCardProps) {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-2xl">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
-            <Calendar className="size-5" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            {isLogin ? "Welcome to Kalend" : "Create an account"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {isLogin
-              ? "Sign in to access your calendar and tasks"
-              : "Sign up to start planning your academic schedule"}
+    <AuthCardShell
+      title={isLogin ? "Welcome to Kalend" : "Create an account"}
+      subtitle={
+        isLogin
+          ? "Sign in to access your calendar and tasks"
+          : "Sign up to start planning your academic schedule"
+      }
+      error={error}
+      info={info}
+      footer={
+        isLogin ? (
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className={authLinkClassName}>
+              Sign up
+            </Link>
           </p>
-        </div>
-
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-lg bg-red-950/40 border border-red-800/60 p-3 text-xs text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
-        {info && (
-          <div
-            role="status"
-            className="mb-4 rounded-lg bg-blue-950/40 border border-blue-800/60 p-3 text-xs text-blue-300"
-          >
-            {info}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-xs text-muted-foreground">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@university.edu"
-              autoComplete="email"
-              disabled={loading}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input input-sm w-full"
-              required
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-xs text-muted-foreground">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete={isLogin ? "current-password" : "new-password"}
-              disabled={loading}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input input-sm w-full"
-              required
-            />
-            {!isLogin && (
-              <p className="text-xs text-muted-foreground">{PASSWORD_REQUIREMENTS_HINT}</p>
-            )}
-          </div>
-
-          {isLogin && (
-            <div className="flex justify-end">
-              <Link
-                href="/forgot-password"
-                className="text-xs text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-              >
-                Forgot password?
-              </Link>
-            </div>
-          )}
-
-          <button
-            type="submit"
+        ) : (
+          <p>
+            Already have an account?{" "}
+            <Link href="/login" className={authLinkClassName}>
+              Sign in
+            </Link>
+          </p>
+        )
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="email" className={authLabelClassName}>
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="you@university.edu"
+            autoComplete="email"
             disabled={loading}
-            className="btn btn-primary btn-sm w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                {isLogin ? "Signing in..." : "Creating account..."}
-              </>
-            ) : isLogin ? (
-              "Sign in"
-            ) : (
-              "Create account"
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 border-t border-border/80 pt-4 text-center text-xs text-muted-foreground">
-          {isLogin ? (
-            <p>
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline"
-              >
-                Sign up
-              </Link>
-            </p>
-          ) : (
-            <p>
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
-          )}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={authInputClassName}
+            required
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="password" className={authLabelClassName}>
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            autoComplete={isLogin ? "current-password" : "new-password"}
+            disabled={loading}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={authInputClassName}
+            required
+          />
+          {!isLogin && <p className={authLabelClassName}>{PASSWORD_REQUIREMENTS_HINT}</p>}
+        </div>
+
+        {isLogin && (
+          <div className="flex justify-end">
+            <Link href="/forgot-password" className={cn(authLabelClassName, "hover:text-[var(--kal-primary)] hover:underline underline-offset-4")}>
+              Forgot password?
+            </Link>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={cn(landingButtonVariants({ variant: "primary" }), "w-full")}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              {isLogin ? "Signing in..." : "Creating account..."}
+            </>
+          ) : isLogin ? (
+            "Sign in"
+          ) : (
+            "Create account"
+          )}
+        </button>
+      </form>
+    </AuthCardShell>
   );
 }

@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validatePassword, PASSWORD_REQUIREMENTS_HINT } from "@/lib/auth-validation";
+import { cn } from "@/lib/utils";
+import { landingButtonVariants } from "@/components/landing/landing-button-variants";
+import AuthCardShell, { authInputClassName, authLabelClassName } from "@/components/AuthCardShell";
 
 export default function ResetPasswordForm() {
   const router = useRouter();
@@ -40,7 +43,7 @@ export default function ResetPasswordForm() {
         return;
       }
 
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch (err) {
       setError(
@@ -52,85 +55,64 @@ export default function ResetPasswordForm() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background px-4 py-12">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-2xl">
-        <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md">
-            <Calendar className="size-5" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Set a new password
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Choose a new password for your account
-          </p>
+    <AuthCardShell
+      title="Set a new password"
+      subtitle="Choose a new password for your account"
+      error={error}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="password" className={authLabelClassName}>
+            New password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            autoComplete="new-password"
+            disabled={loading}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={authInputClassName}
+            required
+          />
+          <p className={authLabelClassName}>{PASSWORD_REQUIREMENTS_HINT}</p>
         </div>
 
-        {error && (
-          <div
-            role="alert"
-            className="mb-4 rounded-lg bg-red-950/40 border border-red-800/60 p-3 text-xs text-red-300"
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-xs text-muted-foreground">
-              New password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="new-password"
-              disabled={loading}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="input input-sm w-full"
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              {PASSWORD_REQUIREMENTS_HINT}
-            </p>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="confirm" className="text-xs text-muted-foreground">
-              Confirm password
-            </label>
-            <input
-              id="confirm"
-              name="confirm"
-              type="password"
-              placeholder="••••••••"
-              autoComplete="new-password"
-              disabled={loading}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="input input-sm w-full"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
+        <div className="space-y-1.5">
+          <label htmlFor="confirm" className={authLabelClassName}>
+            Confirm password
+          </label>
+          <input
+            id="confirm"
+            name="confirm"
+            type="password"
+            placeholder="••••••••"
+            autoComplete="new-password"
             disabled={loading}
-            className="btn btn-primary btn-sm w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save new password"
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            className={authInputClassName}
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className={cn(landingButtonVariants({ variant: "primary" }), "w-full")}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save new password"
+          )}
+        </button>
+      </form>
+    </AuthCardShell>
   );
 }
