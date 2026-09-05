@@ -67,14 +67,6 @@ describe("Auth Middleware (updateSession)", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
     });
-
-    it("allows unauthenticated visitor to access /signup", async () => {
-      const request = new NextRequest("http://localhost:3000/signup");
-      const response = await updateSession(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("location")).toBeNull();
-    });
   });
 
   describe("Authenticated Users", () => {
@@ -101,15 +93,6 @@ describe("Auth Middleware (updateSession)", () => {
 
     it("redirects authenticated user from /login to /app", async () => {
       const request = new NextRequest("http://localhost:3000/login");
-      const response = await updateSession(request);
-
-      expect(response.status).toBe(307);
-      const location = response.headers.get("location");
-      expect(location).toBe("http://localhost:3000/app");
-    });
-
-    it("redirects authenticated user from /signup to /app", async () => {
-      const request = new NextRequest("http://localhost:3000/signup");
       const response = await updateSession(request);
 
       expect(response.status).toBe(307);

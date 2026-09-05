@@ -2,11 +2,11 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import KalendMark from "./KalendMark";
 
-// Login/signup/forgot-password/reset-password all render this shell so the
-// auth flow reads as part of the same brand as the landing page
+// AuthCard (login, the only auth flow left in this MVP) renders this shell
+// so it reads as part of the same brand as the landing page
 // (src/app/(marketing)/), not the app's own dark theme: light --kal-*
 // tokens and Plus Jakarta Sans, loaded here rather than depending on a
-// route-group layout, since these pages stay under (app)'s dark root.
+// route-group layout, since the page stays under (app)'s dark root.
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
@@ -17,19 +17,10 @@ interface AuthCardShellProps {
   title: string;
   subtitle: string;
   error?: string | null;
-  info?: string | null;
   children: React.ReactNode;
-  footer?: React.ReactNode;
 }
 
-export default function AuthCardShell({
-  title,
-  subtitle,
-  error,
-  info,
-  children,
-  footer,
-}: AuthCardShellProps) {
+export default function AuthCardShell({ title, subtitle, error, children }: AuthCardShellProps) {
   return (
     <div
       className={cn(
@@ -54,32 +45,14 @@ export default function AuthCardShell({
           </div>
         )}
 
-        {info && (
-          <div
-            role="status"
-            className="mb-4 rounded-[10px] border border-[var(--kal-primary)]/25 bg-[var(--kal-cat-blue-tint)] p-3 text-xs text-[var(--kal-primary)]"
-          >
-            {info}
-          </div>
-        )}
-
         {children}
-
-        {footer && (
-          <div className="mt-6 border-t border-[var(--kal-border)] pt-4 text-center text-xs text-[var(--kal-muted)]">
-            {footer}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-// Shared input styling so the three forms (AuthCard, ForgotPasswordForm,
-// ResetPasswordForm) render matching fields without each redefining them.
+// Shared input styling for AuthCard's fields.
 export const authInputClassName =
   "w-full rounded-[10px] border border-[var(--kal-border)] bg-white px-3 py-2 text-sm text-[var(--kal-ink)] placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--kal-accent)]/25 disabled:opacity-60";
 
 export const authLabelClassName = "text-xs text-[var(--kal-muted)]";
-
-export const authLinkClassName = "font-medium text-[var(--kal-primary)] underline-offset-4 hover:underline";

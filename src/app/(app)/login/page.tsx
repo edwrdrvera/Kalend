@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthCard mode="login" />;
+  return <AuthCard />;
 }
