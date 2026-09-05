@@ -40,21 +40,21 @@ function MiniCalendarHeader({
   return (
     <div className={`flex items-center mb-4 ${showLabel ? "justify-between" : "justify-end"}`}>
       {showLabel && (
-        <h2 className="text-sm font-semibold text-foreground uppercase">
+        <h2 className="text-sm font-semibold text-foreground">
           {format(browseDate, "MMM yyyy")}
         </h2>
       )}
       <div className="flex gap-1 text-muted-foreground">
         <button
           onClick={onPrevMonth}
-          className="p-1 hover:bg-muted hover:text-foreground rounded transition-colors"
+          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Previous month"
         >
           <ChevronLeft size={16} />
         </button>
         <button
           onClick={onNextMonth}
-          className="p-1 hover:bg-muted hover:text-foreground rounded transition-colors"
+          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Next month"
         >
           <ChevronRight size={16} />
@@ -78,7 +78,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "flex justify-center items-center w-7 h-7 text-xs font-medium rounded-[3px] transition-colors cursor-pointer";
+  const baseClasses = "flex justify-center items-center w-7 h-7 text-xs font-medium rounded-full transition-colors cursor-pointer";
   
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);
@@ -93,7 +93,7 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   }
 
   if (isTodayCurrent) {
-    return `${baseClasses} bg-muted text-primary font-semibold`;
+    return `${baseClasses} bg-primary/10 text-primary font-bold ring-1 ring-primary/25`;
   }
 
   return `${baseClasses} text-foreground hover:bg-muted`;

@@ -53,7 +53,7 @@ function getDayNumberClasses(day: Date, selectedDate: Date): string {
     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
 
   if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
-  if (isSameDay(day, new Date())) return `${base} bg-muted text-primary font-semibold`;
+  if (isSameDay(day, new Date())) return `${base} bg-primary/10 text-primary font-bold ring-1 ring-primary/25`;
   return `${base} text-foreground`;
 }
 
