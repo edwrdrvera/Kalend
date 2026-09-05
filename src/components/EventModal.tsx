@@ -76,6 +76,11 @@ function formatTimeRangeSummary(startValue: string, endValue: string): string {
  *  PM"). Expanded: separate date/time pickers for start and end. Both
  *  panels stay mounted and cross-fade via a grid-template-rows transition,
  *  so revealing the pickers is an animation rather than an instant swap. */
+// Shared by the four date/time inputs in the expanded picker — one edit point
+// if the token set changes.
+const TIME_INPUT_CLS =
+  "h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
+
 function TimeRangeField({
   startAt,
   endAt,
@@ -132,7 +137,7 @@ function TimeRangeField({
                     onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
                   }
                   required={expanded}
-                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+                  className={TIME_INPUT_CLS}
                 />
                 <input
                   type="time"
@@ -141,7 +146,7 @@ function TimeRangeField({
                     onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
                   }
                   required={expanded}
-                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+                  className={TIME_INPUT_CLS}
                 />
               </div>
             </div>
@@ -155,7 +160,7 @@ function TimeRangeField({
                     onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
                   }
                   required={expanded}
-                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+                  className={TIME_INPUT_CLS}
                 />
                 <input
                   type="time"
@@ -164,7 +169,7 @@ function TimeRangeField({
                     onEndAtChange(joinDateTimeLocal(end.date, e.target.value))
                   }
                   required={expanded}
-                  className="h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+                  className={TIME_INPUT_CLS}
                 />
               </div>
             </div>
