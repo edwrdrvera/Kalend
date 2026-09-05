@@ -30,7 +30,7 @@ export default function WaitlistForm() {
   }
 
   return (
-    <div id="waitlist" className="flex w-full items-center justify-center min-[860px]:w-auto">
+    <div id="waitlist" className="flex w-full flex-col items-center gap-2 min-[860px]:w-auto">
       <button
         type="button"
         onClick={handleClick}
@@ -46,6 +46,7 @@ export default function WaitlistForm() {
           "Join the waitlist"
         )}
       </button>
+      <p className="text-[12px] text-[var(--kal-muted)]">Free when we launch &middot; No credit card required</p>
     </div>
   );
 }

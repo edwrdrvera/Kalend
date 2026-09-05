@@ -1,7 +1,9 @@
 import LandingNav from "@/components/landing/LandingNav";
 import LandingHero from "@/components/landing/LandingHero";
 import LandingProblemSolution from "@/components/landing/LandingProblemSolution";
+import LandingHowItWorks from "@/components/landing/LandingHowItWorks";
 import LandingFeatures from "@/components/landing/LandingFeatures";
+import LandingBottomCTA from "@/components/landing/LandingBottomCTA";
 import LandingFooter from "@/components/landing/LandingFooter";
 
 // Public marketing page at "/". Static and illustrative only, not wired to
@@ -13,7 +15,9 @@ export default function LandingPage() {
       <LandingNav />
       <LandingHero />
       <LandingProblemSolution />
+      <LandingHowItWorks />
       <LandingFeatures />
+      <LandingBottomCTA />
       <LandingFooter />
     </main>
   );
