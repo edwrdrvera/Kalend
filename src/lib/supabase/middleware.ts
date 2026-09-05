@@ -5,8 +5,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * Refreshes the user's Supabase session and enforces route protection rules.
  *
  * Rules:
- * - Unauthenticated users attempting to access protected routes are redirected to `/login`.
- * - Authenticated users attempting to access `/login` or `/signup` are redirected to `/`.
+ * - `/` is the public landing page. Anyone, logged in or not, can load it directly.
+ * - Unauthenticated users attempting to access any other protected route (notably `/app`,
+ *   the calendar) are redirected to `/login`.
+ * - Authenticated users attempting to access `/`, `/login`, or `/signup` are redirected to
+ *   `/app`, so a signed-in visitor lands on the calendar instead of the marketing page.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -46,23 +49,31 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isAuthRoute =
+  const isPublicRoute =
+    pathname === "/" ||
     pathname === "/login" ||
     pathname === "/signup" ||
     pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
     pathname.startsWith("/auth/callback");
+  // Routes an authenticated visitor should be bounced off of, back to the app.
+  // Excludes /reset-password: a logged-in user can still land there from a
+  // password-recovery email link and needs to complete the reset.
+  const isAuthOnlyRoute =
+    pathname === "/" || pathname === "/login" || pathname === "/signup";
 
-  // Redirect unauthenticated users away from protected pages to /login
-  if (!user && !isAuthRoute) {
+  // Redirect unauthenticated users away from protected pages (e.g. /app) to /login
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from /login and /signup to /
-  if (user && isAuthRoute) {
+  // Redirect authenticated users away from the landing page and the login/signup
+  // forms to the calendar app
+  if (user && isAuthOnlyRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/app";
     return NextResponse.redirect(url);
   }
 
