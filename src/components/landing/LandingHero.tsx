@@ -1,15 +1,10 @@
 import LandingButton from "./LandingButton";
 import WaitlistForm from "./WaitlistForm";
 import CalendarMockup from "./CalendarMockup";
-import LandingArtwork from "./LandingArtwork";
 
 export default function LandingHero() {
   return (
-    // Outer div provides a full-width relative context for LandingArtwork,
-    // which positions icons in the page margins beyond the 1200px column.
-    <div className="relative">
-      <LandingArtwork />
-      <section className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-16 pb-20 text-center min-[860px]:px-8 min-[860px]:pt-[88px] min-[860px]:pb-28">
+    <section className="mx-auto flex max-w-[1200px] flex-col items-center px-6 pt-16 pb-20 text-center min-[860px]:px-8 min-[860px]:pt-[88px] min-[860px]:pb-28">
       <h1
         className="kal-fade-up max-w-[760px] text-[2.25rem] leading-[1.05] font-extrabold tracking-[-0.03em] min-[860px]:text-[clamp(2.6rem,5.4vw,4rem)]"
         style={{ animationDelay: "0s" }}
@@ -62,6 +57,5 @@ export default function LandingHero() {
         <CalendarMockup />
       </div>
     </section>
-    </div>
   );
 }
