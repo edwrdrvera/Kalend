@@ -25,10 +25,14 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
   const laneCount = Math.max(...blocks.map((b) => b.lane)) + 1;
 
   return (
-    <div className="flex border-b border-border">
-      <div className="w-16 shrink-0" />
+    <div className="flex border-b border-border bg-background">
+      {/* "all-day" label in the gutter, right-aligned, matches the time
+          label column below. Border-r connects to the column separators. */}
+      <div className="w-16 shrink-0 border-r border-border flex items-start justify-end pr-3 pt-1.5">
+        <span className="text-[10px] text-muted-foreground leading-none">all-day</span>
+      </div>
       <div
-        className="grid flex-1 gap-x-2"
+        className="grid flex-1"
         style={{
           gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${laneCount}, ${LANE_HEIGHT_PX}px)`,
@@ -44,7 +48,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
               gridColumn: `${startCol + 1} / ${endCol + 2}`,
               gridRow: lane + 1,
             }}
-            className={`overflow-hidden truncate rounded-[6px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+            className={`overflow-hidden truncate rounded-[6px] px-1.5 py-0.5 mx-0.5 my-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
             {event.title}
           </button>

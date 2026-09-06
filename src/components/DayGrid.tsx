@@ -27,9 +27,8 @@ interface DayGridProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-/** Single-column sticky header that mirrors WeekGrid's per-column day headers —
- *  shows the weekday abbreviation and date number, with a filled purple circle
- *  on the selected day and purple text for today (when not selected). */
+/** Single-column sticky header — flat design matching WeekGrid's day headers,
+ *  but with a larger circle since there's only one column with more space. */
 function DayColumnHeader({
   day,
   selectedDate,
@@ -40,28 +39,19 @@ function DayColumnHeader({
   const isSelected = isSameDay(day, selectedDate);
   const isToday = isSameDay(day, new Date());
 
-  const columnCls = [
-    "overflow-hidden rounded-[10px] py-2 transition-colors",
-    isToday && !isSelected ? "ring-1 ring-inset ring-primary/40 bg-primary/5" : "ring-1 ring-inset ring-border bg-card",
-  ].filter(Boolean).join(" ");
-
-  let numberCls = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
+  let numberCls = "flex h-10 w-10 items-center justify-center rounded-full text-[17px] font-semibold";
   if (isSelected) numberCls += " bg-primary text-primary-foreground";
-  else if (isToday) numberCls += " text-primary font-bold";
+  else if (isToday) numberCls += " text-primary";
   else numberCls += " text-foreground";
 
   return (
-    <div className="flex shrink-0 pt-2 pb-0 bg-background">
-      <div className="w-16 shrink-0" />
-      <div className="flex-1">
-        <div className={columnCls}>
-          <span className="flex flex-col items-center gap-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {format(day, "EEE")}
-            </span>
-            <span className={numberCls}>{format(day, "d")}</span>
-          </span>
-        </div>
+    <div className={`flex shrink-0 border-b border-border bg-background ${isToday ? "bg-primary/[0.03]" : ""}`}>
+      <div className="w-16 shrink-0 border-r border-border" />
+      <div className="flex flex-1 flex-col items-center gap-1 py-3">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {format(day, "EEE")}
+        </span>
+        <span className={numberCls}>{format(day, "d")}</span>
       </div>
     </div>
   );

@@ -446,20 +446,25 @@ export default function TimeGrid({
 
   return (
     <div className="flex">
-      <div className="w-16 shrink-0">
+      {/* Hour labels — border-r connects to the column grid's left edge */}
+      <div className="w-16 shrink-0 border-r border-border">
         {HOURS.map((hour) => (
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-2 text-right text-[10px] text-muted-foreground"
+            className="pr-3 text-right text-[10px] text-muted-foreground"
           >
             <span className="relative -top-2">{formatHourLabel(hour)}</span>
           </div>
         ))}
       </div>
+      {/* Outer border wraps the entire column grid so we get left+right
+          outer edges without each column needing its own border-x. The
+          grid itself is the drag ref; the wrapper is just presentation. */}
+      <div className="flex-1 border-r border-border overflow-hidden">
       <div
         ref={gridRef}
-        className="relative grid flex-1 gap-2"
+        className="relative grid"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day, dayIndex) => {
@@ -469,7 +474,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className={`relative rounded-t-[10px] border-x border-b ${isToday ? "bg-primary/5 border-primary/40" : "bg-card border-border"}`}
+              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : "bg-card"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -576,9 +581,8 @@ export default function TimeGrid({
             //
             // left/width use the column's pixel metrics captured at pickup
             // (originColumnLeft/columnWidth), so they stay correct even
-            // with CSS grid gaps between columns — percentage-based
-            // positioning drifts because gaps eat into the percentage
-            // reference width.
+            // with the border-based column separators — percentage-based
+            // positioning would drift once any border width was included.
             className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, draggedEvent.color_overridden, categories))}`}
             style={{
               left: moveDrag.originColumnLeft,
@@ -593,6 +597,7 @@ export default function TimeGrid({
             <span className="absolute inset-x-1.5 top-0.5 truncate">{draggedEvent.title}</span>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

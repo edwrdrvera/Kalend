@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTheme } from "@/lib/theme";
-import { Menu } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import KalendWordmark from "./KalendWordmark";
 import MiniCalendar from "./MiniCalendar";
@@ -31,6 +31,39 @@ interface CalendarSidebarProps {
   onDeleteCategory: (category: CalendarCategory) => void;
 }
 
+/** Collapsible section row — a "Tasks >" / "Categories >" header that
+ *  expands to reveal the full panel when clicked. Matches the design's
+ *  sidebar section style. */
+function SidebarSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border-t border-border">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted/40"
+      >
+        {title}
+        <ChevronRight
+          size={16}
+          className={cn(
+            "shrink-0 text-muted-foreground transition-transform duration-150",
+            open && "rotate-90"
+          )}
+        />
+      </button>
+      {open && <div className="pb-2">{children}</div>}
+    </div>
+  );
+}
+
 export default function CalendarSidebar({
   currentDate,
   viewDate,
@@ -54,7 +87,7 @@ export default function CalendarSidebar({
     <aside
       className={cn(
         "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-12" : "w-64"
+        collapsed ? "w-12" : "w-[280px]"
       )}
     >
       {/* Top bar: always rendered outside the inert zone. When collapsed the
@@ -78,27 +111,37 @@ export default function CalendarSidebar({
         </div>
       </div>
 
-      <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
+      <div inert={collapsed} className={cn("flex w-[280px] flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
         <MiniCalendar
           currentDate={currentDate}
           viewDate={viewDate}
           onDateSelect={onDateSelect}
         />
-        <TaskList
-          tasks={tasks}
-          loading={tasksLoading}
-          categories={categories}
-          onCreateTask={onCreateTask}
-          onToggleComplete={onToggleTaskComplete}
-          onDeleteTask={onDeleteTask}
-        />
-        <CategoryManager
-          categories={categories}
-          loading={categoriesLoading}
-          onCreateCategory={onCreateCategory}
-          onUpdateCategory={onUpdateCategory}
-          onDeleteCategory={onDeleteCategory}
-        />
+
+        {/* Tasks and Categories as collapsible sections — click the row
+            header to expand the full panel; chevron rotates to indicate
+            open state. Default closed matches the design's sidebar. */}
+        <SidebarSection title="Tasks">
+          <TaskList
+            tasks={tasks}
+            loading={tasksLoading}
+            categories={categories}
+            onCreateTask={onCreateTask}
+            onToggleComplete={onToggleTaskComplete}
+            onDeleteTask={onDeleteTask}
+          />
+        </SidebarSection>
+
+        <SidebarSection title="Categories">
+          <CategoryManager
+            categories={categories}
+            loading={categoriesLoading}
+            onCreateCategory={onCreateCategory}
+            onUpdateCategory={onUpdateCategory}
+            onDeleteCategory={onDeleteCategory}
+          />
+        </SidebarSection>
+
         <div className="mt-auto flex justify-end p-4">
           <SettingsMenu />
         </div>

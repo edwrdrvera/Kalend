@@ -26,10 +26,10 @@ export default function TaskDueRow({ days, tasks, categories, onTaskClick }: Tas
   if (!hasAnyTasks) return null;
 
   return (
-    <div className="flex border-b border-border">
-      <div className="w-16 shrink-0" />
+    <div className="flex border-b border-border bg-background">
+      <div className="w-16 shrink-0 border-r border-border" />
       <div
-        className="grid flex-1 gap-2"
+        className="grid flex-1"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (

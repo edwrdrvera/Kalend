@@ -87,9 +87,9 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   }
 
   if (isTodayCurrent) {
-    // Today (when not selected): just accent-colored text, no background —
-    // matches the design's "purple text only" treatment.
-    return `${baseClasses} text-primary font-bold`;
+    // Today (when not selected): outlined circle — ring matches the design
+    // screenshot (filled circle only when it's also the selected date).
+    return `${baseClasses} ring-2 ring-primary text-primary font-bold`;
   }
 
   return `${baseClasses} text-foreground hover:bg-muted`;
