@@ -108,4 +108,48 @@ describe("Auth Middleware (updateSession)", () => {
       expect(response.headers.get("location")).toBeNull();
     });
   });
+
+  describe("Missing Supabase Configuration", () => {
+    beforeEach(() => {
+      delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    });
+
+    it("keeps the public landing page available", async () => {
+      const request = new NextRequest("http://localhost:3000/");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("keeps the public login page available", async () => {
+      const request = new NextRequest("http://localhost:3000/login");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("redirects a protected page to login with a configuration error", async () => {
+      const request = new NextRequest("http://localhost:3000/app");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/login?error=configuration"
+      );
+    });
+
+    it("returns a service-unavailable response for a protected API", async () => {
+      const request = new NextRequest("http://localhost:3000/api/events");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Authentication is temporarily unavailable.",
+      });
+    });
+  });
 });

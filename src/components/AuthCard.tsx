@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { validateAuthForm } from "@/lib/auth-validation";
 import { cn } from "@/lib/utils";
 import { landingButtonVariants } from "@/components/landing/landing-button-variants";
+import {
+  getSupabaseConfig,
+  SUPABASE_CONFIGURATION_ERROR_MESSAGE,
+  SupabaseConfigurationError,
+} from "@/lib/supabase/config";
 import AuthCardShell, { authInputClassName, authLabelClassName } from "./AuthCardShell";
 
 // NOTE ON RATE LIMITING: signInWithPassword below calls Supabase's Auth
@@ -22,11 +27,24 @@ import AuthCardShell, { authInputClassName, authLabelClassName } from "./AuthCar
 export default function AuthCard() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  let authenticationUnavailable = false;
+
+  try {
+    getSupabaseConfig();
+  } catch (error) {
+    if (!(error instanceof SupabaseConfigurationError)) {
+      throw error;
+    }
+    authenticationUnavailable = true;
+  }
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
-    searchParams.get("error") === "expired_link"
+    authenticationUnavailable || searchParams.get("error") === "configuration"
+      ? SUPABASE_CONFIGURATION_ERROR_MESSAGE
+      : searchParams.get("error") === "expired_link"
       ? "That link has expired or was already used. Please try again."
       : null
   );
@@ -58,7 +76,11 @@ export default function AuthCard() {
       router.push("/app");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setError(
+        err instanceof SupabaseConfigurationError
+          ? SUPABASE_CONFIGURATION_ERROR_MESSAGE
+          : "An unexpected error occurred."
+      );
     } finally {
       setLoading(false);
     }
@@ -109,7 +131,7 @@ export default function AuthCard() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || authenticationUnavailable}
           className={cn(landingButtonVariants({ variant: "primary" }), "w-full")}
         >
           {loading ? (

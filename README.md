@@ -145,6 +145,14 @@ NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-REF].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR-ANON-KEY]
 ```
 
+Restart `bun run dev` after changing `.env.local`; Next.js includes
+`NEXT_PUBLIC_*` values in the browser bundle when the development server starts.
+
+For Vercel deployments, add both Supabase variables to the **Production** and
+**Preview** environments, then redeploy each affected deployment. Updating a
+Vercel environment variable does not change a browser bundle that has already
+been built.
+
 ### 4. Run Database Migrations
 Apply the schema migrations to your PostgreSQL database:
 
@@ -196,6 +204,12 @@ bun run ./node_modules/eslint/bin/eslint.js .
 ```bash
 bun run build
 ```
+
+### Vercel Deployment
+
+Before exposing the public waitlist endpoint, configure its required Vercel
+Firewall rule for both Production and Preview deployments. See
+[`docs/vercel-deployment.md`](docs/vercel-deployment.md).
 
 ---
 
