@@ -73,17 +73,13 @@ function WeekDaysHeader({
   days,
   selectedDate,
   onDateSelect,
-  isScrolled = false,
 }: {
   days: Date[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
-  isScrolled?: boolean;
 }) {
   return (
-    // pt-2/pb-1.5 collapses to py-0 once scrolled — the buttons keep py-2
-    // so their ring border always shows as a thin strip.
-    <div className={`flex shrink-0 transition-[padding] duration-200 ${isScrolled ? "py-0" : "pt-2 pb-1.5"}`}>
+    <div className="flex shrink-0 pt-2 pb-1.5">
       {/* Spacer aligns with the hour-label column in TimeGrid */}
       <div className="w-14 shrink-0" />
       <div
@@ -97,9 +93,7 @@ function WeekDaysHeader({
             onClick={() => onDateSelect(day)}
             className={getDayColumnClasses(day)}
           >
-            {/* Content collapses to 0 when scrolled; the button's own py-2
-                keeps the ring visible as a thin bordered strip. */}
-            <span className={`flex flex-col items-center gap-1 overflow-hidden transition-all duration-200 ${isScrolled ? "max-h-0" : "max-h-16"}`}>
+            <span className="flex flex-col items-center gap-1">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {format(day, "EEE")}
               </span>
@@ -131,7 +125,6 @@ export default function WeekGrid({
   onViewChange,
 }: WeekGridProps) {
   const [isScrolled, setIsScrolled] = useState(false);
-
   const days = getWeekDays(viewDate);
   const weekStart = days[0];
   const weekEnd = days[days.length - 1];
@@ -160,7 +153,6 @@ export default function WeekGrid({
             days={days}
             selectedDate={selectedDate}
             onDateSelect={onDateSelect}
-            isScrolled={isScrolled}
           />
           {!isScrolled && (
             <>
