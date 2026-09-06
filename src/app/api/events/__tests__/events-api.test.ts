@@ -8,6 +8,8 @@ interface MockEvent {
   end_at: Date;
   user_id: string;
   color?: string;
+  color_overridden?: boolean;
+  category_id?: string | null;
   created_at?: Date;
 }
 
@@ -21,7 +23,10 @@ const mockDbState: MockDbState<MockEvent> = {
   shouldFail: false,
 };
 
-setupMockDb("evt-", mockDbState, () => mockCurrentUser);
+// Category rows used to test ownership validation.
+const mockCategoryRows: { id: string; user_id: string; color: string }[] = [];
+
+setupMockDb("evt-", mockDbState, () => mockCurrentUser, {}, false, () => mockCategoryRows);
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -52,6 +57,12 @@ describe("Events API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockCategoryRows.length = 0;
+    mockCategoryRows.push({
+      id: "category-uuid-1",
+      user_id: "user-uuid-123",
+      color: "green",
+    });
   });
 
   describe("GET /api/events", () => {
@@ -181,6 +192,25 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at must be before end_at");
     });
 
+    it("returns 400 when color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Math Lecture",
+          start_at: "2026-08-11T10:00:00Z",
+          end_at: "2026-08-11T11:00:00Z",
+          color: "chartreuse",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.error).toBe("color must be a supported color");
+    });
+
     it("returns 201 with created event and binds user_id from session", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
@@ -285,6 +315,18 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toBe("No updatable fields provided");
+    });
+
+    it("returns 400 when an updated color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: "chartreuse" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color must be a supported color");
     });
 
     it("returns 400 when start_at date is invalid", async () => {
@@ -421,6 +463,79 @@ describe("Events API Endpoints", () => {
 
       const json = await response.json();
       expect(json.data.category_id).toBeNull();
+    });
+  });
+
+  describe("category ownership validation", () => {
+    it("POST returns 400 when category_id belongs to another user", async () => {
+      // Replace with a category owned by a different user.
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Stolen category event",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: "category-uuid-1",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("POST returns 400 when category_id does not exist", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Ghost category event",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: "category-uuid-nonexistent",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("PATCH returns 400 when category_id belongs to another user", async () => {
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: "category-uuid-1" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("PATCH succeeds when clearing category_id with null (no ownership check needed)", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+      expect((await response.json()).data.category_id).toBeNull();
     });
   });
 

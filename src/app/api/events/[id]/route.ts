@@ -1,6 +1,8 @@
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { categories } from "@/db/schema/categories";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
+import { isEventColor } from "@/lib/event-colors";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -13,6 +15,7 @@ interface UpdateEventBody {
   start_at?: string;
   end_at?: string;
   color?: string;
+  color_overridden?: boolean;
   // string sets the link, null clears it (falls back to `color`), omitted
   // leaves it untouched — same convention as `due_at` on tasks.
   category_id?: string | null;
@@ -31,10 +34,32 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     const { id } = await params;
     const body: UpdateEventBody = await request.json();
 
+    if (body.color !== undefined && !isEventColor(body.color)) {
+      return NextResponse.json(
+        { success: false, error: "color must be a supported color" },
+        { status: 400 }
+      );
+    }
+
+    // Validate category ownership when setting (not clearing) a category.
+    if (body.category_id) {
+      const [cat] = await db
+        .select()
+        .from(categories)
+        .where(and(eq(categories.id, body.category_id), eq(categories.user_id, user.id)));
+      if (!cat) {
+        return NextResponse.json(
+          { success: false, error: "category_id does not exist or does not belong to you" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updates: Partial<typeof events.$inferInsert> = {};
 
     if (body.title !== undefined) updates.title = body.title;
     if (body.color !== undefined) updates.color = body.color;
+    if (body.color_overridden !== undefined) updates.color_overridden = body.color_overridden;
     if (body.category_id !== undefined) updates.category_id = body.category_id;
 
     if (body.start_at !== undefined) {

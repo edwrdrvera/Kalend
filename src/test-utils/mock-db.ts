@@ -86,6 +86,18 @@ function conditionContains(condition: unknown, value: string): boolean {
 
 // ── Mock setup ──────────────────────────────────────────────────────────
 
+/** Drizzle table objects expose their name via `Symbol(drizzle:Name)`. */
+function tableNameOf(table: unknown): string | null {
+  if (!table || typeof table !== "object") return null;
+  const record = table as Record<symbol, unknown>;
+  for (const sym of Object.getOwnPropertySymbols(record)) {
+    if (sym.description === "drizzle:Name" && typeof record[sym] === "string") {
+      return record[sym] as string;
+    }
+  }
+  return null;
+}
+
 /**
  * Registers `mock.module` for `@/db` and `@/lib/supabase/auth-user`,
  * wiring both to the provided mutable state objects. Call this at the top
@@ -103,13 +115,21 @@ function conditionContains(condition: unknown, value: string): boolean {
  * @param filterUndefined If true, strip `undefined` values from the
  *                        insert payload before merging defaults (mirrors
  *                        Drizzle/postgres-js behavior for column defaults).
+ * @param getCategoryRows Optional getter for a mutable list of category rows
+ *                        used to validate `category_id` ownership in event
+ *                        and task route handlers. When a route selects from
+ *                        the "categories" table, the mock returns these rows
+ *                        filtered by `user_id` the same way the primary rows
+ *                        are filtered. Omit (or pass `() => []`) when the
+ *                        test file does not exercise category validation.
  */
 export function setupMockDb<T extends BaseRow>(
   idPrefix: string,
   dbState: MockDbState<T>,
   getUser: () => MockAuthUser | null,
   insertDefaults: Partial<T> = {},
-  filterUndefined = false
+  filterUndefined = false,
+  getCategoryRows: () => BaseRow[] = () => []
 ) {
   mock.module("@/lib/supabase/auth-user", () => ({
     getAuthenticatedUser: mock(async () => getUser()),
@@ -118,18 +138,37 @@ export function setupMockDb<T extends BaseRow>(
   mock.module("@/db", () => ({
     db: {
       select: () => ({
-        from: () => ({
+        from: (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether
           // the handler's where condition contains the authenticated user's
           // ID. If the handler forgot eq(table.user_id, user.id), the
           // condition won't contain the ID, so the mock returns ALL rows
           // (including other users'), and the test assertion that expects
           // only the current user's data will fail.
+          //
+          // When the route selects from the "categories" table (for
+          // category_id ownership validation), delegate to getCategoryRows.
           where: mock(async (condition: unknown) => {
             if (dbState.shouldFail) throw new Error("DB Connection failed");
             const user = getUser();
             if (!user) return [];
             const scopedByUser = conditionContains(condition, user.id);
+            // Only delegate to getCategoryRows for secondary category-
+            // ownership lookups. When this mock IS the categories table
+            // (idPrefix === "category-"), the primary rows already hold
+            // category data, so fall through to the normal path.
+            if (tableNameOf(table) === "categories" && idPrefix !== "category-") {
+              const catRows = getCategoryRows();
+              // The condition carries both a category id and the user id.
+              // Filter by both so a nonexistent or foreign-owned category
+              // correctly yields an empty result.
+              const catId = extractIdFromCondition(condition, "category-");
+              let filtered = scopedByUser
+                ? catRows.filter((r) => r.user_id === user.id)
+                : catRows;
+              if (catId) filtered = filtered.filter((r) => r.id === catId);
+              return filtered;
+            }
             return scopedByUser
               ? dbState.rows.filter((r) => r.user_id === user.id)
               : dbState.rows;

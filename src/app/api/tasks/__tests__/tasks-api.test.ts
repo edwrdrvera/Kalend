@@ -8,6 +8,8 @@ interface MockTask {
   completed: boolean;
   user_id: string;
   color?: string;
+  color_overridden?: boolean;
+  category_id?: string | null;
   created_at?: Date;
 }
 
@@ -21,11 +23,16 @@ const mockDbState: MockDbState<MockTask> = {
   shouldFail: false,
 };
 
+// Category rows used to test ownership validation.
+const mockCategoryRows: { id: string; user_id: string; color: string }[] = [];
+
 setupMockDb(
   "task-",
   mockDbState,
   () => mockCurrentUser,
-  { completed: false, due_at: null } as Partial<MockTask>
+  { completed: false, due_at: null } as Partial<MockTask>,
+  false,
+  () => mockCategoryRows
 );
 
 // Import route handlers after mock setup
@@ -57,6 +64,12 @@ describe("Tasks API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockCategoryRows.length = 0;
+    mockCategoryRows.push({
+      id: "category-uuid-1",
+      user_id: "user-uuid-123",
+      color: "green",
+    });
   });
 
   describe("GET /api/tasks", () => {
@@ -153,6 +166,18 @@ describe("Tasks API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toBe("due_at must be a valid date");
+    });
+
+    it("returns 400 when color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Read chapter 4", color: "chartreuse" }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color must be a supported color");
     });
 
     it("returns 201 with a created task and no due date when due_at is omitted", async () => {
@@ -262,6 +287,18 @@ describe("Tasks API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toBe("No updatable fields provided");
+    });
+
+    it("returns 400 when an updated color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: "chartreuse" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color must be a supported color");
     });
 
     it("returns 400 when title is blank", async () => {
@@ -394,6 +431,71 @@ describe("Tasks API Endpoints", () => {
 
       const json = await response.json();
       expect(json.data.category_id).toBeNull();
+    });
+  });
+
+  describe("category ownership validation", () => {
+    it("POST returns 400 when category_id belongs to another user", async () => {
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Stolen category task", category_id: "category-uuid-1" }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("POST returns 400 when category_id does not exist", async () => {
+      const req = new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Ghost category task",
+          category_id: "category-uuid-nonexistent",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("PATCH returns 400 when category_id belongs to another user", async () => {
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: "category-uuid-1" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "category_id does not exist or does not belong to you"
+      );
+    });
+
+    it("PATCH succeeds when clearing category_id with null (no ownership check needed)", async () => {
+      const req = new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
+      expect(response.status).toBe(200);
+      expect((await response.json()).data.category_id).toBeNull();
     });
   });
 
