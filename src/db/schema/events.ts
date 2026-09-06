@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { categories } from "./categories";
 
 export const events = pgTable("events", {
@@ -9,6 +9,7 @@ export const events = pgTable("events", {
   end_at: timestamp("end_at", { withTimezone: true }).notNull(),
   created_at: timestamp("created_at").defaultNow(),
   color: text("color").default("blue"),
+  color_overridden: boolean("color_overridden").notNull().default(false),
   category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" })
 });
 

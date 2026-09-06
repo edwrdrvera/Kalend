@@ -50,6 +50,13 @@
       "when": 1788568821044,
       "tag": "0006_fuzzy_wallop",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788671506563,
+      "tag": "0007_new_newton_destine",
+      "breakpoints": true
     }
   ]
 }
