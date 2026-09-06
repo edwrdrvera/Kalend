@@ -29,9 +29,10 @@ const DRAG_THRESHOLD_PX = 4;
 const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 function formatHourLabel(hour: number): string {
+  // 24-hour format, "00:00"–"23:00". Midnight is kept empty so the label
+  // doesn't crowd the very top of the grid (same as Google Calendar's treatment).
   if (hour === 0) return "";
-  if (hour === 12) return "12 PM";
-  return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+  return `${String(hour).padStart(2, "0")}:00`;
 }
 
 function minutesFromMidnight(date: Date): number {
@@ -444,21 +445,25 @@ export default function TimeGrid({
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
-    <div className="flex flex-1 overflow-y-auto">
-      <div className="w-14 shrink-0">
+    <div className="flex">
+      {/* Hour labels — border-r connects to the column grid's left edge */}
+      <div className="w-16 shrink-0 border-r border-border">
         {HOURS.map((hour) => (
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-2 text-right text-[10px] text-muted-foreground"
+            className="pr-3 text-right text-[10px] text-muted-foreground"
           >
             <span className="relative -top-2">{formatHourLabel(hour)}</span>
           </div>
         ))}
       </div>
+      {/* Grid: gutter's border-r provides the left edge; divide-x adds 1px
+          separators between columns; border-r on the grid itself caps the
+          right outer edge. No wrapper div needed. */}
       <div
         ref={gridRef}
-        className="relative grid flex-1 gap-2"
+        className="relative grid flex-1 divide-x divide-border border-r border-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day, dayIndex) => {
@@ -468,7 +473,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className={`relative ${isToday ? "bg-primary/5" : "bg-card"}`}
+              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : "bg-card"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -493,8 +498,8 @@ export default function TimeGrid({
                   className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
                   style={{ top: nowOffsetPx }}
                 >
-                  <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-                  <div className="h-px flex-1 bg-red-500" />
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                  <div className="h-[2px] flex-1 bg-red-500" />
                 </div>
               )}
 
@@ -575,9 +580,8 @@ export default function TimeGrid({
             //
             // left/width use the column's pixel metrics captured at pickup
             // (originColumnLeft/columnWidth), so they stay correct even
-            // with CSS grid gaps between columns — percentage-based
-            // positioning drifts because gaps eat into the percentage
-            // reference width.
+            // with the border-based column separators — percentage-based
+            // positioning would drift once any border width was included.
             className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, draggedEvent.color_overridden, categories))}`}
             style={{
               left: moveDrag.originColumnLeft,

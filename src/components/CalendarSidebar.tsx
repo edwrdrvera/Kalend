@@ -31,6 +31,7 @@ interface CalendarSidebarProps {
   onDeleteCategory: (category: CalendarCategory) => void;
 }
 
+
 export default function CalendarSidebar({
   currentDate,
   viewDate,
@@ -54,7 +55,7 @@ export default function CalendarSidebar({
     <aside
       className={cn(
         "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-12" : "w-64"
+        collapsed ? "w-12" : "w-[280px]"
       )}
     >
       {/* Top bar: always rendered outside the inert zone. When collapsed the
@@ -78,12 +79,16 @@ export default function CalendarSidebar({
         </div>
       </div>
 
-      <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
+      <div inert={collapsed} className={cn("flex w-[280px] flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
         <MiniCalendar
           currentDate={currentDate}
           viewDate={viewDate}
           onDateSelect={onDateSelect}
         />
+
+        {/* TaskList and CategoryManager each render their own collapsible
+            header row ("Tasks" / "Categories" + chevron), collapsed by
+            default, with localStorage persistence. No extra wrapper. */}
         <TaskList
           tasks={tasks}
           loading={tasksLoading}
@@ -99,6 +104,7 @@ export default function CalendarSidebar({
           onUpdateCategory={onUpdateCategory}
           onDeleteCategory={onDeleteCategory}
         />
+
         <div className="mt-auto flex justify-end p-4">
           <SettingsMenu />
         </div>

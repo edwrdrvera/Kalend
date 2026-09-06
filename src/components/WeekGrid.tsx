@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   format,
   startOfWeek,
@@ -48,22 +49,10 @@ function formatWeekRangeTitle(weekStart: Date, weekEnd: Date): string {
   return `${start}–${end}`;
 }
 
-function getDayColumnClasses(day: Date): string {
-  // ring-inset renders the border inside the box — no effect on layout, so
-  // the columns stay pixel-perfect aligned with TimeGrid's columns below.
-  const base =
-    "flex flex-col items-center gap-1 rounded-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
-  if (isSameDay(day, new Date()))
-    return `${base} ring-primary/40 bg-primary/5`;
-  return `${base} ring-border bg-card`;
-}
-
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
-  const base =
-    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
-
+  const base = "flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold";
   if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
-  if (isSameDay(day, new Date())) return `${base} text-primary font-bold`;
+  if (isSameDay(day, new Date())) return `${base} text-primary`;
   return `${base} text-foreground`;
 }
 
@@ -77,11 +66,14 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex shrink-0 pt-2 pb-1.5">
-      {/* Spacer aligns with the hour-label column in TimeGrid */}
-      <div className="w-14 shrink-0" />
+    // Border-b connects visually with the all-day row / time grid below.
+    // No per-cell borders — the shared border-b here and the time grid's
+    // outer left border from the column container provide enough structure.
+    <div className="flex shrink-0 border-b border-border bg-background">
+      {/* Gutter with right border aligns with the time-label column */}
+      <div className="w-16 shrink-0 border-r border-border" />
       <div
-        className="grid flex-1 gap-2"
+        className="grid flex-1 divide-x divide-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (
@@ -89,7 +81,9 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className={getDayColumnClasses(day)}
+            className={`flex flex-col items-center gap-1 py-2.5 transition-colors hover:bg-muted/40 cursor-pointer ${
+              isSameDay(day, new Date()) ? "bg-primary/[0.03]" : ""
+            }`}
           >
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               {format(day, "EEE")}
@@ -120,6 +114,7 @@ export default function WeekGrid({
   view,
   onViewChange,
 }: WeekGridProps) {
+  const [isScrolled, setIsScrolled] = useState(false);
   const days = getWeekDays(viewDate);
   const weekStart = days[0];
   const weekEnd = days[days.length - 1];
@@ -136,21 +131,39 @@ export default function WeekGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <WeekDaysHeader days={days} selectedDate={selectedDate} onDateSelect={onDateSelect} />
-      <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-      <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-      <TimeGrid
-        days={days}
-        events={timedEvents}
-        categories={categories}
-        onEventClick={onEventClick}
-        onEventMove={onEventMove}
-        onEventResize={onEventResize}
-        onSlotClick={(day, hour, anchorRect) => {
-          onDateSelect(day);
-          onCreateEvent(setHours(day, hour), anchorRect);
-        }}
-      />
+      {/* Single scroll container — scrollbar outside both header and time grid
+          so all seven columns always line up. */}
+      <div
+        className="flex flex-1 flex-col overflow-y-auto"
+        onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 0)}
+      >
+        {/* Sticky header — collapses to a thin border strip when scrolled. */}
+        <div className="sticky top-0 z-20">
+          <WeekDaysHeader
+            days={days}
+            selectedDate={selectedDate}
+            onDateSelect={onDateSelect}
+          />
+          {!isScrolled && (
+            <>
+              <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
+              <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
+            </>
+          )}
+        </div>
+        <TimeGrid
+          days={days}
+          events={timedEvents}
+          categories={categories}
+          onEventClick={onEventClick}
+          onEventMove={onEventMove}
+          onEventResize={onEventResize}
+          onSlotClick={(day, hour, anchorRect) => {
+            onDateSelect(day);
+            onCreateEvent(setHours(day, hour), anchorRect);
+          }}
+        />
+      </div>
     </div>
   );
 }
