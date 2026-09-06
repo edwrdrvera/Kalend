@@ -1,6 +1,6 @@
 # Kalend
 
-Kalend is a fast, minimal calendar and task manager designed for students. Create events, track tasks with due dates, and organize everything by category, all in one clean interface.
+Kalend is a fast, minimal calendar and task manager designed for students. Give every class, project, and job its own Space, then see all your events and tasks together in one calendar view.
 
 **Live app: [kalend-psi.vercel.app](https://kalend-psi.vercel.app)**
 
@@ -24,9 +24,11 @@ Kalend is a fast, minimal calendar and task manager designed for students. Creat
 - **Task list** in the sidebar to create, complete, and delete tasks.
 - **Optional due dates** that show up on the calendar alongside your events.
 
-### 🏷️ Categories
-- **Color-coded categories** to organize events and tasks by class, project, or anything else.
-- **Category manager** in the sidebar to create, rename, recolor, and delete categories.
+### 🗂️ Spaces
+- **One Space per commitment** — give every class, project, and job its own Space to hold all its events and tasks.
+- **Toggle visibility** to hide a Space's items when you want a cleaner view.
+- **Color-coded** so you can tell at a glance what everything belongs to.
+- **Space manager** in the sidebar to create, rename, recolor, and delete Spaces.
 
 ### 🔐 Account
 - **Waitlist** on the landing page to register interest before the app opens publicly.
