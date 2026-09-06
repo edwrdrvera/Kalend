@@ -85,6 +85,19 @@ describe("POST /api/waitlist", () => {
     expect(json.success).toBe(true);
   });
 
+  it("returns generic success without storing submissions that fill the honeypot", async () => {
+    const response = await POST(
+      postRequest({ email: "bot@university.edu", website: "https://spam.example" })
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toEqual({
+      success: true,
+      data: { email: "bot@university.edu" },
+    });
+    expect(emails).not.toContain("bot@university.edu");
+  });
+
   it("returns 500 when the database throws a non-duplicate error", async () => {
     shouldFail = true;
     const response = await POST(postRequest({ email: "student@university.edu" }));

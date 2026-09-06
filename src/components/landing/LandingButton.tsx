@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -16,8 +18,24 @@ export default function LandingButton({
   className,
   children,
 }: LandingButtonProps) {
+  function handleClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (href !== "#waitlist") return;
+
+    const emailInput = document.getElementById("waitlist-email");
+    if (!(emailInput instanceof HTMLInputElement)) return;
+
+    event.preventDefault();
+    window.history.replaceState(null, "", href);
+    emailInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    emailInput.focus({ preventScroll: true });
+  }
+
   return (
-    <Link href={href} className={cn(landingButtonVariants({ variant, size }), className)}>
+    <Link
+      href={href}
+      onClick={handleClick}
+      className={cn(landingButtonVariants({ variant, size }), className)}
+    >
       {children}
     </Link>
   );

@@ -10,12 +10,19 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface JoinWaitlistBody {
   email: string;
+  website?: string;
 }
 
 export async function POST(request: Request) {
   try {
     const body: JoinWaitlistBody = await request.json();
     const email = body.email?.trim().toLowerCase();
+
+    // Give simple form-filling bots the same response as a real signup so
+    // they cannot use the endpoint response to learn how to bypass the trap.
+    if (body.website?.trim()) {
+      return NextResponse.json({ success: true, data: { email } }, { status: 201 });
+    }
 
     if (!email || !EMAIL_PATTERN.test(email)) {
       return NextResponse.json(

@@ -8,6 +8,7 @@ export interface CalendarEvent {
   start_at: string;
   end_at: string;
   color: string | null;
+  color_overridden: boolean;
   category_id: string | null;
 }
 
@@ -23,6 +24,7 @@ export interface CalendarTask {
   due_at: string | null;
   completed: boolean;
   color: string | null;
+  color_overridden: boolean;
   category_id: string | null;
 }
 

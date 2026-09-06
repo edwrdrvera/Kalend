@@ -98,9 +98,10 @@ export function getTaskColorClasses(color: string | null): string {
 export function resolveDisplayColor(
   ownColor: string | null,
   categoryId: string | null | undefined,
+  colorOverridden: boolean,
   categories: readonly { id: string; color: string | null }[]
 ): string | null {
-  if (categoryId) {
+  if (categoryId && !colorOverridden) {
     const category = categories.find((c) => c.id === categoryId);
     if (category) return category.color;
   }

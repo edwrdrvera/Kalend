@@ -66,18 +66,22 @@ describe("resolveDisplayColor", () => {
   ] as const;
 
   it("returns own color when there is no category", () => {
-    expect(resolveDisplayColor("blue", null, categories)).toBe("blue");
+    expect(resolveDisplayColor("blue", null, false, categories)).toBe("blue");
   });
 
-  it("returns the category color when linked to a matching category", () => {
-    expect(resolveDisplayColor("blue", "cat-1", categories)).toBe("purple");
+  it("inherits the category color when no override is set", () => {
+    expect(resolveDisplayColor("blue", "cat-1", false, categories)).toBe("purple");
+  });
+
+  it("returns the item's color when the category color is overridden", () => {
+    expect(resolveDisplayColor("blue", "cat-1", true, categories)).toBe("blue");
   });
 
   it("falls back to own color when category_id points to a nonexistent category", () => {
-    expect(resolveDisplayColor("green", "cat-deleted", categories)).toBe("green");
+    expect(resolveDisplayColor("green", "cat-deleted", false, categories)).toBe("green");
   });
 
   it("returns null when own color is null and there is no category", () => {
-    expect(resolveDisplayColor(null, null, categories)).toBe(null);
+    expect(resolveDisplayColor(null, null, false, categories)).toBe(null);
   });
 });

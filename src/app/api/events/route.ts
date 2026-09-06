@@ -1,7 +1,9 @@
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { categories } from "@/db/schema/categories";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
-import { eq } from "drizzle-orm";
+import { isEventColor } from "@/lib/event-colors";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -34,6 +36,7 @@ interface CreateEventBody {
   start_at: string;
   end_at: string;
   color?: string;
+  color_overridden?: boolean;
   category_id?: string | null;
 }
 
@@ -76,6 +79,26 @@ export async function POST(request: Request) {
       );
     }
 
+    if (body.color !== undefined && !isEventColor(body.color)) {
+      return NextResponse.json(
+        { success: false, error: "color must be a supported color" },
+        { status: 400 }
+      );
+    }
+
+    if (body.category_id) {
+      const [cat] = await db
+        .select()
+        .from(categories)
+        .where(and(eq(categories.id, body.category_id), eq(categories.user_id, user.id)));
+      if (!cat) {
+        return NextResponse.json(
+          { success: false, error: "category_id does not exist or does not belong to you" },
+          { status: 400 }
+        );
+      }
+    }
+
     const [newEvent] = await db
       .insert(events)
       .values({
@@ -84,6 +107,7 @@ export async function POST(request: Request) {
         end_at: endAt,
         user_id: user.id,
         color: body.color,
+        color_overridden: body.color_overridden ?? false,
         category_id: body.category_id ?? null,
       })
       .returning();

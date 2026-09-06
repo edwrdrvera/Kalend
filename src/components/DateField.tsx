@@ -14,19 +14,23 @@ export const SMALL_INPUT_CLS =
 /** Custom date picker — opens MiniCalendar in a Popover instead of the
  *  browser's native date widget, which is unthemeable and looks generic. */
 export function DateField({
+  label,
   value,
   onChange,
 }: {
+  label: string;
   value: string; // "yyyy-MM-dd"
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   // Parse at local noon so there's no UTC-midnight timezone shift.
   const date = value ? new Date(`${value}T12:00:00`) : new Date();
+  const displayValue = value ? format(date, "MMMM d, yyyy") : "not selected";
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        aria-label={`${label}, ${displayValue}`}
         className={cn(SMALL_INPUT_CLS, "w-full cursor-pointer text-left hover:bg-muted/30")}
       >
         {value ? format(date, "MMM d, yyyy") : "Select date"}

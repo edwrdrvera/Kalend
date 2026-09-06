@@ -1,6 +1,6 @@
 // Final CTA section above the footer. Links back to the hero form rather
-// than carrying its own button, so there's only one waitlist button on the page.
-import { landingButtonVariants } from "./landing-button-variants";
+// than carrying its own form, so email capture has one source of truth.
+import LandingButton from "./LandingButton";
 
 export default function LandingBottomCTA() {
   return (
@@ -12,13 +12,14 @@ export default function LandingBottomCTA() {
         <p className="mt-4 max-w-[400px] text-base leading-relaxed text-white/65">
           Be the first to know when Kalend opens up.
         </p>
-        <a
+        <LandingButton
           href="#waitlist"
-          className={landingButtonVariants({ variant: "primary", size: "hero" })}
-          style={{ marginTop: "2rem" }}
+          variant="primary"
+          size="hero"
+          className="mt-8"
         >
           Join the waitlist
-        </a>
+        </LandingButton>
       </div>
     </section>
   );
