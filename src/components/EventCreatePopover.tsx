@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
 import { Clock } from "lucide-react";
@@ -79,7 +79,6 @@ export default function EventCreatePopover({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [timeExpanded, setTimeExpanded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   // Fixed position: vertically centered on the anchor, horizontally offset
   // to the chosen side.
@@ -108,38 +107,6 @@ export default function EventCreatePopover({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // Click-outside closes (mousedown fires before blur so the input value is
-  // still readable). Skip clicks that land inside a Radix or floating-UI
-  // portal — those are nested pickers (date, color, category) that render
-  // outside the panel's DOM subtree but are still logically "inside" this
-  // editor. Closing on those clicks would dismiss the panel the moment the
-  // user picks a color or selects a date.
-  useEffect(() => {
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as Element | null;
-      if (!target) return;
-
-      // Still inside the panel itself.
-      if (panelRef.current?.contains(target)) return;
-
-      // Inside a Radix portal (nested popover/select/combobox content).
-      if (target.closest("[data-radix-popper-content-wrapper]")) return;
-      // Radix also wraps portals in [data-radix-portal] in some versions.
-      if (target.closest("[data-radix-portal]")) return;
-
-      onClose();
-    };
-
-    // Delay one tick so the click that opened the popover doesn't fire this.
-    const id = setTimeout(() => {
-      document.addEventListener("mousedown", onMouseDown);
-    }, 0);
-    return () => {
-      clearTimeout(id);
-      document.removeEventListener("mousedown", onMouseDown);
-    };
   }, [onClose]);
 
   const start = splitDateTimeLocal(startAt);
@@ -176,23 +143,33 @@ export default function EventCreatePopover({
   };
 
   return createPortal(
-    // Outer wrapper: fixed position + entry animation.
-    // drop-shadow (not box-shadow) traces the combined outline of the panel
-    // AND the tail triangle, so the shadow wraps the whole shape as one piece.
-    <div
-      ref={panelRef}
-      role="dialog"
-      aria-label="Create event"
-      style={{
-        position: "fixed",
-        top,
-        left,
-        width: POPOVER_WIDTH,
-        zIndex: 50,
-        filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.16))",
-      }}
-      className="animate-in fade-in-0 zoom-in-95 duration-100"
-    >
+    <>
+      {/* Backdrop: sits below the panel and nested pickers (both z-50) at
+          z-49. Any click that reaches this div landed outside the panel and
+          all open pickers, so it closes the editor. Clicks on the panel or
+          on any nested picker popover are captured by those elements first
+          and never reach the backdrop. */}
+      <div
+        aria-hidden
+        style={{ position: "fixed", inset: 0, zIndex: 49 }}
+        onPointerDown={onClose}
+      />
+      {/* Outer wrapper: fixed position + entry animation.
+          drop-shadow (not box-shadow) traces the combined outline of the panel
+          AND the tail triangle, so the shadow wraps the whole shape as one piece. */}
+      <div
+        role="dialog"
+        aria-label="Create event"
+        style={{
+          position: "fixed",
+          top,
+          left,
+          width: POPOVER_WIDTH,
+          zIndex: 50,
+          filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.16))",
+        }}
+        className="animate-in fade-in-0 zoom-in-95 duration-100"
+      >
       {/* Panel + tail as one solid shape. The tail is a clip-path triangle
           inside the panel div, extending outside its bounds — overflow: visible
           is the default so it peeks past the rounded rect. The ring renders on
@@ -340,7 +317,8 @@ export default function EventCreatePopover({
           </div>
         </form>
       </div>
-    </div>,
+      </div>
+    </>,
     document.body
   );
 }
