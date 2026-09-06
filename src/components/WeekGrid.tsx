@@ -50,14 +50,14 @@ function formatWeekRangeTitle(weekStart: Date, weekEnd: Date): string {
 }
 
 function getDayColumnClasses(day: Date): string {
-  // ring-inset renders the border inside the box — no effect on layout, so
-  // the columns stay pixel-perfect aligned with TimeGrid's columns below.
-  // overflow-hidden lets the inner content collapse to 0 without leaking out.
+  // border-t + border-x only — no bottom border — so the header cell and the
+  // TimeGrid column below share a seamless single border on each side with no
+  // visible gap or double-border at the connection point.
   const base =
-    "overflow-hidden rounded-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
+    "overflow-hidden rounded-t-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 border-t border-x";
   if (isSameDay(day, new Date()))
-    return `${base} ring-primary/40 bg-primary/5`;
-  return `${base} ring-border bg-card`;
+    return `${base} border-primary/40 bg-primary/5`;
+  return `${base} border-border bg-card`;
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
@@ -79,7 +79,7 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex shrink-0 pt-2 pb-1.5">
+    <div className="flex shrink-0 pt-2 pb-0">
       {/* Spacer aligns with the hour-label column in TimeGrid */}
       <div className="w-14 shrink-0" />
       <div

@@ -468,7 +468,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className={`relative rounded-t-[10px] ring-1 ring-inset ${isToday ? "bg-primary/5 ring-primary/40" : "bg-card ring-border"}`}
+              className={`relative border-x border-b ${isToday ? "bg-primary/5 border-primary/40" : "bg-card border-border"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
