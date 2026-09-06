@@ -41,8 +41,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude Code local state
+# Local coding-agent state and overrides
 .claude/
-
-# Vendored agent skills (regenerate from skills-lock.json)
-.agents/skills/
+.codex/
+.agents/
+AGENTS.md
