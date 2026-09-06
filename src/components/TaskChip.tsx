@@ -35,7 +35,7 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
           ? "border-border text-muted-foreground line-through"
           : overdue
             ? "border-red-500/60 text-red-600 dark:text-red-400"
-            : getTaskColorClasses(resolveDisplayColor(task.color, task.category_id, categories)),
+            : getTaskColorClasses(resolveDisplayColor(task.color, task.category_id, task.color_overridden, categories)),
         className
       )}
     >

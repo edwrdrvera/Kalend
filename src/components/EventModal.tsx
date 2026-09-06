@@ -127,11 +127,13 @@ function TimeRangeField({
               <label className="text-xs text-muted-foreground">Start</label>
               <div className="flex flex-col gap-1.5">
                 <DateField
+                  label="Start date"
                   value={start.date}
                   onChange={(d) => onStartAtChange(joinDateTimeLocal(d, start.time))}
                 />
                 <input
                   type="time"
+                  aria-label="Start time"
                   value={start.time}
                   onChange={(e) =>
                     onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
@@ -145,11 +147,13 @@ function TimeRangeField({
               <label className="text-xs text-muted-foreground">End</label>
               <div className="flex flex-col gap-1.5">
                 <DateField
+                  label="End date"
                   value={end.date}
                   onChange={(d) => onEndAtChange(joinDateTimeLocal(d, end.time))}
                 />
                 <input
                   type="time"
+                  aria-label="End time"
                   value={end.time}
                   onChange={(e) =>
                     onEndAtChange(joinDateTimeLocal(end.date, e.target.value))

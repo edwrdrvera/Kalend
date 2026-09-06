@@ -44,7 +44,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
               gridColumn: `${startCol + 1} / ${endCol + 2}`,
               gridRow: lane + 1,
             }}
-            className={`overflow-hidden truncate rounded-[6px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`overflow-hidden truncate rounded-[6px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
             {event.title}
           </button>

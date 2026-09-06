@@ -30,7 +30,7 @@ function TaskRow({
   onDeleteTask: (task: CalendarTask) => void;
 }) {
   const overdue = task.due_at && !task.completed && isPast(new Date(task.due_at));
-  const displayColor = resolveDisplayColor(task.color, task.category_id, categories);
+  const displayColor = resolveDisplayColor(task.color, task.category_id, task.color_overridden, categories);
 
   return (
     <div className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/60">

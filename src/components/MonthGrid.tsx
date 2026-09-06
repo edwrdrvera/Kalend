@@ -64,7 +64,7 @@ function DaysOfWeekRow() {
       {days.map((day) => (
         <div
           key={day}
-          className="rounded-full bg-muted py-1.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+          className="rounded-full bg-muted py-1.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground"
         >
           {day}
         </div>
@@ -189,6 +189,7 @@ function DayCell({
     <div
       role="button"
       tabIndex={0}
+      aria-label={`Create event on ${format(day, "EEEE, MMMM d, yyyy")}`}
       onClick={handleCellClick}
       onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
@@ -206,7 +207,7 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`w-full rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
             <span className="hidden truncate sm:inline">{event.title}</span>
           </button>

@@ -16,6 +16,7 @@ function makeEvent(
     start_at: start,
     end_at: end,
     color: overrides.color ?? null,
+    color_overridden: overrides.color_overridden ?? false,
     category_id: overrides.category_id ?? null,
   };
 }
