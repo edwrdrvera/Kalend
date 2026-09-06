@@ -46,3 +46,7 @@ next-env.d.ts
 .codex/
 .agents/
 AGENTS.md
+
+# Local coding-agent hand-off notes
+/CONTEXT.md
+docs/*-handoff.md
