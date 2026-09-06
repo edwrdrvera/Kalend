@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="business" className={cn("font-sans")} suppressHydrationWarning>
+    <html lang="en" className={cn("font-sans")} suppressHydrationWarning>
       <head>
         {/* suppressHydrationWarning on <html> covers the class mismatch caused by
             the no-flash script applying 'dark' before React hydrates. */}
