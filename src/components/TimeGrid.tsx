@@ -458,13 +458,12 @@ export default function TimeGrid({
           </div>
         ))}
       </div>
-      {/* Outer border wraps the entire column grid so we get left+right
-          outer edges without each column needing its own border-x. The
-          grid itself is the drag ref; the wrapper is just presentation. */}
-      <div className="flex-1 border-r border-border overflow-hidden">
+      {/* Grid: gutter's border-r provides the left edge; divide-x adds 1px
+          separators between columns; border-r on the grid itself caps the
+          right outer edge. No wrapper div needed. */}
       <div
         ref={gridRef}
-        className="relative grid"
+        className="relative grid flex-1 divide-x divide-border border-r border-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day, dayIndex) => {
@@ -597,7 +596,6 @@ export default function TimeGrid({
             <span className="absolute inset-x-1.5 top-0.5 truncate">{draggedEvent.title}</span>
           </div>
         )}
-      </div>
       </div>
     </div>
   );
