@@ -79,6 +79,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.classList.remove("dark");
     }
     syncReady.current = true;
+    // One-time mount read from localStorage — calling setState here is correct
+    // and intentional (SSR-safe theme init); suppress the cascading-render rule.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTheme(resolved);
     setMounted(true);
   }, []);
