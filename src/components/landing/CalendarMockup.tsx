@@ -17,7 +17,7 @@ const SPACE_FILTERS: SpaceFilter[] = [
   { label: "Weekend Shift", dotColor: "var(--kal-cat-yellow)" },
 ];
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 interface DayCell {
   day: number;
@@ -25,45 +25,46 @@ interface DayCell {
   chip?: { label: string; tint: string };
 }
 
-// September 2026: the 1st falls on a Tuesday, so the first row leads with
-// one blank cell. Chip tints mirror the approved mockup 1:1.
+// September 2026: the 1st falls on a Tuesday, so with Sunday-first ordering
+// the first row leads with two blank cells. Chip tints mirror the approved
+// mockup 1:1.
 const CALENDAR_CELLS: (DayCell | null)[] = [
+  null,
   null,
   { day: 1 },
   { day: 2 },
   { day: 3, chip: { label: "CS 201", tint: "var(--kal-cat-blue-tint)" } },
   { day: 4, today: true, chip: { label: "Essay Due", tint: "var(--kal-cat-orange-tint)" } },
   { day: 5 },
-  { day: 6 },
 
+  { day: 6 },
   { day: 7 },
   { day: 8, chip: { label: "Study Grp", tint: "var(--kal-cat-purple-tint)" } },
   { day: 9 },
   { day: 10 },
   { day: 11, chip: { label: "Math HW", tint: "var(--kal-cat-green-tint)" } },
   { day: 12 },
-  { day: 13 },
 
+  { day: 13 },
   { day: 14 },
   { day: 15, chip: { label: "Midterm", tint: "var(--kal-cat-red-tint)" } },
   { day: 16 },
   { day: 17 },
   { day: 18, chip: { label: "Lab Report", tint: "var(--kal-cat-indigo-tint)" } },
   { day: 19 },
-  { day: 20 },
 
+  { day: 20 },
   { day: 21 },
   { day: 22, chip: { label: "Client Call", tint: "var(--kal-cat-teal-tint)" } },
   { day: 23 },
   { day: 24 },
   { day: 25, chip: { label: "Reading", tint: "var(--kal-cat-pink-tint)" } },
   { day: 26 },
-  { day: 27 },
 
+  { day: 27 },
   { day: 28 },
   { day: 29, chip: { label: "Shift", tint: "var(--kal-cat-yellow-tint)" } },
   { day: 30 },
-  null,
   null,
   null,
   null,
@@ -103,7 +104,7 @@ export default function CalendarMockup() {
           {WEEKDAYS.map((weekday) => (
             <div
               key={weekday}
-              className="rounded-full bg-[#f4f1ea] py-1.5 text-center text-[9px] font-semibold tracking-wide text-[var(--kal-muted)] uppercase min-[640px]:text-[11px]"
+              className="rounded-full bg-[#f4f1ea] py-1.5 text-center text-[9px] font-semibold tracking-wide text-[var(--kal-muted)] min-[640px]:text-[11px]"
             >
               {weekday}
             </div>
