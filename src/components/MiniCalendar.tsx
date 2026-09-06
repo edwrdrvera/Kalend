@@ -21,12 +21,10 @@ interface MiniCalendarProps {
   onDateSelect: (date: Date) => void;
 }
 
-/** Shows the browsed month/year only once it's diverged from the main
- *  calendar's month (`mainViewDate`) — when they match, the main header
- *  already says which month this is, so the label would be redundant. */
+// mainViewDate is kept in the signature so callers don't have to change,
+// even though we no longer use it to conditionally hide the label.
 function MiniCalendarHeader({
   browseDate,
-  mainViewDate,
   onPrevMonth,
   onNextMonth,
 }: {
@@ -35,15 +33,11 @@ function MiniCalendarHeader({
   onPrevMonth: () => void;
   onNextMonth: () => void;
 }) {
-  const showLabel = !isSameMonth(browseDate, mainViewDate);
-
   return (
-    <div className={`flex items-center mb-4 ${showLabel ? "justify-between" : "justify-end"}`}>
-      {showLabel && (
-        <h2 className="text-sm font-semibold text-foreground">
-          {format(browseDate, "MMM yyyy")}
-        </h2>
-      )}
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-sm font-semibold text-foreground">
+        {format(browseDate, "MMM yyyy")}
+      </h2>
       <div className="flex gap-1 text-muted-foreground">
         <button
           onClick={onPrevMonth}
@@ -93,7 +87,9 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   }
 
   if (isTodayCurrent) {
-    return `${baseClasses} bg-primary/10 text-primary font-bold ring-1 ring-primary/25`;
+    // Today (when not selected): just accent-colored text, no background —
+    // matches the design's "purple text only" treatment.
+    return `${baseClasses} text-primary font-bold`;
   }
 
   return `${baseClasses} text-foreground hover:bg-muted`;

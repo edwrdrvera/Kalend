@@ -465,6 +465,7 @@ export default function Calendar() {
           {view === "day" && (
             <DayGrid
               viewDate={viewDate}
+              selectedDate={selectedDate}
               events={events.data}
               tasks={tasks}
               categories={categories}

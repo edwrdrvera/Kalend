@@ -29,9 +29,10 @@ const DRAG_THRESHOLD_PX = 4;
 const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 function formatHourLabel(hour: number): string {
+  // 24-hour format, "00:00"–"23:00". Midnight is kept empty so the label
+  // doesn't crowd the very top of the grid (same as Google Calendar's treatment).
   if (hour === 0) return "";
-  if (hour === 12) return "12 PM";
-  return hour < 12 ? `${hour} AM` : `${hour - 12} PM`;
+  return `${String(hour).padStart(2, "0")}:00`;
 }
 
 function minutesFromMidnight(date: Date): number {
@@ -445,7 +446,7 @@ export default function TimeGrid({
 
   return (
     <div className="flex">
-      <div className="w-14 shrink-0">
+      <div className="w-16 shrink-0">
         {HOURS.map((hour) => (
           <div
             key={hour}
@@ -493,8 +494,8 @@ export default function TimeGrid({
                   className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
                   style={{ top: nowOffsetPx }}
                 >
-                  <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-                  <div className="h-px flex-1 bg-red-500" />
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                  <div className="h-[2px] flex-1 bg-red-500" />
                 </div>
               )}
 

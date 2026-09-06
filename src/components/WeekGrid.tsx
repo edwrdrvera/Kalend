@@ -80,7 +80,7 @@ function WeekDaysHeader({
   return (
     <div className="flex shrink-0 pt-2 pb-0 bg-background">
       {/* Spacer aligns with the hour-label column in TimeGrid */}
-      <div className="w-14 shrink-0" />
+      <div className="w-16 shrink-0" />
       <div
         className="grid flex-1 gap-2"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}

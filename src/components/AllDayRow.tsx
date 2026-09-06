@@ -26,7 +26,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
 
   return (
     <div className="flex border-b border-border">
-      <div className="w-14 shrink-0" />
+      <div className="w-16 shrink-0" />
       <div
         className="grid flex-1 gap-x-2"
         style={{

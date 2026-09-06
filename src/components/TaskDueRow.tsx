@@ -27,7 +27,7 @@ export default function TaskDueRow({ days, tasks, categories, onTaskClick }: Tas
 
   return (
     <div className="flex border-b border-border">
-      <div className="w-14 shrink-0" />
+      <div className="w-16 shrink-0" />
       <div
         className="grid flex-1 gap-2"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
