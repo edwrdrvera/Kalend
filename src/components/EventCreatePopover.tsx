@@ -6,11 +6,10 @@ import { format, isSameDay } from "date-fns";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
-import MiniCalendar from "./MiniCalendar";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
 import type { CalendarCategory } from "@/lib/calendar-types";
 import type { EventFormValues } from "./EventModal";
@@ -42,38 +41,6 @@ function formatTimeRangeSummary(startValue: string, endValue: string): string {
     return `${format(start, "EEEE, MMM d")} · ${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
   }
   return `${format(start, "EEE, MMM d, h:mm a")} – ${format(end, "EEE, MMM d, h:mm a")}`;
-}
-
-const INPUT_CLS =
-  "h-6 w-full rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
-
-/** MiniCalendar in a popover — replaces <input type="date">. */
-function DateField({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const date = value ? new Date(`${value}T12:00:00`) : new Date();
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className={cn(INPUT_CLS, "cursor-pointer text-left hover:bg-muted/30")}>
-        {value ? format(date, "MMM d, yyyy") : "Select date"}
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
-        <MiniCalendar
-          currentDate={date}
-          viewDate={date}
-          onDateSelect={(d) => {
-            onChange(format(d, "yyyy-MM-dd"));
-            setOpen(false);
-          }}
-        />
-      </PopoverContent>
-    </Popover>
-  );
 }
 
 interface EventCreatePopoverProps {
@@ -291,7 +258,7 @@ export default function EventCreatePopover({
                       type="time"
                       value={start.time}
                       onChange={(e) => setStartAt(joinDateTimeLocal(start.date, e.target.value))}
-                      className={INPUT_CLS}
+                      className={cn(SMALL_INPUT_CLS, "w-full")}
                     />
                   </div>
                 </div>
@@ -306,7 +273,7 @@ export default function EventCreatePopover({
                       type="time"
                       value={end.time}
                       onChange={(e) => setEndAt(joinDateTimeLocal(end.date, e.target.value))}
-                      className={INPUT_CLS}
+                      className={cn(SMALL_INPUT_CLS, "w-full")}
                     />
                   </div>
                 </div>

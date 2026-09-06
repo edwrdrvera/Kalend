@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { format, isPast } from "date-fns";
 import { Check, ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SMALL_INPUT_CLS } from "@/components/DateField";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
@@ -88,10 +89,6 @@ function TaskRow({
   );
 }
 
-// Shared by the title and due-date inputs in the create form — keeps the
-// token set in one place.
-const TASK_INPUT_CLS =
-  "h-6 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
 
 /** Idle: a plain "Add a task" row, styled to invite a click but taking no
  *  more space than a single line. Clicking it swaps in the real form
@@ -169,7 +166,7 @@ function CreateTaskForm({
           placeholder="Task title"
           aria-label="New task title"
           autoFocus
-          className={TASK_INPUT_CLS}
+          className={cn(SMALL_INPUT_CLS, "flex-1")}
         />
         <button
           type="submit"
@@ -195,7 +192,7 @@ function CreateTaskForm({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className={TASK_INPUT_CLS}
+            className={cn(SMALL_INPUT_CLS, "flex-1")}
           />
           <button
             type="button"
