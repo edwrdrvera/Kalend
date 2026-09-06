@@ -78,7 +78,7 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex shrink-0 pt-2 pb-0">
+    <div className="flex shrink-0 pt-2 pb-0 bg-background">
       {/* Spacer aligns with the hour-label column in TimeGrid */}
       <div className="w-14 shrink-0" />
       <div
