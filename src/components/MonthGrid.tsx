@@ -60,7 +60,7 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="mb-1.5 grid grid-cols-7 gap-1.5 px-2 pt-2 shrink-0">
+    <div className="mb-2 grid grid-cols-7 gap-2 px-2 pt-2 shrink-0">
       {days.map((day) => (
         <div
           key={day}
@@ -74,12 +74,12 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 rounded-lg border p-2 text-left overflow-hidden transition-colors";
+  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
   const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
-    // Out-of-month cells: faded, no visible border — like the mockup's empty slots.
-    return `${base} border-transparent bg-muted/20`;
+    // Out-of-month cells: transparent background, faded numbers only.
+    return `${base} border-transparent bg-transparent`;
   }
 
   if (isTodayDay) {
@@ -92,27 +92,28 @@ function getCellClasses(day: Date, viewMonth: Date): string {
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
-  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
+  const plain = "text-xs font-medium";
 
   const isCurrentMonth = isSameMonth(day, viewMonth);
   const isSelected = isSameDay(day, selectedDate);
   const isTodayDay = isSameDay(day, new Date());
 
   if (isSelected && !isTodayDay) {
-    return `${base} bg-primary text-primary-foreground`;
+    // Selected: primary-filled circle badge.
+    return "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium bg-primary text-primary-foreground";
   }
 
   if (isTodayDay) {
-    // Match mockup: bold primary-colored number, no badge background —
-    // the cell itself carries the today highlight.
-    return `${base} text-primary font-bold`;
+    // Today: bold accent-colored text, no circle. The cell itself
+    // carries the today highlight (tinted border + wash).
+    return `${plain} text-primary font-bold`;
   }
 
   if (!isCurrentMonth) {
-    return `${base} text-muted-foreground/40`;
+    return `${plain} text-muted-foreground/40`;
   }
 
-  return `${base} text-foreground`;
+  return `${plain} text-foreground`;
 }
 
 /** Build a 7x6 (42 cell) grid: the weeks spanning the visible month, padded out
@@ -205,9 +206,9 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full truncate rounded-[5px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`w-full rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
-            {event.title}
+            <span className="hidden truncate sm:inline">{event.title}</span>
           </button>
         ))}
         {overflowCount > 0 && (
@@ -256,7 +257,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-1.5 px-2 pb-2">
+      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}
