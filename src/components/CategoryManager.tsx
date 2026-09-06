@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
@@ -195,10 +195,10 @@ export default function CategoryManager({
         className="flex items-center justify-between text-xs font-semibold text-foreground transition-colors hover:text-foreground"
       >
         <span>Categories</span>
-        <ChevronDown
+        <ChevronRight
           className={cn(
             "size-4 text-muted-foreground transition-transform duration-200",
-            collapsed && "-rotate-90"
+            !collapsed && "rotate-90"
           )}
         />
       </button>

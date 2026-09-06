@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { format, isPast } from "date-fns";
-import { Check, ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SMALL_INPUT_CLS } from "@/components/DateField";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
@@ -269,10 +269,10 @@ export default function TaskList({
         className="flex items-center justify-between text-xs font-semibold text-foreground transition-colors hover:text-foreground"
       >
         <span>Tasks</span>
-        <ChevronDown
+        <ChevronRight
           className={cn(
             "size-4 text-muted-foreground transition-transform duration-200",
-            collapsed && "-rotate-90"
+            !collapsed && "rotate-90"
           )}
         />
       </button>
