@@ -139,12 +139,17 @@ export default function WeekGrid({
       {/* Single scroll container — scrollbar here is outside both the header
           row and the time grid, so all seven columns always line up. */}
       <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Sticky day/date header: stays visible while the time grid scrolls. */}
-        <div className="sticky top-0 z-20 bg-background">
+        {/* Header group scrolls away naturally. bg-background masks the time
+            grid while the header is still partially in view. */}
+        <div className="bg-background">
           <WeekDaysHeader days={days} selectedDate={selectedDate} onDateSelect={onDateSelect} />
           <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
           <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
         </div>
+        {/* 1 px separator that sticks to the viewport top once the header has
+            scrolled away — the only trace of the header row when the user is
+            deep in the time grid. */}
+        <div className="sticky top-0 z-20 h-px bg-border" />
         <TimeGrid
           days={days}
           events={timedEvents}
