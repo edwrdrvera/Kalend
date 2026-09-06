@@ -27,7 +27,8 @@ Kalend is a fast, minimal calendar and task manager designed for students. Creat
 - **Category manager** in the sidebar to create, rename, recolor, and delete categories.
 
 ### 🔐 Account
-- **Sign up and log in** with email and password.
+- **Waitlist** on the landing page to register interest before the app opens publicly.
+- **Log in** with a demo account to explore the full app.
 - **Your data stays yours.** Everything you create is private to your account.
 
 ---
@@ -59,15 +60,18 @@ Kalend/
 │   │   │   ├── categories/      # Categories CRUD endpoints
 │   │   │   ├── events/          # Events CRUD endpoints
 │   │   │   ├── tasks/           # Tasks CRUD endpoints
+│   │   │   ├── waitlist/        # Waitlist signup endpoint
 │   │   │   ├── ping/            # Health check endpoint
 │   │   │   └── test/            # Test endpoint
-│   │   ├── login/               # Login page
-│   │   ├── signup/              # Signup page
-│   │   ├── globals.css          # Tailwind theme tokens
-│   │   ├── layout.tsx           # Root layout
-│   │   └── page.tsx             # Main calendar page
+│   │   ├── (app)/               # Authenticated app shell
+│   │   │   └── app/             # Main calendar page
+│   │   ├── (marketing)/         # Public-facing pages
+│   │   │   ├── login/           # Login page
+│   │   │   └── page.tsx         # Landing page
+│   │   └── globals.css          # Tailwind theme tokens
 │   ├── components/
 │   │   ├── ui/                  # shadcn/ui primitives
+│   │   ├── landing/             # Landing page sections and waitlist form
 │   │   ├── Calendar.tsx         # Main calendar state manager
 │   │   ├── CalendarHeader.tsx   # Header with view switcher and navigation
 │   │   ├── CalendarSidebar.tsx  # Collapsible sidebar
@@ -76,6 +80,7 @@ Kalend/
 │   │   ├── DayGrid.tsx          # Day view
 │   │   ├── TimeGrid.tsx         # Shared 24-hour grid with drag-move and drag-resize
 │   │   ├── AllDayRow.tsx        # All-day and multi-day event lanes
+│   │   ├── EventCreatePopover.tsx # Inline event creation popover
 │   │   ├── EventModal.tsx       # Event create/edit/delete modal
 │   │   ├── TaskList.tsx         # Sidebar task list
 │   │   ├── TaskChip.tsx         # Task badge on calendar grids
@@ -83,23 +88,30 @@ Kalend/
 │   │   ├── CategoryManager.tsx  # Sidebar category manager
 │   │   ├── CategorySelect.tsx   # Category picker for forms
 │   │   ├── ColorSwatchPicker.tsx # Color picker popover
+│   │   ├── DateField.tsx        # Date input field
 │   │   ├── MiniCalendar.tsx     # Sidebar mini month picker
+│   │   ├── ThemeToggle.tsx      # Light/dark mode toggle
 │   │   ├── ViewSwitcher.tsx     # Month/Week/Day toggle
 │   │   ├── SettingsMenu.tsx     # Settings menu
-│   │   └── AuthCard.tsx         # Shared login/signup card
+│   │   └── AuthCard.tsx         # Shared login card
 │   ├── db/
 │   │   ├── schema/
 │   │   │   ├── events.ts        # Events table
 │   │   │   ├── tasks.ts         # Tasks table
 │   │   │   ├── categories.ts    # Categories table
+│   │   │   ├── waitlist.ts      # Waitlist table
 │   │   │   └── index.ts         # Schema barrel export
 │   │   ├── seed.ts              # Sample data seed script
 │   │   └── index.ts             # Database connection
 │   ├── lib/
 │   │   ├── __tests__/           # Unit and integration tests
 │   │   ├── supabase/            # Supabase browser, server, and middleware clients
+│   │   ├── api.ts               # Shared API fetch helpers
 │   │   ├── auth-validation.ts   # Input validation
+│   │   ├── calendar-types.ts    # Calendar-specific TypeScript types
 │   │   ├── event-colors.ts      # Color palette helpers
+│   │   ├── popover-position.ts  # Popover placement utilities
+│   │   ├── theme.tsx            # Theme context and provider
 │   │   ├── time-grid-layout.ts  # Event overlap layout math
 │   │   └── utils.ts             # Shared utilities
 │   └── middleware.ts            # Route protection middleware
@@ -173,7 +185,7 @@ bun run dev
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### 6. Seed Sample Data (Optional)
-Sign up (or log in) once in the app, then find your user id in the Supabase dashboard under **Authentication > Users** (or run `select id, email from auth.users;` in the SQL editor). Load the sample events from `src/db/data/data.csv` into your account:
+Find your user id in the Supabase dashboard under **Authentication > Users** (or run `select id, email from auth.users;` in the SQL editor). Load the sample events from `src/db/data/data.csv` into your account:
 
 ```bash
 SEED_USER_ID=<your-uuid> bun run db:seed
@@ -192,7 +204,7 @@ bun test
 
 ### TypeScript Verification
 ```bash
-bun run ./node_modules/typescript/bin/tsc --noEmit
+bunx tsc --noEmit
 ```
 
 ### Linting
