@@ -50,14 +50,13 @@ function formatWeekRangeTitle(weekStart: Date, weekEnd: Date): string {
 }
 
 function getDayColumnClasses(day: Date): string {
-  // border-t + border-x only — no bottom border — so the header cell and the
-  // TimeGrid column below share a seamless single border on each side with no
-  // visible gap or double-border at the connection point.
+  // Full ring on the header cell — the sticky z-20 header hovers over the
+  // time grid below, so the bottom ring sits right on top of the column.
   const base =
-    "overflow-hidden rounded-t-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 border-t border-x";
+    "overflow-hidden rounded-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
   if (isSameDay(day, new Date()))
-    return `${base} border-primary/40 bg-primary/5`;
-  return `${base} border-border bg-card`;
+    return `${base} ring-primary/40 bg-primary/5`;
+  return `${base} ring-border bg-card`;
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
