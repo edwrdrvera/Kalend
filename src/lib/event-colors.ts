@@ -46,8 +46,7 @@ export const EVENT_COLOR_CLASSES: Record<EventColor, string> = {
   teal: "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
 };
 
-export const DEFAULT_EVENT_COLOR_CLASSES =
-  "bg-neutral-100 text-neutral-600 dark:bg-neutral-700/40 dark:text-neutral-300";
+export const DEFAULT_EVENT_COLOR_CLASSES = "bg-muted text-muted-foreground";
 
 export function getEventColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_EVENT_COLOR_CLASSES;
@@ -83,8 +82,7 @@ export const TASK_COLOR_CLASSES: Record<EventColor, string> = {
   teal: "border-teal-400 text-teal-600 dark:border-teal-500/60 dark:text-teal-300",
 };
 
-export const DEFAULT_TASK_COLOR_CLASSES =
-  "border-neutral-400 text-neutral-600 dark:border-neutral-600 dark:text-neutral-300";
+export const DEFAULT_TASK_COLOR_CLASSES = "border-border text-muted-foreground";
 
 export function getTaskColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_TASK_COLOR_CLASSES;
