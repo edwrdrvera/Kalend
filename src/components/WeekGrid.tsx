@@ -147,7 +147,7 @@ export default function WeekGrid({
         onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 0)}
       >
         {/* Sticky header — collapses to a thin border strip when scrolled. */}
-        <div className="sticky top-0 z-20 bg-background">
+        <div className="sticky top-0 z-20">
           <WeekDaysHeader
             days={days}
             selectedDate={selectedDate}
