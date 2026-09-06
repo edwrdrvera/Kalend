@@ -65,7 +65,7 @@ function CategoryRow({
         type="button"
         onClick={onDeleteCategory}
         aria-label="Delete category"
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
       >
         <Trash2 className="size-3.5" />
       </button>
@@ -137,7 +137,7 @@ function CreateCategoryForm({
           placeholder="Category name"
           aria-label="New category name"
           autoFocus
-          className="input input-xs flex-1 text-xs"
+          className="h-6 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
         />
         <button
           type="submit"
@@ -157,7 +157,7 @@ function CreateCategoryForm({
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </form>
   );
 }

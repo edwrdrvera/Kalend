@@ -6,7 +6,8 @@
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
-    "db:seed": "bun run src/db/seed.ts"
+    "db:seed": "bun run src/db/seed.ts",
+    "db:seed:demo": "bun run src/db/seed-demo-user.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

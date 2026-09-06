@@ -26,14 +26,14 @@ export default function TaskDueRow({ days, tasks, categories, onTaskClick }: Tas
   if (!hasAnyTasks) return null;
 
   return (
-    <div className="flex border-b border-neutral-800">
+    <div className="flex border-b border-border">
       <div className="w-14 shrink-0" />
       <div
         className="grid flex-1"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (
-          <div key={day.getTime()} className="flex flex-col gap-0.5 border-l border-neutral-800 p-1">
+          <div key={day.getTime()} className="flex flex-col gap-0.5 border-l border-border p-1">
             {getTasksForDay(day, tasks).map((task) => (
               <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
             ))}

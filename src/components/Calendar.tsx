@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventModal, { type EventFormValues } from "./EventModal";
+import EventCreatePopover from "./EventCreatePopover";
+import { computePopoverSide } from "@/lib/popover-position";
 import type { CalendarView } from "./ViewSwitcher";
 import type {
   CalendarEvent,
@@ -321,10 +323,44 @@ export default function Calendar() {
     setViewDate(view === "month" ? startOfMonth(date) : date);
   };
 
+  // Ref on the calendar content area — used to get the container rect for
+  // popover side computation.
+  const calendarContentRef = useRef<HTMLDivElement>(null);
+
+  // Create popover (anchored to the clicked day cell)
+  const [createPopoverAnchor, setCreatePopoverAnchor] = useState<{
+    rect: DOMRect;
+    side: "left" | "right";
+    start: Date;
+  } | null>(null);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const handleCreateEvent = (day: Date, anchorRect: DOMRect) => {
+    const containerRect = calendarContentRef.current?.getBoundingClientRect();
+    const side = containerRect
+      ? computePopoverSide(anchorRect, containerRect)
+      : "right";
+    setCreatePopoverAnchor({ rect: anchorRect, side, start: day });
+    setCreateError(null);
+  };
+
+  const handleCreateSubmit = async (values: EventFormValues) => {
+    setCreateSubmitting(true);
+    setCreateError(null);
+    try {
+      await events.createEvent(values);
+      setCreatePopoverAnchor(null);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  // Edit modal (dialog — stays for editing/deleting existing events)
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [modalEvent, setModalEvent] = useState<CalendarEvent | null>(null);
-  const [modalInitialStart, setModalInitialStart] = useState<Date | undefined>();
   const [modalSubmitting, setModalSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   // Bumped every time the modal is opened so `key={modalKey}` below forces
@@ -332,17 +368,7 @@ export default function Calendar() {
   // resetting its fields after the fact.
   const [modalKey, setModalKey] = useState(0);
 
-  const handleCreateEvent = (day: Date) => {
-    setModalMode("create");
-    setModalEvent(null);
-    setModalInitialStart(day);
-    setModalError(null);
-    setModalOpen(true);
-    setModalKey((key) => key + 1);
-  };
-
   const handleEventClick = (event: CalendarEvent) => {
-    setModalMode("edit");
     setModalEvent(event);
     setModalError(null);
     setModalOpen(true);
@@ -352,13 +378,8 @@ export default function Calendar() {
   const handleModalSubmit = async (values: EventFormValues) => {
     setModalSubmitting(true);
     setModalError(null);
-
     try {
-      if (modalMode === "edit" && modalEvent) {
-        await events.updateEvent(modalEvent.id, values);
-      } else {
-        await events.createEvent(values);
-      }
+      if (modalEvent) await events.updateEvent(modalEvent.id, values);
       setModalOpen(false);
     } catch (err) {
       setModalError(err instanceof Error ? err.message : "Something went wrong");
@@ -406,7 +427,7 @@ export default function Calendar() {
           <LoadingSpinner />
         </div>
       ) : (
-        <>
+        <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {view === "month" && (
             <MonthGrid
               selectedDate={selectedDate}
@@ -458,15 +479,26 @@ export default function Calendar() {
               onViewChange={setView}
             />
           )}
-        </>
+        </div>
+      )}
+      {createPopoverAnchor && (
+        <EventCreatePopover
+          anchorRect={createPopoverAnchor.rect}
+          side={createPopoverAnchor.side}
+          initialStart={createPopoverAnchor.start}
+          categories={categories}
+          onSubmit={handleCreateSubmit}
+          onClose={() => setCreatePopoverAnchor(null)}
+          submitting={createSubmitting}
+          error={createError}
+        />
       )}
       <EventModal
         key={modalKey}
         open={modalOpen}
         onOpenChange={setModalOpen}
-        mode={modalMode}
+        mode="edit"
         event={modalEvent}
-        initialStart={modalInitialStart}
         categories={categories}
         onSubmit={handleModalSubmit}
         onDelete={handleDeleteEvent}

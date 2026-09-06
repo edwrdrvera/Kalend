@@ -116,7 +116,7 @@ interface TimeGridProps {
   days: Date[];
   events: CalendarEvent[];
   categories: CalendarCategory[];
-  onSlotClick?: (day: Date, hour: number) => void;
+  onSlotClick?: (day: Date, hour: number, anchorRect: DOMRect) => void;
   onEventClick?: (event: CalendarEvent) => void;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
@@ -429,7 +429,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-2 text-right text-[10px] text-neutral-500"
+            className="pr-2 text-right text-[10px] text-muted-foreground"
           >
             <span className="relative -top-2">{formatHourLabel(hour)}</span>
           </div>
@@ -447,7 +447,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className="relative border-l border-neutral-800"
+              className="relative border-l border-border"
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -455,15 +455,15 @@ export default function TimeGrid({
                   key={hour}
                   role="button"
                   tabIndex={0}
-                  onClick={() => onSlotClick?.(day, hour)}
+                  onClick={(e) => onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect())}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onSlotClick?.(day, hour);
+                      onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect());
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}
-                  className="border-b border-neutral-800"
+                  className="border-b border-border"
                 />
               ))}
 
@@ -508,7 +508,7 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded-r-[3px] rounded-l-none text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+                    className={`absolute overflow-hidden rounded-[5px] text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -564,7 +564,7 @@ export default function TimeGrid({
             // free from their day column. left/width stay percentages
             // since gridRef's width always matches the day columns' summed
             // width exactly (no analogous stretch happens horizontally).
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-r-[3px] rounded-l-none text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[5px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
             style={{
               left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
               width: `${(1 / days.length) * 100}%`,

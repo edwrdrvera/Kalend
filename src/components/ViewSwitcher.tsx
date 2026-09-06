@@ -16,17 +16,20 @@ interface ViewSwitcherProps {
 /** Segmented control for switching between the month, week, and day grids. */
 export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) {
   return (
-    <div className="flex items-center rounded-md border border-neutral-800 p-0.5 text-xs font-medium text-neutral-400">
+    // Pill container with a lifted active tab — matches the rounded, warm
+    // aesthetic of the month grid. No outer border; the muted background
+    // provides enough contrast.
+    <div className="flex items-center rounded-full bg-muted p-0.5 text-xs font-medium text-muted-foreground">
       {VIEWS.map(({ value, label }) => (
         <button
           key={value}
           type="button"
           onClick={() => onViewChange(value)}
           aria-pressed={view === value}
-          className={`rounded px-2.5 py-1 transition-colors ${
+          className={`rounded-full px-3 py-1 transition-colors ${
             view === value
-              ? "bg-neutral-800 text-neutral-100"
-              : "hover:text-neutral-200"
+              ? "bg-background text-foreground shadow-sm"
+              : "hover:text-foreground"
           }`}
         >
           {label}

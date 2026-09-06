@@ -25,7 +25,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
   const laneCount = Math.max(...blocks.map((b) => b.lane)) + 1;
 
   return (
-    <div className="flex border-b border-neutral-800">
+    <div className="flex border-b border-border">
       <div className="w-14 shrink-0" />
       <div
         className="relative flex-1"
@@ -36,7 +36,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
           style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
         >
           {days.map((day) => (
-            <div key={day.getTime()} className="border-l border-neutral-800" />
+            <div key={day.getTime()} className="border-l border-border" />
           ))}
         </div>
         {blocks.map(({ event, startCol, endCol, lane }) => (
@@ -51,7 +51,7 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
               left: `${(startCol / days.length) * 100}%`,
               width: `${((endCol - startCol + 1) / days.length) * 100}%`,
             }}
-            className={`absolute overflow-hidden truncate rounded-r-[3px] rounded-l-none px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`absolute overflow-hidden truncate rounded-[5px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>

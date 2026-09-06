@@ -43,8 +43,16 @@ describe("Auth Middleware (updateSession)", () => {
   });
 
   describe("Unauthenticated Visitors", () => {
-    it("redirects unauthenticated visitor from / to /login", async () => {
+    it("allows unauthenticated visitor to access the / landing page", async () => {
       const request = new NextRequest("http://localhost:3000/");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("redirects unauthenticated visitor from /app to /login", async () => {
+      const request = new NextRequest("http://localhost:3000/app");
       const response = await updateSession(request);
 
       expect(response.status).toBe(307); // NextResponse.redirect default status
@@ -59,14 +67,6 @@ describe("Auth Middleware (updateSession)", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
     });
-
-    it("allows unauthenticated visitor to access /signup", async () => {
-      const request = new NextRequest("http://localhost:3000/signup");
-      const response = await updateSession(request);
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("location")).toBeNull();
-    });
   });
 
   describe("Authenticated Users", () => {
@@ -74,30 +74,30 @@ describe("Auth Middleware (updateSession)", () => {
       mockUser = { id: "user-uuid-999", email: "student@university.edu" };
     });
 
-    it("allows authenticated user to access /", async () => {
+    it("redirects authenticated user from / to /app", async () => {
       const request = new NextRequest("http://localhost:3000/");
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(307);
+      const location = response.headers.get("location");
+      expect(location).toBe("http://localhost:3000/app");
+    });
+
+    it("allows authenticated user to access /app directly", async () => {
+      const request = new NextRequest("http://localhost:3000/app");
       const response = await updateSession(request);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
     });
 
-    it("redirects authenticated user from /login back to /", async () => {
+    it("redirects authenticated user from /login to /app", async () => {
       const request = new NextRequest("http://localhost:3000/login");
       const response = await updateSession(request);
 
       expect(response.status).toBe(307);
       const location = response.headers.get("location");
-      expect(location).toBe("http://localhost:3000/");
-    });
-
-    it("redirects authenticated user from /signup back to /", async () => {
-      const request = new NextRequest("http://localhost:3000/signup");
-      const response = await updateSession(request);
-
-      expect(response.status).toBe(307);
-      const location = response.headers.get("location");
-      expect(location).toBe("http://localhost:3000/");
+      expect(location).toBe("http://localhost:3000/app");
     });
 
     it("allows authenticated user to access API endpoints", async () => {

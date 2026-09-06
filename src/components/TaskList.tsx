@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { format, isPast } from "date-fns";
 import { Check, ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SMALL_INPUT_CLS } from "@/components/DateField";
 import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
@@ -69,7 +70,7 @@ function TaskRow({
         <span
           className={cn(
             "shrink-0 text-xs",
-            overdue ? "text-red-400" : "text-muted-foreground"
+            overdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
           )}
         >
           {format(new Date(task.due_at), "MMM d")}
@@ -80,13 +81,14 @@ function TaskRow({
         type="button"
         onClick={() => onDeleteTask(task)}
         aria-label="Delete task"
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
       >
         <Trash2 className="size-3.5" />
       </button>
     </div>
   );
 }
+
 
 /** Idle: a plain "Add a task" row, styled to invite a click but taking no
  *  more space than a single line. Clicking it swaps in the real form
@@ -164,7 +166,7 @@ function CreateTaskForm({
           placeholder="Task title"
           aria-label="New task title"
           autoFocus
-          className="input input-xs flex-1 text-xs"
+          className={cn(SMALL_INPUT_CLS, "flex-1")}
         />
         <button
           type="submit"
@@ -190,7 +192,7 @@ function CreateTaskForm({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="input input-xs flex-1 text-xs"
+            className={cn(SMALL_INPUT_CLS, "flex-1")}
           />
           <button
             type="button"
@@ -221,7 +223,7 @@ function CreateTaskForm({
         className="-ml-2 self-start"
       />
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </form>
   );
 }

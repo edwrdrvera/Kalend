@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "@/lib/theme";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import KalendWordmark from "./KalendWordmark";
 import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
+import ThemeToggle from "./ThemeToggle";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
@@ -44,23 +47,35 @@ export default function CalendarSidebar({
   onDeleteCategory,
 }: CalendarSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { theme } = useTheme();
+  const wordmarkTone = theme === "dark" ? "white" : "ink";
 
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card transition-[width] duration-200 ease-in-out",
+        "flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-sidebar transition-[width] duration-200 ease-in-out",
         collapsed ? "w-12" : "w-64"
       )}
     >
-      <div className="p-4 flex items-center justify-between">
-        <button
-          onClick={() => setCollapsed((value) => !value)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-pressed={collapsed}
-          className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground shrink-0"
-        >
-          <Menu size={18} />
-        </button>
+      {/* Top bar: always rendered outside the inert zone. When collapsed the
+          sidebar is only 48px wide so we show just the menu toggle centered;
+          ThemeToggle is hidden until expanded so nothing fights for space. */}
+      <div className={cn(
+        "flex shrink-0 items-center",
+        collapsed ? "justify-center p-2" : "justify-between gap-2 p-4"
+      )}>
+        {!collapsed && <KalendWordmark size="sm" tone={wordmarkTone} animation="scatter" />}
+        <div className={cn("flex shrink-0 items-center gap-1", !collapsed && "ml-auto")}>
+          {!collapsed && <ThemeToggle />}
+          <button
+            onClick={() => setCollapsed((value) => !value)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <Menu size={18} />
+          </button>
+        </div>
       </div>
 
       <div inert={collapsed} className={cn("flex w-64 flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>

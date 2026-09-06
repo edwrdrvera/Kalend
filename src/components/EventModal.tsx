@@ -12,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
+import { Button } from "@/components/ui/button";
 import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
@@ -124,14 +126,9 @@ function TimeRangeField({
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">Start</label>
               <div className="flex flex-col gap-1.5">
-                <input
-                  type="date"
+                <DateField
                   value={start.date}
-                  onChange={(e) =>
-                    onStartAtChange(joinDateTimeLocal(e.target.value, start.time))
-                  }
-                  required={expanded}
-                  className="input input-xs w-full"
+                  onChange={(d) => onStartAtChange(joinDateTimeLocal(d, start.time))}
                 />
                 <input
                   type="time"
@@ -140,21 +137,16 @@ function TimeRangeField({
                     onStartAtChange(joinDateTimeLocal(start.date, e.target.value))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className={cn(SMALL_INPUT_CLS, "w-full")}
                 />
               </div>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground">End</label>
               <div className="flex flex-col gap-1.5">
-                <input
-                  type="date"
+                <DateField
                   value={end.date}
-                  onChange={(e) =>
-                    onEndAtChange(joinDateTimeLocal(e.target.value, end.time))
-                  }
-                  required={expanded}
-                  className="input input-xs w-full"
+                  onChange={(d) => onEndAtChange(joinDateTimeLocal(d, end.time))}
                 />
                 <input
                   type="time"
@@ -163,7 +155,7 @@ function TimeRangeField({
                     onEndAtChange(joinDateTimeLocal(end.date, e.target.value))
                   }
                   required={expanded}
-                  className="input input-xs w-full"
+                  className={cn(SMALL_INPUT_CLS, "w-full")}
                 />
               </div>
             </div>
@@ -257,14 +249,16 @@ export default function EventModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-6 sm:max-w-md">
         {mode === "edit" && onDelete && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={onDelete}
             aria-label="Delete event"
-            className="btn btn-ghost btn-sm btn-square absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            className="absolute top-2 right-10 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <Trash2 className="size-4" />
-          </button>
+          </Button>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader className="gap-1">
@@ -320,9 +314,9 @@ export default function EventModal({
           )}
 
           <DialogFooter className="mx-0 mb-0 border-t-0 bg-transparent p-0">
-            <button type="submit" disabled={submitting} className="btn btn-primary btn-sm w-full">
+            <Button type="submit" disabled={submitting} size="sm" className="w-full">
               {submitting ? "Saving..." : mode === "edit" ? "Save changes" : "Create event"}
-            </button>
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

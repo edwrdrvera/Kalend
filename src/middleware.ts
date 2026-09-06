@@ -14,8 +14,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - api/ping (health check endpoint)
      * - api/test (scratch mock endpoint)
+     * - api/waitlist (public landing-page signup, no auth)
      * - Static asset files (.svg, .png, .jpg, .jpeg, .gif, .webp)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/test|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/test|api/waitlist|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
