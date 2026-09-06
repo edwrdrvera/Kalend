@@ -56,17 +56,22 @@ export default function DayGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-      <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-      <TimeGrid
-        days={days}
-        events={timedEvents}
-        categories={categories}
-        onEventClick={onEventClick}
-        onEventMove={onEventMove}
-        onEventResize={onEventResize}
-        onSlotClick={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
-      />
+      {/* Single scroll container — same pattern as WeekGrid. */}
+      <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="sticky top-0 z-20 bg-background">
+          <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
+          <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
+        </div>
+        <TimeGrid
+          days={days}
+          events={timedEvents}
+          categories={categories}
+          onEventClick={onEventClick}
+          onEventMove={onEventMove}
+          onEventResize={onEventResize}
+          onSlotClick={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
+        />
+      </div>
     </div>
   );
 }

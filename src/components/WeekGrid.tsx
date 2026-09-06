@@ -136,21 +136,28 @@ export default function WeekGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <WeekDaysHeader days={days} selectedDate={selectedDate} onDateSelect={onDateSelect} />
-      <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-      <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-      <TimeGrid
-        days={days}
-        events={timedEvents}
-        categories={categories}
-        onEventClick={onEventClick}
-        onEventMove={onEventMove}
-        onEventResize={onEventResize}
-        onSlotClick={(day, hour, anchorRect) => {
-          onDateSelect(day);
-          onCreateEvent(setHours(day, hour), anchorRect);
-        }}
-      />
+      {/* Single scroll container — scrollbar here is outside both the header
+          row and the time grid, so all seven columns always line up. */}
+      <div className="flex flex-1 flex-col overflow-y-auto">
+        {/* Sticky day/date header: stays visible while the time grid scrolls. */}
+        <div className="sticky top-0 z-20 bg-background">
+          <WeekDaysHeader days={days} selectedDate={selectedDate} onDateSelect={onDateSelect} />
+          <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
+          <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
+        </div>
+        <TimeGrid
+          days={days}
+          events={timedEvents}
+          categories={categories}
+          onEventClick={onEventClick}
+          onEventMove={onEventMove}
+          onEventResize={onEventResize}
+          onSlotClick={(day, hour, anchorRect) => {
+            onDateSelect(day);
+            onCreateEvent(setHours(day, hour), anchorRect);
+          }}
+        />
+      </div>
     </div>
   );
 }

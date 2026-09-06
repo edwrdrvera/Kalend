@@ -444,7 +444,7 @@ export default function TimeGrid({
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
-    <div className="flex flex-1 overflow-y-auto">
+    <div className="flex">
       <div className="w-14 shrink-0">
         {HOURS.map((hour) => (
           <div
@@ -468,7 +468,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className={`relative ${isToday ? "bg-primary/5" : "bg-card"}`}
+              className={`relative ring-1 ring-inset ${isToday ? "bg-primary/5 ring-primary/40" : "bg-card ring-border"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
