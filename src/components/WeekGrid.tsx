@@ -52,7 +52,7 @@ function getDayColumnClasses(day: Date): string {
   // ring-inset renders the border inside the box — no effect on layout, so
   // the columns stay pixel-perfect aligned with TimeGrid's columns below.
   const base =
-    "flex flex-col items-center gap-1 rounded-lg py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
+    "flex flex-col items-center gap-1 rounded-[10px] py-2 transition-colors cursor-pointer hover:bg-muted/40 ring-1 ring-inset";
   if (isSameDay(day, new Date()))
     return `${base} ring-primary/40 bg-primary/5`;
   return `${base} ring-border bg-card`;
@@ -77,13 +77,13 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="shrink-0 pt-2 pb-1.5">
+    <div className="flex shrink-0 pt-2 pb-1.5">
+      {/* Spacer aligns with the hour-label column in TimeGrid */}
+      <div className="w-14 shrink-0" />
       <div
-        className="grid"
-        style={{ gridTemplateColumns: `56px repeat(${days.length}, minmax(0, 1fr))` }}
+        className="grid flex-1 gap-2"
+        style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
-        {/* Spacer aligns with the hour-label column in TimeGrid */}
-        <div />
         {days.map((day) => (
           <button
             key={day.getTime()}

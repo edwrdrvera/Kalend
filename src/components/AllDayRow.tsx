@@ -28,17 +28,12 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
     <div className="flex border-b border-border">
       <div className="w-14 shrink-0" />
       <div
-        className="relative flex-1"
-        style={{ height: laneCount * LANE_HEIGHT_PX }}
+        className="grid flex-1 gap-x-2"
+        style={{
+          gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${laneCount}, ${LANE_HEIGHT_PX}px)`,
+        }}
       >
-        <div
-          className="absolute inset-0 grid"
-          style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
-        >
-          {days.map((day) => (
-            <div key={day.getTime()} className="border-l border-border" />
-          ))}
-        </div>
         {blocks.map(({ event, startCol, endCol, lane }) => (
           <button
             key={event.id}
@@ -46,12 +41,10 @@ export default function AllDayRow({ days, events, categories, onEventClick }: Al
             title={event.title}
             onClick={() => onEventClick?.(event)}
             style={{
-              top: lane * LANE_HEIGHT_PX,
-              height: LANE_HEIGHT_PX,
-              left: `${(startCol / days.length) * 100}%`,
-              width: `${((endCol - startCol + 1) / days.length) * 100}%`,
+              gridColumn: `${startCol + 1} / ${endCol + 2}`,
+              gridRow: lane + 1,
             }}
-            className={`absolute overflow-hidden truncate rounded-[5px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+            className={`overflow-hidden truncate rounded-[6px] px-1.5 py-0.5 text-left text-[11px] font-medium ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
           >
             {event.title}
           </button>

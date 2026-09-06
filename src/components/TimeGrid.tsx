@@ -84,6 +84,10 @@ interface MoveDrag {
    *  at pickup, so the block doesn't jump to be centered under the cursor. */
   grabOffsetMinutes: number;
   moved: boolean;
+  /** Pixel offset and width of the origin day column within gridRef,
+   *  captured at pickup so ghost positioning accounts for CSS grid gaps. */
+  originColumnLeft: number;
+  columnWidth: number;
 }
 
 /** The drag's current day/time, snapped to `SNAP_MINUTES` — written on every
@@ -222,6 +226,15 @@ export default function TimeGrid({
     const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
     const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
 
+    // Capture column pixel metrics at pickup so the ghost and day-index
+    // calculations stay correct even with CSS grid gaps between columns.
+    const gridEl = gridRef.current;
+    const gridRect = gridEl?.getBoundingClientRect();
+    const columnEl = gridEl?.children[dayIndex] as HTMLElement | undefined;
+    const columnRect = columnEl?.getBoundingClientRect();
+    const originColumnLeft = columnRect && gridRect ? columnRect.left - gridRect.left : 0;
+    const columnWidth = columnRect?.width ?? (gridRect ? gridRect.width / days.length : 0);
+
     hasStartedMoveRef.current = false;
     liveDragRef.current = { dayIndex, startMinutes: originalStartMinutes };
     setMoveDrag({
@@ -233,6 +246,8 @@ export default function TimeGrid({
       durationMinutes: originalEndMinutes - originalStartMinutes,
       grabOffsetMinutes: clientYToMinutes(e.clientY) - originalStartMinutes,
       moved: false,
+      originColumnLeft,
+      columnWidth,
     });
   }
 
@@ -261,9 +276,9 @@ export default function TimeGrid({
     // used to actually place the event are computed separately below and
     // only ever read once, on drop.
     const rect = gridRef.current?.getBoundingClientRect();
-    const dayColumnWidth = rect && days.length > 0 ? rect.width / days.length : 0;
+    const dayColumnWidth = drag.columnWidth;
     const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
-    const originalLeftPx = drag.originalDayIndex * dayColumnWidth;
+    const originalLeftPx = drag.originColumnLeft;
     const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
 
     const clampedDeltaX = rect
@@ -285,10 +300,16 @@ export default function TimeGrid({
       MINUTES_PER_DAY - drag.durationMinutes
     );
 
+    // Derive the gap between columns from the known column width and grid
+    // width so the day-index calculation stays accurate with CSS grid gaps.
     let liveDayIndex = drag.originalDayIndex;
-    if (rect && rect.width > 0) {
-      const fraction = (clientX - rect.left) / rect.width;
-      liveDayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(fraction * days.length)));
+    if (rect && dayColumnWidth > 0) {
+      const gapSize = days.length > 1
+        ? (rect.width - days.length * dayColumnWidth) / (days.length - 1)
+        : 0;
+      const stepSize = dayColumnWidth + gapSize;
+      const relX = clientX - rect.left;
+      liveDayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(relX / stepSize)));
     }
 
     liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
@@ -437,7 +458,7 @@ export default function TimeGrid({
       </div>
       <div
         ref={gridRef}
-        className="relative grid flex-1"
+        className="relative grid flex-1 gap-2"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day, dayIndex) => {
@@ -447,7 +468,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
-              className="relative border-l border-border"
+              className={`relative ${isToday ? "bg-primary/5" : "bg-card"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -463,7 +484,7 @@ export default function TimeGrid({
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}
-                  className="border-b border-border"
+                  className="border-b border-border/40"
                 />
               ))}
 
@@ -508,7 +529,7 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded-[5px] text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
+                    className={`absolute overflow-hidden rounded-[6px] text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -547,27 +568,20 @@ export default function TimeGrid({
         {draggedEvent && moveDrag && (
           <div
             ref={ghostRef}
-            // top/left/width/height are fixed at the block's pre-drag
-            // position and never updated from state — applyPointerMove
-            // moves the ghost purely via `transform`, written directly to
-            // this node on every pointer move so it tracks the cursor
-            // exactly instead of jumping between SNAP_MINUTES positions.
+            // All four dimensions are px, fixed at the block's pre-drag
+            // position — applyPointerMove moves the ghost purely via
+            // `transform`, written directly to this node on every pointer
+            // move so it tracks the cursor without SNAP_MINUTES stepping.
             //
-            // top/height are px, not %: gridRef (this element's parent) can
-            // render taller than DAY_HEIGHT_PX — it's a flex-1 child that
-            // stretches to fill any leftover viewport space below the
-            // 24-hour content — while every real event block is a
-            // percentage of its own day column, which stays exactly
-            // DAY_HEIGHT_PX. Percentages of the two different heights drift
-            // apart the further down the day an event sits, so the ghost
-            // needs the same fixed pixel scale the real blocks get for
-            // free from their day column. left/width stay percentages
-            // since gridRef's width always matches the day columns' summed
-            // width exactly (no analogous stretch happens horizontally).
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[5px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
+            // left/width use the column's pixel metrics captured at pickup
+            // (originColumnLeft/columnWidth), so they stay correct even
+            // with CSS grid gaps between columns — percentage-based
+            // positioning drifts because gaps eat into the percentage
+            // reference width.
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, categories))}`}
             style={{
-              left: `${(moveDrag.originalDayIndex / days.length) * 100}%`,
-              width: `${(1 / days.length) * 100}%`,
+              left: moveDrag.originColumnLeft,
+              width: moveDrag.columnWidth,
               top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
               height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
               transform: "translate3d(0, 0, 0)",
