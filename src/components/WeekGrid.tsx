@@ -13,7 +13,6 @@ import {
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
-import TaskDueRow from "./TaskDueRow";
 import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
@@ -41,7 +40,7 @@ function getWeekDays(viewDate: Date): Date[] {
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
-  const base = "flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold";
+  const base = "flex size-11 items-center justify-center rounded-full text-xl font-semibold tracking-[-0.03em]";
   if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
   if (isSameDay(day, new Date())) return `${base} text-primary`;
   return `${base} text-foreground`;
@@ -57,14 +56,10 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    // Border-b connects visually with the all-day row / time grid below.
-    // No per-cell borders — the shared border-b here and the time grid's
-    // outer left border from the column container provide enough structure.
-    <div className="flex h-[86px] shrink-0 border-b border-border bg-card">
-      {/* Gutter with right border aligns with the time-label column */}
-      <div className="w-16 shrink-0 border-r border-border" />
+    <div className="flex h-[104px] shrink-0 border-b border-border bg-card">
+      <div className="w-16 shrink-0" />
       <div
-        className="grid flex-1 divide-x divide-border"
+        className="grid flex-1"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (
@@ -72,11 +67,9 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 transition-colors hover:bg-muted/40 ${
-              isSameDay(day, new Date()) ? "bg-primary/[0.03]" : ""
-            }`}
+            className="flex cursor-pointer flex-col items-center justify-center gap-1.5 transition-colors hover:bg-muted/40"
           >
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               {format(day, "EEE")}
             </span>
             <span className={getDayNumberClasses(day, selectedDate)}>
@@ -132,13 +125,9 @@ export default function WeekGrid({
       <AllDayRow
         days={days}
         events={events}
-        categories={categories}
-        onEventClick={onEventClick}
-      />
-      <TaskDueRow
-        days={days}
         tasks={tasks}
         categories={categories}
+        onEventClick={onEventClick}
         onTaskClick={onTaskClick}
       />
       <div

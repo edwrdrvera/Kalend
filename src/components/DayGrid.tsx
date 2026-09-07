@@ -5,7 +5,6 @@ import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
-import TaskDueRow from "./TaskDueRow";
 import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
@@ -98,13 +97,9 @@ export default function DayGrid({
       <AllDayRow
         days={days}
         events={events}
-        categories={categories}
-        onEventClick={onEventClick}
-      />
-      <TaskDueRow
-        days={days}
         tasks={tasks}
         categories={categories}
+        onEventClick={onEventClick}
         onTaskClick={onTaskClick}
       />
       <div
