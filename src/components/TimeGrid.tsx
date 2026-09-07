@@ -13,7 +13,7 @@ import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-export const HOUR_HEIGHT_PX = 72;
+export const HOUR_HEIGHT_PX = 64;
 const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
 const MINUTES_PER_DAY = 24 * 60;
 
@@ -534,7 +534,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-[7px] border text-left text-xs font-semibold shadow-[0_3px_8px_rgba(28,26,22,0.04)] ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —

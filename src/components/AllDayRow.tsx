@@ -38,8 +38,8 @@ export default function AllDayRow({
   const hasTasks = tasksByDay.some((dayTasks) => dayTasks.length > 0);
 
   return (
-    <div className="flex min-h-[58px] shrink-0 border-b border-border bg-card">
-      <div className="flex w-16 shrink-0 items-start justify-end border-r border-border pr-3 pt-5">
+    <div className="flex min-h-[50px] shrink-0 border-b border-border bg-card">
+      <div className="flex w-16 shrink-0 items-start justify-end border-r border-border pr-3 pt-4">
         <span className="text-xs leading-none text-muted-foreground">all-day</span>
       </div>
       <div className="relative flex flex-1 flex-col py-1">
@@ -57,7 +57,7 @@ export default function AllDayRow({
             style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
           >
             {tasksByDay.map((dayTasks, dayIndex) => (
-              <div key={days[dayIndex].getTime()} className="flex min-w-0 flex-col gap-1 px-2 py-1">
+              <div key={days[dayIndex].getTime()} className="flex min-w-0 flex-col gap-1 px-1.5 py-1">
                 {dayTasks.map((task) => (
                   <TaskChip
                     key={task.id}
@@ -89,7 +89,7 @@ export default function AllDayRow({
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
                   gridRow: lane + 1,
                 }}
-                className={`mx-2 my-0.5 overflow-hidden truncate rounded-[6px] border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
               >
                 {event.title}
               </button>

@@ -199,9 +199,9 @@ export default function CategoryManager({
   );
 
   return (
-    <div className="flex flex-col px-7 pb-5 pt-2">
+    <div className="flex flex-col px-5 pb-4 pt-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-[22px] font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
+        <h2 className="text-xl font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
         <button
           type="button"
           onClick={() => setCreating((current) => !current)}
@@ -213,7 +213,7 @@ export default function CategoryManager({
         </button>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3">
+      <div className="mt-3 flex flex-col gap-2">
         <CreateCategoryForm
           open={creating}
           onClose={() => setCreating(false)}

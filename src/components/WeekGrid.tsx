@@ -40,7 +40,7 @@ function getWeekDays(viewDate: Date): Date[] {
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
-  const base = "flex size-11 items-center justify-center rounded-full text-xl font-semibold tracking-[-0.03em]";
+  const base = "flex size-9 items-center justify-center rounded-full text-lg font-bold tracking-[-0.03em]";
   if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
   if (isSameDay(day, new Date())) return `${base} text-primary`;
   return `${base} text-foreground`;
@@ -56,7 +56,7 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex h-[104px] shrink-0 border-b border-border bg-card">
+    <div className="flex h-[74px] shrink-0 border-b border-border bg-card">
       <div className="w-16 shrink-0" />
       <div
         className="grid flex-1"
@@ -67,9 +67,9 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className="flex cursor-pointer flex-col items-center justify-center gap-1.5 transition-colors hover:bg-muted/40"
+            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-4 transition-colors hover:bg-muted/40 lg:pl-5"
           >
-            <span className="text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <span className="w-9 text-center text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               {format(day, "EEE")}
             </span>
             <span className={getDayNumberClasses(day, selectedDate)}>

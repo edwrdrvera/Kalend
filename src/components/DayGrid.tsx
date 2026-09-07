@@ -38,7 +38,7 @@ function DayColumnHeader({
   const isSelected = isSameDay(day, selectedDate);
   const isToday = isSameDay(day, new Date());
 
-  let numberCls = "flex h-10 w-10 items-center justify-center rounded-full text-[17px] font-semibold";
+  let numberCls = "flex size-9 items-center justify-center rounded-full text-lg font-bold";
   if (isSelected) numberCls += " bg-primary text-primary-foreground";
   else if (isToday) numberCls += " text-primary";
   else numberCls += " text-foreground";
@@ -46,7 +46,7 @@ function DayColumnHeader({
   return (
     <div className={`flex shrink-0 border-b border-border bg-background ${isToday ? "bg-primary/[0.03]" : ""}`}>
       <div className="w-16 shrink-0 border-r border-border" />
-      <div className="flex flex-1 flex-col items-center gap-1 py-3">
+      <div className="flex h-[74px] flex-1 flex-col items-start justify-center gap-0.5 pl-5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {format(day, "EEE")}
         </span>

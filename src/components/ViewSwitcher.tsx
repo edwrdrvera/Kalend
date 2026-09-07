@@ -16,7 +16,7 @@ interface ViewSwitcherProps {
 /** Segmented control for switching between the month, week, and day grids. */
 export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) {
   return (
-    <div className="flex items-center overflow-hidden rounded-lg border border-border bg-card text-xs font-semibold text-muted-foreground shadow-sm">
+    <div className="flex items-center overflow-hidden rounded-md border border-border bg-card text-xs font-semibold text-muted-foreground">
       {VIEWS.map(({ value, label }) => (
         <button
           key={value}
@@ -25,7 +25,7 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           aria-pressed={view === value}
           className={`h-9 border-r border-border px-3 transition-colors last:border-r-0 ${
             view === value
-              ? "bg-muted text-foreground shadow-[inset_0_0_0_1px_rgba(28,26,22,0.04)]"
+              ? "bg-muted text-foreground"
               : "hover:bg-muted/50 hover:text-foreground"
           }`}
         >

@@ -67,7 +67,7 @@ export default function CalendarSidebar({
 
       <aside
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-[320px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[21.25vw] md:min-w-[280px] md:max-w-[420px] md:translate-x-0 md:shadow-none",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-[292px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[292px] md:translate-x-0 md:shadow-none",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -81,12 +81,6 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-full w-full flex-1 flex-col">
-          <div className="hidden items-center gap-3 px-8 pb-5 pt-7 md:flex" aria-hidden="true">
-            <span className="size-3.5 rounded-full bg-[#ff5f57] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]" />
-            <span className="size-3.5 rounded-full bg-[#febc2e] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]" />
-            <span className="size-3.5 rounded-full bg-[#28c840] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]" />
-          </div>
-
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}
@@ -97,14 +91,14 @@ export default function CalendarSidebar({
             onDeleteCategory={onDeleteCategory}
           />
 
-          <div className="mt-auto pt-8">
+          <div className="mt-auto pt-4">
             <MiniCalendar
               currentDate={currentDate}
               viewDate={viewDate}
               onDateSelect={onDateSelect}
             />
 
-            <div className="border-t border-border px-7 py-5">
+            <div className="border-t border-border px-5 py-4">
               <button
                 type="button"
                 onClick={toggleTheme}
