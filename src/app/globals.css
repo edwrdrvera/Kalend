@@ -278,3 +278,10 @@
   opacity: 0;
   animation: kal-fade-up 0.7s ease-out forwards;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .kal-fade-up {
+    opacity: 1;
+    animation: none;
+  }
+}

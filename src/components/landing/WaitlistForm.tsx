@@ -61,10 +61,10 @@ export default function WaitlistForm() {
   }
 
   return (
-    <div id="waitlist" className="flex w-full flex-col items-center gap-2">
+    <div id="waitlist" className="flex w-full flex-col items-center gap-2 min-[960px]:items-start">
       <form
         onSubmit={handleSubmit}
-        className="flex w-full flex-col items-stretch gap-3 min-[860px]:w-auto min-[860px]:flex-row min-[860px]:items-center"
+        className="flex w-full flex-col items-stretch gap-3 min-[560px]:flex-row min-[560px]:items-center"
       >
         <label htmlFor="waitlist-email" className="sr-only">
           Email address
@@ -80,7 +80,7 @@ export default function WaitlistForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-describedby="waitlist-consent waitlist-error"
-          className="w-full rounded-[10px] border border-[var(--kal-border)] bg-white px-4 py-3 text-[15px] text-[var(--kal-ink)] placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60 min-[860px]:w-[280px]"
+          className="min-w-0 flex-1 rounded-[10px] border border-[var(--kal-border)] bg-white px-4 py-3 text-[15px] text-[var(--kal-ink)] shadow-sm placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60"
         />
         <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
           <label htmlFor="waitlist-website">Website</label>
