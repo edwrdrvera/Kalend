@@ -415,8 +415,7 @@ export default function Calendar() {
   );
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-background p-0 text-foreground md:p-4 lg:p-5">
-      <div className="relative flex h-full w-full overflow-hidden border-border bg-card shadow-[0_24px_70px_rgba(28,26,22,0.12)] md:rounded-[24px] md:border">
+    <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
         {(events.error || tasksError || categoriesError) && (
           <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
             {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
@@ -501,7 +500,6 @@ export default function Calendar() {
             )}
           </div>
         )}
-      </div>
       {createPopoverAnchor && (
         <EventCreatePopover
           anchorRect={createPopoverAnchor.rect}

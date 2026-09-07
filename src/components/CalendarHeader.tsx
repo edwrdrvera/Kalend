@@ -25,8 +25,11 @@ export default function CalendarHeader({
   onViewChange,
 }: CalendarHeaderProps) {
   return (
-    <div className="grid min-h-[82px] shrink-0 grid-cols-2 items-center gap-3 border-b border-border bg-card px-4 py-3 sm:px-5 lg:grid-cols-[1fr_auto_1fr]">
-      <div className="order-2 flex items-center lg:order-1">
+    <div className="flex min-h-[82px] shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 pl-16 sm:px-5 md:pl-5">
+      <h1 className="mr-2 text-xl font-extrabold tracking-[-0.035em] text-foreground whitespace-nowrap">
+        {title}
+      </h1>
+      <div className="flex items-center">
         <div className="flex overflow-hidden rounded-lg border border-border bg-card shadow-sm">
           <button
             onClick={onPrev}
@@ -50,10 +53,7 @@ export default function CalendarHeader({
           </button>
         </div>
       </div>
-      <h1 className="order-1 col-span-2 text-center text-xl font-extrabold tracking-[-0.035em] text-foreground whitespace-nowrap lg:order-2 lg:col-span-1">
-        {title}
-      </h1>
-      <div className="order-3 justify-self-end">
+      <div className="ml-auto">
         <ViewSwitcher view={view} onViewChange={onViewChange} />
       </div>
     </div>

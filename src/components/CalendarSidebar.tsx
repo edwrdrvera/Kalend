@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useTheme } from "@/lib/theme";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import KalendWordmark from "./KalendWordmark";
 import MiniCalendar from "./MiniCalendar";
 import TaskList from "./TaskList";
 import CategoryManager from "./CategoryManager";
@@ -51,72 +49,78 @@ export default function CalendarSidebar({
   onUpdateCategory,
   onDeleteCategory,
 }: CalendarSidebarProps) {
-  const [collapsed, setCollapsed] = useState(
-    () => window.matchMedia("(max-width: 767px)").matches
-  );
-  const { theme } = useTheme();
-  const wordmarkTone = theme === "dark" ? "white" : "ink";
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside
-      className={cn(
-        "absolute inset-y-0 left-0 z-40 flex h-full shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-sidebar/95 shadow-lg backdrop-blur transition-[width] duration-200 ease-in-out md:relative md:z-auto md:shadow-none",
-        collapsed ? "w-[52px]" : "w-[292px]"
+    <>
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open sidebar"
+        className="absolute left-3 top-3 z-30 grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm md:hidden"
+      >
+        <Menu className="size-4" />
+      </button>
+
+      {mobileOpen && (
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close sidebar"
+          className="absolute inset-0 z-40 bg-foreground/15 backdrop-blur-[1px] md:hidden"
+        />
       )}
-    >
-      {/* The collapse control stays outside the inert zone so the sidebar can
-          always be reopened, including on the compact mobile layout. */}
-      <div className={cn(
-        "flex shrink-0 items-center",
-        collapsed ? "justify-center px-2 py-5" : "justify-between gap-2 px-5 py-5"
-      )}>
-        {!collapsed && <KalendWordmark size="sm" tone={wordmarkTone} animation="scatter" />}
-        <div className={cn("flex shrink-0 items-center gap-1", !collapsed && "ml-auto")}>
-          <button
-            onClick={() => setCollapsed((value) => !value)}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-pressed={collapsed}
-            className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <Menu size={18} />
-          </button>
-        </div>
-      </div>
 
-      <div inert={collapsed} className={cn("flex w-[292px] flex-1 flex-col transition-opacity duration-150", collapsed && "opacity-0")}>
-        <CategoryManager
-          categories={categories}
-          loading={categoriesLoading}
-          hiddenCategoryIds={hiddenCategoryIds}
-          onToggleCategoryVisibility={onToggleCategoryVisibility}
-          onCreateCategory={onCreateCategory}
-          onUpdateCategory={onUpdateCategory}
-          onDeleteCategory={onDeleteCategory}
-        />
+      <aside
+        className={cn(
+          "absolute inset-y-0 left-0 z-50 flex h-full w-[292px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:translate-x-0 md:shadow-none",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Close sidebar"
+          className="absolute right-12 top-6 z-10 grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+        >
+          <X className="size-4" />
+        </button>
 
-        <MiniCalendar
-          currentDate={currentDate}
-          viewDate={viewDate}
-          onDateSelect={onDateSelect}
-        />
+        <div className="flex w-[292px] flex-1 flex-col">
+          <CategoryManager
+            categories={categories}
+            loading={categoriesLoading}
+            hiddenCategoryIds={hiddenCategoryIds}
+            onToggleCategoryVisibility={onToggleCategoryVisibility}
+            onCreateCategory={onCreateCategory}
+            onUpdateCategory={onUpdateCategory}
+            onDeleteCategory={onDeleteCategory}
+          />
 
-        <TaskList
-          tasks={tasks}
-          loading={tasksLoading}
-          categories={categories}
-          onCreateTask={onCreateTask}
-          onToggleComplete={onToggleTaskComplete}
-          onDeleteTask={onDeleteTask}
-        />
+          <MiniCalendar
+            currentDate={currentDate}
+            viewDate={viewDate}
+            onDateSelect={onDateSelect}
+          />
 
-        <div className="mt-auto flex items-center justify-between border-t border-border px-5 py-4">
-          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-            <ThemeToggle />
-            <span>Appearance</span>
+          <TaskList
+            tasks={tasks}
+            loading={tasksLoading}
+            categories={categories}
+            onCreateTask={onCreateTask}
+            onToggleComplete={onToggleTaskComplete}
+            onDeleteTask={onDeleteTask}
+          />
+
+          <div className="mt-auto flex items-center justify-between border-t border-border px-5 py-4">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <ThemeToggle />
+              <span>Appearance</span>
+            </div>
+            <SettingsMenu />
           </div>
-          <SettingsMenu />
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

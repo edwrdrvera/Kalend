@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
@@ -100,22 +100,23 @@ function CategoryRow({
   );
 }
 
-/** Idle: a plain "Add a category" row, same trigger style as TaskList's
- *  CreateTaskForm. Expanded: a color swatch + name input. Submitting (or
- *  Escape, or the cancel button) collapses back to the idle row. */
+/** Compact create form opened by the plus button in the Spaces header. */
 function CreateCategoryForm({
+  open,
+  onClose,
   onCreateCategory,
 }: {
+  open: boolean;
+  onClose: () => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
 }) {
-  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const close = () => {
-    setOpen(false);
+    onClose();
     setName("");
     setColor(DEFAULT_EVENT_COLOR);
     setError(null);
@@ -138,18 +139,7 @@ function CreateCategoryForm({
     }
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-      >
-        <Plus className="size-3.5" />
-        Add a Space
-      </button>
-    );
-  }
+  if (!open) return null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
@@ -189,8 +179,6 @@ function CreateCategoryForm({
   );
 }
 
-const COLLAPSED_STORAGE_KEY = "kalend:categories-panel-collapsed";
-
 export default function CategoryManager({
   categories,
   loading,
@@ -200,67 +188,46 @@ export default function CategoryManager({
   onUpdateCategory,
   onDeleteCategory,
 }: CategoryManagerProps) {
-  // Collapsed by default, same reasoning as TaskList: don't cost permanent
-  // sidebar space for someone not using categories yet. Only reachable
-  // client-side (never rendered during SSR, see Calendar's `mounted` gate).
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true"
-  );
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next));
-      return next;
-    });
-  };
+  const [creating, setCreating] = useState(false);
 
   return (
-    <div className="flex flex-col border-t border-border px-5 py-4">
-      <button
-        type="button"
-        onClick={toggleCollapsed}
-        aria-expanded={!collapsed}
-        className="flex items-center justify-between text-sm font-bold tracking-[-0.02em] text-foreground transition-colors hover:text-foreground"
-      >
-        <span>Spaces</span>
-        <ChevronRight
-          className={cn(
-            "size-4 text-muted-foreground transition-transform duration-200",
-            !collapsed && "rotate-90"
-          )}
+    <div className="flex flex-col px-5 pb-5 pt-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
+        <button
+          type="button"
+          onClick={() => setCreating((current) => !current)}
+          aria-label={creating ? "Cancel creating Space" : "Create a Space"}
+          aria-expanded={creating}
+          className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3">
+        <CreateCategoryForm
+          open={creating}
+          onClose={() => setCreating(false)}
+          onCreateCategory={onCreateCategory}
         />
-      </button>
 
-      <div
-        inert={collapsed}
-        className={cn(
-          "grid transition-all duration-200 ease-in-out",
-          collapsed ? "grid-rows-[0fr] opacity-0" : "mt-3 grid-rows-[1fr] opacity-100"
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="flex flex-col gap-3">
-            <CreateCategoryForm onCreateCategory={onCreateCategory} />
-
-            {loading ? (
-              <p className="text-xs text-muted-foreground">Loading Spaces…</p>
-            ) : categories.length === 0 ? null : (
-              <div className="flex flex-col">
-                {categories.map((category) => (
-                  <CategoryRow
-                    key={category.id}
-                    category={category}
-                    visible={!hiddenCategoryIds.includes(category.id)}
-                    onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
-                    onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
-                    onDeleteCategory={() => onDeleteCategory(category)}
-                  />
-                ))}
-              </div>
-            )}
+        {loading ? (
+          <p className="text-xs text-muted-foreground">Loading Spaces…</p>
+        ) : categories.length === 0 ? null : (
+          <div className="flex flex-col">
+            {categories.map((category) => (
+              <CategoryRow
+                key={category.id}
+                category={category}
+                visible={!hiddenCategoryIds.includes(category.id)}
+                onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
+                onDeleteCategory={() => onDeleteCategory(category)}
+              />
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   format,
   startOfWeek,
@@ -14,7 +14,7 @@ import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calend
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
 import TaskDueRow from "./TaskDueRow";
-import TimeGrid from "./TimeGrid";
+import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -60,7 +60,7 @@ function WeekDaysHeader({
     // Border-b connects visually with the all-day row / time grid below.
     // No per-cell borders — the shared border-b here and the time grid's
     // outer left border from the column container provide enough structure.
-    <div className="flex shrink-0 border-b border-border bg-background">
+    <div className="flex h-[70px] shrink-0 border-b border-border bg-card">
       {/* Gutter with right border aligns with the time-label column */}
       <div className="w-16 shrink-0 border-r border-border" />
       <div
@@ -72,7 +72,7 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className={`flex flex-col items-center gap-1 py-2.5 transition-colors hover:bg-muted/40 cursor-pointer ${
+            className={`flex flex-col items-center justify-center gap-1 transition-colors hover:bg-muted/40 cursor-pointer ${
               isSameDay(day, new Date()) ? "bg-primary/[0.03]" : ""
             }`}
           >
@@ -105,10 +105,14 @@ export default function WeekGrid({
   view,
   onViewChange,
 }: WeekGridProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const days = getWeekDays(viewDate);
   const weekStart = days[0];
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT_PX;
+  }, []);
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
@@ -120,26 +124,27 @@ export default function WeekGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      {/* Single scroll container — scrollbar outside both header and time grid
-          so all seven columns always line up. */}
+      <WeekDaysHeader
+        days={days}
+        selectedDate={selectedDate}
+        onDateSelect={onDateSelect}
+      />
+      <AllDayRow
+        days={days}
+        events={events}
+        categories={categories}
+        onEventClick={onEventClick}
+      />
+      <TaskDueRow
+        days={days}
+        tasks={tasks}
+        categories={categories}
+        onTaskClick={onTaskClick}
+      />
       <div
+        ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
-        onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 0)}
       >
-        {/* Sticky header — collapses to a thin border strip when scrolled. */}
-        <div className="sticky top-0 z-20">
-          <WeekDaysHeader
-            days={days}
-            selectedDate={selectedDate}
-            onDateSelect={onDateSelect}
-          />
-          {!isScrolled && (
-            <>
-              <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-              <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-            </>
-          )}
-        </div>
         <TimeGrid
           days={days}
           events={timedEvents}

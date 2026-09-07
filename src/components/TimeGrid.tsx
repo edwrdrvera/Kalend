@@ -13,7 +13,7 @@ import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const HOUR_HEIGHT_PX = 56;
+export const HOUR_HEIGHT_PX = 61;
 const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
 const MINUTES_PER_DAY = 24 * 60;
 

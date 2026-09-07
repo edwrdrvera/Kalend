@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
 import TaskDueRow from "./TaskDueRow";
-import TimeGrid from "./TimeGrid";
+import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -76,9 +76,13 @@ export default function DayGrid({
   view,
   onViewChange,
 }: DayGridProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const days = [viewDate];
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT_PX;
+  }, []);
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
@@ -90,20 +94,23 @@ export default function DayGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      {/* Single scroll container — same pattern as WeekGrid. */}
+      <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
+      <AllDayRow
+        days={days}
+        events={events}
+        categories={categories}
+        onEventClick={onEventClick}
+      />
+      <TaskDueRow
+        days={days}
+        tasks={tasks}
+        categories={categories}
+        onTaskClick={onTaskClick}
+      />
       <div
+        ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
-        onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 0)}
       >
-        <div className="sticky top-0 z-20">
-          <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
-          {!isScrolled && (
-            <>
-              <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-              <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-            </>
-          )}
-        </div>
         <TimeGrid
           days={days}
           events={timedEvents}
