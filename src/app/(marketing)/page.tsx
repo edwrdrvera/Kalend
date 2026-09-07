@@ -15,8 +15,8 @@ export default function LandingPage() {
       <LandingNav />
       <LandingHero />
       <LandingProblemSolution />
-      <LandingHowItWorks />
       <LandingFeatures />
+      <LandingHowItWorks />
       <LandingBottomCTA />
       <LandingFooter />
     </main>

@@ -1,7 +1,3 @@
-// "Problem / Solution" section that sits between the hero and the feature
-// tiles. Shows three student pain points on the left, and the Kalend answer
-// for each on the right. Uses only standard --kal-* tokens.
-
 interface Point {
   label: string;
   desc: string;
@@ -9,31 +5,31 @@ interface Point {
 
 const PROBLEMS: Point[] = [
   {
-    label: "Deadlines live everywhere",
-    desc: "Syllabi, group chats, Canvas, your notes — due dates are scattered across apps you never have open at the same time.",
+    label: "“Wait, that was due today?”",
+    desc: "The date was in the syllabus. The reminder was in the group chat. Somehow neither made it into your week.",
   },
   {
-    label: "Calendar ≠ task list",
-    desc: "Your calendar shows events. Your task app shows tasks. Neither knows anything about the other.",
+    label: "Your shift moved. Again.",
+    desc: "Now work overlaps the study block you planned around a class that already ran late.",
   },
   {
-    label: "Surprised by tomorrow",
-    desc: "Something is always due sooner than you thought, because nothing showed you the full week at a glance.",
+    label: "Your brain became the backup system",
+    desc: "You are carrying every loose task in your head, even when you are meant to be off the clock.",
   },
 ];
 
 const SOLUTIONS: Point[] = [
   {
-    label: "One Space per commitment",
-    desc: "Every class, project, and job gets its own Space: deadlines, blockers, and reminders all in one place.",
+    label: "Give everything a home",
+    desc: "BIO 102, the café, and your group project each get a Space for their events and tasks.",
   },
   {
-    label: "Tasks and events, together",
-    desc: "Kalend puts both in the same calendar view so you never have to cross-reference two separate apps.",
+    label: "See the paper beside the shift",
+    desc: "Tasks and events share one calendar, so your plans reflect the day you actually have.",
   },
   {
-    label: "The week, always in front of you",
-    desc: "Filter by Space to see only what's relevant right now. Nothing hides until it's already late.",
+    label: "Make a little room to think",
+    desc: "Hide a Space when you need less noise, then bring it back when you are ready for it.",
   },
 ];
 
@@ -102,32 +98,35 @@ function SolutionItem({ label, desc }: Point) {
 
 export default function LandingProblemSolution() {
   return (
-    <section className="mx-auto max-w-[1200px] px-6 pb-24 min-[860px]:px-8 min-[860px]:pb-32">
-      <p className="mb-3 text-center text-[11px] font-semibold tracking-[0.12em] text-[var(--kal-muted)] uppercase">
-        Why Kalend
-      </p>
-      <h2 className="mx-auto mb-14 max-w-[520px] text-center text-[2rem] leading-[1.12] font-extrabold tracking-[-0.025em] text-[var(--kal-ink)]">
-        Managing student life shouldn&apos;t need five apps.
-      </h2>
+    <section id="why" className="mx-auto max-w-[1200px] scroll-mt-24 px-6 py-24 min-[860px]:px-8 min-[860px]:py-32">
+      <div className="mb-12 max-w-[540px]">
+        <p className="mb-3 text-sm font-medium text-[var(--kal-muted)]">
+          Why Kalend
+        </p>
+        <h2 className="text-[2rem] leading-[1.12] font-extrabold tracking-[-0.025em] text-[var(--kal-ink)]">
+          Your week is already doing a lot.
+        </h2>
+      </div>
 
-      <div className="grid grid-cols-1 gap-3.5 min-[640px]:grid-cols-2">
-        {/* Problem tile */}
-        <div className="rounded-[18px] border border-[var(--kal-border)] bg-[var(--kal-surface)] p-6 min-[860px]:p-8">
-          <p className="mb-1 text-[11px] font-semibold tracking-[0.1em] text-[var(--kal-muted)] uppercase">
-            Right now
+      <div className="grid grid-cols-1 items-start gap-5 min-[760px]:grid-cols-[0.78fr_1.22fr]">
+        <div className="rounded-[18px] border border-[var(--kal-border)] bg-[#f8f6f1] p-5 min-[760px]:mt-12 min-[860px]:p-6">
+          <p className="mb-1 text-xs font-medium text-[var(--kal-muted)]">
+            The usual setup
           </p>
-          {PROBLEMS.map((p) => (
-            <ProblemItem key={p.label} label={p.label} desc={p.desc} />
+          {PROBLEMS.map((problem) => (
+            <ProblemItem key={problem.label} label={problem.label} desc={problem.desc} />
           ))}
         </div>
 
-        {/* Solution tile */}
-        <div className="rounded-[18px] border border-orange-200 bg-[#fff7ed] p-6 min-[860px]:p-8">
-          <p className="mb-1 text-[11px] font-semibold tracking-[0.1em] text-[var(--kal-accent)] uppercase">
-            With Kalend
+        <div className="rounded-[22px] border border-[#f0e1d2] bg-[#fffbf6] p-6 min-[860px]:p-9">
+          <p className="mb-1 text-xs font-medium text-[var(--kal-accent)]">
+            The calmer version
           </p>
-          {SOLUTIONS.map((s) => (
-            <SolutionItem key={s.label} label={s.label} desc={s.desc} />
+          <h3 className="mt-3 mb-4 max-w-[420px] text-[1.45rem] leading-tight font-bold tracking-[-0.025em] text-[var(--kal-ink)]">
+            One honest view of the week you actually have.
+          </h3>
+          {SOLUTIONS.map((solution) => (
+            <SolutionItem key={solution.label} label={solution.label} desc={solution.desc} />
           ))}
         </div>
       </div>
