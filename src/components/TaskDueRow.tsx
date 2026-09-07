@@ -23,16 +23,16 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
  *  column. Shared by Week and Day view, same as AllDayRow. */
 export default function TaskDueRow({ days, tasks, categories, onTaskClick }: TaskDueRowProps) {
   return (
-    <div className="flex min-h-12 border-b border-border bg-card">
+    <div className="flex min-h-[58px] border-b border-border bg-card">
       <div className="flex w-16 shrink-0 items-center justify-end border-r border-border pr-3">
-        <span className="text-[10px] text-muted-foreground">all-day</span>
+        <span className="text-xs text-muted-foreground">all-day</span>
       </div>
       <div
         className="grid flex-1 divide-x divide-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (
-          <div key={day.getTime()} className="flex flex-col gap-0.5 p-1">
+          <div key={day.getTime()} className="flex flex-col gap-1 p-2">
             {getTasksForDay(day, tasks).map((task) => (
               <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
             ))}

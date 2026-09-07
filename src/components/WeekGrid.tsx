@@ -60,7 +60,7 @@ function WeekDaysHeader({
     // Border-b connects visually with the all-day row / time grid below.
     // No per-cell borders — the shared border-b here and the time grid's
     // outer left border from the column container provide enough structure.
-    <div className="flex h-[70px] shrink-0 border-b border-border bg-card">
+    <div className="flex h-[86px] shrink-0 border-b border-border bg-card">
       {/* Gutter with right border aligns with the time-label column */}
       <div className="w-16 shrink-0 border-r border-border" />
       <div
@@ -72,11 +72,11 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className={`flex flex-col items-center justify-center gap-1 transition-colors hover:bg-muted/40 cursor-pointer ${
+            className={`flex cursor-pointer flex-col items-center justify-center gap-1.5 transition-colors hover:bg-muted/40 ${
               isSameDay(day, new Date()) ? "bg-primary/[0.03]" : ""
             }`}
           >
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {format(day, "EEE")}
             </span>
             <span className={getDayNumberClasses(day, selectedDate)}>

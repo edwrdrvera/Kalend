@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
@@ -31,12 +31,14 @@ function CategoryRow({
   onToggleVisibility,
   onUpdateCategory,
   onDeleteCategory,
+  indented = false,
 }: {
   category: CalendarCategory;
   visible: boolean;
   onToggleVisibility: () => void;
   onUpdateCategory: (updates: { name?: string; color?: string }) => void;
   onDeleteCategory: () => void;
+  indented?: boolean;
 }) {
   const [name, setName] = useState(category.name);
   const color: EventColor = isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR;
@@ -53,7 +55,7 @@ function CategoryRow({
   };
 
   return (
-    <div className="group flex items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-muted/60">
+    <div className={cn("group flex items-center gap-2 rounded-lg py-1.5 hover:bg-muted/60", indented ? "pl-5 pr-1" : "px-1")}>
       <button
         type="button"
         onClick={onToggleVisibility}
@@ -77,7 +79,7 @@ function CategoryRow({
         }}
         aria-label="Space name"
         className={cn(
-          "min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-[13px] text-foreground outline-none focus:text-foreground",
+          "min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-sm font-medium text-foreground outline-none focus:text-foreground",
           !visible && "text-muted-foreground line-through"
         )}
       />
@@ -189,23 +191,29 @@ export default function CategoryManager({
   onDeleteCategory,
 }: CategoryManagerProps) {
   const [creating, setCreating] = useState(false);
+  const [schoolOpen, setSchoolOpen] = useState(true);
+  const workCategory = categories.find((category) => category.name.toLowerCase() === "work");
+  const personalCategory = categories.find((category) => category.name.toLowerCase() === "personal");
+  const schoolCategories = categories.filter(
+    (category) => category.id !== workCategory?.id && category.id !== personalCategory?.id
+  );
 
   return (
-    <div className="flex flex-col px-5 pb-5 pt-6">
+    <div className="flex flex-col px-7 pb-5 pt-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
+        <h2 className="text-[22px] font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
         <button
           type="button"
           onClick={() => setCreating((current) => !current)}
           aria-label={creating ? "Cancel creating Space" : "Create a Space"}
           aria-expanded={creating}
-          className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="grid size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted"
         >
-          {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+          {creating ? <X className="size-5" /> : <Plus className="size-5" />}
         </button>
       </div>
 
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-5 flex flex-col gap-3">
         <CreateCategoryForm
           open={creating}
           onClose={() => setCreating(false)}
@@ -214,18 +222,60 @@ export default function CategoryManager({
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>
-        ) : categories.length === 0 ? null : (
-          <div className="flex flex-col">
-            {categories.map((category) => (
+        ) : (
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => setSchoolOpen((open) => !open)}
+              aria-expanded={schoolOpen}
+              className="flex items-center gap-3 rounded-lg py-2 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
+            >
+              <span className="size-3.5 rounded-[5px] bg-indigo-600" />
+              <span>School</span>
+              <ChevronDown className={cn("ml-auto size-4 transition-transform", !schoolOpen && "-rotate-90")} />
+            </button>
+
+            {schoolOpen && schoolCategories.map((category) => (
               <CategoryRow
                 key={category.id}
                 category={category}
+                indented
                 visible={!hiddenCategoryIds.includes(category.id)}
                 onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
                 onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
             ))}
+
+            {workCategory && (
+              <div className="mt-3 flex items-center">
+                <div className="min-w-0 flex-1">
+                  <CategoryRow
+                    category={workCategory}
+                    visible={!hiddenCategoryIds.includes(workCategory.id)}
+                    onToggleVisibility={() => onToggleCategoryVisibility(workCategory.id)}
+                    onUpdateCategory={(updates) => onUpdateCategory(workCategory, updates)}
+                    onDeleteCategory={() => onDeleteCategory(workCategory)}
+                  />
+                </div>
+                <ChevronDown className="size-4 shrink-0 text-foreground" />
+              </div>
+            )}
+
+            {personalCategory && (
+              <div className="flex items-center">
+                <div className="min-w-0 flex-1">
+                  <CategoryRow
+                    category={personalCategory}
+                    visible={!hiddenCategoryIds.includes(personalCategory.id)}
+                    onToggleVisibility={() => onToggleCategoryVisibility(personalCategory.id)}
+                    onUpdateCategory={(updates) => onUpdateCategory(personalCategory, updates)}
+                    onDeleteCategory={() => onDeleteCategory(personalCategory)}
+                  />
+                </div>
+                <ChevronDown className="size-4 shrink-0 text-foreground" />
+              </div>
+            )}
           </div>
         )}
       </div>

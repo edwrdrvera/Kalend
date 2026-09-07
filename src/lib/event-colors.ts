@@ -35,15 +35,15 @@ export function isEventColor(color: string | null | undefined): color is EventCo
 // `dark:` prefix works because globals.css registers the custom variant
 // `@custom-variant dark (&:is(.dark *))`.
 export const EVENT_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
-  green: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300",
-  purple: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
-  orange: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-  red: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
-  indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
-  pink: "bg-pink-100 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300",
-  yellow: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
-  teal: "bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300",
+  blue: "border-blue-300 bg-blue-100/90 text-blue-700 dark:border-blue-500/35 dark:bg-blue-500/15 dark:text-blue-300",
+  green: "border-green-300 bg-green-100/90 text-green-700 dark:border-green-500/35 dark:bg-green-500/15 dark:text-green-300",
+  purple: "border-purple-300 bg-purple-100/90 text-purple-700 dark:border-purple-500/35 dark:bg-purple-500/15 dark:text-purple-300",
+  orange: "border-orange-300 bg-orange-100/90 text-orange-700 dark:border-orange-500/35 dark:bg-orange-500/15 dark:text-orange-300",
+  red: "border-red-300 bg-red-100/90 text-red-700 dark:border-red-500/35 dark:bg-red-500/15 dark:text-red-300",
+  indigo: "border-indigo-300 bg-indigo-100/90 text-indigo-700 dark:border-indigo-500/35 dark:bg-indigo-500/15 dark:text-indigo-300",
+  pink: "border-pink-300 bg-pink-100/90 text-pink-700 dark:border-pink-500/35 dark:bg-pink-500/15 dark:text-pink-300",
+  yellow: "border-yellow-300 bg-yellow-100/90 text-yellow-700 dark:border-yellow-500/35 dark:bg-yellow-500/15 dark:text-yellow-300",
+  teal: "border-teal-300 bg-teal-100/90 text-teal-700 dark:border-teal-500/35 dark:bg-teal-500/15 dark:text-teal-300",
 };
 
 export const DEFAULT_EVENT_COLOR_CLASSES = "bg-muted text-muted-foreground";
@@ -71,15 +71,15 @@ export const EVENT_COLOR_SWATCH_CLASSES: Record<EventColor, string> = {
 // an event pill at a glance. Text colors are darker in light mode so they
 // remain legible on the warm off-white background.
 export const TASK_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "border-blue-400 text-blue-600 dark:border-blue-500/60 dark:text-blue-300",
-  green: "border-green-400 text-green-600 dark:border-green-500/60 dark:text-green-300",
-  purple: "border-purple-400 text-purple-600 dark:border-purple-500/60 dark:text-purple-300",
-  orange: "border-orange-400 text-orange-600 dark:border-orange-500/60 dark:text-orange-300",
-  red: "border-red-400 text-red-600 dark:border-red-500/60 dark:text-red-300",
-  indigo: "border-indigo-400 text-indigo-600 dark:border-indigo-500/60 dark:text-indigo-300",
-  pink: "border-pink-400 text-pink-600 dark:border-pink-500/60 dark:text-pink-300",
-  yellow: "border-yellow-400 text-yellow-600 dark:border-yellow-500/60 dark:text-yellow-300",
-  teal: "border-teal-400 text-teal-600 dark:border-teal-500/60 dark:text-teal-300",
+  blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/45 dark:bg-blue-500/10 dark:text-blue-300",
+  green: "border-green-200 bg-green-50 text-green-700 dark:border-green-500/45 dark:bg-green-500/10 dark:text-green-300",
+  purple: "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/45 dark:bg-purple-500/10 dark:text-purple-300",
+  orange: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/45 dark:bg-orange-500/10 dark:text-orange-300",
+  red: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/45 dark:bg-red-500/10 dark:text-red-300",
+  indigo: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/45 dark:bg-indigo-500/10 dark:text-indigo-300",
+  pink: "border-pink-200 bg-pink-50 text-pink-700 dark:border-pink-500/45 dark:bg-pink-500/10 dark:text-pink-300",
+  yellow: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/45 dark:bg-yellow-500/10 dark:text-yellow-300",
+  teal: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/45 dark:bg-teal-500/10 dark:text-teal-300",
 };
 
 export const DEFAULT_TASK_COLOR_CLASSES = "border-border text-muted-foreground";
