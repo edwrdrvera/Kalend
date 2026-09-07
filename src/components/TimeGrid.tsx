@@ -7,7 +7,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { isSameDay, startOfDay, addMinutes } from "date-fns";
+import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
@@ -534,7 +534,7 @@ export default function TimeGrid({
                       left: `${left}%`,
                       width: `${width}%`,
                     }}
-                    className={`absolute overflow-hidden rounded-[6px] text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-[7px] border border-current/10 text-left text-[11px] font-semibold shadow-[0_3px_8px_rgba(28,26,22,0.04)] ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -542,6 +542,9 @@ export default function TimeGrid({
                      *  event, where flow content could otherwise center or
                      *  drift within the padded box. */}
                     <span className="absolute inset-x-1.5 top-0.5 truncate">{event.title}</span>
+                    <span className="absolute inset-x-1.5 top-4 truncate text-[10px] font-medium opacity-75">
+                      {format(new Date(event.start_at), "h:mm a")}
+                    </span>
 
                     {onEventResize && !moveDrag?.moved && (
                       <>
@@ -600,4 +603,3 @@ export default function TimeGrid({
     </div>
   );
 }
-

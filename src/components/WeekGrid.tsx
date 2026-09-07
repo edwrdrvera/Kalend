@@ -8,7 +8,6 @@ import {
   subWeeks,
   addDays,
   isSameDay,
-  isSameMonth,
   setHours,
 } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
@@ -39,14 +38,6 @@ interface WeekGridProps {
 function getWeekDays(viewDate: Date): Date[] {
   const weekStart = startOfWeek(viewDate);
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-}
-
-function formatWeekRangeTitle(weekStart: Date, weekEnd: Date): string {
-  const start = format(weekStart, "MMM d");
-  const end = isSameMonth(weekStart, weekEnd)
-    ? format(weekEnd, "d, yyyy")
-    : format(weekEnd, "MMM d, yyyy");
-  return `${start}–${end}`;
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
@@ -117,14 +108,12 @@ export default function WeekGrid({
   const [isScrolled, setIsScrolled] = useState(false);
   const days = getWeekDays(viewDate);
   const weekStart = days[0];
-  const weekEnd = days[days.length - 1];
-
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <CalendarHeader
-        title={formatWeekRangeTitle(weekStart, weekEnd)}
+        title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subWeeks(weekStart, 1))}
         onNext={() => onViewDateChange(addWeeks(weekStart, 1))}
         onToday={() => onDateSelect(new Date())}
