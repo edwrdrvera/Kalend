@@ -34,9 +34,9 @@ function MiniCalendarHeader({
   onNextMonth: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <h2 className="text-sm font-semibold text-foreground">
-        {format(browseDate, "MMM yyyy")}
+    <div className="mb-3 flex items-center justify-between">
+      <h2 className="text-[13px] font-bold tracking-[-0.02em] text-foreground">
+        {format(browseDate, "MMMM")}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
         <button
@@ -63,7 +63,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-7 text-center text-[10px] font-semibold text-muted-foreground">
+        <div key={i} className="w-7 text-center text-[10px] font-bold text-muted-foreground">
           {day}
         </div>
       ))}
@@ -164,7 +164,7 @@ export default function MiniCalendar({
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
 
   return (
-    <div className="px-5 pb-6">
+    <div className="mx-4 mb-3 rounded-lg border border-border bg-card p-3">
       <MiniCalendarHeader
         browseDate={browseDate}
         mainViewDate={viewDate}

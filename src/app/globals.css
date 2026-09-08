@@ -57,10 +57,9 @@
      * platforms, where SF Pro isn't available at all. */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    /* Light mode — warm off-white palette from the landing page (--kal-*).
-     * Accent is indigo-600 (#4f46e5): distinct from the orange category color,
-     * passes WCAG AA (7.5:1 with white) and looks right on the warm bg. */
-    --background: #faf8f3;
+    /* Light app theme — clean white workspace from the Direction 1 calendar.
+     * The marketing route keeps its separate warm --kal-* palette below. */
+    --background: #ffffff;
     --foreground: #1c1a16;
     --card: #ffffff;
     --card-foreground: #1c1a16;
@@ -68,29 +67,29 @@
     --popover-foreground: #1c1a16;
     --primary: #4f46e5;
     --primary-foreground: #ffffff;
-    --secondary: #f0ede4;
+    --secondary: #f5f5f5;
     --secondary-foreground: #1c1a16;
-    --muted: #f0ede4;
+    --muted: #f5f5f5;
     --muted-foreground: #756f61;
-    --accent: #f0ede4;
+    --accent: #f5f5f5;
     --accent-foreground: #1c1a16;
     --destructive: #dc2626;
-    --border: #e8e3d8;
-    --input: #e8e3d8;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
     --ring: #4f46e5;
     --chart-1: #4f46e5;
     --chart-2: #756f61;
     --chart-3: #1c1a16;
-    --chart-4: #e8e3d8;
-    --chart-5: #f0ede4;
+    --chart-4: #e5e7eb;
+    --chart-5: #f5f5f5;
     --radius: 0.625rem;
-    --sidebar: #f5f2eb;
+    --sidebar: #ffffff;
     --sidebar-foreground: #1c1a16;
     --sidebar-primary: #4f46e5;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #e8e3d8;
+    --sidebar-accent: #f5f5f5;
     --sidebar-accent-foreground: #1c1a16;
-    --sidebar-border: #e8e3d8;
+    --sidebar-border: #e5e7eb;
     --sidebar-ring: #4f46e5;
 }
 
@@ -278,4 +277,11 @@
 .kal-fade-up {
   opacity: 0;
   animation: kal-fade-up 0.7s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kal-fade-up {
+    opacity: 1;
+    animation: none;
+  }
 }

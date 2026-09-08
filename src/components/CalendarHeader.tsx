@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
 
 interface CalendarHeaderProps {
@@ -12,8 +12,8 @@ interface CalendarHeaderProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-/** Shared header row for all three grid views: title on the left, and on the
- *  right the month/week/day switcher plus Today/prev/next navigation. Each
+/** Shared header row for all three grid views: navigation first, followed by
+ *  the current period title, with the view switcher anchored right. Each
  *  grid computes its own title and prev/next behavior (a month, a week, or a
  *  day at a time) and passes them in. */
 export default function CalendarHeader({
@@ -25,32 +25,39 @@ export default function CalendarHeader({
   onViewChange,
 }: CalendarHeaderProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-6 py-4 shrink-0">
-      <h1 className="text-[22px] font-bold text-foreground whitespace-nowrap">{title}</h1>
-      <div className="flex items-center gap-3">
-        <ViewSwitcher view={view} onViewChange={onViewChange} />
-        <button
-          onClick={onToday}
-          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          Today
-        </button>
-        <div className="flex gap-1 text-muted-foreground">
+    <div className="flex min-h-[72px] shrink-0 flex-wrap items-center gap-5 border-b border-border bg-card px-4 py-2 pl-16 sm:px-5 md:pl-5">
+      <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <button
             onClick={onPrev}
-            className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
+            className="grid size-9 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
             aria-label="Previous"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={17} />
+          </button>
+          <button
+            onClick={onToday}
+            className="h-9 rounded-md border border-border px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            Today
           </button>
           <button
             onClick={onNext}
-            className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
+            className="grid size-9 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
             aria-label="Next"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={17} />
           </button>
         </div>
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <h1 className="truncate text-[22px] font-extrabold tracking-[-0.035em] text-foreground">
+          {title}
+        </h1>
+        <ChevronDown className="size-4 shrink-0 text-foreground" aria-hidden="true" />
+      </div>
+      <div className="ml-auto">
+        <ViewSwitcher view={view} onViewChange={onViewChange} />
       </div>
     </div>
   );

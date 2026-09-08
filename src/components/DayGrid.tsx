@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import AllDayRow from "./AllDayRow";
-import TaskDueRow from "./TaskDueRow";
-import TimeGrid from "./TimeGrid";
+import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -39,7 +38,7 @@ function DayColumnHeader({
   const isSelected = isSameDay(day, selectedDate);
   const isToday = isSameDay(day, new Date());
 
-  let numberCls = "flex h-10 w-10 items-center justify-center rounded-full text-[17px] font-semibold";
+  let numberCls = "flex size-9 items-center justify-center rounded-full text-lg font-bold";
   if (isSelected) numberCls += " bg-primary text-primary-foreground";
   else if (isToday) numberCls += " text-primary";
   else numberCls += " text-foreground";
@@ -47,7 +46,7 @@ function DayColumnHeader({
   return (
     <div className={`flex shrink-0 border-b border-border bg-background ${isToday ? "bg-primary/[0.03]" : ""}`}>
       <div className="w-16 shrink-0 border-r border-border" />
-      <div className="flex flex-1 flex-col items-center gap-1 py-3">
+      <div className="flex h-[74px] flex-1 flex-col items-start justify-center gap-0.5 pl-5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           {format(day, "EEE")}
         </span>
@@ -76,9 +75,13 @@ export default function DayGrid({
   view,
   onViewChange,
 }: DayGridProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const days = [viewDate];
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT_PX;
+  }, []);
 
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
@@ -90,20 +93,19 @@ export default function DayGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      {/* Single scroll container — same pattern as WeekGrid. */}
+      <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
+      <AllDayRow
+        days={days}
+        events={events}
+        tasks={tasks}
+        categories={categories}
+        onEventClick={onEventClick}
+        onTaskClick={onTaskClick}
+      />
       <div
+        ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
-        onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 0)}
       >
-        <div className="sticky top-0 z-20">
-          <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
-          {!isScrolled && (
-            <>
-              <AllDayRow days={days} events={events} categories={categories} onEventClick={onEventClick} />
-              <TaskDueRow days={days} tasks={tasks} categories={categories} onTaskClick={onTaskClick} />
-            </>
-          )}
-        </div>
         <TimeGrid
           days={days}
           events={timedEvents}

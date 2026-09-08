@@ -14,7 +14,7 @@ interface TaskChipProps {
 
 /** A due-date marker on the calendar grid, deliberately styled unlike an
  *  event pill (outlined, not filled) so it never reads as a scheduled
- *  block. Shared by MonthGrid's day cells and TaskDueRow (week/day).
+ *  block. Shared by MonthGrid's day cells and AllDayRow (week/day).
  *  Clicking it toggles complete, same as the sidebar task list, there's no
  *  separate task-edit view yet to open instead. */
 export default function TaskChip({ task, categories, onClick, className }: TaskChipProps) {
@@ -30,7 +30,7 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
       }}
       aria-pressed={task.completed}
       className={cn(
-        "flex w-full min-w-0 items-center gap-1 truncate rounded border bg-transparent px-1.5 py-0.5 text-left text-[10px] font-medium",
+        "flex min-h-8 w-full min-w-0 items-center gap-2 truncate rounded-md border px-2 text-left text-[11px] font-semibold",
         task.completed
           ? "border-border text-muted-foreground line-through"
           : overdue
@@ -41,7 +41,7 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
     >
       <span
         className={cn(
-          "size-1.5 shrink-0 rounded-full border border-current",
+          "size-3.5 shrink-0 rounded-[3px] border border-current bg-white/55",
           task.completed && "bg-current"
         )}
       />

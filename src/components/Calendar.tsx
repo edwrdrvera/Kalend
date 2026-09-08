@@ -63,9 +63,10 @@ function LoadingSpinner() {
 
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
-  const [view, setView] = useState<CalendarView>("month");
+  const [viewDate, setViewDate] = useState(new Date());
+  const [view, setView] = useState<CalendarView>("week");
   const [mounted, setMounted] = useState(false);
+  const [hiddenCategoryIds, setHiddenCategoryIds] = useState<string[]>([]);
 
   const events = useCalendarEvents(viewDate);
 
@@ -170,6 +171,14 @@ export default function Calendar() {
   const handleRetry = () => {
     events.retry();
     setRetryCount((c) => c + 1);
+  };
+
+  const handleToggleCategoryVisibility = (categoryId: string) => {
+    setHiddenCategoryIds((current) =>
+      current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId]
+    );
   };
 
   // Not optimistic, same reasoning as handleCreateTask: CategoryManager
@@ -398,90 +407,99 @@ export default function Calendar() {
 
   if (!mounted) return null;
 
+  const visibleEvents = events.data.filter(
+    (event) => !event.category_id || !hiddenCategoryIds.includes(event.category_id)
+  );
+  const visibleTasks = tasks.filter(
+    (task) => !task.category_id || !hiddenCategoryIds.includes(task.category_id)
+  );
+
   return (
-    <div className="relative flex h-full w-full overflow-hidden text-foreground">
-      {(events.error || tasksError || categoriesError) && (
-        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
-          {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
-          {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} onRetry={handleRetry} />}
-          {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} onRetry={handleRetry} />}
-        </div>
-      )}
-      <CalendarSidebar
-        currentDate={selectedDate}
-        viewDate={viewDate}
-        onDateSelect={handleDateSelect}
-        tasks={tasks}
-        tasksLoading={tasksLoading}
-        onCreateTask={handleCreateTask}
-        onToggleTaskComplete={handleToggleTaskComplete}
-        onDeleteTask={handleDeleteTask}
-        categories={categories}
-        categoriesLoading={categoriesLoading}
-        onCreateCategory={handleCreateCategory}
-        onUpdateCategory={handleUpdateCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
-      {events.initialLoading ? (
-        <div className="flex-1">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {view === "month" && (
-            <MonthGrid
-              selectedDate={selectedDate}
-              viewDate={viewDate}
-              events={events.data}
-              tasks={tasks}
-              categories={categories}
-              onDateSelect={handleDateSelect}
-              onViewDateChange={setViewDate}
-              onCreateEvent={handleCreateEvent}
-              onEventClick={handleEventClick}
-              onTaskClick={handleToggleTaskComplete}
-              view={view}
-              onViewChange={setView}
-            />
-          )}
-          {view === "week" && (
-            <WeekGrid
-              selectedDate={selectedDate}
-              viewDate={viewDate}
-              events={events.data}
-              tasks={tasks}
-              categories={categories}
-              onDateSelect={handleDateSelect}
-              onViewDateChange={setViewDate}
-              onCreateEvent={handleCreateEvent}
-              onEventClick={handleEventClick}
-              onTaskClick={handleToggleTaskComplete}
-              onEventMove={events.changeEventTime}
-              onEventResize={events.changeEventTime}
-              view={view}
-              onViewChange={setView}
-            />
-          )}
-          {view === "day" && (
-            <DayGrid
-              viewDate={viewDate}
-              selectedDate={selectedDate}
-              events={events.data}
-              tasks={tasks}
-              categories={categories}
-              onDateSelect={handleDateSelect}
-              onViewDateChange={setViewDate}
-              onCreateEvent={handleCreateEvent}
-              onEventClick={handleEventClick}
-              onTaskClick={handleToggleTaskComplete}
-              onEventMove={events.changeEventTime}
-              onEventResize={events.changeEventTime}
-              view={view}
-              onViewChange={setView}
-            />
-          )}
-        </div>
-      )}
+    <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
+        {(events.error || tasksError || categoriesError) && (
+          <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
+            {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
+            {tasksError && <ErrorToast message={tasksError} onDismiss={() => setTasksError(null)} onRetry={handleRetry} />}
+            {categoriesError && <ErrorToast message={categoriesError} onDismiss={() => setCategoriesError(null)} onRetry={handleRetry} />}
+          </div>
+        )}
+        <CalendarSidebar
+          currentDate={selectedDate}
+          viewDate={viewDate}
+          onDateSelect={handleDateSelect}
+          tasks={tasks}
+          tasksLoading={tasksLoading}
+          onCreateTask={handleCreateTask}
+          onToggleTaskComplete={handleToggleTaskComplete}
+          onDeleteTask={handleDeleteTask}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          hiddenCategoryIds={hiddenCategoryIds}
+          onToggleCategoryVisibility={handleToggleCategoryVisibility}
+          onCreateCategory={handleCreateCategory}
+          onUpdateCategory={handleUpdateCategory}
+          onDeleteCategory={handleDeleteCategory}
+        />
+        {events.initialLoading ? (
+          <div className="flex-1">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
+            {view === "month" && (
+              <MonthGrid
+                selectedDate={selectedDate}
+                viewDate={viewDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={handleToggleTaskComplete}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+            {view === "week" && (
+              <WeekGrid
+                selectedDate={selectedDate}
+                viewDate={viewDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={handleToggleTaskComplete}
+                onEventMove={events.changeEventTime}
+                onEventResize={events.changeEventTime}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+            {view === "day" && (
+              <DayGrid
+                viewDate={viewDate}
+                selectedDate={selectedDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={handleToggleTaskComplete}
+                onEventMove={events.changeEventTime}
+                onEventResize={events.changeEventTime}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+          </div>
+        )}
       {createPopoverAnchor && (
         <EventCreatePopover
           anchorRect={createPopoverAnchor.rect}

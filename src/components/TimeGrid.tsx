@@ -7,13 +7,13 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { isSameDay, startOfDay, addMinutes } from "date-fns";
+import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const HOUR_HEIGHT_PX = 56;
+export const HOUR_HEIGHT_PX = 64;
 const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
 const MINUTES_PER_DAY = 24 * 60;
 
@@ -29,10 +29,10 @@ const DRAG_THRESHOLD_PX = 4;
 const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 function formatHourLabel(hour: number): string {
-  // 24-hour format, "00:00"–"23:00". Midnight is kept empty so the label
+  // 12-hour format. Midnight is kept empty so the label
   // doesn't crowd the very top of the grid (same as Google Calendar's treatment).
   if (hour === 0) return "";
-  return `${String(hour).padStart(2, "0")}:00`;
+  return format(new Date(2000, 0, 1, hour), "h a");
 }
 
 function minutesFromMidnight(date: Date): number {
@@ -452,7 +452,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-3 text-right text-[10px] text-muted-foreground"
+            className="pr-3 text-right text-xs text-muted-foreground"
           >
             <span className="relative -top-2">{formatHourLabel(hour)}</span>
           </div>
@@ -531,10 +531,10 @@ export default function TimeGrid({
                     style={{
                       top: `${displayTop}%`,
                       height: `${displayHeight}%`,
-                      left: `${left}%`,
-                      width: `${width}%`,
+                      left: `calc(${left}% + 5px)`,
+                      width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-[6px] text-left text-[11px] font-medium ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
@@ -542,6 +542,9 @@ export default function TimeGrid({
                      *  event, where flow content could otherwise center or
                      *  drift within the padded box. */}
                     <span className="absolute inset-x-1.5 top-0.5 truncate">{event.title}</span>
+                    <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-80">
+                      {format(new Date(event.start_at), "h:mm")} – {format(new Date(event.end_at), "h:mm")}
+                    </span>
 
                     {onEventResize && !moveDrag?.moved && (
                       <>
@@ -600,4 +603,3 @@ export default function TimeGrid({
     </div>
   );
 }
-
