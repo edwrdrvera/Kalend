@@ -23,7 +23,7 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           type="button"
           onClick={() => onViewChange(value)}
           aria-pressed={view === value}
-          className={`h-9 border-r border-border px-3 transition-colors last:border-r-0 ${
+          className={`h-8 border-r border-border px-2.5 transition-colors last:border-r-0 ${
             view === value
               ? "bg-muted text-foreground"
               : "hover:bg-muted/50 hover:text-foreground"

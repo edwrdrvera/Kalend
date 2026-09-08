@@ -164,7 +164,7 @@ export default function MiniCalendar({
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
 
   return (
-    <div className="mx-4 mb-3 rounded-lg border border-border bg-card p-3">
+    <div className="mx-3 mb-2 rounded-lg border border-border bg-card p-2.5">
       <MiniCalendarHeader
         browseDate={browseDate}
         mainViewDate={viewDate}
