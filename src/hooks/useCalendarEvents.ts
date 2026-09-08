@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { CalendarEvent, EventsApiResponse } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
-import type { EventFormValues } from "@/components/EventModal";
+import type { EventFormValues } from "@/components/EventCreatePopover";
 
 export interface UseCalendarEventsReturn {
   data: CalendarEvent[];

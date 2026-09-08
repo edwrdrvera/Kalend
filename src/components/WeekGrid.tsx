@@ -26,7 +26,7 @@ interface WeekGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;

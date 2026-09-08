@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import MiniCalendar from "./MiniCalendar";
@@ -45,7 +45,7 @@ export default function CalendarSidebar({
   onDeleteCategory,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, mounted, toggleTheme } = useTheme();
+  const { theme, mounted } = useTheme();
 
   return (
     <>
@@ -69,7 +69,7 @@ export default function CalendarSidebar({
 
       <aside
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-[292px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[292px] md:translate-x-0 md:shadow-none",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-[260px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[260px] md:translate-x-0 md:shadow-none",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -83,7 +83,7 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-full w-full flex-1 flex-col">
-          <div className="px-5 pt-5 pb-1">
+          <div className="px-4 pt-4">
             <KalendWordmark
               size="sm"
               tone={mounted && theme === "dark" ? "white" : "ink"}
@@ -100,37 +100,14 @@ export default function CalendarSidebar({
             onDeleteCategory={onDeleteCategory}
           />
 
-          <div className="mt-auto pt-4">
+          <div className="mt-auto pt-2">
             <MiniCalendar
               currentDate={currentDate}
               viewDate={viewDate}
               onDateSelect={onDateSelect}
             />
 
-            <div className="flex items-center gap-2 border-t border-border px-5 py-4">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-                className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-foreground"
-              >
-                {mounted && (theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />)}
-                <span>Dark mode</span>
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "ml-auto flex h-6 w-11 items-center rounded-full p-0.5 transition-colors",
-                    theme === "dark" ? "bg-primary" : "bg-foreground/75"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "size-5 rounded-full bg-white shadow-sm transition-transform",
-                      theme === "dark" && "translate-x-5"
-                    )}
-                  />
-                </span>
-              </button>
+            <div className="flex justify-end border-t border-border px-4 py-3">
               <SettingsMenu />
             </div>
           </div>

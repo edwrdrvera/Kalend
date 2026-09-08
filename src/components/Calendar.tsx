@@ -6,8 +6,7 @@ import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
-import EventModal, { type EventFormValues } from "./EventModal";
-import EventCreatePopover from "./EventCreatePopover";
+import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
 import { computePopoverSide } from "@/lib/popover-position";
 import type { CalendarView } from "./ViewSwitcher";
 import type {
@@ -261,7 +260,7 @@ export default function Calendar() {
   };
 
   // Not optimistic, unlike the handlers below: the create form (TaskList)
-  // shows its own inline error on failure (same idea as EventModal's
+  // shows its own inline error on failure (same idea as the event editor's
   // `error` prop), so this just throws and lets the caller handle it,
   // rather than writing to the global tasksError banner.
   const handleCreateTask = async (title: string, dueAt?: string, categoryId?: string | null) => {
@@ -336,73 +335,63 @@ export default function Calendar() {
   // popover side computation.
   const calendarContentRef = useRef<HTMLDivElement>(null);
 
-  // Create popover (anchored to the clicked day cell)
-  const [createPopoverAnchor, setCreatePopoverAnchor] = useState<{
+  // The event editor is anchored to whichever calendar element opened it.
+  const [eventPopover, setEventPopover] = useState<{
     rect: DOMRect;
     side: "left" | "right";
+    event: CalendarEvent | null;
     start: Date;
   } | null>(null);
-  const [createSubmitting, setCreateSubmitting] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [popoverSubmitting, setPopoverSubmitting] = useState(false);
+  const [popoverError, setPopoverError] = useState<string | null>(null);
+  const [popoverKey, setPopoverKey] = useState(0);
+
+  const getPopoverSide = (anchorRect: DOMRect) => {
+    const containerRect = calendarContentRef.current?.getBoundingClientRect();
+    return containerRect ? computePopoverSide(anchorRect, containerRect) : "right";
+  };
 
   const handleCreateEvent = (day: Date, anchorRect: DOMRect) => {
-    const containerRect = calendarContentRef.current?.getBoundingClientRect();
-    const side = containerRect
-      ? computePopoverSide(anchorRect, containerRect)
-      : "right";
-    setCreatePopoverAnchor({ rect: anchorRect, side, start: day });
-    setCreateError(null);
+    setEventPopover({ rect: anchorRect, side: getPopoverSide(anchorRect), event: null, start: day });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
   };
 
-  const handleCreateSubmit = async (values: EventFormValues) => {
-    setCreateSubmitting(true);
-    setCreateError(null);
+  const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event,
+      start: new Date(event.start_at),
+    });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
+  };
+
+  const handlePopoverSubmit = async (values: EventFormValues) => {
+    if (!eventPopover) return;
+
+    setPopoverSubmitting(true);
+    setPopoverError(null);
     try {
-      await events.createEvent(values);
-      setCreatePopoverAnchor(null);
+      if (eventPopover.event) {
+        await events.updateEvent(eventPopover.event.id, values);
+      } else {
+        await events.createEvent(values);
+      }
+      setEventPopover(null);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : "Something went wrong");
+      setPopoverError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setCreateSubmitting(false);
+      setPopoverSubmitting(false);
     }
   };
 
-  // Edit modal (dialog — stays for editing/deleting existing events)
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalEvent, setModalEvent] = useState<CalendarEvent | null>(null);
-  const [modalSubmitting, setModalSubmitting] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  // Bumped every time the modal is opened so `key={modalKey}` below forces
-  // EventModal to remount with fresh initial state, instead of an effect
-  // resetting its fields after the fact.
-  const [modalKey, setModalKey] = useState(0);
-
-  const handleEventClick = (event: CalendarEvent) => {
-    setModalEvent(event);
-    setModalError(null);
-    setModalOpen(true);
-    setModalKey((key) => key + 1);
-  };
-
-  const handleModalSubmit = async (values: EventFormValues) => {
-    setModalSubmitting(true);
-    setModalError(null);
-    try {
-      if (modalEvent) await events.updateEvent(modalEvent.id, values);
-      setModalOpen(false);
-    } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setModalSubmitting(false);
-    }
-  };
-
-  // Optimistic delete is handled by the hook; this thin wrapper reads from
-  // modal state and closes the modal.
   const handleDeleteEvent = async () => {
-    if (!modalEvent) return;
-    setModalOpen(false);
-    await events.deleteEvent(modalEvent);
+    if (!eventPopover?.event) return;
+    const event = eventPopover.event;
+    setEventPopover(null);
+    await events.deleteEvent(event);
   };
 
   if (!mounted) return null;
@@ -500,30 +489,21 @@ export default function Calendar() {
             )}
           </div>
         )}
-      {createPopoverAnchor && (
+      {eventPopover && (
         <EventCreatePopover
-          anchorRect={createPopoverAnchor.rect}
-          side={createPopoverAnchor.side}
-          initialStart={createPopoverAnchor.start}
+          key={popoverKey}
+          anchorRect={eventPopover.rect}
+          side={eventPopover.side}
+          event={eventPopover.event}
+          initialStart={eventPopover.start}
           categories={categories}
-          onSubmit={handleCreateSubmit}
-          onClose={() => setCreatePopoverAnchor(null)}
-          submitting={createSubmitting}
-          error={createError}
+          onSubmit={handlePopoverSubmit}
+          onDelete={eventPopover.event ? handleDeleteEvent : undefined}
+          onClose={() => setEventPopover(null)}
+          submitting={popoverSubmitting}
+          error={popoverError}
         />
       )}
-      <EventModal
-        key={modalKey}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        mode="edit"
-        event={modalEvent}
-        categories={categories}
-        onSubmit={handleModalSubmit}
-        onDelete={handleDeleteEvent}
-        submitting={modalSubmitting}
-        error={modalError}
-      />
     </div>
   );
 }

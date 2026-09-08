@@ -15,7 +15,7 @@ interface AllDayRowProps {
   events: CalendarEvent[];
   tasks: CalendarTask[];
   categories: CalendarCategory[];
-  onEventClick?: (event: CalendarEvent) => void;
+  onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick?: (task: CalendarTask) => void;
 }
 
@@ -84,7 +84,7 @@ export default function AllDayRow({
                 key={event.id}
                 type="button"
                 title={event.title}
-                onClick={() => onEventClick?.(event)}
+                onClick={(e) => onEventClick?.(event, e.currentTarget.getBoundingClientRect())}
                 style={{
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
                   gridRow: lane + 1,

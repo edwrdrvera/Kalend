@@ -25,25 +25,25 @@ export default function CalendarHeader({
   onViewChange,
 }: CalendarHeaderProps) {
   return (
-    <div className="flex min-h-[72px] shrink-0 flex-wrap items-center gap-5 border-b border-border bg-card px-4 py-2 pl-16 sm:px-5 md:pl-5">
+    <div className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-2 pl-14 sm:px-4 md:pl-4">
       <div className="flex items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={onPrev}
-            className="grid size-9 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
+            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
             aria-label="Previous"
           >
             <ChevronLeft size={17} />
           </button>
           <button
             onClick={onToday}
-            className="h-9 rounded-md border border-border px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            className="h-8 rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
           >
             Today
           </button>
           <button
             onClick={onNext}
-            className="grid size-9 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
+            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
             aria-label="Next"
           >
             <ChevronRight size={17} />
@@ -51,7 +51,7 @@ export default function CalendarHeader({
         </div>
       </div>
       <div className="flex min-w-0 items-center gap-2">
-        <h1 className="truncate text-[22px] font-extrabold tracking-[-0.035em] text-foreground">
+        <h1 className="truncate text-xl font-extrabold tracking-[-0.035em] text-foreground">
           {title}
         </h1>
         <ChevronDown className="size-4 shrink-0 text-foreground" aria-hidden="true" />

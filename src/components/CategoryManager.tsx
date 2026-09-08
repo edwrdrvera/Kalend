@@ -199,21 +199,21 @@ export default function CategoryManager({
   );
 
   return (
-    <div className="flex flex-col px-5 pt-3 pb-4">
+    <div className="flex flex-col px-4 pt-2 pb-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
+        <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
         <button
           type="button"
           onClick={() => setCreating((current) => !current)}
           aria-label={creating ? "Cancel creating Space" : "Create a Space"}
           aria-expanded={creating}
-          className="grid size-9 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted"
+          className="grid size-8 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted"
         >
           {creating ? <X className="size-5" /> : <Plus className="size-5" />}
         </button>
       </div>
 
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="mt-2 flex flex-col gap-1.5">
         <CreateCategoryForm
           open={creating}
           onClose={() => setCreating(false)}
@@ -248,7 +248,7 @@ export default function CategoryManager({
             ))}
 
             {workCategory && (
-              <div className="mt-3 flex items-center">
+              <div className="mt-2 flex items-center">
                 <div className="min-w-0 flex-1">
                   <CategoryRow
                     category={workCategory}
