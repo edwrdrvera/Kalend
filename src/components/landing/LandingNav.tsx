@@ -19,7 +19,7 @@ export default function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--kal-border)]/70 bg-[var(--kal-bg)]/88 backdrop-blur-xl">
       <nav aria-label="Main navigation" className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-5 px-5 min-[640px]:px-6 min-[860px]:px-8">
-        <a href="#top" aria-label="Kalend home" className="shrink-0">
+        <a href="#top" aria-label="Kalend home" className="inline-flex shrink-0 items-center">
           <KalendWordmark size="sm" tone="ink" animation="scatter" />
         </a>
 
