@@ -1,6 +1,6 @@
 export default function LandingFeatures() {
   return (
-    <section id="features" className="mx-auto max-w-[1200px] scroll-mt-8 px-6 pb-24 min-[860px]:px-8 min-[860px]:pb-32">
+    <section id="features" className="mx-auto max-w-[1200px] scroll-mt-24 px-6 pb-24 min-[860px]:px-8 min-[860px]:pb-32">
       <p className="mb-3 text-center text-sm font-medium text-[var(--kal-muted)]">
         What changes with Kalend
       </p>
