@@ -6,10 +6,14 @@ import KalendWordmark from "@/components/KalendWordmark";
 import LandingButton from "./LandingButton";
 
 const NAV_LINKS = [
-  { label: "Why Kalend", href: "#why" },
-  { label: "Features", href: "#features" },
-  { label: "How it works", href: "#how" },
+  { label: "Why Kalend", id: "why" },
+  { label: "Features", id: "features" },
+  { label: "How it works", id: "how" },
 ] as const;
+
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+}
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false);
@@ -19,20 +23,26 @@ export default function LandingNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--kal-border)]/70 bg-[var(--kal-bg)]/88 backdrop-blur-xl">
       <nav aria-label="Main navigation" className="mx-auto flex h-[72px] max-w-[1200px] items-center justify-between gap-5 px-5 min-[640px]:px-6 min-[860px]:px-8">
-        <a href="#top" aria-label="Kalend home" className="inline-flex shrink-0 items-center">
+        <button
+          type="button"
+          aria-label="Kalend home"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="inline-flex shrink-0 items-center"
+        >
           <KalendWordmark size="sm" tone="ink" animation="scatter" />
-        </a>
+        </button>
 
         {/* Desktop links */}
         <div className="ml-auto hidden items-center gap-7 min-[760px]:flex">
-          {NAV_LINKS.map(({ label, href }) => (
-            <a
-              key={href}
-              href={href}
+          {NAV_LINKS.map(({ label, id }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => scrollTo(id)}
               className="text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
             >
               {label}
-            </a>
+            </button>
           ))}
         </div>
 
@@ -62,15 +72,15 @@ export default function LandingNav() {
       {/* Mobile dropdown — slides in below the nav bar */}
       {open && (
         <div className="border-t border-[var(--kal-border)]/70 bg-[var(--kal-bg)] px-5 pb-4 pt-2 min-[760px]:hidden">
-          {NAV_LINKS.map(({ label, href }) => (
-            <a
-              key={href}
-              href={href}
-              onClick={close}
-              className="flex h-11 items-center text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
+          {NAV_LINKS.map(({ label, id }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => { scrollTo(id); close(); }}
+              className="flex h-11 w-full items-center text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
             >
               {label}
-            </a>
+            </button>
           ))}
         </div>
       )}
