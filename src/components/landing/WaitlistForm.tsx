@@ -61,7 +61,7 @@ export default function WaitlistForm() {
   }
 
   return (
-    <div id="waitlist" className="flex w-full flex-col items-center gap-2 min-[960px]:items-start">
+    <div id="waitlist" className="flex w-full flex-col items-center gap-2">
       <form
         onSubmit={handleSubmit}
         className="flex w-full flex-col items-stretch gap-3 min-[560px]:flex-row min-[560px]:items-center"
