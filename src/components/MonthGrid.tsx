@@ -29,7 +29,7 @@ interface MonthGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
@@ -158,7 +158,7 @@ function DayCell({
   categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
-  onEventClick: (event: CalendarEvent) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
@@ -205,7 +205,7 @@ function DayCell({
             title={event.title}
             onClick={(e) => {
               e.stopPropagation();
-              onEventClick(event);
+              onEventClick(event, e.currentTarget.getBoundingClientRect());
             }}
             className={`w-full rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >

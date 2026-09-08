@@ -122,7 +122,7 @@ interface TimeGridProps {
   events: CalendarEvent[];
   categories: CalendarCategory[];
   onSlotClick?: (day: Date, hour: number, anchorRect: DOMRect) => void;
-  onEventClick?: (event: CalendarEvent) => void;
+  onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
    *  only become draggable when this is provided. */
@@ -371,7 +371,7 @@ export default function TimeGrid({
       }
       return;
     }
-    onEventClick?.(event);
+    onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
   function handleResizePointerDown(

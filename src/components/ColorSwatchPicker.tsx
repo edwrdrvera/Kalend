@@ -18,7 +18,7 @@ interface ColorSwatchPickerProps {
  *  outside click/Escape, not on an arbitrary click inside its content).
  *  `disabled` renders a plain, non-interactive dot instead (e.g. when a
  *  linked category governs the color and this swatch would otherwise be
- *  misleading to click). Shared by EventModal's color field and
+ *  misleading to click). Shared by the event editor's color field and
  *  CategoryManager's category color picker. */
 export default function ColorSwatchPicker({
   color,

@@ -3,7 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
@@ -11,14 +11,21 @@ import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
-import type { CalendarCategory } from "@/lib/calendar-types";
-import type { EventFormValues } from "./EventModal";
+import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 /** Used for vertical centering; approximate — exact height varies with content. */
 const POPOVER_HEIGHT_ESTIMATE = 300;
+
+export interface EventFormValues {
+  title: string;
+  startAt: string;
+  endAt: string;
+  color: EventColor;
+  categoryId: string | null;
+}
 
 function toDateTimeLocal(date: Date): string {
   return format(date, "yyyy-MM-dd'T'HH:mm");
@@ -48,10 +55,13 @@ interface EventCreatePopoverProps {
   anchorRect: DOMRect;
   /** Which side of the anchor to open on, pre-computed by the caller. */
   side: "left" | "right";
-  /** Pre-populates start time (e.g. the clicked day or time slot). */
-  initialStart: Date;
+  /** Pre-populates the form when editing an existing event. */
+  event?: CalendarEvent | null;
+  /** Pre-populates start time when creating from a clicked day or time slot. */
+  initialStart?: Date;
   categories: CalendarCategory[];
   onSubmit: (values: EventFormValues) => void;
+  onDelete?: () => void;
   onClose: () => void;
   submitting?: boolean;
   error?: string | null;
@@ -63,20 +73,31 @@ interface EventCreatePopoverProps {
 export default function EventCreatePopover({
   anchorRect,
   side,
+  event,
   initialStart,
   categories,
   onSubmit,
+  onDelete,
   onClose,
   submitting = false,
   error = null,
 }: EventCreatePopoverProps) {
-  const [title, setTitle] = useState("");
-  const [startAt, setStartAt] = useState(() => toDateTimeLocal(initialStart));
-  const [endAt, setEndAt] = useState(() =>
-    toDateTimeLocal(new Date(initialStart.getTime() + DEFAULT_DURATION_MS))
+  const isEditing = Boolean(event);
+  const [title, setTitle] = useState(() => event?.title ?? "");
+  const [startAt, setStartAt] = useState(() =>
+    toDateTimeLocal(event ? new Date(event.start_at) : initialStart ?? new Date())
   );
-  const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [endAt, setEndAt] = useState(() =>
+    toDateTimeLocal(
+      event
+        ? new Date(event.end_at)
+        : new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
+    )
+  );
+  const [color, setColor] = useState<EventColor>(() =>
+    event && isEventColor(event.color) ? event.color : DEFAULT_EVENT_COLOR
+  );
+  const [categoryId, setCategoryId] = useState<string | null>(() => event?.category_id ?? null);
   const [timeExpanded, setTimeExpanded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -159,7 +180,7 @@ export default function EventCreatePopover({
           AND the tail triangle, so the shadow wraps the whole shape as one piece. */}
       <div
         role="dialog"
-        aria-label="Create event"
+        aria-label={isEditing ? "Edit event" : "Create event"}
         style={{
           position: "fixed",
           top,
@@ -209,7 +230,7 @@ export default function EventCreatePopover({
             id="new-event-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New event"
+            placeholder={isEditing ? "Event title" : "New event"}
             required
             autoFocus
             className="h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input/40 bg-transparent px-0 py-1 text-base font-semibold outline-none placeholder:text-muted-foreground/50 focus:border-primary"
@@ -302,6 +323,18 @@ export default function EventCreatePopover({
           )}
 
           <div className="flex gap-2">
+            {isEditing && onDelete && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onDelete}
+                aria-label="Delete event"
+                className="px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -312,7 +345,7 @@ export default function EventCreatePopover({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting} size="sm" className="flex-1">
-              {submitting ? "Creating…" : "Create event"}
+              {submitting ? (isEditing ? "Saving…" : "Creating…") : isEditing ? "Save changes" : "Create event"}
             </Button>
           </div>
         </form>

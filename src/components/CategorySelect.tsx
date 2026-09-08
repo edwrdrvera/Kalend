@@ -16,7 +16,7 @@ interface CategorySelectProps {
 
 /** Popover-based dropdown for linking an event or task to one of the
  *  user's categories, or leaving it unlinked ("No category"). Shared by
- *  EventModal's event form and TaskList's task create form. */
+ *  the event editor and TaskList's task create form. */
 export default function CategorySelect({
   categories,
   categoryId,
