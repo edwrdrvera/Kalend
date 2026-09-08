@@ -13,11 +13,8 @@ import {
 } from "@/components/ui/popover";
 import { createClient } from "@/lib/supabase/client";
 
-/** Settings entry point pinned to the sidebar's bottom-right corner. Menu
- *  content is a placeholder for now (issue #72) — no real settings exist
- *  yet, this just establishes the button and menu ahead of them. Opens
- *  upward (`side="top"`) since the trigger sits at the bottom of the
- *  sidebar, with no room below it for the menu to open into. */
+/** Account controls open upward because the trigger sits at the bottom of
+ *  the sidebar, with no room below it for the menu. */
 export default function SettingsMenu() {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -48,14 +45,15 @@ export default function SettingsMenu() {
     <Popover>
       <PopoverTrigger
         aria-label="Settings"
-        className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted"
+        title="Settings"
+        className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <Settings size={18} />
       </PopoverTrigger>
       <PopoverContent align="end" side="top" className="w-64">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
-          <PopoverDescription>More settings are coming soon.</PopoverDescription>
+          <PopoverDescription>Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
         <button
           type="button"
@@ -66,7 +64,7 @@ export default function SettingsMenu() {
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}
         </button>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
       </PopoverContent>
     </Popover>
   );

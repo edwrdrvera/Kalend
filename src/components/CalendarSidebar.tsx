@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import MiniCalendar from "./MiniCalendar";
 import CategoryManager from "./CategoryManager";
+import SettingsMenu from "./SettingsMenu";
+import KalendWordmark from "./KalendWordmark";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
@@ -81,6 +83,13 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-full w-full flex-1 flex-col">
+          <div className="px-5 pt-5 pb-1">
+            <KalendWordmark
+              size="sm"
+              tone={mounted && theme === "dark" ? "white" : "ink"}
+              animation="scatter"
+            />
+          </div>
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}
@@ -98,12 +107,12 @@ export default function CalendarSidebar({
               onDateSelect={onDateSelect}
             />
 
-            <div className="border-t border-border px-5 py-4">
+            <div className="flex items-center gap-2 border-t border-border px-5 py-4">
               <button
                 type="button"
                 onClick={toggleTheme}
                 aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-                className="flex w-full items-center gap-3 text-sm font-semibold text-foreground"
+                className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-foreground"
               >
                 {mounted && (theme === "dark" ? <Sun className="size-5" /> : <Moon className="size-5" />)}
                 <span>Dark mode</span>
@@ -122,6 +131,7 @@ export default function CalendarSidebar({
                   />
                 </span>
               </button>
+              <SettingsMenu />
             </div>
           </div>
         </div>

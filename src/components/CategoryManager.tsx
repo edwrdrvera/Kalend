@@ -199,7 +199,7 @@ export default function CategoryManager({
   );
 
   return (
-    <div className="flex flex-col px-5 pb-4 pt-5">
+    <div className="flex flex-col px-5 pt-3 pb-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
         <button
