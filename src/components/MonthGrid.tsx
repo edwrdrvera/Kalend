@@ -207,9 +207,9 @@ function DayCell({
               e.stopPropagation();
               onEventClick(event);
             }}
-            className={`w-full rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+            className={`w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
-            <span className="hidden truncate sm:inline">{event.title}</span>
+            <span className="block truncate">{event.title}</span>
           </button>
         ))}
         {overflowCount > 0 && (
