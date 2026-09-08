@@ -55,7 +55,7 @@ const STEPS: Step[] = [
 
 export default function LandingHowItWorks() {
   return (
-    <section id="how" className="mx-auto grid max-w-[1200px] scroll-mt-8 gap-12 px-6 pb-24 min-[760px]:grid-cols-[0.72fr_1.28fr] min-[860px]:gap-20 min-[860px]:px-8 min-[860px]:pb-32">
+    <section id="how" className="mx-auto grid max-w-[1200px] scroll-mt-24 gap-12 px-6 pb-24 min-[760px]:grid-cols-[0.72fr_1.28fr] min-[860px]:gap-20 min-[860px]:px-8 min-[860px]:pb-32">
       <div className="max-w-[390px]">
         <p className="mb-3 text-sm font-medium text-[var(--kal-muted)]">
           How it works
