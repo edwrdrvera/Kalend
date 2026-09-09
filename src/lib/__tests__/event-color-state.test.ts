@@ -14,6 +14,23 @@ const event: CalendarEvent = {
 };
 
 describe("event editor Space color transitions", () => {
+  it("initializes new events from the snapshotted Space without creating a color override", () => {
+    expect(initialEventColor(null, "space-1")).toEqual({
+      color: "blue",
+      categoryId: "space-1",
+      colorOverridden: false,
+    });
+  });
+
+  it("uses saved membership when editing, including an unassigned event", () => {
+    expect(initialEventColor({ ...event, category_id: null }, "space-2")).toEqual({
+      color: "blue",
+      categoryId: null,
+      colorOverridden: false,
+    });
+    expect(initialEventColor(event, "space-2").categoryId).toBe("space-1");
+  });
+
   it("inherits when a Space is assigned to a new or legacy standalone event", () => {
     for (const initial of [initialEventColor(), initialEventColor({ ...event, category_id: null })]) {
       const state = eventColorReducer(initial, { type: "space", categoryId: "space-1", categories: spaces });
