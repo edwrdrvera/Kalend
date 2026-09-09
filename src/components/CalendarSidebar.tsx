@@ -8,6 +8,7 @@ import MiniCalendar from "./MiniCalendar";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
 import KalendWordmark from "./KalendWordmark";
+import TaskList from "./TaskList";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
@@ -21,6 +22,8 @@ interface CalendarSidebarProps {
   onDeleteTask: (task: CalendarTask) => void;
   categories: CalendarCategory[];
   categoriesLoading: boolean;
+  selectedSpaceId: string | null;
+  onSelectSpace: (spaceId: string | null) => void;
   hiddenCategoryIds: string[];
   onToggleCategoryVisibility: (categoryId: string) => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
@@ -28,16 +31,22 @@ interface CalendarSidebarProps {
     category: CalendarCategory,
     updates: { name?: string; color?: string }
   ) => void;
-  onDeleteCategory: (category: CalendarCategory) => void;
+  onDeleteCategory: (category: CalendarCategory) => Promise<void>;
 }
-
 
 export default function CalendarSidebar({
   currentDate,
   viewDate,
   onDateSelect,
+  tasks,
+  tasksLoading,
+  onCreateTask,
+  onToggleTaskComplete,
+  onDeleteTask,
   categories,
   categoriesLoading,
+  selectedSpaceId,
+  onSelectSpace,
   hiddenCategoryIds,
   onToggleCategoryVisibility,
   onCreateCategory,
@@ -93,20 +102,29 @@ export default function CalendarSidebar({
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}
+            selectedSpaceId={selectedSpaceId}
+            onSelectSpace={onSelectSpace}
             hiddenCategoryIds={hiddenCategoryIds}
             onToggleCategoryVisibility={onToggleCategoryVisibility}
             onCreateCategory={onCreateCategory}
             onUpdateCategory={onUpdateCategory}
             onDeleteCategory={onDeleteCategory}
           />
-
+          <TaskList
+            tasks={tasks}
+            loading={tasksLoading}
+            categories={categories}
+            onCreateTask={onCreateTask}
+            onToggleComplete={onToggleTaskComplete}
+            onDeleteTask={onDeleteTask}
+            selectedSpaceId={selectedSpaceId}
+          />
           <div className="mt-auto pt-2">
             <MiniCalendar
               currentDate={currentDate}
               viewDate={viewDate}
               onDateSelect={onDateSelect}
             />
-
             <div className="flex justify-end border-t border-border px-4 py-3">
               <SettingsMenu />
             </div>
