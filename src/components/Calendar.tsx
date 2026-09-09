@@ -238,24 +238,29 @@ export default function Calendar() {
     }
   };
 
-  // Optimistic, same pattern as handleDeleteTask. The database detaches any
-  // linked events/tasks itself (category_id is ON DELETE SET NULL), so
-  // there's nothing extra to reconcile in events/tasks state here.
+  // Keep the Space visible until the server has preserved and returned its
+  // events' colors. Removing it optimistically would flash their old colors.
+  const deletingCategoryIds = useRef(new Set<string>());
   const handleDeleteCategory = async (category: CalendarCategory) => {
-    setCategories((prev) => prev.filter((c) => c.id !== category.id));
-
+    if (deletingCategoryIds.current.has(category.id)) return;
+    deletingCategoryIds.current.add(category.id);
     try {
-      await mutateResource<CalendarCategory>(
+      const result = await mutateResource<CalendarCategory>(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
         "Failed to delete category"
-      );
+      ) as { data?: CalendarCategory; events?: CalendarEvent[] };
+      if (!result.data || !result.events) throw new Error("Failed to reconcile deleted Space");
+      events.reconcileSpaceRemoval(result.events, category.id);
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      setHiddenCategoryIds((prev) => prev.filter((id) => id !== category.id));
     } catch (err) {
-      setCategories((prev) => [...prev, category]);
       setCategoriesError(
         err instanceof Error ? err.message : "Failed to delete category"
       );
+    } finally {
+      deletingCategoryIds.current.delete(category.id);
     }
   };
 
