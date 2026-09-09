@@ -138,6 +138,23 @@ describe("Events API Endpoints", () => {
       expect(mockDbState.rows).toEqual(before);
     });
 
+    it("returns 400 for non-object JSON without inserting an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '\"Event\"', "42"]) {
+        const response = await POST(new Request("http://localhost/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }));
+
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when required fields are missing", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
@@ -318,6 +335,39 @@ describe("Events API Endpoints", () => {
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
       expect(response.status).toBe(401);
+    });
+
+    it("returns 400 for malformed JSON without updating an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-object JSON without updating an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '\"Updated\"', "42"]) {
+        const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
     });
 
     it("returns 400 when no updatable fields are provided", async () => {
