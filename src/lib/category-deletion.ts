@@ -1,8 +1,9 @@
-import type { CalendarEvent, CategoryDeleteApiResponse } from "./calendar-types";
+import type { CalendarEvent, CalendarTask, CategoryDeleteApiResponse } from "./calendar-types";
 
 export type CompletedCategoryDeletion = CategoryDeleteApiResponse & {
   data: NonNullable<CategoryDeleteApiResponse["data"]>;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
 };
 
 /** Returns false when the same Space deletion is already awaiting a response. */
@@ -20,5 +21,5 @@ export function finishCategoryDeletion(pending: Set<string>, categoryId: string)
 export function isCompletedCategoryDeletion(
   response: CategoryDeleteApiResponse
 ): response is CompletedCategoryDeletion {
-  return response.data !== undefined && Array.isArray(response.events);
+  return response.data !== undefined && Array.isArray(response.events) && Array.isArray(response.tasks);
 }

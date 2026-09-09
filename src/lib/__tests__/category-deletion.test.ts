@@ -18,6 +18,15 @@ const response: CategoryDeleteApiResponse = {
     color_overridden: false,
     category_id: null,
   }],
+  tasks: [{
+    id: "task-1",
+    title: "Problem set",
+    due_at: "2026-09-08T12:00:00Z",
+    completed: false,
+    color: "green",
+    color_overridden: false,
+    category_id: null,
+  }],
 };
 
 describe("category deletion coordination", () => {
@@ -32,19 +41,25 @@ describe("category deletion coordination", () => {
     expect(beginCategoryDeletion(pending, "space-1")).toBe(true);
   });
 
-  it("accepts a successful deletion with detached events", () => {
+  it("accepts a successful deletion with detached events and tasks", () => {
     expect(isCompletedCategoryDeletion(response)).toBe(true);
     if (isCompletedCategoryDeletion(response)) {
       expect(response.events).toHaveLength(1);
+      expect(response.tasks).toHaveLength(1);
       expect(response.data.id).toBe("space-1");
     }
   });
 
-  it("accepts a successful deletion with no linked events", () => {
-    expect(isCompletedCategoryDeletion({ ...response, events: [] })).toBe(true);
+  it("accepts a successful deletion with no linked items", () => {
+    expect(isCompletedCategoryDeletion({ ...response, events: [], tasks: [] })).toBe(true);
   });
 
-  it("rejects an incomplete response and releases pending state after failure", () => {
+  it("rejects responses missing either detached array", () => {
+    expect(isCompletedCategoryDeletion({ ...response, events: undefined })).toBe(false);
+    expect(isCompletedCategoryDeletion({ ...response, tasks: undefined })).toBe(false);
+  });
+
+  it("releases pending state after an incomplete response", () => {
     const pending = new Set<string>();
     beginCategoryDeletion(pending, "space-1");
 

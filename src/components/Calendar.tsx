@@ -24,6 +24,7 @@ import {
   finishCategoryDeletion,
   isCompletedCategoryDeletion,
 } from "@/lib/category-deletion";
+import { reconcileDetachedTasks } from "@/lib/task-color-state";
 
 function ErrorToast({
   message,
@@ -260,6 +261,7 @@ export default function Calendar() {
         throw new Error("Failed to reconcile deleted Space");
       }
       events.reconcileSpaceRemoval(result.events, category.id);
+      setTasks((current) => reconcileDetachedTasks(current, result.tasks, category.id));
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
       setHiddenCategoryIds((prev) => prev.filter((id) => id !== category.id));
     } catch (err) {
