@@ -15,9 +15,15 @@ import type {
   CalendarCategory,
   TasksApiResponse,
   CategoriesApiResponse,
+  CategoryDeleteApiResponse,
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import {
+  beginCategoryDeletion,
+  finishCategoryDeletion,
+  isCompletedCategoryDeletion,
+} from "@/lib/category-deletion";
 
 function ErrorToast({
   message,
@@ -242,16 +248,17 @@ export default function Calendar() {
   // events' colors. Removing it optimistically would flash their old colors.
   const deletingCategoryIds = useRef(new Set<string>());
   const handleDeleteCategory = async (category: CalendarCategory) => {
-    if (deletingCategoryIds.current.has(category.id)) return;
-    deletingCategoryIds.current.add(category.id);
+    if (!beginCategoryDeletion(deletingCategoryIds.current, category.id)) return;
     try {
-      const result = await mutateResource<CalendarCategory>(
+      const result = await mutateResource<CalendarCategory, CategoryDeleteApiResponse>(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
         "Failed to delete category"
-      ) as { data?: CalendarCategory; events?: CalendarEvent[] };
-      if (!result.data || !result.events) throw new Error("Failed to reconcile deleted Space");
+      );
+      if (!isCompletedCategoryDeletion(result)) {
+        throw new Error("Failed to reconcile deleted Space");
+      }
       events.reconcileSpaceRemoval(result.events, category.id);
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
       setHiddenCategoryIds((prev) => prev.filter((id) => id !== category.id));
@@ -260,7 +267,7 @@ export default function Calendar() {
         err instanceof Error ? err.message : "Failed to delete category"
       );
     } finally {
-      deletingCategoryIds.current.delete(category.id);
+      finishCategoryDeletion(deletingCategoryIds.current, category.id);
     }
   };
 

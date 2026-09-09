@@ -8,18 +8,21 @@ export interface MutationResponse<T> {
   error?: string;
 }
 
-export async function mutateResource<T>(
+export async function mutateResource<
+  T,
+  TResponse extends MutationResponse<T> = MutationResponse<T>,
+>(
   url: string,
   method: "POST" | "PATCH" | "DELETE",
   body: object | undefined,
   fallbackError: string
-): Promise<MutationResponse<T>> {
+): Promise<TResponse> {
   const res = await fetch(url, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  const json: MutationResponse<T> = await res.json();
+  const json: TResponse = await res.json();
 
   if (!res.ok || !json.success) {
     throw new Error(json.error ?? fallbackError);

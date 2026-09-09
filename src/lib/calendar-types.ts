@@ -45,3 +45,11 @@ export interface CategoriesApiResponse {
   data?: CalendarCategory[];
   error?: string;
 }
+
+/** Successful category deletion also returns events detached by the server. */
+export interface CategoryDeleteApiResponse {
+  success: boolean;
+  data?: CalendarCategory;
+  events?: CalendarEvent[];
+  error?: string;
+}
