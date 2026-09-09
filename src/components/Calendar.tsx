@@ -15,9 +15,16 @@ import type {
   CalendarCategory,
   TasksApiResponse,
   CategoriesApiResponse,
+  CategoryDeleteApiResponse,
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import {
+  beginCategoryDeletion,
+  finishCategoryDeletion,
+  isCompletedCategoryDeletion,
+} from "@/lib/category-deletion";
+import { reconcileDetachedTasks } from "@/lib/task-color-state";
 
 function ErrorToast({
   message,
@@ -238,24 +245,31 @@ export default function Calendar() {
     }
   };
 
-  // Optimistic, same pattern as handleDeleteTask. The database detaches any
-  // linked events/tasks itself (category_id is ON DELETE SET NULL), so
-  // there's nothing extra to reconcile in events/tasks state here.
+  // Keep the Space visible until the server has preserved and returned its
+  // events' colors. Removing it optimistically would flash their old colors.
+  const deletingCategoryIds = useRef(new Set<string>());
   const handleDeleteCategory = async (category: CalendarCategory) => {
-    setCategories((prev) => prev.filter((c) => c.id !== category.id));
-
+    if (!beginCategoryDeletion(deletingCategoryIds.current, category.id)) return;
     try {
-      await mutateResource<CalendarCategory>(
+      const result = await mutateResource<CalendarCategory, CategoryDeleteApiResponse>(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
         "Failed to delete category"
       );
+      if (!isCompletedCategoryDeletion(result)) {
+        throw new Error("Failed to reconcile deleted Space");
+      }
+      events.reconcileSpaceRemoval(result.events, category.id);
+      setTasks((current) => reconcileDetachedTasks(current, result.tasks, category.id));
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      setHiddenCategoryIds((prev) => prev.filter((id) => id !== category.id));
     } catch (err) {
-      setCategories((prev) => [...prev, category]);
       setCategoriesError(
         err instanceof Error ? err.message : "Failed to delete category"
       );
+    } finally {
+      finishCategoryDeletion(deletingCategoryIds.current, category.id);
     }
   };
 

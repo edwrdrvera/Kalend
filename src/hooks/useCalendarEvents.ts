@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { CalendarEvent, EventsApiResponse } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
-import type { EventFormValues } from "@/components/EventCreatePopover";
+import { eventFormPayload, type EventFormValues } from "@/lib/event-form";
+import { reconcileDetachedEvents } from "@/lib/event-color-state";
 
 export interface UseCalendarEventsReturn {
   data: CalendarEvent[];
@@ -12,6 +13,7 @@ export interface UseCalendarEventsReturn {
   initialLoading: boolean;
   setError: (e: string | null) => void;
   retry: () => void;
+  reconcileSpaceRemoval: (detached: CalendarEvent[], categoryId: string) => void;
   createEvent: (values: EventFormValues) => Promise<CalendarEvent>;
   updateEvent: (id: string, values: EventFormValues) => Promise<CalendarEvent>;
   deleteEvent: (event: CalendarEvent) => Promise<void>;
@@ -85,13 +87,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     const json = await mutateResource<CalendarEvent>(
       "/api/events",
       "POST",
-      {
-        title: values.title,
-        start_at: values.startAt,
-        end_at: values.endAt,
-        color: values.color,
-        category_id: values.categoryId,
-      },
+      eventFormPayload(values),
       "Failed to create event"
     );
 
@@ -108,13 +104,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     const json = await mutateResource<CalendarEvent>(
       `/api/events/${id}`,
       "PATCH",
-      {
-        title: values.title,
-        start_at: values.startAt,
-        end_at: values.endAt,
-        color: values.color,
-        category_id: values.categoryId,
-      },
+      eventFormPayload(values),
       "Failed to update event"
     );
 
@@ -202,6 +192,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     initialLoading,
     setError,
     retry,
+    reconcileSpaceRemoval: (detached, categoryId) => setEvents((current) => reconcileDetachedEvents(current, detached, categoryId)),
     createEvent,
     updateEvent,
     deleteEvent,

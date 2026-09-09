@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useReducer, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
 import { Clock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
-import { DEFAULT_EVENT_COLOR, isEventColor, type EventColor } from "@/lib/event-colors";
+import { DEFAULT_EVENT_COLOR, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
+import { eventColorReducer, initialEventColor } from "@/lib/event-color-state";
+import type { EventFormValues } from "@/lib/event-form";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
@@ -19,13 +21,7 @@ const SIDE_GAP = 10;
 /** Used for vertical centering; approximate — exact height varies with content. */
 const POPOVER_HEIGHT_ESTIMATE = 300;
 
-export interface EventFormValues {
-  title: string;
-  startAt: string;
-  endAt: string;
-  color: EventColor;
-  categoryId: string | null;
-}
+export type { EventFormValues } from "@/lib/event-form";
 
 function toDateTimeLocal(date: Date): string {
   return format(date, "yyyy-MM-dd'T'HH:mm");
@@ -94,10 +90,8 @@ export default function EventCreatePopover({
         : new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
     )
   );
-  const [color, setColor] = useState<EventColor>(() =>
-    event && isEventColor(event.color) ? event.color : DEFAULT_EVENT_COLOR
-  );
-  const [categoryId, setCategoryId] = useState<string | null>(() => event?.category_id ?? null);
+  const [colorState, dispatchColor] = useReducer(eventColorReducer, event, initialEventColor);
+  const { color, categoryId, colorOverridden } = colorState;
   const [timeExpanded, setTimeExpanded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -134,11 +128,8 @@ export default function EventCreatePopover({
   const end = splitDateTimeLocal(endAt);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
-  const categoryColor =
-    selectedCategory && isEventColor(selectedCategory.color)
-      ? selectedCategory.color
-      : null;
-  const swatchColor = categoryColor ?? color;
+  const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
+  const swatchColor = isEventColor(visibleColor) ? visibleColor : DEFAULT_EVENT_COLOR;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -159,6 +150,7 @@ export default function EventCreatePopover({
       startAt: s.toISOString(),
       endAt: en.toISOString(),
       color,
+      colorOverridden,
       categoryId,
     });
   };
@@ -308,15 +300,25 @@ export default function EventCreatePopover({
           <div className="flex items-center gap-2">
             <ColorSwatchPicker
               color={swatchColor}
-              onColorChange={setColor}
-              disabled={categoryColor !== null}
+              onColorChange={(nextColor) => dispatchColor({ type: "pick", color: nextColor })}
             />
             <CategorySelect
               categories={categories}
               categoryId={categoryId}
-              onChange={setCategoryId}
+              onChange={(nextId) => dispatchColor({ type: "space", categoryId: nextId, categories })}
             />
           </div>
+          {selectedCategory && (
+            colorOverridden ? (
+              <button
+                type="button"
+                className="self-start text-xs font-medium text-primary hover:underline"
+                onClick={() => dispatchColor({ type: "inherit" })}
+              >
+                Use Space color
+              </button>
+            ) : <p className="text-xs text-muted-foreground">Using Space color</p>
+          )}
 
           {(validationError ?? error) && (
             <p className="text-xs text-destructive">{validationError ?? error}</p>
