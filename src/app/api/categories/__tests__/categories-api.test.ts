@@ -17,6 +17,15 @@ interface MockEventRow {
   color_overridden: boolean;
 }
 
+interface MockTaskRow {
+  id: string;
+  user_id: string;
+  category_id: string | null;
+  color: string;
+  color_overridden: boolean;
+  title: string;
+}
+
 let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
@@ -27,6 +36,7 @@ const mockDbState: MockDbState<MockCategory> = {
   shouldFail: false,
 };
 const mockEventState: MockDbState<MockEventRow> = { rows: [], shouldFail: false };
+const mockTaskState: MockDbState<MockTaskRow> = { rows: [], shouldFail: false };
 
 // filterUndefined: true mirrors real Drizzle/postgres-js behavior where a
 // key present with an `undefined` value falls back to the column default.
@@ -37,7 +47,7 @@ setupMockDb(
   { color: "blue" } as Partial<MockCategory>,
   true,
   () => [],
-  { events: mockEventState }
+  { events: mockEventState, tasks: mockTaskState }
 );
 
 // Import route handlers after mock setup
@@ -66,6 +76,8 @@ describe("Categories API Endpoints", () => {
     ];
     mockDbState.shouldFail = false;
     mockDbState.shouldFailOnDelete = false;
+    mockDbState.transactionCount = 0;
+    mockDbState.lockCount = 0;
     mockEventState.rows = [
       { id: "evt-linked-inherited", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "purple", color_overridden: false },
       { id: "evt-linked-override", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "red", color_overridden: true },
@@ -73,6 +85,13 @@ describe("Categories API Endpoints", () => {
       { id: "evt-foreign", user_id: "other-user-456", category_id: "category-uuid-1", color: "pink", color_overridden: false },
     ];
     mockEventState.shouldFail = false;
+    mockTaskState.rows = [
+      { id: "task-linked-inherited", title: "Inherited task", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "purple", color_overridden: false },
+      { id: "task-linked-override", title: "Override task", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "red", color_overridden: true },
+      { id: "task-other-space", title: "Other task", user_id: "user-uuid-123", category_id: "category-other", color: "teal", color_overridden: false },
+      { id: "task-foreign", title: "Foreign task", user_id: "other-user-456", category_id: "category-uuid-1", color: "pink", color_overridden: false },
+    ];
+    mockTaskState.shouldFail = false;
   });
 
   describe("GET /api/categories", () => {
@@ -449,14 +468,22 @@ describe("Categories API Endpoints", () => {
       expect(json.events).toHaveLength(2);
       expect(json.events.find((event: MockEventRow) => event.id === "evt-linked-inherited")).toMatchObject({ category_id: null, color: "blue", color_overridden: false });
       expect(json.events.find((event: MockEventRow) => event.id === "evt-linked-override")).toMatchObject({ category_id: null, color: "red", color_overridden: true });
+      expect(json.tasks).toHaveLength(2);
+      expect(json.tasks.find((task: MockTaskRow) => task.id === "task-linked-inherited")).toMatchObject({ category_id: null, color: "blue", color_overridden: false });
+      expect(json.tasks.find((task: MockTaskRow) => task.id === "task-linked-override")).toMatchObject({ category_id: null, color: "red", color_overridden: true });
       expect(mockEventState.rows.find((event) => event.id === "evt-other-space")?.category_id).toBe("category-other");
       expect(mockEventState.rows.find((event) => event.id === "evt-foreign")?.category_id).toBe("category-uuid-1");
-      expect(mockDbState.lockCount).toBeGreaterThanOrEqual(2);
+      expect(mockTaskState.rows.find((task) => task.id === "task-other-space")?.category_id).toBe("category-other");
+      expect(mockTaskState.rows.find((task) => task.id === "task-foreign")?.category_id).toBe("category-uuid-1");
+      expect(mockDbState.lockCount).toBeGreaterThanOrEqual(3);
     });
 
-    it("returns an empty events array when the deleted Space has no linked events", async () => {
+    it("returns empty events and tasks arrays when the deleted Space has no linked items", async () => {
       mockEventState.rows = mockEventState.rows.filter(
         (event) => event.category_id !== "category-uuid-1"
+      );
+      mockTaskState.rows = mockTaskState.rows.filter(
+        (task) => task.category_id !== "category-uuid-1"
       );
       const req = new Request("http://localhost/api/categories/category-uuid-1", {
         method: "DELETE",
@@ -465,16 +492,20 @@ describe("Categories API Endpoints", () => {
       const response = await DELETE(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
 
       expect(response.status).toBe(200);
-      expect((await response.json()).events).toEqual([]);
+      const json = await response.json();
+      expect(json.events).toEqual([]);
+      expect(json.tasks).toEqual([]);
     });
 
-    it("rolls back detached events when deleting the Space fails", async () => {
+    it("rolls back detached events and tasks when deleting the Space fails", async () => {
       mockDbState.shouldFailOnDelete = true;
-      const before = mockEventState.rows.map((event) => ({ ...event }));
+      const beforeEvents = mockEventState.rows.map((event) => ({ ...event }));
+      const beforeTasks = mockTaskState.rows.map((task) => ({ ...task }));
       const req = new Request("http://localhost/api/categories/category-uuid-1", { method: "DELETE" });
       const response = await DELETE(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
       expect(response.status).toBe(500);
-      expect(mockEventState.rows).toEqual(before);
+      expect(mockEventState.rows).toEqual(beforeEvents);
+      expect(mockTaskState.rows).toEqual(beforeTasks);
       expect(mockDbState.rows.some((category) => category.id === "category-uuid-1")).toBe(true);
     });
   });

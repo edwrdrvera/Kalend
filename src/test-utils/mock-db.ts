@@ -77,7 +77,11 @@ export function extractIdFromCondition(
   idPrefix: string
 ): string | null {
   for (const s of collectStrings(condition)) {
-    if (s.startsWith(idPrefix) || s.includes("existent")) return s;
+    if (
+      s.startsWith(idPrefix) ||
+      s.includes("existent") ||
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+    ) return s;
   }
   return null;
 }
@@ -192,7 +196,7 @@ export function setupMockDb<T extends BaseRow>(
               ? selectedState.rows.filter((r) => r.user_id === user.id)
               : selectedState.rows;
             if (targetId) rows = rows.filter((r) => r.id === targetId);
-            if (categoryId && tableNameOf(table) === "events") {
+            if (categoryId && (tableNameOf(table) === "events" || tableNameOf(table) === "tasks")) {
               rows = rows.filter((r) => (r as BaseRow & { category_id?: string }).category_id === categoryId);
             }
             return rows;
@@ -240,7 +244,7 @@ export function setupMockDb<T extends BaseRow>(
                 .map((r, index) => ({ r, index }))
                 .filter(({ r }) =>
                   (!targetId || r.id === targetId) &&
-                  (!categoryId || tableNameOf(table) !== "events" || (r as BaseRow & { category_id?: string }).category_id === categoryId) &&
+                  (!categoryId || (tableNameOf(table) !== "events" && tableNameOf(table) !== "tasks") || (r as BaseRow & { category_id?: string }).category_id === categoryId) &&
                   (!scopedByUser || r.user_id === user!.id)
                 )
                 .map(({ index }) => index);

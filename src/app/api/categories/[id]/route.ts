@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
 import { events } from "@/db/schema/events";
+import { tasks } from "@/db/schema/tasks";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
 import { isEventColor } from "@/lib/event-colors";
 import { retryTransaction } from "@/lib/transaction-retry";
@@ -126,6 +127,12 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
         .where(and(eq(events.category_id, id), eq(events.user_id, user.id)))
         .for("update");
 
+      const linkedTasks = await tx
+        .select()
+        .from(tasks)
+        .where(and(eq(tasks.category_id, id), eq(tasks.user_id, user.id)))
+        .for("update");
+
       const detachedEvents = [];
       for (const event of linkedEvents) {
         const [detached] = await tx
@@ -139,12 +146,25 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
         if (detached) detachedEvents.push(detached);
       }
 
+      const detachedTasks = [];
+      for (const task of linkedTasks) {
+        const [detached] = await tx
+          .update(tasks)
+          .set({
+            category_id: null,
+            color: task.color_overridden ? task.color : (ownedCategory.color ?? task.color),
+          })
+          .where(and(eq(tasks.id, task.id), eq(tasks.user_id, user.id)))
+          .returning();
+        if (detached) detachedTasks.push(detached);
+      }
+
       const [deletedCategory] = await tx
         .delete(categories)
         .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
         .returning();
       if (!deletedCategory) throw new Error("Category disappeared during deletion");
-      return { deletedCategory, detachedEvents };
+      return { deletedCategory, detachedEvents, detachedTasks };
     }));
 
     if (!result) {
@@ -154,7 +174,12 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       );
     }
 
-    return NextResponse.json({ success: true, data: result.deletedCategory, events: result.detachedEvents });
+    return NextResponse.json({
+      success: true,
+      data: result.deletedCategory,
+      events: result.detachedEvents,
+      tasks: result.detachedTasks,
+    });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(

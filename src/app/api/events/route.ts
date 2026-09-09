@@ -4,6 +4,7 @@ import { categories } from "@/db/schema/categories";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
 import { isEventColor } from "@/lib/event-colors";
 import { retryTransaction } from "@/lib/transaction-retry";
+import { isUuid } from "@/lib/uuid";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -105,8 +106,8 @@ export async function POST(request: Request) {
     if (body.color_overridden !== undefined && typeof body.color_overridden !== "boolean") {
       return NextResponse.json({ success: false, error: "color_overridden must be a boolean" }, { status: 400 });
     }
-    if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !body.category_id.trim())) {
-      return NextResponse.json({ success: false, error: "category_id must be a non-empty string or null" }, { status: 400 });
+    if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) {
+      return NextResponse.json({ success: false, error: "category_id must be a valid UUID" }, { status: 400 });
     }
 
     const result = await retryTransaction(() => db.transaction(async (tx) => {
