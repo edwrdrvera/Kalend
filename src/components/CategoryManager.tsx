@@ -72,10 +72,14 @@ function CategoryRow({
     setDeleting(true);
     setError(null);
 
+    // useCategories reports delete failures through its own error state rather
+    // than rejecting, so the busy flag has to clear on both paths or a failed
+    // delete leaves the row disabled with no way to retry.
     try {
       await onDeleteCategory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete Space");
+    } finally {
       setDeleting(false);
     }
   };
