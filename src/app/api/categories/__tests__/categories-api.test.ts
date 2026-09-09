@@ -122,6 +122,60 @@ describe("Categories API Endpoints", () => {
       expect(response.status).toBe(401);
     });
 
+    it("returns 400 for malformed JSON without inserting a category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const req = new Request("http://localhost/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"name":',
+      });
+
+      const response = await POST(req);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-object bodies without inserting a category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '"Work"', "42"]) {
+        const req = new Request("http://localhost/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+
+        const response = await POST(req);
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-string names without inserting a category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const name of [null, 42, {}, []]) {
+        const req = new Request("http://localhost/api/categories", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+
+        const response = await POST(req);
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("name must be a string");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when name is missing", async () => {
       const req = new Request("http://localhost/api/categories", {
         method: "POST",
@@ -211,6 +265,60 @@ describe("Categories API Endpoints", () => {
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
       expect(response.status).toBe(401);
+    });
+
+    it("returns 400 for malformed JSON without updating the category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const req = new Request("http://localhost/api/categories/category-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: '{"name":',
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-object bodies without updating the category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '"Updated"', "42"]) {
+        const req = new Request("http://localhost/api/categories/category-uuid-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body,
+        });
+
+        const response = await PATCH(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-string names without updating the category", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const name of [null, 42, {}, []]) {
+        const req = new Request("http://localhost/api/categories/category-uuid-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+
+        const response = await PATCH(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("name must be a string");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
     });
 
     it("returns 400 when no updatable fields are provided", async () => {
@@ -344,6 +452,20 @@ describe("Categories API Endpoints", () => {
       expect(mockEventState.rows.find((event) => event.id === "evt-other-space")?.category_id).toBe("category-other");
       expect(mockEventState.rows.find((event) => event.id === "evt-foreign")?.category_id).toBe("category-uuid-1");
       expect(mockDbState.lockCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it("returns an empty events array when the deleted Space has no linked events", async () => {
+      mockEventState.rows = mockEventState.rows.filter(
+        (event) => event.category_id !== "category-uuid-1"
+      );
+      const req = new Request("http://localhost/api/categories/category-uuid-1", {
+        method: "DELETE",
+      });
+
+      const response = await DELETE(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).events).toEqual([]);
     });
 
     it("rolls back detached events when deleting the Space fails", async () => {

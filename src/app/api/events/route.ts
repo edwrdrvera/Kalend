@@ -24,9 +24,6 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data: userEvents });
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      return NextResponse.json({ success: false, error: "Request body must be valid JSON" }, { status: 400 });
-    }
     console.error("Database Error:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
@@ -54,7 +51,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed: unknown = await request.json();
+    let parsed: unknown;
+    try {
+      parsed = await request.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return NextResponse.json(
+          { success: false, error: "Request body must be valid JSON" },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return NextResponse.json({ success: false, error: "Request body must be an object" }, { status: 400 });
     }

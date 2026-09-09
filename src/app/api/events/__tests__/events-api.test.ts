@@ -120,6 +120,24 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("Unauthorized");
     });
 
+    it("returns 400 for malformed JSON without inserting an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      });
+
+      const response = await POST(req);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when required fields are missing", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",

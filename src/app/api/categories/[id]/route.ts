@@ -12,9 +12,12 @@ interface RouteContext {
 }
 
 interface UpdateCategoryBody {
-  name?: string;
-  color?: string;
+  name?: unknown;
+  color?: unknown;
 }
+
+const badRequest = (error: string) =>
+  NextResponse.json({ success: false, error }, { status: 400 });
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
@@ -27,11 +30,27 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     const { id } = await params;
-    const body: UpdateCategoryBody = await request.json();
+    let parsed: unknown;
+    try {
+      parsed = await request.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return badRequest("Request body must be valid JSON");
+      }
+      throw error;
+    }
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return badRequest("Request body must be an object");
+    }
+    const body = parsed as UpdateCategoryBody;
 
     const updates: Partial<typeof categories.$inferInsert> = {};
 
     if (body.name !== undefined) {
+      if (typeof body.name !== "string") {
+        return badRequest("name must be a string");
+      }
       if (!body.name.trim()) {
         return NextResponse.json(
           { success: false, error: "name is required" },
@@ -42,10 +61,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     }
 
     if (body.color !== undefined) {
-      if (!isEventColor(body.color)) {
+      if (typeof body.color !== "string" || !isEventColor(body.color)) {
         return NextResponse.json({ success: false, error: "color must be a supported color" }, { status: 400 });
       }
-      updates.color = body.color;
+      updates.color = body.color as string;
     }
 
     if (Object.keys(updates).length === 0) {

@@ -31,9 +31,12 @@ export async function GET() {
 }
 
 interface CreateCategoryBody {
-  name: string;
-  color?: string;
+  name?: unknown;
+  color?: unknown;
 }
+
+const badRequest = (error: string) =>
+  NextResponse.json({ success: false, error }, { status: 400 });
 
 export async function POST(request: Request) {
   try {
@@ -45,15 +48,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const body: CreateCategoryBody = await request.json();
+    let parsed: unknown;
+    try {
+      parsed = await request.json();
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return badRequest("Request body must be valid JSON");
+      }
+      throw error;
+    }
 
-    if (!body.name || !body.name.trim()) {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return badRequest("Request body must be an object");
+    }
+    const body = parsed as CreateCategoryBody;
+
+    if (body.name === undefined) {
       return NextResponse.json(
         { success: false, error: "name is required" },
         { status: 400 }
       );
     }
-    if (body.color !== undefined && !isEventColor(body.color)) {
+    if (typeof body.name !== "string") {
+      return badRequest("name must be a string");
+    }
+    if (!body.name.trim()) {
+      return badRequest("name is required");
+    }
+    if (body.color !== undefined && (typeof body.color !== "string" || !isEventColor(body.color))) {
       return NextResponse.json({ success: false, error: "color must be a supported color" }, { status: 400 });
     }
 
@@ -62,7 +84,7 @@ export async function POST(request: Request) {
       .values({
         name: body.name.trim(),
         user_id: user.id,
-        color: body.color,
+        color: body.color as string | undefined,
       })
       .returning();
 

@@ -45,7 +45,6 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         const [oldCategory] = await tx.select().from(categories).where(and(eq(categories.id, existing.category_id), eq(categories.user_id, user.id)));
         if (oldCategory) visibleColor = oldCategory.color ?? existing.color;
       }
-      const overridden = body.color_overridden === undefined ? existing.color_overridden : body.color_overridden;
       const updates: Partial<typeof events.$inferInsert> = {};
       if (body.title !== undefined) updates.title = body.title as string;
       if (startAt) updates.start_at = startAt;
