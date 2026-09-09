@@ -53,7 +53,7 @@ export function useCategories(
         const json: CategoriesApiResponse = await res.json();
 
         if (!res.ok || !json.success || !json.data) {
-          throw new Error(json.error ?? "Failed to load categories");
+          throw new Error(json.error ?? "Failed to load Spaces");
         }
 
         if (!cancelled) {
@@ -62,7 +62,7 @@ export function useCategories(
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : "Failed to load categories"
+            err instanceof Error ? err.message : "Failed to load Spaces"
           );
         }
       } finally {
@@ -90,11 +90,11 @@ export function useCategories(
       "/api/categories",
       "POST",
       { name, color },
-      "Failed to create category"
+      "Failed to create Space"
     );
 
     if (!json.data) {
-      throw new Error("Failed to create category");
+      throw new Error("Failed to create Space");
     }
 
     setCategories((prev) => [...prev, json.data as CalendarCategory]);
@@ -118,11 +118,11 @@ export function useCategories(
         `/api/categories/${category.id}`,
         "PATCH",
         updates,
-        "Failed to update category"
+        "Failed to update Space"
       );
 
       if (!json.data) {
-        throw new Error("Failed to update category");
+        throw new Error("Failed to update Space");
       }
 
       const savedCategory = json.data;
@@ -133,7 +133,7 @@ export function useCategories(
       setCategories((prev) =>
         prev.map((c) => (c.id === category.id ? previousCategory : c))
       );
-      setError(err instanceof Error ? err.message : "Failed to update category");
+      setError(err instanceof Error ? err.message : "Failed to update Space");
     }
   };
 
@@ -147,7 +147,7 @@ export function useCategories(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
-        "Failed to delete category"
+        "Failed to delete Space"
       );
       if (!isCompletedCategoryDeletion(result)) {
         throw new Error("Failed to reconcile deleted Space");
@@ -155,7 +155,7 @@ export function useCategories(
       onSpaceDeletion?.(result.events, result.tasks, category.id);
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete category");
+      setError(err instanceof Error ? err.message : "Failed to delete Space");
     } finally {
       finishCategoryDeletion(deletingCategoryIds.current, category.id);
     }
