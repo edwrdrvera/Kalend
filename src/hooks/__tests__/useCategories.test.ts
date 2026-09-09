@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
 // ── Fixtures ───────────────────────────────────────────────────────────
 
@@ -14,6 +14,16 @@ const CAT_B: CalendarCategory = {
   id: "cat-2",
   name: "Work",
   color: null,
+};
+
+const DETACHED_EVENT: CalendarEvent = {
+  id: "event-1",
+  title: "Lecture",
+  start_at: "2026-09-08T10:00:00Z",
+  end_at: "2026-09-08T11:00:00Z",
+  color: "green",
+  color_overridden: false,
+  category_id: null,
 };
 
 // ── Fetch mock ─────────────────────────────────────────────────────────
@@ -204,17 +214,17 @@ describe("useCategories", () => {
     unmount();
   });
 
-  it("deleteCategory() removes the category optimistically before server responds", async () => {
-    const { result, act, unmount } = renderHook(() => useCategories());
+  it("deleteCategory() reconciles confirmed deletion before removing the category", async () => {
+    const onSpaceDeletion = mock(() => {});
+    const { result, act, unmount } = renderHook(() => useCategories(onSpaceDeletion));
     await act(() => {});
 
-    const resolve = deferredFetch({ success: true });
+    const resolve = deferredFetch({ success: true, data: CAT_A, events: [DETACHED_EVENT] });
 
     const deletePromise = result.current.deleteCategory(CAT_A);
     await act(() => {});
 
-    expect(result.current.data).toHaveLength(1);
-    expect(result.current.data[0].id).toBe(CAT_B.id);
+    expect(result.current.data).toEqual([CAT_A, CAT_B]);
 
     await act(async () => {
       resolve();
@@ -222,10 +232,12 @@ describe("useCategories", () => {
     });
 
     expect(result.current.data).toHaveLength(1);
+    expect(result.current.data[0].id).toBe(CAT_B.id);
+    expect(onSpaceDeletion).toHaveBeenCalledWith([DETACHED_EVENT], CAT_A.id);
     unmount();
   });
 
-  it("deleteCategory() restores the category on failure", async () => {
+  it("deleteCategory() keeps the category when the server rejects deletion", async () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});
 
@@ -235,10 +247,26 @@ describe("useCategories", () => {
       await result.current.deleteCategory(CAT_A);
     });
 
-    expect(result.current.data).toHaveLength(2);
-    const restored = result.current.data.find((c) => c.id === CAT_A.id);
-    expect(restored).toBeDefined();
+    expect(result.current.data).toEqual([CAT_A, CAT_B]);
     expect(result.current.error).toBe("Delete failed");
+    unmount();
+  });
+
+  it("deleteCategory() ignores a duplicate request while a deletion is pending", async () => {
+    const { result, act, unmount } = renderHook(() => useCategories());
+    await act(() => {});
+
+    const resolve = deferredFetch({ success: true, data: CAT_A, events: [] });
+    const first = result.current.deleteCategory(CAT_A);
+    const second = result.current.deleteCategory(CAT_A);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolve();
+      await Promise.all([first, second]);
+    });
+
+    expect(result.current.data).toEqual([CAT_B]);
     unmount();
   });
 });

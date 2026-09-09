@@ -7,7 +7,7 @@
  */
 import { Window } from "happy-dom";
 import { createElement } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import { createRoot } from "react-dom/client";
 
 // Register DOM globals once.
 let registered = false;

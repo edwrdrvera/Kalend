@@ -1,11 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type {
   CalendarCategory,
+  CalendarEvent,
   CategoriesApiResponse,
+  CategoryDeleteApiResponse,
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
+import {
+  beginCategoryDeletion,
+  finishCategoryDeletion,
+  isCompletedCategoryDeletion,
+} from "@/lib/category-deletion";
+
+export type ReconcileSpaceRemoval = (
+  detachedEvents: CalendarEvent[],
+  categoryId: string
+) => void;
 
 export interface UseCategoriesReturn {
   data: CalendarCategory[];
@@ -18,11 +30,14 @@ export interface UseCategoriesReturn {
   deleteCategory: (category: CalendarCategory) => Promise<void>;
 }
 
-export function useCategories(): UseCategoriesReturn {
+export function useCategories(
+  onSpaceDeletion?: ReconcileSpaceRemoval
+): UseCategoriesReturn {
   const [categories, setCategories] = useState<CalendarCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const deletingCategoryIds = useRef(new Set<string>());
 
   useEffect(() => {
     let cancelled = false;
@@ -120,21 +135,27 @@ export function useCategories(): UseCategoriesReturn {
     }
   };
 
-  // Optimistic: removes from state immediately, rolls back on failure.
-  // The DB cascades (category_id is ON DELETE SET NULL on events/tasks).
+  // Wait for the server's detached-event snapshot before removing the Space.
+  // That lets the caller reconcile inherited colors without a visible flash.
   const deleteCategory = async (category: CalendarCategory): Promise<void> => {
-    setCategories((prev) => prev.filter((c) => c.id !== category.id));
+    if (!beginCategoryDeletion(deletingCategoryIds.current, category.id)) return;
 
     try {
-      await mutateResource<CalendarCategory>(
+      const result = await mutateResource<CalendarCategory, CategoryDeleteApiResponse>(
         `/api/categories/${category.id}`,
         "DELETE",
         undefined,
         "Failed to delete category"
       );
+      if (!isCompletedCategoryDeletion(result)) {
+        throw new Error("Failed to reconcile deleted Space");
+      }
+      onSpaceDeletion?.(result.events, category.id);
+      setCategories((prev) => prev.filter((c) => c.id !== category.id));
     } catch (err) {
-      setCategories((prev) => [...prev, category]);
       setError(err instanceof Error ? err.message : "Failed to delete category");
+    } finally {
+      finishCategoryDeletion(deletingCategoryIds.current, category.id);
     }
   };
 

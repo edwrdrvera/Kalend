@@ -10,6 +10,7 @@ const TASK_A: CalendarTask = {
   due_at: "2026-09-10T23:59:00Z",
   completed: false,
   color: "blue",
+  color_overridden: false,
   category_id: null,
 };
 
@@ -19,6 +20,7 @@ const TASK_B: CalendarTask = {
   due_at: null,
   completed: true,
   color: null,
+  color_overridden: false,
   category_id: "cat-1",
 };
 
@@ -147,6 +149,7 @@ describe("useTasks", () => {
       due_at: "2026-09-15T12:00:00Z",
       completed: false,
       color: null,
+      color_overridden: false,
       category_id: "cat-1",
     };
 
