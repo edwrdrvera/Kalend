@@ -83,7 +83,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
     if (!updatedCategory) {
       return NextResponse.json(
-        { success: false, error: "Category not found" },
+        { success: false, error: "Space not found" },
         { status: 404 }
       );
     }
@@ -163,13 +163,13 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
         .delete(categories)
         .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
         .returning();
-      if (!deletedCategory) throw new Error("Category disappeared during deletion");
+      if (!deletedCategory) throw new Error("Space disappeared during deletion");
       return { deletedCategory, detachedEvents, detachedTasks };
     }));
 
     if (!result) {
       return NextResponse.json(
-        { success: false, error: "Category not found" },
+        { success: false, error: "Space not found" },
         { status: 404 }
       );
     }

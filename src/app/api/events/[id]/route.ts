@@ -59,7 +59,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       return { updated } as const;
     }));
     if (!result) return NextResponse.json({ success: false, error: "Event not found" }, { status: 404 });
-    if ("categoryError" in result) return badRequest("category_id does not exist or does not belong to you");
+    if ("categoryError" in result) return badRequest("The selected Space is unavailable");
     if ("timeError" in result) return badRequest("start_at must be before end_at");
     return NextResponse.json({ success: true, data: result.updated });
   } catch (error) {

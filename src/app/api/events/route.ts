@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     }));
     if (!result) {
       return NextResponse.json(
-        { success: false, error: "category_id does not exist or does not belong to you" },
+        { success: false, error: "The selected Space is unavailable" },
         { status: 400 }
       );
     }
