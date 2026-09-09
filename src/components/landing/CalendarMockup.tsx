@@ -206,7 +206,7 @@ function CalendarSidebarMockup() {
       <div className="px-5 text-[12px]">
         <div className="flex items-center gap-2.5 py-2 font-semibold">
           <span className="size-3 rounded-[4px] bg-indigo-500" aria-hidden />
-          <span>School</span>
+          <span>Spaces</span>
           <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
         </div>
         <div className="ml-3 border-l border-[var(--mock-line)] pl-4">

@@ -14,7 +14,7 @@ const STEPS: Step[] = [
     number: "01",
     label: "Make a Space for it",
     desc: "Start with the parts of life already taking up room: a class, your job, that project everyone keeps rescheduling.",
-    example: "BIO 102 · School",
+    example: "BIO 102 · Space",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <rect x="3" y="3" width="7" height="7" rx="1.5" />
