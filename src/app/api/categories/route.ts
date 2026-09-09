@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
+import { isEventColor } from "@/lib/event-colors";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -51,6 +52,9 @@ export async function POST(request: Request) {
         { success: false, error: "name is required" },
         { status: 400 }
       );
+    }
+    if (body.color !== undefined && !isEventColor(body.color)) {
+      return NextResponse.json({ success: false, error: "color must be a supported color" }, { status: 400 });
     }
 
     const [newCategory] = await db

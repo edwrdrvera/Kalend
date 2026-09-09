@@ -1,6 +1,9 @@
 import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
+import { events } from "@/db/schema/events";
 import { getAuthenticatedUser } from "@/lib/supabase/auth-user";
+import { isEventColor } from "@/lib/event-colors";
+import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -38,7 +41,12 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       updates.name = body.name.trim();
     }
 
-    if (body.color !== undefined) updates.color = body.color;
+    if (body.color !== undefined) {
+      if (!isEventColor(body.color)) {
+        return NextResponse.json({ success: false, error: "color must be a supported color" }, { status: 400 });
+      }
+      updates.color = body.color;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
@@ -82,23 +90,52 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
     const { id } = await params;
 
-    // No manual cleanup of linked events/tasks needed here: their
-    // category_id columns are FKs with ON DELETE SET NULL (see
-    // drizzle/0004_natural_valkyrie.sql), so the database itself detaches
-    // them the moment this row is gone.
-    const [deletedCategory] = await db
-      .delete(categories)
-      .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
-      .returning();
+    const result = await retryTransaction(() => db.transaction(async (tx) => {
+      const [ownedCategory] = await tx
+        .select()
+        .from(categories)
+        .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
+        .for("update");
+      if (!ownedCategory) return null;
 
-    if (!deletedCategory) {
+      // Locking the Space first prevents new links while its events are
+      // snapshotted. Event PATCH uses bounded deadlock/serialization retry
+      // for the inverse event-then-Space lock path.
+      const linkedEvents = await tx
+        .select()
+        .from(events)
+        .where(and(eq(events.category_id, id), eq(events.user_id, user.id)))
+        .for("update");
+
+      const detachedEvents = [];
+      for (const event of linkedEvents) {
+        const [detached] = await tx
+          .update(events)
+          .set({
+            category_id: null,
+            color: event.color_overridden ? event.color : (ownedCategory.color ?? event.color),
+          })
+          .where(and(eq(events.id, event.id), eq(events.user_id, user.id)))
+          .returning();
+        if (detached) detachedEvents.push(detached);
+      }
+
+      const [deletedCategory] = await tx
+        .delete(categories)
+        .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
+        .returning();
+      if (!deletedCategory) throw new Error("Category disappeared during deletion");
+      return { deletedCategory, detachedEvents };
+    }));
+
+    if (!result) {
       return NextResponse.json(
         { success: false, error: "Category not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ success: true, data: deletedCategory });
+    return NextResponse.json({ success: true, data: result.deletedCategory, events: result.detachedEvents });
   } catch (error) {
     console.error("Database Error:", error);
     return NextResponse.json(

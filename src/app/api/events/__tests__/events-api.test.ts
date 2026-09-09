@@ -377,7 +377,7 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at must be before end_at");
     });
 
-    it("allows updating only start_at without comparing against the unchanged end_at", async () => {
+    it("allows a valid partial start_at update after comparing with the locked row", async () => {
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -386,6 +386,40 @@ describe("Events API Endpoints", () => {
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
       expect(response.status).toBe(200);
+      expect(mockDbState.transactionCount).toBeGreaterThan(0);
+      expect(mockDbState.lockCount).toBeGreaterThan(0);
+    });
+
+    it("rejects a partial start_at equal to the existing end without mutation", async () => {
+      const original = mockDbState.rows[0].start_at;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ start_at: "2026-08-10T11:00:00Z" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect(mockDbState.rows[0].start_at).toEqual(original);
+    });
+
+    it("rejects a partial end_at before the existing start without mutation", async () => {
+      const original = mockDbState.rows[0].end_at;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ end_at: "2026-08-10T09:00:00Z" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect(mockDbState.rows[0].end_at).toEqual(original);
+    });
+
+    it("rejects non-boolean color_overridden", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ color_overridden: "false" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color_overridden must be a boolean");
     });
 
     it("returns 404 when event id does not exist", async () => {
@@ -452,6 +486,9 @@ describe("Events API Endpoints", () => {
     });
 
     it("clears category_id when explicitly set to null, falling back to the event's own color", async () => {
+      mockDbState.rows[0].category_id = "category-uuid-1";
+      mockDbState.rows[0].color = "blue";
+      mockDbState.rows[0].color_overridden = false;
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -463,6 +500,22 @@ describe("Events API Endpoints", () => {
 
       const json = await response.json();
       expect(json.data.category_id).toBeNull();
+      expect(json.data.color).toBe("green");
+      expect(json.data.color_overridden).toBe(false);
+    });
+
+    it("preserves an explicit override when unlinking a Space", async () => {
+      mockDbState.rows[0].category_id = "category-uuid-1";
+      mockDbState.rows[0].color = "purple";
+      mockDbState.rows[0].color_overridden = true;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ category_id: null }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const json = await response.json();
+      expect(json.data.color).toBe("purple");
+      expect(json.data.color_overridden).toBe(true);
     });
   });
 

@@ -9,6 +9,14 @@ interface MockCategory {
   created_at?: Date;
 }
 
+interface MockEventRow {
+  id: string;
+  user_id: string;
+  category_id: string | null;
+  color: string;
+  color_overridden: boolean;
+}
+
 let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
@@ -18,6 +26,7 @@ const mockDbState: MockDbState<MockCategory> = {
   rows: [],
   shouldFail: false,
 };
+const mockEventState: MockDbState<MockEventRow> = { rows: [], shouldFail: false };
 
 // filterUndefined: true mirrors real Drizzle/postgres-js behavior where a
 // key present with an `undefined` value falls back to the column default.
@@ -26,7 +35,9 @@ setupMockDb(
   mockDbState,
   () => mockCurrentUser,
   { color: "blue" } as Partial<MockCategory>,
-  true
+  true,
+  () => [],
+  { events: mockEventState }
 );
 
 // Import route handlers after mock setup
@@ -54,6 +65,14 @@ describe("Categories API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockDbState.shouldFailOnDelete = false;
+    mockEventState.rows = [
+      { id: "evt-linked-inherited", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "purple", color_overridden: false },
+      { id: "evt-linked-override", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "red", color_overridden: true },
+      { id: "evt-other-space", user_id: "user-uuid-123", category_id: "category-other", color: "teal", color_overridden: false },
+      { id: "evt-foreign", user_id: "other-user-456", category_id: "category-uuid-1", color: "pink", color_overridden: false },
+    ];
+    mockEventState.shouldFail = false;
   });
 
   describe("GET /api/categories", () => {
@@ -319,6 +338,22 @@ describe("Categories API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(true);
       expect(json.data.id).toBe("category-uuid-1");
+      expect(json.events).toHaveLength(2);
+      expect(json.events.find((event: MockEventRow) => event.id === "evt-linked-inherited")).toMatchObject({ category_id: null, color: "blue", color_overridden: false });
+      expect(json.events.find((event: MockEventRow) => event.id === "evt-linked-override")).toMatchObject({ category_id: null, color: "red", color_overridden: true });
+      expect(mockEventState.rows.find((event) => event.id === "evt-other-space")?.category_id).toBe("category-other");
+      expect(mockEventState.rows.find((event) => event.id === "evt-foreign")?.category_id).toBe("category-uuid-1");
+      expect(mockDbState.lockCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it("rolls back detached events when deleting the Space fails", async () => {
+      mockDbState.shouldFailOnDelete = true;
+      const before = mockEventState.rows.map((event) => ({ ...event }));
+      const req = new Request("http://localhost/api/categories/category-uuid-1", { method: "DELETE" });
+      const response = await DELETE(req, { params: Promise.resolve({ id: "category-uuid-1" }) });
+      expect(response.status).toBe(500);
+      expect(mockEventState.rows).toEqual(before);
+      expect(mockDbState.rows.some((category) => category.id === "category-uuid-1")).toBe(true);
     });
   });
 });

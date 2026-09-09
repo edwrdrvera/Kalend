@@ -26,6 +26,9 @@ interface BaseRow {
 export interface MockDbState<T extends BaseRow> {
   rows: T[];
   shouldFail: boolean;
+  shouldFailOnDelete?: boolean;
+  transactionCount?: number;
+  lockCount?: number;
 }
 
 export interface MockAuthUser {
@@ -129,14 +132,26 @@ export function setupMockDb<T extends BaseRow>(
   getUser: () => MockAuthUser | null,
   insertDefaults: Partial<T> = {},
   filterUndefined = false,
-  getCategoryRows: () => BaseRow[] = () => []
+  getCategoryRows: () => BaseRow[] = () => [],
+  relatedStates: Record<string, MockDbState<BaseRow>> = {}
 ) {
   mock.module("@/lib/supabase/auth-user", () => ({
     getAuthenticatedUser: mock(async () => getUser()),
   }));
 
-  mock.module("@/db", () => ({
-    db: {
+  mock.module("@/db", () => {
+    const stateFor = (table: unknown): MockDbState<BaseRow> =>
+      relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
+
+    const primaryPrefixFor = (table: unknown) => {
+      const name = tableNameOf(table);
+      if (name === "events") return "evt-";
+      if (name === "categories") return "category-";
+      if (name === "tasks") return "task-";
+      return idPrefix;
+    };
+
+    const queryClient = {
       select: () => ({
         from: (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether
@@ -148,8 +163,10 @@ export function setupMockDb<T extends BaseRow>(
           //
           // When the route selects from the "categories" table (for
           // category_id ownership validation), delegate to getCategoryRows.
-          where: mock(async (condition: unknown) => {
-            if (dbState.shouldFail) throw new Error("DB Connection failed");
+          where: mock((condition: unknown) => {
+            const run = async () => {
+            const selectedState = stateFor(table);
+            if (selectedState.shouldFail) throw new Error("DB Connection failed");
             const user = getUser();
             if (!user) return [];
             const scopedByUser = conditionContains(condition, user.id);
@@ -169,9 +186,23 @@ export function setupMockDb<T extends BaseRow>(
               if (catId) filtered = filtered.filter((r) => r.id === catId);
               return filtered;
             }
-            return scopedByUser
-              ? dbState.rows.filter((r) => r.user_id === user.id)
-              : dbState.rows;
+            const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
+            const categoryId = extractIdFromCondition(condition, "category-");
+            let rows = scopedByUser
+              ? selectedState.rows.filter((r) => r.user_id === user.id)
+              : selectedState.rows;
+            if (targetId) rows = rows.filter((r) => r.id === targetId);
+            if (categoryId && tableNameOf(table) === "events") {
+              rows = rows.filter((r) => (r as BaseRow & { category_id?: string }).category_id === categoryId);
+            }
+            return rows;
+            };
+            const promise = run() as ReturnType<typeof run> & { for: () => ReturnType<typeof run> };
+            promise.for = () => {
+              dbState.lockCount = (dbState.lockCount ?? 0) + 1;
+              return promise;
+            };
+            return promise;
           }),
         }),
       }),
@@ -195,41 +226,69 @@ export function setupMockDb<T extends BaseRow>(
           }),
         }),
       }),
-      update: () => ({
+      update: (table: unknown) => ({
         set: (vals: Record<string, unknown>) => ({
           where: (condition: unknown) => ({
             returning: mock(async () => {
-              if (dbState.shouldFail) throw new Error("DB Update failed");
-              const targetId = extractIdFromCondition(condition, idPrefix);
+              const selectedState = stateFor(table);
+              if (selectedState.shouldFail) throw new Error("DB Update failed");
+              const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
               const user = getUser();
               const scopedByUser = user && conditionContains(condition, user.id);
-              const idx = dbState.rows.findIndex(
-                (r) => r.id === targetId && (!scopedByUser || r.user_id === user!.id)
-              );
-              if (idx === -1) return [];
-              const updated = { ...dbState.rows[idx], ...vals };
-              dbState.rows[idx] = updated;
-              return [updated];
+              const categoryId = extractIdFromCondition(condition, "category-");
+              const indexes = selectedState.rows
+                .map((r, index) => ({ r, index }))
+                .filter(({ r }) =>
+                  (!targetId || r.id === targetId) &&
+                  (!categoryId || tableNameOf(table) !== "events" || (r as BaseRow & { category_id?: string }).category_id === categoryId) &&
+                  (!scopedByUser || r.user_id === user!.id)
+                )
+                .map(({ index }) => index);
+              return indexes.map((idx) => {
+                const evaluated = Object.fromEntries(Object.entries(vals).map(([key, value]) => [
+                  key,
+                  typeof value === "function" ? value(selectedState.rows[idx]) : value,
+                ]));
+                const updated = { ...selectedState.rows[idx], ...evaluated };
+                selectedState.rows[idx] = updated;
+                return updated;
+              });
             }),
           }),
         }),
       }),
-      delete: () => ({
+      delete: (table: unknown) => ({
         where: (condition: unknown) => ({
           returning: mock(async () => {
-            if (dbState.shouldFail) throw new Error("DB Delete failed");
-            const targetId = extractIdFromCondition(condition, idPrefix);
+            const selectedState = stateFor(table);
+            if (selectedState.shouldFail || selectedState.shouldFailOnDelete) throw new Error("DB Delete failed");
+            const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
             const user = getUser();
             const scopedByUser = user && conditionContains(condition, user.id);
-            const idx = dbState.rows.findIndex(
+            const idx = selectedState.rows.findIndex(
               (r) => r.id === targetId && (!scopedByUser || r.user_id === user!.id)
             );
             if (idx === -1) return [];
-            const [deleted] = dbState.rows.splice(idx, 1);
+            const [deleted] = selectedState.rows.splice(idx, 1);
             return [deleted];
           }),
         }),
       }),
-    },
-  }));
+    };
+    const database = {
+      ...queryClient,
+      transaction: async <R>(callback: (tx: typeof queryClient) => Promise<R>) => {
+        dbState.transactionCount = (dbState.transactionCount ?? 0) + 1;
+        const states = [dbState as MockDbState<BaseRow>, ...Object.values(relatedStates)];
+        const snapshots = states.map((state) => state.rows.map((row) => ({ ...row })));
+        try {
+          return await callback(queryClient);
+        } catch (error) {
+          states.forEach((state, index) => { state.rows = snapshots[index]; });
+          throw error;
+        }
+      },
+    };
+    return { db: database };
+  });
 }
