@@ -269,4 +269,35 @@ describe("useTasks", () => {
     expect(result.current.error).toBe("Delete failed");
     unmount();
   });
+
+  it("reconcileSpaceRemoval() applies detached color fields without clobbering task data", async () => {
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+
+    await act(() => {
+      result.current.reconcileSpaceRemoval(
+        [{
+          ...TASK_B,
+          title: "Stale title",
+          due_at: "2026-09-01T12:00:00Z",
+          completed: false,
+          color: "green",
+          color_overridden: false,
+          category_id: null,
+        }],
+        "cat-1"
+      );
+    });
+
+    expect(result.current.data).toEqual([
+      TASK_A,
+      {
+        ...TASK_B,
+        color: "green",
+        color_overridden: false,
+        category_id: null,
+      },
+    ]);
+    unmount();
+  });
 });

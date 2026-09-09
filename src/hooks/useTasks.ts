@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { CalendarTask, TasksApiResponse } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
+import { reconcileDetachedTasks } from "@/lib/task-color-state";
 
 export interface UseTasksReturn {
   data: CalendarTask[];
@@ -13,6 +14,7 @@ export interface UseTasksReturn {
   createTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   toggleComplete: (task: CalendarTask) => Promise<void>;
   deleteTask: (task: CalendarTask) => Promise<void>;
+  reconcileSpaceRemoval: (detachedTasks: CalendarTask[], categoryId: string) => void;
 }
 
 export function useTasks(): UseTasksReturn {
@@ -141,6 +143,15 @@ export function useTasks(): UseTasksReturn {
     }
   };
 
+  const reconcileSpaceRemoval = (
+    detachedTasks: CalendarTask[],
+    categoryId: string
+  ): void => {
+    setTasks((current) =>
+      reconcileDetachedTasks(current, detachedTasks, categoryId)
+    );
+  };
+
   return {
     data: tasks,
     loading,
@@ -150,5 +161,6 @@ export function useTasks(): UseTasksReturn {
     createTask,
     toggleComplete,
     deleteTask,
+    reconcileSpaceRemoval,
   };
 }

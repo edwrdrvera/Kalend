@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import type {
   CalendarCategory,
   CalendarEvent,
+  CalendarTask,
   CategoriesApiResponse,
   CategoryDeleteApiResponse,
 } from "@/lib/calendar-types";
@@ -16,6 +17,7 @@ import {
 
 export type ReconcileSpaceRemoval = (
   detachedEvents: CalendarEvent[],
+  detachedTasks: CalendarTask[],
   categoryId: string
 ) => void;
 
@@ -135,7 +137,7 @@ export function useCategories(
     }
   };
 
-  // Wait for the server's detached-event snapshot before removing the Space.
+  // Wait for the server's detached-item snapshots before removing the Space.
   // That lets the caller reconcile inherited colors without a visible flash.
   const deleteCategory = async (category: CalendarCategory): Promise<void> => {
     if (!beginCategoryDeletion(deletingCategoryIds.current, category.id)) return;
@@ -150,7 +152,7 @@ export function useCategories(
       if (!isCompletedCategoryDeletion(result)) {
         throw new Error("Failed to reconcile deleted Space");
       }
-      onSpaceDeletion?.(result.events, category.id);
+      onSpaceDeletion?.(result.events, result.tasks, category.id);
       setCategories((prev) => prev.filter((c) => c.id !== category.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete category");

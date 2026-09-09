@@ -1,6 +1,10 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type {
+  CalendarCategory,
+  CalendarEvent,
+  CalendarTask,
+} from "@/lib/calendar-types";
 
 // ── Fixtures ───────────────────────────────────────────────────────────
 
@@ -21,6 +25,16 @@ const DETACHED_EVENT: CalendarEvent = {
   title: "Lecture",
   start_at: "2026-09-08T10:00:00Z",
   end_at: "2026-09-08T11:00:00Z",
+  color: "green",
+  color_overridden: false,
+  category_id: null,
+};
+
+const DETACHED_TASK: CalendarTask = {
+  id: "task-1",
+  title: "Problem set",
+  due_at: "2026-09-10T23:59:00Z",
+  completed: false,
   color: "green",
   color_overridden: false,
   category_id: null,
@@ -216,10 +230,17 @@ describe("useCategories", () => {
 
   it("deleteCategory() reconciles confirmed deletion before removing the category", async () => {
     const onSpaceDeletion = mock(() => {});
-    const { result, act, unmount } = renderHook(() => useCategories(onSpaceDeletion));
+    const { result, act, unmount } = renderHook(() =>
+      useCategories(onSpaceDeletion)
+    );
     await act(() => {});
 
-    const resolve = deferredFetch({ success: true, data: CAT_A, events: [DETACHED_EVENT] });
+    const resolve = deferredFetch({
+      success: true,
+      data: CAT_A,
+      events: [DETACHED_EVENT],
+      tasks: [DETACHED_TASK],
+    });
 
     const deletePromise = result.current.deleteCategory(CAT_A);
     await act(() => {});
@@ -233,7 +254,11 @@ describe("useCategories", () => {
 
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data[0].id).toBe(CAT_B.id);
-    expect(onSpaceDeletion).toHaveBeenCalledWith([DETACHED_EVENT], CAT_A.id);
+    expect(onSpaceDeletion).toHaveBeenCalledWith(
+      [DETACHED_EVENT],
+      [DETACHED_TASK],
+      CAT_A.id
+    );
     unmount();
   });
 
@@ -252,11 +277,35 @@ describe("useCategories", () => {
     unmount();
   });
 
+  it("deleteCategory() rejects a response missing detached tasks", async () => {
+    const onSpaceDeletion = mock(() => {});
+    const { result, act, unmount } = renderHook(() =>
+      useCategories(onSpaceDeletion)
+    );
+    await act(() => {});
+
+    stubFetch({ success: true, data: CAT_A, events: [DETACHED_EVENT] });
+
+    await act(async () => {
+      await result.current.deleteCategory(CAT_A);
+    });
+
+    expect(result.current.data).toEqual([CAT_A, CAT_B]);
+    expect(result.current.error).toBe("Failed to reconcile deleted Space");
+    expect(onSpaceDeletion).not.toHaveBeenCalled();
+    unmount();
+  });
+
   it("deleteCategory() ignores a duplicate request while a deletion is pending", async () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});
 
-    const resolve = deferredFetch({ success: true, data: CAT_A, events: [] });
+    const resolve = deferredFetch({
+      success: true,
+      data: CAT_A,
+      events: [],
+      tasks: [],
+    });
     const first = result.current.deleteCategory(CAT_A);
     const second = result.current.deleteCategory(CAT_A);
 

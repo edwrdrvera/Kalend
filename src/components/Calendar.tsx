@@ -64,10 +64,15 @@ export default function Calendar() {
 
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
-  const categories = useCategories((detachedEvents, categoryId) => {
-    events.reconcileSpaceRemoval(detachedEvents, categoryId);
-    setHiddenCategoryIds((current) => current.filter((id) => id !== categoryId));
-  });
+  const categories = useCategories(
+    (detachedEvents, detachedTasks, categoryId) => {
+      events.reconcileSpaceRemoval(detachedEvents, categoryId);
+      tasks.reconcileSpaceRemoval(detachedTasks, categoryId);
+      setHiddenCategoryIds((current) =>
+        current.filter((id) => id !== categoryId)
+      );
+    }
+  );
 
   useEffect(() => {
     setMounted(true);
