@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
@@ -13,6 +13,7 @@ import type { CalendarEvent } from "@/lib/calendar-types";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
+import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
 function ErrorToast({
   message,
@@ -60,7 +61,8 @@ export default function Calendar() {
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>("week");
   const [mounted, setMounted] = useState(false);
-  const [hiddenCategoryIds, setHiddenCategoryIds] = useState<string[]>([]);
+  const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
+  const { selectedSpaceId, hiddenSpaceIds } = spaceFocus;
 
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -68,9 +70,7 @@ export default function Calendar() {
     (detachedEvents, detachedTasks, categoryId) => {
       events.reconcileSpaceRemoval(detachedEvents, categoryId);
       tasks.reconcileSpaceRemoval(detachedTasks, categoryId);
-      setHiddenCategoryIds((current) =>
-        current.filter((id) => id !== categoryId)
-      );
+      dispatchSpaceFocus({ type: "deleted", spaceId: categoryId });
     }
   );
 
@@ -85,11 +85,7 @@ export default function Calendar() {
   };
 
   const handleToggleCategoryVisibility = (categoryId: string) => {
-    setHiddenCategoryIds((current) =>
-      current.includes(categoryId)
-        ? current.filter((id) => id !== categoryId)
-        : [...current, categoryId]
-    );
+    dispatchSpaceFocus({ type: "toggleVisibility", spaceId: categoryId });
   };
 
   // Selecting a day (from the mini calendar, or any of the main grids) also
@@ -113,6 +109,7 @@ export default function Calendar() {
     side: "left" | "right";
     event: CalendarEvent | null;
     start: Date;
+    initialSpaceId: string | null;
   } | null>(null);
   const [popoverSubmitting, setPopoverSubmitting] = useState(false);
   const [popoverError, setPopoverError] = useState<string | null>(null);
@@ -124,7 +121,13 @@ export default function Calendar() {
   };
 
   const handleCreateEvent = (day: Date, anchorRect: DOMRect) => {
-    setEventPopover({ rect: anchorRect, side: getPopoverSide(anchorRect), event: null, start: day });
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event: null,
+      start: day,
+      initialSpaceId: selectedSpaceId,
+    });
     setPopoverError(null);
     setPopoverKey((key) => key + 1);
   };
@@ -135,6 +138,7 @@ export default function Calendar() {
       side: getPopoverSide(anchorRect),
       event,
       start: new Date(event.start_at),
+      initialSpaceId: event.category_id,
     });
     setPopoverError(null);
     setPopoverKey((key) => key + 1);
@@ -168,12 +172,9 @@ export default function Calendar() {
 
   if (!mounted) return null;
 
-  const visibleEvents = events.data.filter(
-    (event) => !event.category_id || !hiddenCategoryIds.includes(event.category_id)
-  );
-  const visibleTasks = tasks.data.filter(
-    (task) => !task.category_id || !hiddenCategoryIds.includes(task.category_id)
-  );
+  const visibleEvents = filterBySpace(events.data, spaceFocus);
+  const visibleTasks = filterBySpace(tasks.data, spaceFocus);
+  const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
@@ -188,14 +189,16 @@ export default function Calendar() {
           currentDate={selectedDate}
           viewDate={viewDate}
           onDateSelect={handleDateSelect}
-          tasks={tasks.data}
+          tasks={visibleTasks}
           tasksLoading={tasks.loading}
           onCreateTask={tasks.createTask}
           onToggleTaskComplete={tasks.toggleComplete}
           onDeleteTask={tasks.deleteTask}
           categories={categories.data}
           categoriesLoading={categories.loading}
-          hiddenCategoryIds={hiddenCategoryIds}
+          hiddenCategoryIds={hiddenSpaceIds}
+          selectedSpaceId={selectedSpaceId}
+          onSelectSpace={(spaceId) => dispatchSpaceFocus({ type: "select", spaceId })}
           onToggleCategoryVisibility={handleToggleCategoryVisibility}
           onCreateCategory={categories.createCategory}
           onUpdateCategory={categories.updateCategory}
@@ -207,6 +210,18 @@ export default function Calendar() {
           </div>
         ) : (
           <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
+            {selectedSpace && (
+              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border py-2 pl-14 pr-4 text-sm md:pl-4">
+                <span className="min-w-0 truncate font-medium">Space: {selectedSpace.name}</span>
+                <button
+                  type="button"
+                  onClick={() => dispatchSpaceFocus({ type: "select", spaceId: null })}
+                  className="shrink-0 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  All Spaces
+                </button>
+              </div>
+            )}
             {view === "month" && (
               <MonthGrid
                 selectedDate={selectedDate}
@@ -268,6 +283,7 @@ export default function Calendar() {
           side={eventPopover.side}
           event={eventPopover.event}
           initialStart={eventPopover.start}
+          initialSpaceId={eventPopover.initialSpaceId}
           categories={categories.data}
           onSubmit={handlePopoverSubmit}
           onDelete={eventPopover.event ? handleDeleteEvent : undefined}
