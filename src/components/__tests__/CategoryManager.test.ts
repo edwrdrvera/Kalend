@@ -87,6 +87,10 @@ function pressKey(element: HTMLElement, key: string) {
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 }
 
+async function openActions(name: string) {
+  await act(() => byLabel(`More actions for ${name}`)?.click());
+}
+
 describe("CategoryManager selection", () => {
   it("selects a Space from its name button and clears selection from All Spaces", async () => {
     const calls = await renderManager({ selectedSpaceId: null });
@@ -148,6 +152,7 @@ describe("CategoryManager deletion", () => {
     };
 
     const calls = await renderManager();
+    await openActions("Work");
     await act(async () => byLabel("Delete Work")?.click());
 
     expect(calls.deleted).toEqual([]);
@@ -162,6 +167,7 @@ describe("CategoryManager deletion", () => {
     confirmHost.confirm = () => true;
 
     const calls = await renderManager();
+    await openActions("Work");
     await act(async () => byLabel("Delete Work")?.click());
 
     expect(calls.deleted).toEqual([categories[0]]);
@@ -175,6 +181,7 @@ describe("CategoryManager deletion", () => {
         throw new Error("The selected Space is unavailable");
       },
     });
+    await openActions("Work");
     await act(async () => byLabel("Delete Work")?.click());
 
     expect(container?.textContent).toContain("The selected Space is unavailable");
@@ -187,6 +194,8 @@ describe("CategoryManager rename", () => {
   it("commits an inline rename on Enter", async () => {
     const calls = await renderManager();
 
+    expect(byLabel("Rename Work")).toBeNull();
+    await openActions("Work");
     await act(() => byLabel("Rename Work")?.click());
     const input = byLabel("Space name") as HTMLInputElement | null;
     expect(input).not.toBeNull();
@@ -204,6 +213,7 @@ describe("CategoryManager rename", () => {
   it("discards an inline rename on Escape", async () => {
     const calls = await renderManager();
 
+    await openActions("Work");
     await act(() => byLabel("Rename Work")?.click());
     const input = byLabel("Space name") as HTMLInputElement | null;
     await act(() => typeInto(input as HTMLInputElement, "Discarded"));
@@ -214,7 +224,22 @@ describe("CategoryManager rename", () => {
     expect(nameButton("Work")).toBeDefined();
 
     // Reopening the editor shows the saved name, not the discarded draft.
+    await openActions("Work");
     await act(() => byLabel("Rename Work")?.click());
     expect((byLabel("Space name") as HTMLInputElement).value).toBe("Work");
+  });
+
+  it("offers edit actions from one contextual control", async () => {
+    await renderManager();
+
+    expect(byLabel("More actions for Work")).not.toBeNull();
+    expect(byLabel("Rename Work")).toBeNull();
+    expect(byLabel("Delete Work")).toBeNull();
+
+    await openActions("Work");
+
+    expect(byLabel("Rename Work")).not.toBeNull();
+    expect(byLabel("Change color, currently green")).not.toBeNull();
+    expect(byLabel("Delete Work")).not.toBeNull();
   });
 });

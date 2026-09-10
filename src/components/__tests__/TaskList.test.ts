@@ -31,6 +31,39 @@ afterEach(async () => {
 });
 
 describe("TaskList focused creation", () => {
+  it("uses the custom date picker for a task due date", async () => {
+    localStorage.setItem("kalend:tasks-panel-collapsed", "false");
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    const dueDateToggle = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "+ due date"
+    );
+    await act(() => dueDateToggle?.click());
+
+    expect(document.querySelector('[aria-label^="Due date,"]')).not.toBeNull();
+    expect(document.querySelector('input[type="date"]')).toBeNull();
+  });
+
   it("submits the snapshotted Space after focus changes and uses the latest focus for the next draft", async () => {
     localStorage.setItem("kalend:tasks-panel-collapsed", "false");
     container = document.createElement("div");
@@ -43,19 +76,20 @@ describe("TaskList focused creation", () => {
     const render = (selectedSpaceId: string | null) =>
       root?.render(createElement(TaskList, {
         tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
         loading: false,
         categories,
         selectedSpaceId,
         onCreateTask,
         onToggleComplete: () => {},
         onDeleteTask: () => {},
+        onEventClick: () => {},
       }));
 
     await act(() => render("space-1"));
-    const addDraft = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      button.textContent?.includes("Add a task")
-    );
-    expect(addDraft?.textContent).toContain("Add a task");
+    const addDraft = document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]');
+    expect(addDraft).not.toBeNull();
     await act(() => addDraft?.click());
     expect(document.querySelector('[aria-label="Space: Work"]')).not.toBeNull();
 
@@ -72,9 +106,7 @@ describe("TaskList focused creation", () => {
       { title: "Prepare agenda", dueAt: undefined, categoryId: "space-1" },
     ]);
 
-    const nextDraft = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent?.includes("Add a task")
-    );
+    const nextDraft = document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]');
     await act(() => nextDraft?.click());
     expect(document.querySelector('[aria-label="Space: Personal"]')).not.toBeNull();
   });
@@ -88,6 +120,8 @@ describe("TaskList focused creation", () => {
     await act(() =>
       root?.render(createElement(TaskList, {
         tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
         loading: false,
         categories,
         selectedSpaceId: "space-1",
@@ -96,12 +130,11 @@ describe("TaskList focused creation", () => {
         },
         onToggleComplete: () => {},
         onDeleteTask: () => {},
+        onEventClick: () => {},
       }))
     );
 
-    const addDraft = [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
-      button.textContent?.trim() === "Add a task"
-    );
+    const addDraft = document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]');
     if (!addDraft) throw new Error("Add a task button was not rendered");
     await act(() => addDraft.click());
     const spaceSelector = document.querySelector<HTMLButtonElement>('[aria-label="Space: Work"]');
@@ -121,5 +154,67 @@ describe("TaskList focused creation", () => {
       document.querySelector<HTMLButtonElement>('[aria-label="Add task"]')?.click()
     );
     expect(submissions).toEqual([{ title: "Plan weekend", dueAt: undefined, categoryId: null }]);
+  });
+});
+
+describe("TaskList agenda interactions", () => {
+  it("opens an event editor and preserves task completion and deletion actions", async () => {
+    localStorage.setItem("kalend:tasks-panel-collapsed", "false");
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const event = {
+      id: "event-1",
+      title: "Biology lecture",
+      start_at: new Date(2030, 8, 9, 9).toISOString(),
+      end_at: new Date(2030, 8, 9, 10).toISOString(),
+      color: "blue",
+      color_overridden: true,
+      category_id: null,
+    };
+    const task = {
+      id: "task-1",
+      title: "Finish lab report",
+      due_at: new Date(2030, 8, 9, 23, 59).toISOString(),
+      completed: false,
+      color: "blue",
+      color_overridden: true,
+      category_id: null,
+    };
+    const opened: string[] = [];
+    const toggled: string[] = [];
+    const deleted: string[] = [];
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [task],
+        events: [event],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: (selectedTask) => toggled.push(selectedTask.id),
+        onDeleteTask: (selectedTask) => deleted.push(selectedTask.id),
+        onEventClick: (selectedEvent, rect) => {
+          opened.push(selectedEvent.id);
+          expect(rect.top).toBeNumber();
+        },
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Edit event: Biology lecture"]')?.click()
+    );
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Mark as done"]')?.click()
+    );
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Delete task"]')?.click()
+    );
+
+    expect(opened).toEqual(["event-1"]);
+    expect(toggled).toEqual(["task-1"]);
+    expect(deleted).toEqual(["task-1"]);
   });
 });

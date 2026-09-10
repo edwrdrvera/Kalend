@@ -9,17 +9,20 @@ import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
 import KalendWordmark from "./KalendWordmark";
 import TaskList from "./TaskList";
-import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
   currentDate: Date;
   viewDate: Date;
   onDateSelect: (date: Date) => void;
   tasks: CalendarTask[];
+  events: CalendarEvent[];
   tasksLoading: boolean;
+  eventsLoading: boolean;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
   categoriesLoading: boolean;
   selectedSpaceId: string | null;
@@ -39,10 +42,13 @@ export default function CalendarSidebar({
   viewDate,
   onDateSelect,
   tasks,
+  events,
   tasksLoading,
+  eventsLoading,
   onCreateTask,
   onToggleTaskComplete,
   onDeleteTask,
+  onEventClick,
   categories,
   categoriesLoading,
   selectedSpaceId,
@@ -112,11 +118,14 @@ export default function CalendarSidebar({
           />
           <TaskList
             tasks={tasks}
-            loading={tasksLoading}
+            events={events}
+            selectedDate={currentDate}
+            loading={tasksLoading || eventsLoading}
             categories={categories}
             onCreateTask={onCreateTask}
             onToggleComplete={onToggleTaskComplete}
             onDeleteTask={onDeleteTask}
+            onEventClick={onEventClick}
             selectedSpaceId={selectedSpaceId}
           />
           <div className="mt-auto pt-2">

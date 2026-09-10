@@ -6,10 +6,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import MiniCalendar from "@/components/MiniCalendar";
 import { cn } from "@/lib/utils";
 
-/** Base Tailwind classes for the compact inline inputs used in event/task
- *  forms. Add a width utility (`w-full` or `flex-1`) when composing. */
-export const SMALL_INPUT_CLS =
-  "h-6 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary";
+/** Shared control treatment for authenticated-app forms. Components may
+ *  adjust width or font weight, but borders, radius, fill, and focus stay
+ *  consistent across Space, Task, and Event editors. */
+export const APP_INPUT_CLS =
+  "h-8 rounded-sm border border-input bg-background px-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60";
+
+export const SMALL_INPUT_CLS = APP_INPUT_CLS;
 
 /** Custom date picker — opens MiniCalendar in a Popover instead of the
  *  browser's native date widget, which is unthemeable and looks generic. */
@@ -31,7 +34,7 @@ export function DateField({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`${label}, ${displayValue}`}
-        className={cn(SMALL_INPUT_CLS, "w-full cursor-pointer text-left hover:bg-muted/30")}
+        className={cn(APP_INPUT_CLS, "w-full cursor-pointer text-left text-xs hover:bg-muted/30")}
       >
         {value ? format(date, "MMM d, yyyy") : "Select date"}
       </PopoverTrigger>

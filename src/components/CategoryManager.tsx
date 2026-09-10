@@ -1,8 +1,18 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Ellipsis,
+  Layers3,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DEFAULT_EVENT_COLOR,
   EVENT_COLOR_SWATCH_CLASSES,
@@ -10,6 +20,7 @@ import {
   type EventColor,
 } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
+import { APP_INPUT_CLS } from "./DateField";
 import type { CalendarCategory } from "@/lib/calendar-types";
 
 interface CategoryManagerProps {
@@ -48,6 +59,7 @@ function CategoryRow({
   const [name, setName] = useState(category.name);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const color: EventColor = isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR;
 
   const cancelEdit = () => {
@@ -60,6 +72,11 @@ function CategoryRow({
     if (!trimmed) return cancelEdit();
     if (trimmed !== category.name) onUpdateCategory({ name: trimmed });
     setEditing(false);
+  };
+
+  const startEditing = () => {
+    setActionsOpen(false);
+    setEditing(true);
   };
 
   const deleteSpace = async () => {
@@ -77,6 +94,7 @@ function CategoryRow({
     // delete leaves the row disabled with no way to retry.
     try {
       await onDeleteCategory();
+      setActionsOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete Space");
     } finally {
@@ -85,18 +103,23 @@ function CategoryRow({
   };
 
   return (
-    <div className={cn("group flex flex-wrap items-center gap-1 rounded-lg px-1 py-1", selected && "bg-primary/10")}>
+    <div
+      className={cn(
+        "group flex min-h-9 flex-wrap items-center gap-1 rounded-lg px-1 transition-colors hover:bg-muted/60",
+        selected && "bg-muted"
+      )}
+    >
       <button
         type="button"
         onClick={onToggleVisibility}
         aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
         aria-pressed={visible}
         className={cn(
-          "grid size-7 shrink-0 place-items-center rounded-md hover:bg-muted",
+          "grid size-7 shrink-0 place-items-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
           visible ? "opacity-100" : "opacity-30 grayscale"
         )}
       >
-        <span className={cn("size-3 rounded-[4px]", EVENT_COLOR_SWATCH_CLASSES[color])} />
+        <span className={cn("size-3 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[color])} />
       </button>
 
       {editing ? (
@@ -109,7 +132,7 @@ function CategoryRow({
           }}
           aria-label="Space name"
           autoFocus
-          className="h-7 min-w-0 flex-1 rounded border border-input bg-background px-1.5 text-sm font-medium text-foreground outline-none focus:border-primary"
+          className={cn(APP_INPUT_CLS, "min-w-0 flex-1 font-medium")}
         />
       ) : (
         <button
@@ -117,7 +140,7 @@ function CategoryRow({
           onClick={onSelect}
           aria-current={selected ? "true" : undefined}
           className={cn(
-            "min-w-0 flex-1 rounded-md px-1.5 py-1 text-left text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
             !visible && "text-muted-foreground line-through",
             selected && "font-semibold"
           )}
@@ -126,34 +149,74 @@ function CategoryRow({
         </button>
       )}
 
-      {!editing && (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          aria-label={`Rename ${category.name}`}
-          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Pencil className="size-3.5" />
-        </button>
+      {editing ? (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={saveName}
+            aria-label={`Save ${category.name}`}
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Check className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            aria-label={`Cancel renaming ${category.name}`}
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      ) : (
+        <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
+          <PopoverTrigger
+            aria-label={`More actions for ${category.name}`}
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
+          >
+            <Ellipsis className="size-4" />
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-48 gap-1 p-1.5">
+            <button
+              type="button"
+              onClick={startEditing}
+              aria-label={`Rename ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+            >
+              <Pencil className="size-3.5 text-muted-foreground" />
+              Rename
+            </button>
+            <div className="flex min-h-9 items-center justify-between gap-2 rounded-md px-2 text-sm">
+              <span>Color</span>
+              <ColorSwatchPicker
+                color={color}
+                onColorChange={(nextColor) => {
+                  onUpdateCategory({ color: nextColor });
+                  setActionsOpen(false);
+                }}
+                className="size-5 rounded-[5px]"
+              />
+            </div>
+            <div className="my-0.5 border-t border-border" />
+            <button
+              type="button"
+              onClick={deleteSpace}
+              disabled={deleting}
+              aria-label={`Delete ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-destructive outline-none hover:bg-destructive/10 focus-visible:bg-destructive/10 disabled:opacity-40"
+            >
+              {deleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              Delete
+            </button>
+          </PopoverContent>
+        </Popover>
       )}
 
-      <ColorSwatchPicker
-        color={color}
-        onColorChange={(nextColor) => onUpdateCategory({ color: nextColor })}
-        className="size-5"
-      />
-
-      <button
-        type="button"
-        onClick={deleteSpace}
-        disabled={deleting}
-        aria-label={`Delete ${category.name}`}
-        className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
-      >
-        {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-      </button>
-
-      {error && <p className="w-full px-8 text-xs text-destructive">{error}</p>}
+      {error && <p className="w-full px-11 pb-2 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
@@ -199,9 +262,13 @@ function CreateCategoryForm({
   if (!open) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5">
-        <ColorSwatchPicker color={color} onColorChange={setColor} className="size-6" />
+    <form onSubmit={handleSubmit} className="flex flex-col gap-1.5 border-y border-border py-1.5">
+      <div className="flex min-h-9 items-center gap-1">
+        <ColorSwatchPicker
+          color={color}
+          onColorChange={setColor}
+          className="mx-1.5 size-3 rounded-[3px] ring-offset-muted"
+        />
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
@@ -209,27 +276,27 @@ function CreateCategoryForm({
           placeholder="Space name"
           aria-label="New Space name"
           autoFocus
-          className="h-7 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+          className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
         />
         <button
           type="submit"
           disabled={!name.trim() || submitting}
           aria-label="Add Space"
-          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
         >
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
         </button>
         <button
           type="button"
           onClick={close}
           aria-label="Cancel"
-          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-4" />
         </button>
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="px-11 text-xs text-destructive">{error}</p>}
     </form>
   );
 }
@@ -248,21 +315,21 @@ export default function CategoryManager({
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="flex flex-col px-4 pb-3 pt-2">
+    <div className="flex flex-col px-4 pb-2 pt-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
+        <h2 className="text-sm font-semibold text-foreground">Spaces</h2>
         <button
           type="button"
           onClick={() => setCreating((current) => !current)}
           aria-label={creating ? "Cancel creating Space" : "Create a Space"}
           aria-expanded={creating}
-          className="grid size-8 place-items-center rounded-lg text-foreground hover:bg-muted"
+          className="grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
         >
-          {creating ? <X className="size-5" /> : <Plus className="size-5" />}
+          {creating ? <X className="size-4" /> : <Plus className="size-4" />}
         </button>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1.5">
+      <div className="mt-1.5 flex flex-col gap-1">
         <CreateCategoryForm
           open={creating}
           onClose={() => setCreating(false)}
@@ -278,11 +345,14 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "rounded-lg px-2 py-1.5 text-left text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-                selectedSpaceId === null && "bg-primary/10 font-semibold text-primary"
+                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                selectedSpaceId === null && "bg-muted font-semibold"
               )}
             >
-              All Spaces
+              <span className="grid size-7 shrink-0 place-items-center text-muted-foreground">
+                <Layers3 className="size-3.5" />
+              </span>
+              <span className="px-1.5">All Spaces</span>
             </button>
             {categories.map((category) => (
               <CategoryRow
