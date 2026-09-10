@@ -139,7 +139,7 @@ describe("useTasks", () => {
     unmount();
   });
 
-  it("createTask() appends the new task to data", async () => {
+  it("createTask() sends the selected Space as category_id and appends the new task", async () => {
     const { result, act, unmount } = renderHook(() => useTasks());
     await act(() => {});
 
@@ -159,8 +159,35 @@ describe("useTasks", () => {
       await result.current.createTask("New task", "2026-09-15T12:00:00Z", "cat-1");
     });
 
+    expect(fetchMock).toHaveBeenCalledWith("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "New task",
+        due_at: "2026-09-15T12:00:00Z",
+        category_id: "cat-1",
+      }),
+    });
     expect(result.current.data).toHaveLength(3);
     expect(result.current.data[2]).toEqual(newTask);
+    unmount();
+  });
+
+  it("createTask() sends explicit No Space as category_id null", async () => {
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+
+    stubFetch({ success: true, data: { ...TASK_A, id: "task-3", due_at: null } });
+
+    await act(async () => {
+      await result.current.createTask("Finish problem set", undefined, null);
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Finish problem set", category_id: null }),
+    });
     unmount();
   });
 
