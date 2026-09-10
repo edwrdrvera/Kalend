@@ -31,7 +31,7 @@ export default function CategorySelect({
       <PopoverTrigger
         aria-label={`Space: ${selected?.name ?? "No Space"}`}
         className={cn(
-          "flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+          "flex min-w-0 items-center gap-1.5 rounded-sm px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
           className
         )}
       >
@@ -39,7 +39,7 @@ export default function CategorySelect({
           <>
             <span
               className={cn(
-                "size-2 shrink-0 rounded-full",
+                "size-2 shrink-0 rounded-[2px]",
                 isEventColor(selected.color)
                   ? EVENT_COLOR_SWATCH_CLASSES[selected.color]
                   : "bg-muted-foreground"
@@ -89,7 +89,7 @@ export default function CategorySelect({
                 <span className="flex min-w-0 items-center gap-2">
                   <span
                     className={cn(
-                      "size-2 shrink-0 rounded-full",
+                      "size-2 shrink-0 rounded-[2px]",
                       isEventColor(category.color)
                         ? EVENT_COLOR_SWATCH_CLASSES[category.color]
                         : "bg-muted-foreground"
