@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "color_overridden must be a boolean" }, { status: 400 });
     }
     if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) {
-      return NextResponse.json({ success: false, error: "category_id must be a valid UUID" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Space must be a valid identifier" }, { status: 400 });
     }
 
     const result = await retryTransaction(() => db.transaction(async (tx) => {

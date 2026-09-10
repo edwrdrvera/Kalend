@@ -25,7 +25,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (body.end_at !== undefined && typeof body.end_at !== "string") return badRequest("end_at must be a valid date");
     if (body.color !== undefined && (typeof body.color !== "string" || !isEventColor(body.color))) return badRequest("color must be a supported color");
     if (body.color_overridden !== undefined && typeof body.color_overridden !== "boolean") return badRequest("color_overridden must be a boolean");
-    if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) return badRequest("category_id must be a valid UUID");
+    if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) return badRequest("Space must be a valid identifier");
     const startAt = body.start_at === undefined ? undefined : new Date(body.start_at);
     const endAt = body.end_at === undefined ? undefined : new Date(body.end_at);
     if (startAt && Number.isNaN(startAt.getTime())) return badRequest("start_at must be a valid date");
