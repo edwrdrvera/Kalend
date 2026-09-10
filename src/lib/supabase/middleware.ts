@@ -6,6 +6,18 @@ import {
 } from "./config";
 
 /**
+ * Name of the request header the middleware writes the validated Supabase
+ * user id into for downstream route handlers. Route handlers read it via
+ * `getAuthenticatedUser()` instead of re-validating the JWT with a second
+ * network round trip to Supabase Auth.
+ *
+ * Kept in sync with the reader in `src/lib/supabase/auth-user.ts`. Callers
+ * outside this middleware must never trust an inbound copy of this header;
+ * we strip it from the incoming request below before setting our own.
+ */
+export const AUTH_USER_ID_HEADER = "x-kalend-user-id";
+
+/**
  * Refreshes the user's Supabase session and enforces route protection rules.
  *
  * Rules:
@@ -18,10 +30,19 @@ import {
  *   `/app`, so a signed-in visitor lands on the calendar instead of the marketing page.
  * - If auth is not configured, public pages remain available, protected pages
  *   redirect to login with a friendly error, and protected APIs return 503.
+ *
+ * On success the validated user id is forwarded to the destination as the
+ * `AUTH_USER_ID_HEADER` request header so route handlers can identify the
+ * caller without a second `getUser()` round trip.
  */
 export async function updateSession(request: NextRequest) {
+  // Strip any inbound copy of our internal auth header so a client can't
+  // forge one; only this middleware may set it.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(AUTH_USER_ID_HEADER);
+
   let supabaseResponse = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   });
 
   const pathname = request.nextUrl.pathname;
@@ -66,7 +87,7 @@ export async function updateSession(request: NextRequest) {
           request.cookies.set(name, value)
         );
         supabaseResponse = NextResponse.next({
-          request,
+          request: { headers: requestHeaders },
         });
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
@@ -96,6 +117,20 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/app";
     return NextResponse.redirect(url);
+  }
+
+  // Forward the validated user id to the destination route handler. Rebuild
+  // the response so the fresh header set is what Next.js hands the handler,
+  // and copy any auth-cookie mutations from the interim response back onto it.
+  if (user) {
+    requestHeaders.set(AUTH_USER_ID_HEADER, user.id);
+    const forwarded = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      forwarded.cookies.set(cookie);
+    });
+    return forwarded;
   }
 
   return supabaseResponse;
