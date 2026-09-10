@@ -49,4 +49,8 @@ AGENTS.md
 
 # Local coding-agent hand-off notes
 /CONTEXT.md
-docs/*-handoff.md
+/HANDOFF*.md
+# Ignore /docs entirely: keeps local plans and hand-off notes out of the
+# repo. Already-tracked docs files (see git ls-files docs/) stay tracked
+# because .gitignore does not affect files already in the index.
+/docs/
