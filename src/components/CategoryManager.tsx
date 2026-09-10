@@ -327,7 +327,7 @@ export default function CategoryManager({
   return (
     <div className="flex flex-col px-4 pb-2 pt-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Spaces</h2>
+        <h2 className="text-xs font-semibold text-foreground">Spaces</h2>
         <button
           type="button"
           onClick={() => setCreating((current) => !current)}
