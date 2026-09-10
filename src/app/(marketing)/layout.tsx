@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Kalend",
   description:
-    "Group deadlines, blockers, and reminders into Spaces, then sync it all with Google or Apple Calendar.",
+    "Group deadlines, blockers, and reminders into Spaces, then focus your calendar on one part of your life at a time.",
 };
 
 // The marketing site is a deliberately light-themed lockup, separate from

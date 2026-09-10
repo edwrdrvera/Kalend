@@ -382,7 +382,7 @@ describe("Categories API Endpoints", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Category not found");
+      expect(json.error).toBe("Space not found");
     });
 
     it("returns 404 when attempting to update a category owned by another user", async () => {
@@ -397,7 +397,7 @@ describe("Categories API Endpoints", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Category not found");
+      expect(json.error).toBe("Space not found");
     });
 
     it("returns 200 with updated category data when owned by user, recoloring in place", async () => {
@@ -438,7 +438,7 @@ describe("Categories API Endpoints", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Category not found");
+      expect(json.error).toBe("Space not found");
     });
 
     it("returns 404 when attempting to delete a category owned by another user", async () => {
@@ -451,7 +451,7 @@ describe("Categories API Endpoints", () => {
 
       const json = await response.json();
       expect(json.success).toBe(false);
-      expect(json.error).toBe("Category not found");
+      expect(json.error).toBe("Space not found");
     });
 
     it("returns 200 with deleted category data on success", async () => {

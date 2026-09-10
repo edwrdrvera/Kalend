@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
@@ -15,6 +15,8 @@ import type { CalendarCategory } from "@/lib/calendar-types";
 interface CategoryManagerProps {
   categories: CalendarCategory[];
   loading: boolean;
+  selectedSpaceId: string | null;
+  onSelectSpace: (spaceId: string | null) => void;
   hiddenCategoryIds: string[];
   onToggleCategoryVisibility: (categoryId: string) => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
@@ -22,87 +24,140 @@ interface CategoryManagerProps {
     category: CalendarCategory,
     updates: { name?: string; color?: string }
   ) => void;
-  onDeleteCategory: (category: CalendarCategory) => void;
+  onDeleteCategory: (category: CalendarCategory) => Promise<void>;
 }
 
 function CategoryRow({
   category,
+  selected,
   visible,
+  onSelect,
   onToggleVisibility,
   onUpdateCategory,
   onDeleteCategory,
-  indented = false,
 }: {
   category: CalendarCategory;
+  selected: boolean;
   visible: boolean;
+  onSelect: () => void;
   onToggleVisibility: () => void;
   onUpdateCategory: (updates: { name?: string; color?: string }) => void;
-  onDeleteCategory: () => void;
-  indented?: boolean;
+  onDeleteCategory: () => Promise<void>;
 }) {
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(category.name);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const color: EventColor = isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR;
 
-  const commitName = () => {
+  const cancelEdit = () => {
+    setName(category.name);
+    setEditing(false);
+  };
+
+  const saveName = () => {
     const trimmed = name.trim();
-    if (!trimmed) {
-      setName(category.name);
+    if (!trimmed) return cancelEdit();
+    if (trimmed !== category.name) onUpdateCategory({ name: trimmed });
+    setEditing(false);
+  };
+
+  const deleteSpace = async () => {
+    if (
+      deleting ||
+      !window.confirm(`Delete ${category.name}? Its Events and Tasks will remain and become unassigned.`)
+    )
       return;
-    }
-    if (trimmed !== category.name) {
-      onUpdateCategory({ name: trimmed });
+
+    setDeleting(true);
+    setError(null);
+
+    // useCategories reports delete failures through its own error state rather
+    // than rejecting, so the busy flag has to clear on both paths or a failed
+    // delete leaves the row disabled with no way to retry.
+    try {
+      await onDeleteCategory();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete Space");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <div className={cn("group flex items-center gap-2 rounded-lg py-1.5 hover:bg-muted/60", indented ? "pl-5 pr-1" : "px-1")}>
+    <div className={cn("group flex flex-wrap items-center gap-1 rounded-lg px-1 py-1", selected && "bg-primary/10")}>
       <button
         type="button"
         onClick={onToggleVisibility}
         aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
         aria-pressed={visible}
         className={cn(
-          "grid size-5 shrink-0 place-items-center rounded-md border border-transparent transition-all",
+          "grid size-7 shrink-0 place-items-center rounded-md hover:bg-muted",
           visible ? "opacity-100" : "opacity-30 grayscale"
         )}
       >
         <span className={cn("size-3 rounded-[4px]", EVENT_COLOR_SWATCH_CLASSES[color])} />
       </button>
 
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={commitName}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") setName(category.name);
-        }}
-        aria-label="Space name"
-        className={cn(
-          "min-w-0 flex-1 truncate border-0 bg-transparent p-0 text-sm font-medium text-foreground outline-none focus:text-foreground",
-          !visible && "text-muted-foreground line-through"
-        )}
-      />
+      {editing ? (
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") saveName();
+            if (event.key === "Escape") cancelEdit();
+          }}
+          aria-label="Space name"
+          autoFocus
+          className="h-7 min-w-0 flex-1 rounded border border-input bg-background px-1.5 text-sm font-medium text-foreground outline-none focus:border-primary"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-current={selected ? "true" : undefined}
+          className={cn(
+            "min-w-0 flex-1 rounded-md px-1.5 py-1 text-left text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+            !visible && "text-muted-foreground line-through",
+            selected && "font-semibold"
+          )}
+        >
+          <span className="block truncate">{category.name}</span>
+        </button>
+      )}
+
+      {!editing && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          aria-label={`Rename ${category.name}`}
+          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      )}
 
       <ColorSwatchPicker
         color={color}
-        onColorChange={(c) => onUpdateCategory({ color: c })}
-        className="size-4 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+        onColorChange={(nextColor) => onUpdateCategory({ color: nextColor })}
+        className="size-5"
       />
 
       <button
         type="button"
-        onClick={onDeleteCategory}
-        aria-label="Delete Space"
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+        onClick={deleteSpace}
+        disabled={deleting}
+        aria-label={`Delete ${category.name}`}
+        className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
       >
-        <Trash2 className="size-3.5" />
+        {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
       </button>
+
+      {error && <p className="w-full px-8 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
 
-/** Compact create form opened by the plus button in the Spaces header. */
 function CreateCategoryForm({
   open,
   onClose,
@@ -125,8 +180,8 @@ function CreateCategoryForm({
     setSubmitting(false);
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!name.trim() || submitting) return;
 
     setSubmitting(true);
@@ -136,7 +191,7 @@ function CreateCategoryForm({
       await onCreateCategory(name.trim(), color);
       close();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create category");
+      setError(err instanceof Error ? err.message : "Failed to create Space");
       setSubmitting(false);
     }
   };
@@ -149,20 +204,18 @@ function CreateCategoryForm({
         <ColorSwatchPicker color={color} onColorChange={setColor} className="size-6" />
         <input
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") close();
-          }}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => event.key === "Escape" && close()}
           placeholder="Space name"
           aria-label="New Space name"
           autoFocus
-          className="h-6 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+          className="h-7 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
         />
         <button
           type="submit"
           disabled={!name.trim() || submitting}
           aria-label="Add Space"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
         >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
         </button>
@@ -170,7 +223,7 @@ function CreateCategoryForm({
           type="button"
           onClick={close}
           aria-label="Cancel"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <X className="size-4" />
         </button>
@@ -184,6 +237,8 @@ function CreateCategoryForm({
 export default function CategoryManager({
   categories,
   loading,
+  selectedSpaceId,
+  onSelectSpace,
   hiddenCategoryIds,
   onToggleCategoryVisibility,
   onCreateCategory,
@@ -191,15 +246,9 @@ export default function CategoryManager({
   onDeleteCategory,
 }: CategoryManagerProps) {
   const [creating, setCreating] = useState(false);
-  const [schoolOpen, setSchoolOpen] = useState(true);
-  const workCategory = categories.find((category) => category.name.toLowerCase() === "work");
-  const personalCategory = categories.find((category) => category.name.toLowerCase() === "personal");
-  const schoolCategories = categories.filter(
-    (category) => category.id !== workCategory?.id && category.id !== personalCategory?.id
-  );
 
   return (
-    <div className="flex flex-col px-4 pt-2 pb-3">
+    <div className="flex flex-col px-4 pb-3 pt-2">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
         <button
@@ -207,7 +256,7 @@ export default function CategoryManager({
           onClick={() => setCreating((current) => !current)}
           aria-label={creating ? "Cancel creating Space" : "Create a Space"}
           aria-expanded={creating}
-          className="grid size-8 place-items-center rounded-lg text-foreground transition-colors hover:bg-muted"
+          className="grid size-8 place-items-center rounded-lg text-foreground hover:bg-muted"
         >
           {creating ? <X className="size-5" /> : <Plus className="size-5" />}
         </button>
@@ -226,56 +275,27 @@ export default function CategoryManager({
           <div className="flex flex-col gap-1">
             <button
               type="button"
-              onClick={() => setSchoolOpen((open) => !open)}
-              aria-expanded={schoolOpen}
-              className="flex items-center gap-3 rounded-lg py-2 text-left text-sm font-semibold text-foreground hover:bg-muted/60"
+              onClick={() => onSelectSpace(null)}
+              aria-current={selectedSpaceId === null ? "true" : undefined}
+              className={cn(
+                "rounded-lg px-2 py-1.5 text-left text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
+                selectedSpaceId === null && "bg-primary/10 font-semibold text-primary"
+              )}
             >
-              <span className="size-3.5 rounded-[5px] bg-indigo-600" />
-              <span>School</span>
-              <ChevronDown className={cn("ml-auto size-4 transition-transform", !schoolOpen && "-rotate-90")} />
+              All Spaces
             </button>
-
-            {schoolOpen && schoolCategories.map((category) => (
+            {categories.map((category) => (
               <CategoryRow
                 key={category.id}
                 category={category}
-                indented
+                selected={selectedSpaceId === category.id}
                 visible={!hiddenCategoryIds.includes(category.id)}
+                onSelect={() => onSelectSpace(category.id)}
                 onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
                 onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
             ))}
-
-            {workCategory && (
-              <div className="mt-2 flex items-center">
-                <div className="min-w-0 flex-1">
-                  <CategoryRow
-                    category={workCategory}
-                    visible={!hiddenCategoryIds.includes(workCategory.id)}
-                    onToggleVisibility={() => onToggleCategoryVisibility(workCategory.id)}
-                    onUpdateCategory={(updates) => onUpdateCategory(workCategory, updates)}
-                    onDeleteCategory={() => onDeleteCategory(workCategory)}
-                  />
-                </div>
-                <ChevronDown className="size-4 shrink-0 text-foreground" />
-              </div>
-            )}
-
-            {personalCategory && (
-              <div className="flex items-center">
-                <div className="min-w-0 flex-1">
-                  <CategoryRow
-                    category={personalCategory}
-                    visible={!hiddenCategoryIds.includes(personalCategory.id)}
-                    onToggleVisibility={() => onToggleCategoryVisibility(personalCategory.id)}
-                    onUpdateCategory={(updates) => onUpdateCategory(personalCategory, updates)}
-                    onDeleteCategory={() => onDeleteCategory(personalCategory)}
-                  />
-                </div>
-                <ChevronDown className="size-4 shrink-0 text-foreground" />
-              </div>
-            )}
           </div>
         )}
       </div>

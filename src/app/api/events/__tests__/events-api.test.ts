@@ -328,7 +328,7 @@ describe("Events API Endpoints", () => {
       const response = await POST(req);
 
       expect(response.status).toBe(400);
-      expect((await response.json()).error).toBe("category_id must be a valid UUID");
+      expect((await response.json()).error).toBe("Space must be a valid identifier");
       expect(mockDbState.transactionCount).toBe(0);
       expect(mockDbState.rows).toEqual(before);
     });
@@ -590,7 +590,7 @@ describe("Events API Endpoints", () => {
       const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
 
       expect(response.status).toBe(400);
-      expect((await response.json()).error).toBe("category_id must be a valid UUID");
+      expect((await response.json()).error).toBe("Space must be a valid identifier");
       expect(mockDbState.transactionCount).toBe(0);
       expect(mockDbState.rows).toEqual(before);
     });
@@ -649,7 +649,7 @@ describe("Events API Endpoints", () => {
       const response = await POST(req);
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe(
-        "category_id does not exist or does not belong to you"
+        "The selected Space is unavailable"
       );
     });
 
@@ -668,7 +668,7 @@ describe("Events API Endpoints", () => {
       const response = await POST(req);
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe(
-        "category_id does not exist or does not belong to you"
+        "The selected Space is unavailable"
       );
     });
 
@@ -685,7 +685,7 @@ describe("Events API Endpoints", () => {
       const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe(
-        "category_id does not exist or does not belong to you"
+        "The selected Space is unavailable"
       );
     });
 

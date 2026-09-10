@@ -13,6 +13,7 @@ interface TaskListProps {
   tasks: CalendarTask[];
   loading: boolean;
   categories: CalendarCategory[];
+  selectedSpaceId: string | null;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
@@ -99,9 +100,11 @@ function TaskRow({
  *  form open, so the panel returns to its resting size between adds. */
 function CreateTaskForm({
   categories,
+  selectedSpaceId,
   onCreateTask,
 }: {
   categories: CalendarCategory[];
+  selectedSpaceId: string | null;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -145,7 +148,10 @@ function CreateTaskForm({
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setCategoryId(selectedSpaceId);
+          setOpen(true);
+        }}
         className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <Plus className="size-3.5" />
@@ -234,6 +240,7 @@ export default function TaskList({
   tasks,
   loading,
   categories,
+  selectedSpaceId,
   onCreateTask,
   onToggleComplete,
   onDeleteTask,
@@ -286,7 +293,11 @@ export default function TaskList({
       >
         <div className="overflow-hidden">
           <div className="flex flex-col gap-3">
-            <CreateTaskForm categories={categories} onCreateTask={onCreateTask} />
+            <CreateTaskForm
+              categories={categories}
+              selectedSpaceId={selectedSpaceId}
+              onCreateTask={onCreateTask}
+            />
 
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading tasks…</p>

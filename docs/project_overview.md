@@ -1,5 +1,9 @@
 # Kalend - Project Plan
 
+> The current Adaptive Spaces product direction, original vision, domain
+> terminology, and implementation handoff are documented in
+> [`docs/adaptive-spaces-plan.md`](./adaptive-spaces-plan.md).
+
 ## 1. Overview
 
 ### 1.1 Project Summary

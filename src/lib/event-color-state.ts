@@ -7,10 +7,13 @@ export interface EventColorState {
   colorOverridden: boolean;
 }
 
-export function initialEventColor(event?: CalendarEvent | null): EventColorState {
+export function initialEventColor(
+  event?: CalendarEvent | null,
+  initialSpaceId: string | null = null
+): EventColorState {
   return {
     color: isEventColor(event?.color) ? event.color : DEFAULT_EVENT_COLOR,
-    categoryId: event?.category_id ?? null,
+    categoryId: event ? event.category_id : initialSpaceId,
     colorOverridden: event?.color_overridden ?? false,
   };
 }

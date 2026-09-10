@@ -55,6 +55,8 @@ interface EventCreatePopoverProps {
   event?: CalendarEvent | null;
   /** Pre-populates start time when creating from a clicked day or time slot. */
   initialStart?: Date;
+  /** Snapshotted Space focus used only when creating a new event. */
+  initialSpaceId?: string | null;
   categories: CalendarCategory[];
   onSubmit: (values: EventFormValues) => void;
   onDelete?: () => void;
@@ -71,6 +73,7 @@ export default function EventCreatePopover({
   side,
   event,
   initialStart,
+  initialSpaceId = null,
   categories,
   onSubmit,
   onDelete,
@@ -90,7 +93,10 @@ export default function EventCreatePopover({
         : new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
     )
   );
-  const [colorState, dispatchColor] = useReducer(eventColorReducer, event, initialEventColor);
+  const [colorState, dispatchColor] = useReducer(
+    eventColorReducer,
+    initialEventColor(event, initialSpaceId)
+  );
   const { color, categoryId, colorOverridden } = colorState;
   const [timeExpanded, setTimeExpanded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -296,7 +302,7 @@ export default function EventCreatePopover({
             </div>
           </div>
 
-          {/* Color + category row */}
+          {/* Color + Space row */}
           <div className="flex items-center gap-2">
             <ColorSwatchPicker
               color={swatchColor}

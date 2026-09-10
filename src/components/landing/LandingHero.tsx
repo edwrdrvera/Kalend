@@ -33,7 +33,7 @@ export default function LandingHero() {
             style={{ animationDelay: "0.24s" }}
           >
             <ProofPoint>Tasks + events together</ProofPoint>
-            <ProofPoint>Syncs with your calendar</ProofPoint>
+            <ProofPoint>Calendar sync coming soon</ProofPoint>
             <span>
               Have demo access?{" "}
               <LandingButton href="/login" variant="secondary" className="ml-1 px-2.5 py-1 text-[11px]">

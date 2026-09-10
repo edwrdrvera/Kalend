@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         .where(and(eq(categories.id, body.category_id), eq(categories.user_id, user.id)));
       if (!cat) {
         return NextResponse.json(
-          { success: false, error: "category_id does not exist or does not belong to you" },
+          { success: false, error: "The selected Space is unavailable" },
           { status: 400 }
         );
       }

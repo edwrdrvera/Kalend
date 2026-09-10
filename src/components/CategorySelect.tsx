@@ -15,7 +15,7 @@ interface CategorySelectProps {
 }
 
 /** Popover-based dropdown for linking an event or task to one of the
- *  user's categories, or leaving it unlinked ("No category"). Shared by
+ *  user's Spaces, or leaving it unlinked ("No Space"). Shared by
  *  the event editor and TaskList's task create form. */
 export default function CategorySelect({
   categories,
@@ -29,6 +29,7 @@ export default function CategorySelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        aria-label={`Space: ${selected?.name ?? "No Space"}`}
         className={cn(
           "flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
           className
@@ -49,7 +50,7 @@ export default function CategorySelect({
         ) : (
           <>
             <Tag className="size-3.5 shrink-0" />
-            <span>No category</span>
+            <span>No Space</span>
           </>
         )}
       </PopoverTrigger>
@@ -67,7 +68,7 @@ export default function CategorySelect({
                 categoryId === null && "bg-muted text-foreground font-medium"
               )}
             >
-              <span>No category</span>
+              <span>No Space</span>
               {categoryId === null && <Check className="size-3.5" />}
             </button>
           </li>
