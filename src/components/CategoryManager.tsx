@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type FocusEvent } from "react";
 import {
   Check,
   Ellipsis,
@@ -172,7 +172,7 @@ function CategoryRow({
         <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
           <PopoverTrigger
             aria-label={`More actions for ${category.name}`}
-            className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
+            className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
           >
             <Ellipsis className="size-4" />
           </PopoverTrigger>
@@ -230,10 +230,20 @@ function CreateCategoryForm({
   onClose: () => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Close the form when focus leaves it entirely, but only if the user
+  // hasn't started typing (don't discard their work).
+  const handleBlur = (e: FocusEvent) => {
+    if (name.trim() || submitting) return;
+    const next = e.relatedTarget as Node | null;
+    if (next && formRef.current?.contains(next)) return;
+    close();
+  };
 
   const close = () => {
     onClose();
@@ -262,7 +272,7 @@ function CreateCategoryForm({
   if (!open) return null;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-1.5 border-y border-border py-1.5">
+    <form ref={formRef} onSubmit={handleSubmit} onBlur={handleBlur} className="flex flex-col gap-1.5 border-y border-border py-1.5">
       <div className="flex min-h-9 items-center gap-1">
         <ColorSwatchPicker
           color={color}
@@ -315,7 +325,7 @@ export default function CategoryManager({
   const [creating, setCreating] = useState(false);
 
   return (
-    <div className="flex flex-col px-4 pb-2 pt-2">
+    <div className="flex flex-col px-4 pb-2 pt-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">Spaces</h2>
         <button

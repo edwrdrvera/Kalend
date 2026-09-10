@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/lib/theme";
 import MiniCalendar from "./MiniCalendar";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
-import KalendWordmark from "./KalendWordmark";
 import TaskList from "./TaskList";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 
@@ -60,7 +58,6 @@ export default function CalendarSidebar({
   onDeleteCategory,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { theme, mounted } = useTheme();
 
   return (
     <>
@@ -98,13 +95,6 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-full w-full flex-1 flex-col">
-          <div className="px-4 pt-4">
-            <KalendWordmark
-              size="sm"
-              tone={mounted && theme === "dark" ? "white" : "ink"}
-              animation="scatter"
-            />
-          </div>
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}

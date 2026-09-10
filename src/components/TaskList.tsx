@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type FocusEvent } from "react";
 import { format } from "date-fns";
 import { Check, ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -143,12 +143,22 @@ function CreateTaskForm({
   selectedSpaceId: string | null;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [title, setTitle] = useState("");
   const [showDueDate, setShowDueDate] = useState(false);
   const [dueDate, setDueDate] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(selectedSpaceId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Close the form when focus leaves it entirely, but only if the user
+  // hasn't started typing (don't discard their work).
+  const handleBlur = (e: FocusEvent) => {
+    if (title.trim() || submitting) return;
+    const next = e.relatedTarget as Node | null;
+    if (next && formRef.current?.contains(next)) return;
+    onClose();
+  };
 
   const close = () => {
     onClose();
@@ -180,7 +190,7 @@ function CreateTaskForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 border-y border-border py-3">
+    <form ref={formRef} onSubmit={handleSubmit} onBlur={handleBlur} className="flex flex-col gap-2.5 border-y border-border py-3">
       <input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -193,58 +203,58 @@ function CreateTaskForm({
         className={cn(APP_INPUT_CLS, "w-full")}
       />
 
-      {showDueDate ? (
-        <div className="flex items-center gap-1.5">
-          <DateField
-            label="Due date"
-            value={dueDate}
-            onChange={setDueDate}
-          />
+      <div className="flex items-center justify-between gap-2">
+        {showDueDate ? (
+          <div className="flex items-center gap-1.5">
+            <DateField
+              label="Due date"
+              value={dueDate}
+              onChange={setDueDate}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setShowDueDate(false);
+                setDueDate("");
+              }}
+              aria-label="Remove due date"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
-            onClick={() => {
-              setShowDueDate(false);
-              setDueDate("");
-            }}
-            aria-label="Remove due date"
-            className="text-muted-foreground hover:text-foreground"
+            onClick={() => setShowDueDate(true)}
+            className="text-xs text-muted-foreground hover:text-foreground"
           >
-            <X className="size-3.5" />
+            + due date
           </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowDueDate(true)}
-          className="self-start text-xs text-muted-foreground hover:text-foreground"
-        >
-          + due date
-        </button>
-      )}
-
-      <div className="flex items-center justify-between gap-2">
+        )}
         <CategorySelect
           categories={categories}
           categoryId={categoryId}
           onChange={setCategoryId}
         />
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={close}
-            className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!title.trim() || submitting}
-            aria-label="Add task"
-            className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-40"
-          >
-            {submitting ? <Loader2 className="size-3.5 animate-spin" /> : "Add task"}
-          </button>
-        </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={close}
+          className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={!title.trim() || submitting}
+          aria-label="Add task"
+          className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-40"
+        >
+          {submitting ? <Loader2 className="size-3.5 animate-spin" /> : "Add task"}
+        </button>
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}
