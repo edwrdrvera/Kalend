@@ -117,6 +117,43 @@ describe("EventCreatePopover Space membership", () => {
     expect(spaceTriggerLabel()).toBe("Space: No Space");
   });
 
+  it("keeps the snapshotted Space when focus changes while the draft is open", async () => {
+    let submitted: EventFormValues | null = null;
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const render = (initialSpaceId: string | null) =>
+      root?.render(
+        createElement(EventCreatePopover, {
+          anchorRect,
+          side: "right",
+          event: null,
+          initialStart: new Date("2026-09-09T10:00:00"),
+          initialSpaceId,
+          categories,
+          onSubmit: (values: EventFormValues) => {
+            submitted = values;
+          },
+          onClose: () => {},
+        })
+      );
+    await act(() => render("space-1"));
+    expect(spaceTriggerLabel()).toBe("Space: Work");
+
+    // Simulate the calendar changing focus while the editor is open. The
+    // popover's Space must remain the value captured at open time.
+    await act(() => render("space-2"));
+    expect(spaceTriggerLabel()).toBe("Space: Work");
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    if (!titleInput) throw new Error("Event title input was not rendered");
+    await act(() => typeInto(titleInput, "Sprint kickoff"));
+    await submitForm();
+
+    const values = submitted as EventFormValues | null;
+    expect(values?.categoryId).toBe("space-1");
+  });
+
   it("initialises an edit from the Event's own Space, not the current focus", async () => {
     await renderPopover({
       event: makeEvent({ category_id: "space-2" }),
