@@ -1,50 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { Window } from "happy-dom";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory } from "@/lib/calendar-types";
+import { testWindow, typeInto } from "./test-dom";
 
-const window = new Window({ url: "http://localhost" });
-const browserGlobals = [
-  "document",
-  "HTMLElement",
-  "HTMLDivElement",
-  "Node",
-  "Text",
-  "Element",
-  "DocumentFragment",
-  "navigator",
-  "MutationObserver",
-  "requestAnimationFrame",
-  "cancelAnimationFrame",
-  "Event",
-  "MouseEvent",
-  "CustomEvent",
-  "localStorage",
-  // Beyond TaskList.test.ts: the colour picker's Base UI popover positions
-  // itself with floating-ui, which reads these off the global scope.
-  "getComputedStyle",
-  "ResizeObserver",
-  "PointerEvent",
-  "KeyboardEvent",
-  "HTMLButtonElement",
-  "HTMLInputElement",
-] as const;
-
-(globalThis as Record<string, unknown>).window = window;
-(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-for (const key of browserGlobals) {
-  (globalThis as Record<string, unknown>)[key] = (
-    window as unknown as Record<string, unknown>
-  )[key];
-}
-
-// `react-dom` and `@base-ui/react` both snapshot "is there a DOM?" at
-// module-evaluation time, and static imports are hoisted above the global
-// assignment above. React DOM without a DOM falls back to a legacy change
-// polyfill that never fires `onChange` and throws on every `keydown`, so the
-// modules that need a DOM are imported here instead, after the globals exist.
 const { createRoot } = await import("react-dom/client");
 const { default: CategoryManager } = await import("../CategoryManager");
 
@@ -55,7 +15,7 @@ const categories: CalendarCategory[] = [
 
 /** `CategoryManager` gates deletion on the global `window.confirm`. happy-dom
  *  does not declare one, so reach it through a narrow view of the window. */
-const confirmHost = window as unknown as { confirm?: (message?: string) => boolean };
+const confirmHost = testWindow as unknown as { confirm?: (message?: string) => boolean };
 const originalConfirm = confirmHost.confirm;
 
 let root: Root | null = null;
@@ -121,19 +81,6 @@ function nameButton(name: string): HTMLButtonElement | undefined {
 
 function byLabel(label: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[aria-label="${label}"]`);
-}
-
-/** Types into a React-controlled input the way a user would: write through the
- *  native value setter so React's value tracker sees a real change, then fire
- *  the input event React listens for. */
-function typeInto(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(
-    (window as unknown as { HTMLInputElement: { prototype: HTMLInputElement } }).HTMLInputElement
-      .prototype,
-    "value"
-  )?.set;
-  setter?.call(input, value);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function pressKey(element: HTMLElement, key: string) {

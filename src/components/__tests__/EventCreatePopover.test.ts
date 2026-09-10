@@ -1,52 +1,11 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { Window } from "happy-dom";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
+import { typeInto } from "./test-dom";
 
-const window = new Window({ url: "http://localhost" });
-const browserGlobals = [
-  "document",
-  "HTMLElement",
-  "HTMLDivElement",
-  "Node",
-  "Text",
-  "Element",
-  "DocumentFragment",
-  "navigator",
-  "MutationObserver",
-  "requestAnimationFrame",
-  "cancelAnimationFrame",
-  "Event",
-  "MouseEvent",
-  "CustomEvent",
-  "localStorage",
-  // Beyond TaskList.test.ts: the Space dropdown's Base UI popover positions
-  // itself with floating-ui, which reads these off the global scope.
-  "getComputedStyle",
-  "ResizeObserver",
-  "PointerEvent",
-  "KeyboardEvent",
-  "HTMLButtonElement",
-  "HTMLInputElement",
-  "HTMLFormElement",
-] as const;
-
-(globalThis as Record<string, unknown>).window = window;
-(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-for (const key of browserGlobals) {
-  (globalThis as Record<string, unknown>)[key] = (
-    window as unknown as Record<string, unknown>
-  )[key];
-}
-
-// `react-dom` and `@base-ui/react` both snapshot "is there a DOM?" at
-// module-evaluation time, and static imports are hoisted above the global
-// assignment above. Base UI without a DOM never mounts a popover popup, so the
-// Space dropdown would not open; the modules that need a DOM are therefore
-// imported here, after the globals exist.
 const { createRoot } = await import("react-dom/client");
 const { default: EventCreatePopover } = await import("../EventCreatePopover");
 
@@ -139,19 +98,6 @@ function spaceOption(name: string): HTMLButtonElement | undefined {
   ].find((button) => button.textContent?.trim() === name);
 }
 
-/** Types into a React-controlled input the way a user would: write through the
- *  native value setter so React's value tracker sees a real change, then fire
- *  the input event React listens for. */
-function typeInto(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(
-    (window as unknown as { HTMLInputElement: { prototype: HTMLInputElement } }).HTMLInputElement
-      .prototype,
-    "value"
-  )?.set;
-  setter?.call(input, value);
-  input.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
 async function submitForm() {
   await act(() =>
     document
@@ -218,7 +164,7 @@ describe("EventCreatePopover submitted values", () => {
     ]);
   });
 
-  it("submits categoryId null after the user clears the suggested Space", async () => {
+  it("allows the user to clear an existing Event's Space", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
       event: makeEvent({ category_id: "space-1" }),
@@ -239,6 +185,33 @@ describe("EventCreatePopover submitted values", () => {
 
     const values = submitted as EventFormValues | null;
     expect(values).not.toBeNull();
+    expect(values?.categoryId).toBeNull();
+    expect(Object.keys(values ?? {})).not.toContain("space_id");
+  });
+
+  it("submits categoryId null when a new Event clears the focused Space", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      event: null,
+      initialSpaceId: "space-1",
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+    expect(spaceTriggerLabel()).toBe("Space: Work");
+
+    await openSpaceDropdown();
+    const noSpace = spaceOption("No Space");
+    expect(noSpace).toBeDefined();
+    await act(() => noSpace?.click());
+    expect(spaceTriggerLabel()).toBe("Space: No Space");
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    if (!titleInput) throw new Error("Event title input was not rendered");
+    await act(() => typeInto(titleInput, "Unscheduled planning"));
+    await submitForm();
+
+    const values = submitted as EventFormValues | null;
     expect(values?.categoryId).toBeNull();
     expect(Object.keys(values ?? {})).not.toContain("space_id");
   });
