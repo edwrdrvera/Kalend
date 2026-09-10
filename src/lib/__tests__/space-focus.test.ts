@@ -26,7 +26,7 @@ describe("Space focus", () => {
   });
 
   it("unhides only the selected Space and preserves other exclusions on returning to All Spaces", () => {
-    let focus = { selectedSpaceId: null, hiddenSpaceIds: ["work", "personal"] };
+    const focus = { selectedSpaceId: null, hiddenSpaceIds: ["work", "personal"] };
     expect(filterBySpace(items, focus)).toEqual([items[2]]);
     const selected = spaceFocusReducer(focus, { type: "select", spaceId: "work" });
     expect(selected.hiddenSpaceIds).toEqual(["personal"]);

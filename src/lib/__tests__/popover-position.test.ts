@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { computePopoverSide, POPOVER_WIDTH } from "../popover-position";
+import { computePopoverSide } from "../popover-position";
 
 /** Minimal rect shape the function actually reads. */
 type Rect = { left: number; right: number };
