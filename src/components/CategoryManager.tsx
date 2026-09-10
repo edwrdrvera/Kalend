@@ -140,7 +140,7 @@ function CategoryRow({
           onClick={onSelect}
           aria-current={selected ? "true" : undefined}
           className={cn(
-            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
             !visible && "text-muted-foreground line-through",
             selected && "font-semibold"
           )}
@@ -355,7 +355,7 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-xs font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
                 selectedSpaceId === null && "bg-muted font-semibold"
               )}
             >
