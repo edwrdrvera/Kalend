@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import MiniCalendar from "./MiniCalendar";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
-import TaskList from "./TaskList";
+import AgendaSummary from "./AgendaSummary";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 
 interface CalendarSidebarProps {
@@ -18,9 +18,6 @@ interface CalendarSidebarProps {
   tasksLoading: boolean;
   eventsLoading: boolean;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
-  onToggleTaskComplete: (task: CalendarTask) => void;
-  onDeleteTask: (task: CalendarTask) => void;
-  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
   categoriesLoading: boolean;
   selectedSpaceId: string | null;
@@ -44,9 +41,6 @@ export default function CalendarSidebar({
   tasksLoading,
   eventsLoading,
   onCreateTask,
-  onToggleTaskComplete,
-  onDeleteTask,
-  onEventClick,
   categories,
   categoriesLoading,
   selectedSpaceId,
@@ -94,31 +88,31 @@ export default function CalendarSidebar({
           <X className="size-4" />
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <CategoryManager
-            categories={categories}
-            loading={categoriesLoading}
-            selectedSpaceId={selectedSpaceId}
-            onSelectSpace={onSelectSpace}
-            hiddenCategoryIds={hiddenCategoryIds}
-            onToggleCategoryVisibility={onToggleCategoryVisibility}
-            onCreateCategory={onCreateCategory}
-            onUpdateCategory={onUpdateCategory}
-            onDeleteCategory={onDeleteCategory}
-          />
-          <TaskList
-            tasks={tasks}
-            events={events}
-            selectedDate={currentDate}
-            loading={tasksLoading || eventsLoading}
-            categories={categories}
-            onCreateTask={onCreateTask}
-            onToggleComplete={onToggleTaskComplete}
-            onDeleteTask={onDeleteTask}
-            onEventClick={onEventClick}
-            selectedSpaceId={selectedSpaceId}
-          />
-        </div>
+        <CategoryManager
+          categories={categories}
+          loading={categoriesLoading}
+          selectedSpaceId={selectedSpaceId}
+          onSelectSpace={onSelectSpace}
+          hiddenCategoryIds={hiddenCategoryIds}
+          onToggleCategoryVisibility={onToggleCategoryVisibility}
+          onCreateCategory={onCreateCategory}
+          onUpdateCategory={onUpdateCategory}
+          onDeleteCategory={onDeleteCategory}
+        />
+
+        <AgendaSummary
+          events={events}
+          tasks={tasks}
+          selectedDate={currentDate}
+          loading={tasksLoading || eventsLoading}
+          categories={categories}
+          selectedSpaceId={selectedSpaceId}
+          onCreateTask={onCreateTask}
+          onSummaryClick={() => {}}
+        />
+
+        <div className="flex-1" />
+
         <div className="shrink-0 border-t border-border pt-2">
           <MiniCalendar
             currentDate={currentDate}
