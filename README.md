@@ -2,7 +2,7 @@
 
 Kalend is a fast, minimal calendar and task manager designed for students. Give every class, project, and job its own Space, then see all your events and tasks together in one calendar view.
 
-**Live app: [kalend-psi.vercel.app](https://kalend-psi.vercel.app)**
+**Live app: [kalend.space](https://kalend.space)**
 
 ---
 
@@ -79,14 +79,14 @@ Kalend/
 │   │   ├── Calendar.tsx         # Main calendar state manager
 │   │   ├── CalendarHeader.tsx   # Header with view switcher and navigation
 │   │   ├── CalendarSidebar.tsx  # Collapsible sidebar
+│   │   ├── CalendarWeekdayLabel.tsx # Weekday column headers
+│   │   ├── AgendaSummary.tsx    # Sidebar agenda summary panel
 │   │   ├── MonthGrid.tsx        # Month view
 │   │   ├── WeekGrid.tsx         # Week view
 │   │   ├── DayGrid.tsx          # Day view
 │   │   ├── TimeGrid.tsx         # Shared 24-hour grid with drag-move and drag-resize
 │   │   ├── AllDayRow.tsx        # All-day and multi-day event lanes
 │   │   ├── EventCreatePopover.tsx # Inline event creation popover
-│   │   ├── EventModal.tsx       # Event create/edit/delete modal
-│   │   ├── TaskList.tsx         # Sidebar task list
 │   │   ├── TaskChip.tsx         # Task badge on calendar grids
 │   │   ├── TaskDueRow.tsx       # Task due dates in the all-day row
 │   │   ├── CategoryManager.tsx  # Sidebar category manager
@@ -97,7 +97,11 @@ Kalend/
 │   │   ├── ThemeToggle.tsx      # Light/dark mode toggle
 │   │   ├── ViewSwitcher.tsx     # Month/Week/Day toggle
 │   │   ├── SettingsMenu.tsx     # Settings menu
-│   │   └── AuthCard.tsx         # Shared login card
+│   │   ├── AuthCard.tsx         # Shared login card
+│   │   ├── AuthCardShell.tsx    # Auth page layout shell
+│   │   ├── KalendAppIcon.tsx    # App icon component
+│   │   ├── KalendMark.tsx       # Logo mark component
+│   │   └── KalendWordmark.tsx   # Logo wordmark component
 │   ├── db/
 │   │   ├── schema/
 │   │   │   ├── events.ts        # Events table
