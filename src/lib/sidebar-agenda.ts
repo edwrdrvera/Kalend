@@ -13,6 +13,11 @@ export interface SidebarAgendaSection {
   items: SidebarAgendaItem[];
 }
 
+export interface SidebarAgendaSummary {
+  activeItemCount: number;
+  overdueTaskCount: number;
+}
+
 function compareItems(a: SidebarAgendaItem, b: SidebarAgendaItem): number {
   if (a.kind === "event" && b.kind === "event") {
     if (a.allDay !== b.allDay) return a.allDay ? -1 : 1;
@@ -66,6 +71,28 @@ export function buildSidebarAgenda(
     heading: format(dayStart, "EEEE, MMMM d"),
     items: items.sort(compareItems),
   }];
+}
+
+export function summarizeSidebarAgenda(
+  sections: readonly SidebarAgendaSection[],
+  tasks: readonly CalendarTask[],
+  now = new Date()
+): SidebarAgendaSummary {
+  let activeItemCount = 0;
+
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (item.kind === "event" || !item.task.completed) activeItemCount += 1;
+    }
+  }
+
+  const today = startOfDay(now);
+  const overdueTaskCount = tasks.reduce((count, task) => {
+    if (task.completed || !task.due_at) return count;
+    return new Date(task.due_at) < today ? count + 1 : count;
+  }, 0);
+
+  return { activeItemCount, overdueTaskCount };
 }
 
 export function taskDueLabel(task: CalendarTask, now = new Date()): string {

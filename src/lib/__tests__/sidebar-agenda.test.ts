@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildSidebarAgenda, taskDueLabel } from "../sidebar-agenda";
+import { buildSidebarAgenda, summarizeSidebarAgenda, taskDueLabel } from "../sidebar-agenda";
 import type { CalendarEvent, CalendarTask } from "../calendar-types";
 
 const at = (day: number, hour: number) => new Date(2030, 8, day, hour).toISOString();
@@ -89,5 +89,25 @@ describe("taskDueLabel", () => {
     expect(taskDueLabel(task("today", "Today", at(9, 23)), now)).toBe("Due today");
     expect(taskDueLabel(task("future", "Future", at(10, 23)), now)).toBe("Due");
     expect(taskDueLabel(task("none", "None", null), now)).toBe("No due date");
+  });
+});
+
+describe("summarizeSidebarAgenda", () => {
+  it("counts visible events and incomplete tasks while reporting overdue tasks globally", () => {
+    const tasks = [
+      task("overdue", "Overdue", at(8, 23)),
+      task("today", "Today", at(9, 23)),
+      task("done", "Done", at(9, 23), true),
+    ];
+    const sections = buildSidebarAgenda(
+      [event("event", "Lecture", at(9, 9), at(9, 10))],
+      tasks,
+      new Date(2030, 8, 9)
+    );
+
+    expect(summarizeSidebarAgenda(sections, tasks, new Date(2030, 8, 9, 12))).toEqual({
+      activeItemCount: 2,
+      overdueTaskCount: 1,
+    });
   });
 });

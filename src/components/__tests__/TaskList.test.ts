@@ -18,6 +18,16 @@ interface Submission {
   categoryId: string | null | undefined;
 }
 
+function pressKey(element: HTMLElement, key: string) {
+  element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+}
+
+function agendaToggle() {
+  return [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+    button.textContent?.includes("Agenda")
+  );
+}
+
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
@@ -62,6 +72,145 @@ describe("TaskList focused creation", () => {
 
     expect(document.querySelector('[aria-label^="Due date,"]')).not.toBeNull();
     expect(document.querySelector('input[type="date"]')).toBeNull();
+    expect(document.querySelector('[aria-label="New task title"]')).not.toBeNull();
+  });
+
+  it("preserves a nonempty draft on outside dismissal and restores it", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    const input = document.querySelector<HTMLInputElement>('[aria-label="New task title"]');
+    if (!input) throw new Error("Task title input was not rendered");
+    await act(() => typeInto(input, "Keep this draft"));
+    const outsideTarget = agendaToggle();
+    if (!outsideTarget) throw new Error("Agenda toggle was not rendered");
+    await act(() => outsideTarget.click());
+
+    expect(document.querySelector('[aria-label="New task title"]')).toBeNull();
+    expect(document.querySelector('[aria-label="Task draft saved"]')).not.toBeNull();
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    expect(document.querySelector<HTMLInputElement>('[aria-label="New task title"]')?.value)
+      .toBe("Keep this draft");
+  });
+
+  it("discards the draft on Escape", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    const input = document.querySelector<HTMLInputElement>('[aria-label="New task title"]');
+    if (!input) throw new Error("Task title input was not rendered");
+    await act(() => typeInto(input, "Discard this draft"));
+    await act(() => pressKey(input, "Escape"));
+
+    expect(document.querySelector('[aria-label="New task title"]')).toBeNull();
+    expect(document.querySelector('[aria-label="Task draft saved"]')).toBeNull();
+  });
+
+  it("closes an empty composer without saving a draft", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    const outsideTarget = agendaToggle();
+    if (!outsideTarget) throw new Error("Agenda toggle was not rendered");
+    await act(() => outsideTarget.click());
+
+    expect(document.querySelector('[aria-label="New task title"]')).toBeNull();
+    expect(document.querySelector('[aria-label="Task draft saved"]')).toBeNull();
+  });
+
+  it("discards the draft from Cancel", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    await act(() =>
+      document.querySelector<HTMLButtonElement>('[aria-label="Create a task"]')?.click()
+    );
+    const input = document.querySelector<HTMLInputElement>('[aria-label="New task title"]');
+    if (!input) throw new Error("Task title input was not rendered");
+    await act(() => typeInto(input, "Discard this draft"));
+    const cancel = [...document.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent?.trim() === "Cancel"
+    );
+    await act(() => cancel?.click());
+
+    expect(document.querySelector('[aria-label="New task title"]')).toBeNull();
+    expect(document.querySelector('[aria-label="Task draft saved"]')).toBeNull();
   });
 
   it("submits the snapshotted Space after focus changes and uses the latest focus for the next draft", async () => {
@@ -158,6 +307,91 @@ describe("TaskList focused creation", () => {
 });
 
 describe("TaskList agenda interactions", () => {
+  it("opens automatically for active items and honors a saved collapsed preference", async () => {
+    const task = {
+      id: "task-1",
+      title: "Finish lab report",
+      due_at: new Date(2030, 8, 9, 23, 59).toISOString(),
+      completed: false,
+      color: "blue",
+      color_overridden: true,
+      category_id: null,
+    };
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    const render = () =>
+      root?.render(createElement(TaskList, {
+        tasks: [task],
+        events: [],
+        selectedDate: new Date(2030, 8, 9),
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }));
+
+    await act(render);
+    expect(agendaToggle()?.getAttribute("aria-expanded")).toBe("true");
+
+    await act(() => agendaToggle()?.click());
+    expect(localStorage.getItem("kalend:tasks-panel-collapsed")).toBe("true");
+    expect(agendaToggle()?.getAttribute("aria-expanded")).toBe("false");
+
+    await act(() => root?.unmount());
+    root = createRoot(container);
+    await act(render);
+    expect(agendaToggle()?.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("shows active and overdue counts in the Agenda header", async () => {
+    const selectedDate = new Date(2030, 8, 9, 12);
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(() =>
+      root?.render(createElement(TaskList, {
+        tasks: [
+          {
+            id: "active",
+            title: "Active task",
+            due_at: new Date(2030, 8, 9, 23, 59).toISOString(),
+            completed: false,
+            color: "blue",
+            color_overridden: true,
+            category_id: null,
+          },
+          {
+            id: "overdue",
+            title: "Overdue task",
+            due_at: new Date(2020, 8, 8, 23, 59).toISOString(),
+            completed: false,
+            color: "blue",
+            color_overridden: true,
+            category_id: null,
+          },
+        ],
+        events: [],
+        selectedDate,
+        loading: false,
+        categories,
+        selectedSpaceId: null,
+        onCreateTask: async () => {},
+        onToggleComplete: () => {},
+        onDeleteTask: () => {},
+        onEventClick: () => {},
+      }))
+    );
+
+    expect(document.querySelector('[aria-label="1 active agenda item"]')).not.toBeNull();
+    expect(agendaToggle()?.textContent).toContain("1 overdue");
+  });
+
   it("opens an event editor and preserves task completion and deletion actions", async () => {
     localStorage.setItem("kalend:tasks-panel-collapsed", "false");
     container = document.createElement("div");

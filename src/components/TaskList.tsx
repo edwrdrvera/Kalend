@@ -1,13 +1,18 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type FocusEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import { Check, ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
-import { EVENT_COLOR_SWATCH_CLASSES, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  EVENT_COLOR_SWATCH_CLASSES,
+  isEventColor,
+  resolveDisplayColor,
+} from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
-import { buildSidebarAgenda, taskDueLabel } from "@/lib/sidebar-agenda";
+import { buildSidebarAgenda, summarizeSidebarAgenda, taskDueLabel } from "@/lib/sidebar-agenda";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskListProps {
@@ -57,7 +62,7 @@ function EventRow({
             : "bg-muted-foreground/70"
         )}
       />
-      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
         {event.title}
       </span>
       <span className="shrink-0 text-xs text-muted-foreground">
@@ -98,7 +103,7 @@ function TaskRow({
 
       <span
         className={cn(
-          "min-w-0 flex-1 truncate text-xs",
+          "min-w-0 flex-1 truncate text-[13px]",
           task.completed ? "text-muted-foreground line-through" : "text-foreground"
         )}
       >
@@ -129,50 +134,54 @@ function TaskRow({
   );
 }
 
+interface TaskDraft {
+  title: string;
+  showDueDate: boolean;
+  dueDate: string;
+  categoryId: string | null;
+  initialCategoryId: string | null;
+}
 
-/** Compact task composer opened from the Agenda header. A due date defaults
- *  to end-of-day; closing or submitting removes the composer entirely. */
+function newTaskDraft(selectedSpaceId: string | null): TaskDraft {
+  return {
+    title: "",
+    showDueDate: false,
+    dueDate: "",
+    categoryId: selectedSpaceId,
+    initialCategoryId: selectedSpaceId,
+  };
+}
+
+function hasTaskDraftInput(draft: TaskDraft): boolean {
+  return Boolean(
+    draft.title.trim() ||
+    draft.dueDate ||
+    draft.categoryId !== draft.initialCategoryId
+  );
+}
+
+/** Compact task composer opened from the Agenda header. */
 function CreateTaskForm({
-  onClose,
+  draft,
+  onDraftChange,
+  onDiscard,
+  onSubmitted,
   categories,
-  selectedSpaceId,
   onCreateTask,
 }: {
-  onClose: () => void;
+  draft: TaskDraft;
+  onDraftChange: (draft: TaskDraft) => void;
+  onDiscard: () => void;
+  onSubmitted: () => void;
   categories: CalendarCategory[];
-  selectedSpaceId: string | null;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const [title, setTitle] = useState("");
-  const [showDueDate, setShowDueDate] = useState(false);
-  const [dueDate, setDueDate] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(selectedSpaceId);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Close the form when focus leaves it entirely, but only if the user
-  // hasn't started typing (don't discard their work).
-  const handleBlur = (e: FocusEvent) => {
-    if (title.trim() || submitting) return;
-    const next = e.relatedTarget as Node | null;
-    if (next && formRef.current?.contains(next)) return;
-    onClose();
-  };
-
-  const close = () => {
-    onClose();
-    setTitle("");
-    setShowDueDate(false);
-    setDueDate("");
-    setCategoryId(null);
-    setError(null);
-    setSubmitting(false);
-  };
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title.trim() || submitting) return;
+    if (!draft.title.trim() || submitting) return;
 
     setSubmitting(true);
     setError(null);
@@ -180,9 +189,11 @@ function CreateTaskForm({
     try {
       // Explicit UTC so the stored date doesn't shift when the browser's
       // local timezone offset is applied during toISOString() conversion.
-      const dueAt = dueDate ? new Date(`${dueDate}T23:59:00Z`).toISOString() : undefined;
-      await onCreateTask(title.trim(), dueAt, categoryId);
-      close();
+      const dueAt = draft.dueDate
+        ? new Date(`${draft.dueDate}T23:59:00Z`).toISOString()
+        : undefined;
+      await onCreateTask(draft.title.trim(), dueAt, draft.categoryId);
+      onSubmitted();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
       setSubmitting(false);
@@ -190,13 +201,10 @@ function CreateTaskForm({
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} onBlur={handleBlur} className="flex flex-col gap-2.5 border-y border-border py-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 p-1">
       <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") close();
-        }}
+        value={draft.title}
+        onChange={(e) => onDraftChange({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
         autoFocus
@@ -204,18 +212,17 @@ function CreateTaskForm({
       />
 
       <div className="flex items-center justify-between gap-2">
-        {showDueDate ? (
+        {draft.showDueDate ? (
           <div className="flex items-center gap-1.5">
             <DateField
               label="Due date"
-              value={dueDate}
-              onChange={setDueDate}
+              value={draft.dueDate}
+              onChange={(dueDate) => onDraftChange({ ...draft, dueDate })}
             />
             <button
               type="button"
               onClick={() => {
-                setShowDueDate(false);
-                setDueDate("");
+                onDraftChange({ ...draft, showDueDate: false, dueDate: "" });
               }}
               aria-label="Remove due date"
               className="text-muted-foreground hover:text-foreground"
@@ -226,7 +233,7 @@ function CreateTaskForm({
         ) : (
           <button
             type="button"
-            onClick={() => setShowDueDate(true)}
+            onClick={() => onDraftChange({ ...draft, showDueDate: true })}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             + due date
@@ -234,22 +241,22 @@ function CreateTaskForm({
         )}
         <CategorySelect
           categories={categories}
-          categoryId={categoryId}
-          onChange={setCategoryId}
+          categoryId={draft.categoryId}
+          onChange={(categoryId) => onDraftChange({ ...draft, categoryId })}
         />
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
         <button
           type="button"
-          onClick={close}
+          onClick={onDiscard}
           className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           Cancel
         </button>
         <button
           type="submit"
-          disabled={!title.trim() || submitting}
+          disabled={!draft.title.trim() || submitting}
           aria-label="Add task"
           className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 disabled:pointer-events-none disabled:opacity-40"
         >
@@ -276,31 +283,37 @@ export default function TaskList({
   onDeleteTask,
   onEventClick,
 }: TaskListProps) {
-  // Collapsed by default so the panel doesn't cost permanent sidebar space
-  // for someone who isn't using tasks. Only reachable client-side (this
-  // component never renders during SSR, see Calendar's `mounted` gate), so
-  // reading localStorage directly in the initializer is safe, no hydration
-  // mismatch to worry about.
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(COLLAPSED_STORAGE_KEY) !== "false"
-  );
+  const sections = buildSidebarAgenda(events, tasks, selectedDate);
+  const summary = summarizeSidebarAgenda(sections, tasks);
+  const agendaItemCount = sections.reduce((count, section) => count + section.items.length, 0);
+  const [collapsePreference, setCollapsePreference] = useState<boolean | null>(() => {
+    const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    return stored === null ? null : stored === "true";
+  });
+  const collapsed = collapsePreference ?? agendaItemCount === 0;
   const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState<TaskDraft | null>(null);
 
   const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next));
-      return next;
-    });
+    const next = !collapsed;
+    setCollapsePreference(next);
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next));
   };
 
   const openTaskForm = () => {
+    setDraft((current) => current ?? newTaskDraft(selectedSpaceId));
     setCreating(true);
-    setCollapsed(false);
-    localStorage.setItem(COLLAPSED_STORAGE_KEY, "false");
   };
 
-  const sections = buildSidebarAgenda(events, tasks, selectedDate);
+  const closeTaskForm = () => {
+    setCreating(false);
+    setDraft((current) => (current && hasTaskDraftInput(current) ? current : null));
+  };
+
+  const discardTaskDraft = () => {
+    setCreating(false);
+    setDraft(null);
+  };
 
   return (
     <div className="flex flex-col border-t border-border px-4 py-3">
@@ -312,6 +325,19 @@ export default function TaskList({
           className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-xs font-semibold text-foreground transition-colors hover:text-foreground"
         >
           <span>Agenda</span>
+          <span
+            aria-label={`${summary.activeItemCount} active agenda ${
+              summary.activeItemCount === 1 ? "item" : "items"
+            }`}
+            className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+          >
+            {summary.activeItemCount}
+          </span>
+          {summary.overdueTaskCount > 0 && (
+            <span className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[11px] font-medium text-destructive">
+              {summary.overdueTaskCount} overdue
+            </span>
+          )}
           <ChevronRight
             className={cn(
               "size-4 text-muted-foreground transition-transform duration-200",
@@ -319,15 +345,45 @@ export default function TaskList({
             )}
           />
         </button>
-        <button
-          type="button"
-          onClick={creating ? () => setCreating(false) : openTaskForm}
-          aria-label={creating ? "Cancel creating task" : "Create a task"}
-          aria-expanded={creating}
-          className="grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+        <Popover
+          open={creating}
+          onOpenChange={(open, details) => {
+            if (open) openTaskForm();
+            else if (details.reason === "escape-key") discardTaskDraft();
+            else closeTaskForm();
+          }}
         >
-          {creating ? <X className="size-4" /> : <Plus className="size-4" />}
-        </button>
+          <PopoverTrigger
+            aria-label={creating ? "Close task composer" : "Create a task"}
+            aria-expanded={creating}
+            className="relative grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+          >
+            {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+            {!creating && draft && hasTaskDraftInput(draft) && (
+              <span
+                aria-label="Task draft saved"
+                className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-primary"
+              />
+            )}
+          </PopoverTrigger>
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-[min(340px,calc(100vw-2rem))] p-2.5"
+          >
+            {draft && (
+              <CreateTaskForm
+                draft={draft}
+                onDraftChange={setDraft}
+                onDiscard={discardTaskDraft}
+                onSubmitted={discardTaskDraft}
+                categories={categories}
+                onCreateTask={onCreateTask}
+              />
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div
@@ -339,15 +395,6 @@ export default function TaskList({
       >
         <div className="overflow-hidden">
           <div className="flex flex-col gap-2.5">
-            {creating && (
-              <CreateTaskForm
-                onClose={() => setCreating(false)}
-                categories={categories}
-                selectedSpaceId={selectedSpaceId}
-                onCreateTask={onCreateTask}
-              />
-            )}
-
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading agenda…</p>
             ) : (
