@@ -1,115 +1,92 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import { startOfMonth } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
-import EventModal, { type EventFormValues } from "./EventModal";
+import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
+import { computePopoverSide } from "@/lib/popover-position";
 import type { CalendarView } from "./ViewSwitcher";
+import type { CalendarEvent } from "@/lib/calendar-types";
+import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { useTasks } from "@/hooks/useTasks";
+import { useCategories } from "@/hooks/useCategories";
+import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
-// Wire shape of an event as returned by GET /api/events: dates arrive as
-// ISO strings over JSON, not the `Date` objects the Drizzle `Event` type
-// declares server-side.
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start_at: string;
-  end_at: string;
-  color: string | null;
+function ErrorToast({
+  message,
+  onDismiss,
+  onRetry,
+}: {
+  message: string;
+  onDismiss: () => void;
+  onRetry?: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
+      <span>{message}</span>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          Retry
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Dismiss"
+        className="text-muted-foreground transition-colors hover:text-foreground"
+      >
+        ✕
+      </button>
+    </div>
+  );
 }
 
-interface EventsApiResponse {
-  success: boolean;
-  data?: CalendarEvent[];
-  error?: string;
-}
-
-interface EventMutationResponse {
-  success: boolean;
-  data?: CalendarEvent;
-  error?: string;
-}
-
-// Shared by create/edit, delete, and move below, which otherwise each
-// re-implement the same fetch-then-check-the-response-shape block. Doesn't
-// enforce `data` being present, since DELETE's response doesn't include
-// it — callers that need `data` (create/edit, move) check for it after.
-async function mutateEvent(
-  url: string,
-  method: "POST" | "PATCH" | "DELETE",
-  body: object | undefined,
-  fallbackError: string
-): Promise<EventMutationResponse> {
-  const res = await fetch(url, {
-    method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const json: EventMutationResponse = await res.json();
-
-  if (!res.ok || !json.success) {
-    throw new Error(json.error ?? fallbackError);
-  }
-  return json;
+function LoadingSpinner() {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <div className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+    </div>
+  );
 }
 
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewDate, setViewDate] = useState(() => startOfMonth(new Date()));
-  const [view, setView] = useState<CalendarView>("month");
+  const [viewDate, setViewDate] = useState(new Date());
+  const [view, setView] = useState<CalendarView>("week");
   const [mounted, setMounted] = useState(false);
+  const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
+  const { selectedSpaceId, hiddenSpaceIds } = spaceFocus;
 
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [eventsLoading, setEventsLoading] = useState(false);
-  const [eventsError, setEventsError] = useState<string | null>(null);
+  const events = useCalendarEvents(viewDate);
+  const tasks = useTasks();
+  const categories = useCategories(
+    (detachedEvents, detachedTasks, categoryId) => {
+      events.reconcileSpaceRemoval(detachedEvents, categoryId);
+      tasks.reconcileSpaceRemoval(detachedTasks, categoryId);
+      dispatchSpaceFocus({ type: "deleted", spaceId: categoryId });
+    }
+  );
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Re-fetches on mount and whenever the visible month changes. GET
-  // /api/events isn't date-filtered yet (see TASKS.md), so this currently
-  // re-fetches the same full set on navigation — kept anyway so a
-  // date-range query param can be added later without touching this hook.
-  useEffect(() => {
-    let cancelled = false;
+  const handleRetry = () => {
+    events.retry();
+    tasks.retry();
+    categories.retry();
+  };
 
-    async function fetchEvents() {
-      setEventsLoading(true);
-      setEventsError(null);
-
-      try {
-        const res = await fetch("/api/events");
-        const json: EventsApiResponse = await res.json();
-
-        if (!res.ok || !json.success || !json.data) {
-          throw new Error(json.error ?? "Failed to load events");
-        }
-
-        if (!cancelled) {
-          setEvents(json.data);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setEventsError(
-            err instanceof Error ? err.message : "Failed to load events"
-          );
-        }
-      } finally {
-        if (!cancelled) {
-          setEventsLoading(false);
-        }
-      }
-    }
-
-    fetchEvents();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [viewDate]);
+  const handleToggleCategoryVisibility = (categoryId: string) => {
+    dispatchSpaceFocus({ type: "toggleVisibility", spaceId: categoryId });
+  };
 
   // Selecting a day (from the mini calendar, or any of the main grids) also
   // moves the shared view to that day, so both stay in sync no matter which
@@ -122,266 +99,202 @@ export default function Calendar() {
     setViewDate(view === "month" ? startOfMonth(date) : date);
   };
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [modalEvent, setModalEvent] = useState<CalendarEvent | null>(null);
-  const [modalInitialStart, setModalInitialStart] = useState<Date | undefined>();
-  const [modalSubmitting, setModalSubmitting] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-  // Bumped every time the modal is opened so `key={modalKey}` below forces
-  // EventModal to remount with fresh initial state, instead of an effect
-  // resetting its fields after the fact.
-  const [modalKey, setModalKey] = useState(0);
+  // Ref on the calendar content area — used to get the container rect for
+  // popover side computation.
+  const calendarContentRef = useRef<HTMLDivElement>(null);
 
-  const handleCreateEvent = (day: Date) => {
-    setModalMode("create");
-    setModalEvent(null);
-    setModalInitialStart(day);
-    setModalError(null);
-    setModalOpen(true);
-    setModalKey((key) => key + 1);
+  // The event editor is anchored to whichever calendar element opened it.
+  const [eventPopover, setEventPopover] = useState<{
+    rect: DOMRect;
+    side: "left" | "right";
+    event: CalendarEvent | null;
+    start: Date;
+    initialSpaceId: string | null;
+  } | null>(null);
+  const [popoverSubmitting, setPopoverSubmitting] = useState(false);
+  const [popoverError, setPopoverError] = useState<string | null>(null);
+  const [popoverKey, setPopoverKey] = useState(0);
+
+  const getPopoverSide = (anchorRect: DOMRect) => {
+    const containerRect = calendarContentRef.current?.getBoundingClientRect();
+    return containerRect ? computePopoverSide(anchorRect, containerRect) : "right";
   };
 
-  const handleEventClick = (event: CalendarEvent) => {
-    setModalMode("edit");
-    setModalEvent(event);
-    setModalError(null);
-    setModalOpen(true);
-    setModalKey((key) => key + 1);
+  const handleCreateEvent = (day: Date, anchorRect: DOMRect) => {
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event: null,
+      start: day,
+      initialSpaceId: selectedSpaceId,
+    });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
   };
 
-  const handleModalSubmit = async (values: EventFormValues) => {
-    setModalSubmitting(true);
-    setModalError(null);
+  const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event,
+      start: new Date(event.start_at),
+      initialSpaceId: event.category_id,
+    });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
+  };
 
+  const handlePopoverSubmit = async (values: EventFormValues) => {
+    if (!eventPopover) return;
+
+    setPopoverSubmitting(true);
+    setPopoverError(null);
     try {
-      const isEdit = modalMode === "edit" && modalEvent;
-      const fallbackError = `Failed to ${isEdit ? "update" : "create"} event`;
-      const json = await mutateEvent(
-        isEdit ? `/api/events/${modalEvent.id}` : "/api/events",
-        isEdit ? "PATCH" : "POST",
-        {
-          title: values.title,
-          start_at: values.startAt,
-          end_at: values.endAt,
-          color: values.color,
-        },
-        fallbackError
-      );
-
-      if (!json.data) {
-        throw new Error(fallbackError);
+      if (eventPopover.event) {
+        await events.updateEvent(eventPopover.event.id, values);
+      } else {
+        await events.createEvent(values);
       }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        isEdit
-          ? prev.map((event) => (event.id === savedEvent.id ? savedEvent : event))
-          : [...prev, savedEvent]
-      );
-
-      setModalOpen(false);
+      setEventPopover(null);
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : "Something went wrong");
+      setPopoverError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setModalSubmitting(false);
+      setPopoverSubmitting(false);
     }
   };
 
-  // Optimistic: remove from state and close the modal immediately, rather
-  // than waiting on the DELETE response. On failure the event is put back
-  // and eventsError surfaces why.
   const handleDeleteEvent = async () => {
-    if (!modalEvent) return;
-
-    const eventToDelete = modalEvent;
-    setEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
-    setModalOpen(false);
-
-    try {
-      await mutateEvent(
-        `/api/events/${eventToDelete.id}`,
-        "DELETE",
-        undefined,
-        "Failed to delete event"
-      );
-    } catch (err) {
-      setEvents((prev) => [...prev, eventToDelete]);
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to delete event"
-      );
-    }
-  };
-
-  // Optimistic: applies the new start/end immediately (so the drag doesn't
-  // snap back while the request is in flight), then reconciles with the
-  // server response. On failure, only start_at/end_at are rolled back
-  // (not the whole event) so a concurrent edit that succeeded in the
-  // meantime — e.g. a title change via the modal while this move's PATCH
-  // was still in flight — isn't discarded along with the failed move.
-  const handleEventMove = async (event: CalendarEvent, start: Date, end: Date) => {
-    const previousStartAt = event.start_at;
-    const previousEndAt = event.end_at;
-    const optimisticEvent: CalendarEvent = {
-      ...event,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-    };
-
-    setEvents((prev) =>
-      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
-    );
-
-    try {
-      const json = await mutateEvent(
-        `/api/events/${event.id}`,
-        "PATCH",
-        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
-        "Failed to update event"
-      );
-
-      if (!json.data) {
-        throw new Error("Failed to update event");
-      }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
-      );
-    } catch (err) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === event.id
-            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
-            : e
-        )
-      );
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to update event"
-      );
-    }
-  };
-
-  const handleEventResize = async (event: CalendarEvent, start: Date, end: Date) => {
-    const previousStartAt = event.start_at;
-    const previousEndAt = event.end_at;
-    const optimisticEvent: CalendarEvent = {
-      ...event,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-    };
-
-    setEvents((prev) =>
-      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
-    );
-
-    try {
-      const json = await mutateEvent(
-        `/api/events/${event.id}`,
-        "PATCH",
-        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
-        "Failed to update event"
-      );
-
-      if (!json.data) {
-        throw new Error("Failed to update event");
-      }
-
-      const savedEvent = json.data;
-      setEvents((prev) =>
-        prev.map((e) => (e.id === savedEvent.id ? savedEvent : e))
-      );
-    } catch (err) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === event.id
-            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
-            : e
-        )
-      );
-      setEventsError(
-        err instanceof Error ? err.message : "Failed to update event"
-      );
-    }
+    if (!eventPopover?.event) return;
+    const event = eventPopover.event;
+    setEventPopover(null);
+    await events.deleteEvent(event);
   };
 
   if (!mounted) return null;
 
+  const visibleEvents = filterBySpace(events.data, spaceFocus);
+  const visibleTasks = filterBySpace(tasks.data, spaceFocus);
+  const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
+
   return (
-    <div className="relative flex h-full w-full overflow-hidden text-neutral-200">
-      {eventsError && (
-        <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-neutral-200 shadow-lg ring-1 ring-neutral-700">
-          <span>{eventsError}</span>
-          <button
-            type="button"
-            onClick={() => setEventsError(null)}
-            aria-label="Dismiss"
-            className="text-neutral-400 transition-colors hover:text-neutral-200"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-      <CalendarSidebar
-        currentDate={selectedDate}
-        viewDate={viewDate}
-        onDateSelect={handleDateSelect}
-        onViewDateChange={setViewDate}
-      />
-      {view === "month" && (
-        <MonthGrid
-          selectedDate={selectedDate}
+    <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
+        {(events.error || tasks.error || categories.error) && (
+          <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
+            {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
+            {tasks.error && <ErrorToast message={tasks.error} onDismiss={() => tasks.setError(null)} onRetry={handleRetry} />}
+            {categories.error && <ErrorToast message={categories.error} onDismiss={() => categories.setError(null)} onRetry={handleRetry} />}
+          </div>
+        )}
+        <CalendarSidebar
+          currentDate={selectedDate}
           viewDate={viewDate}
-          events={events}
           onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
+          tasks={visibleTasks}
+          events={visibleEvents}
+          tasksLoading={tasks.loading}
+          eventsLoading={events.loading}
+          onCreateTask={tasks.createTask}
+          onToggleTaskComplete={tasks.toggleComplete}
+          onDeleteTask={tasks.deleteTask}
           onEventClick={handleEventClick}
-          view={view}
-          onViewChange={setView}
+          categories={categories.data}
+          categoriesLoading={categories.loading}
+          hiddenCategoryIds={hiddenSpaceIds}
+          selectedSpaceId={selectedSpaceId}
+          onSelectSpace={(spaceId) => dispatchSpaceFocus({ type: "select", spaceId })}
+          onToggleCategoryVisibility={handleToggleCategoryVisibility}
+          onCreateCategory={categories.createCategory}
+          onUpdateCategory={categories.updateCategory}
+          onDeleteCategory={categories.deleteCategory}
+        />
+        {events.initialLoading ? (
+          <div className="flex-1">
+            <LoadingSpinner />
+          </div>
+        ) : (
+          <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
+            {selectedSpace && (
+              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border py-2 pl-14 pr-4 text-sm md:pl-4">
+                <span className="min-w-0 truncate font-medium">Space: {selectedSpace.name}</span>
+                <button
+                  type="button"
+                  onClick={() => dispatchSpaceFocus({ type: "select", spaceId: null })}
+                  className="shrink-0 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  All Spaces
+                </button>
+              </div>
+            )}
+            {view === "month" && (
+              <MonthGrid
+                selectedDate={selectedDate}
+                viewDate={viewDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories.data}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={tasks.toggleComplete}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+            {view === "week" && (
+              <WeekGrid
+                selectedDate={selectedDate}
+                viewDate={viewDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories.data}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={tasks.toggleComplete}
+                onEventMove={events.changeEventTime}
+                onEventResize={events.changeEventTime}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+            {view === "day" && (
+              <DayGrid
+                viewDate={viewDate}
+                selectedDate={selectedDate}
+                events={visibleEvents}
+                tasks={visibleTasks}
+                categories={categories.data}
+                onDateSelect={handleDateSelect}
+                onViewDateChange={setViewDate}
+                onCreateEvent={handleCreateEvent}
+                onEventClick={handleEventClick}
+                onTaskClick={tasks.toggleComplete}
+                onEventMove={events.changeEventTime}
+                onEventResize={events.changeEventTime}
+                view={view}
+                onViewChange={setView}
+              />
+            )}
+          </div>
+        )}
+      {eventPopover && (
+        <EventCreatePopover
+          key={popoverKey}
+          anchorRect={eventPopover.rect}
+          side={eventPopover.side}
+          event={eventPopover.event}
+          initialStart={eventPopover.start}
+          initialSpaceId={eventPopover.initialSpaceId}
+          categories={categories.data}
+          onSubmit={handlePopoverSubmit}
+          onDelete={eventPopover.event ? handleDeleteEvent : undefined}
+          onClose={() => setEventPopover(null)}
+          submitting={popoverSubmitting}
+          error={popoverError}
         />
       )}
-      {view === "week" && (
-        <WeekGrid
-          selectedDate={selectedDate}
-          viewDate={viewDate}
-          events={events}
-          onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
-          onEventClick={handleEventClick}
-          onEventMove={handleEventMove}
-          onEventResize={handleEventResize}
-          view={view}
-          onViewChange={setView}
-        />
-      )}
-      {view === "day" && (
-        <DayGrid
-          viewDate={viewDate}
-          events={events}
-          onDateSelect={handleDateSelect}
-          onViewDateChange={setViewDate}
-          onCreateEvent={handleCreateEvent}
-          onEventClick={handleEventClick}
-          onEventMove={handleEventMove}
-          onEventResize={handleEventResize}
-          view={view}
-          onViewChange={setView}
-        />
-      )}
-      <EventModal
-        key={modalKey}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        mode={modalMode}
-        event={modalEvent}
-        initialStart={modalInitialStart}
-        onSubmit={handleModalSubmit}
-        onDelete={handleDeleteEvent}
-        submitting={modalSubmitting}
-        error={modalError}
-      />
     </div>
   );
 }

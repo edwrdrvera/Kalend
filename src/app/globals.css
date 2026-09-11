@@ -48,74 +48,87 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    /* SF Pro isn't licensed for embedding/distribution outside Apple's own
+     * platforms, so it can't be self-hosted or pulled from next/font like
+     * Geist was. -apple-system/BlinkMacSystemFont instead point at the
+     * OS's own San Francisco (SF Pro) install on macOS/iOS/Safari, with
+     * "SF Pro Display" as an explicit fallback for anyone with it
+     * installed locally, then a normal system-font stack on other
+     * platforms, where SF Pro isn't available at all. */
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    /* Light app theme — clean white workspace from the Direction 1 calendar.
+     * The marketing route keeps its separate warm --kal-* palette below. */
+    --background: #ffffff;
+    --foreground: #1c1a16;
+    --card: #ffffff;
+    --card-foreground: #1c1a16;
+    --popover: #ffffff;
+    --popover-foreground: #1c1a16;
+    --primary: #4f46e5;
+    --primary-foreground: #ffffff;
+    --secondary: #f5f5f5;
+    --secondary-foreground: #1c1a16;
+    --muted: #f5f5f5;
+    --muted-foreground: #756f61;
+    --accent: #f5f5f5;
+    --accent-foreground: #1c1a16;
+    --destructive: #dc2626;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #4f46e5;
+    --chart-1: #4f46e5;
+    --chart-2: #756f61;
+    --chart-3: #1c1a16;
+    --chart-4: #e5e7eb;
+    --chart-5: #f5f5f5;
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #ffffff;
+    --sidebar-foreground: #1c1a16;
+    --sidebar-primary: #4f46e5;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f5f5f5;
+    --sidebar-accent-foreground: #1c1a16;
+    --sidebar-border: #e5e7eb;
+    --sidebar-ring: #4f46e5;
 }
 
 .dark {
-    /* Aligned to the app's existing dark palette (see layout.tsx / Calendar components):
-       background #121212, panels #191919, neutral-800 borders/hover, blue-600 accent. */
+    /* Dark mode — indigo-400 (#818cf8) as the primary: lighter shade so it
+     * reads as text on dark surfaces (5.9:1 on #121212) and as the button bg
+     * with dark ink foreground (5.3:1). primary-foreground flips to dark ink
+     * so buttons stay legible on the lighter dark-mode accent. */
     --background: #121212;
     --foreground: #e5e5e5;
     --card: #191919;
     --card-foreground: #e5e5e5;
     --popover: #191919;
     --popover-foreground: #e5e5e5;
-    --primary: #2563eb;
-    --primary-foreground: #ffffff;
+    --primary: #818cf8;
+    --primary-foreground: #1c1a16;
     --secondary: #262626;
     --secondary-foreground: #e5e5e5;
     --muted: #262626;
     --muted-foreground: #a3a3a3;
     --accent: #262626;
     --accent-foreground: #e5e5e5;
-    --destructive: oklch(0.704 0.191 22.216);
+    --destructive: #ef4444;
     --border: #262626;
     --input: #262626;
-    --ring: #3b82f6;
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --ring: #818cf8;
+    --chart-1: #818cf8;
+    --chart-2: #a3a3a3;
+    --chart-3: #e5e5e5;
+    --chart-4: #262626;
+    --chart-5: #191919;
     --sidebar: #191919;
     --sidebar-foreground: #e5e5e5;
-    --sidebar-primary: #2563eb;
-    --sidebar-primary-foreground: #ffffff;
+    --sidebar-primary: #818cf8;
+    --sidebar-primary-foreground: #1c1a16;
     --sidebar-accent: #262626;
     --sidebar-accent-foreground: #e5e5e5;
     --sidebar-border: #262626;
-    --sidebar-ring: #3b82f6;
+    --sidebar-ring: #818cf8;
 }
 
 @layer base {
@@ -128,4 +141,147 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Kalend mark hover animations (see src/components/KalendMark.tsx). Dot
+ * order is fixed: top-left, mid-left, bottom-left, center, top-right,
+ * bottom-right — these rules key off that DOM order via :nth-of-type. */
+.kalend-mark[data-kalend-anim="scatter"] circle {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(1) { transform-origin: 24px 24px; }
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(2) { transform-origin: 24px 60px; }
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(3) { transform-origin: 24px 96px; }
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(4) { transform-origin: 60px 60px; }
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(5) { transform-origin: 96px 24px; }
+.kalend-mark[data-kalend-anim="scatter"] circle:nth-of-type(6) { transform-origin: 96px 96px; }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(1) { transform: translate(-6px, -6px); }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(2) { transform: translate(-8px, 0px); }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(3) { transform: translate(-6px, 6px); }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(4) { transform: translate(0px, 0px); }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(5) { transform: translate(6px, -6px); }
+.kalend-mark[data-kalend-anim="scatter"]:hover circle:nth-of-type(6) { transform: translate(6px, 6px); }
+
+.kalend-mark[data-kalend-anim="pulse"] circle {
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+.kalend-mark[data-kalend-anim="pulse"] circle:nth-of-type(2) { transition-delay: 0.04s; }
+.kalend-mark[data-kalend-anim="pulse"] circle:nth-of-type(3) { transition-delay: 0.08s; }
+.kalend-mark[data-kalend-anim="pulse"] circle:nth-of-type(4) { transition-delay: 0.12s; }
+.kalend-mark[data-kalend-anim="pulse"] circle:nth-of-type(5) { transition-delay: 0.06s; }
+.kalend-mark[data-kalend-anim="pulse"] circle:nth-of-type(6) { transition-delay: 0.10s; }
+.kalend-mark[data-kalend-anim="pulse"]:hover circle { transform: scale(1.3); }
+
+.kalend-mark[data-kalend-anim="rotate"] svg {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center;
+}
+.kalend-mark[data-kalend-anim="rotate"]:hover svg { transform: rotate(90deg); }
+
+.kalend-mark[data-kalend-anim="colorShift"] circle { transition: fill 0.3s ease; }
+.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(2) { transition-delay: 0.04s; }
+.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(3) { transition-delay: 0.08s; }
+.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(4) { transition-delay: 0.12s; }
+.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(5) { transition-delay: 0.06s; }
+.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(6) { transition-delay: 0.10s; }
+.kalend-mark[data-kalend-anim="colorShift"]:hover circle { fill: #2563eb; }
+
+.kalend-mark[data-kalend-anim="morphK"] circle {
+  transition:
+    cx 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    cy 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    r 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kalend-mark[data-kalend-anim="morphK"] rect,
+.kalend-mark[data-kalend-anim="morphK"] polygon {
+  opacity: 0;
+  transition: opacity 0.3s ease 0.15s;
+}
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(1) { cx: 24px; cy: 20px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(2) { cx: 24px; cy: 60px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(3) { cx: 24px; cy: 100px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(4) { cx: 44px; cy: 60px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(5) { cx: 72px; cy: 24px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover circle:nth-of-type(6) { cx: 72px; cy: 96px; r: 0px; }
+.kalend-mark[data-kalend-anim="morphK"]:hover rect,
+.kalend-mark[data-kalend-anim="morphK"]:hover polygon { opacity: 1; }
+
+.kalend-mark[data-kalend-anim="morphClock"] circle {
+  transition:
+    cx 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    cy 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    r 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kalend-mark[data-kalend-anim="morphClock"] line { opacity: 0; transition: opacity 0.3s ease 0.2s; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(1) { cx: 60px; cy: 12px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(2) { cx: 12px; cy: 60px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(3) { cx: 60px; cy: 108px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(4) { cx: 60px; cy: 60px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(5) { cx: 108px; cy: 60px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover circle:nth-of-type(6) { cx: 84px; cy: 96px; r: 5px; }
+.kalend-mark[data-kalend-anim="morphClock"]:hover line { opacity: 1; }
+
+/* Landing page ("/", src/app/(marketing)/) design tokens. A deliberately
+ * separate, one-off palette from the app's own --background/--primary/etc
+ * theme above: the marketing site is light-themed regardless of the app's
+ * dark default, per docs/landing-page-handoff.md. Referenced from landing
+ * components via Tailwind arbitrary values, e.g. bg-[var(--kal-bg)]. */
+:root {
+  --kal-bg: #faf8f3;
+  --kal-surface: #ffffff;
+  --kal-border: #e8e3d8;
+  --kal-ink: #1c1a16;
+  --kal-muted: #756f61;
+  --kal-primary: #2563eb;
+  --kal-accent: #f97316;
+  --kal-accent-hover: #ea580c;
+
+  --kal-cat-blue: #3b82f6;
+  --kal-cat-blue-tint: #dbeafe;
+  --kal-cat-green: #22c55e;
+  --kal-cat-green-tint: #dcfce7;
+  --kal-cat-purple: #a855f7;
+  --kal-cat-purple-tint: #f3e8ff;
+  --kal-cat-orange: #f97316;
+  --kal-cat-orange-tint: #ffedd5;
+  --kal-cat-red: #ef4444;
+  --kal-cat-red-tint: #fee2e2;
+  --kal-cat-indigo: #6366f1;
+  --kal-cat-indigo-tint: #e0e7ff;
+  --kal-cat-pink: #ec4899;
+  --kal-cat-pink-tint: #fce7f3;
+  --kal-cat-yellow: #eab308;
+  --kal-cat-yellow-tint: #fef9c3;
+  --kal-cat-teal: #14b8a6;
+  --kal-cat-teal-tint: #ccfbf1;
+
+  --kal-tile-mint: #8fd8c8;
+  --kal-tile-mustard: #f0c05a;
+  --kal-tile-coral: #f2836b;
+  --kal-tile-ink: #171310;
+}
+
+/* Hero fade-up-on-load animation for the landing page. Elements opt in via
+ * `kal-fade-up` and stagger themselves with an inline animation-delay. */
+@keyframes kal-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.kal-fade-up {
+  opacity: 0;
+  animation: kal-fade-up 0.7s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kal-fade-up {
+    opacity: 1;
+    animation: none;
+  }
 }

@@ -5,8 +5,9 @@ export interface AuthValidationResult {
 }
 
 /**
- * Validates auth input fields (email and password) according to application
- * and Supabase requirements.
+ * Validates the login form's fields: a well-formed email and a non-empty
+ * password. There's no signup in this MVP (single demo account, see
+ * src/db/CLAUDE.md), so there's no password-strength rule to enforce here.
  */
 export function validateAuthForm(email: string, password: string): AuthValidationResult {
   const trimmedEmail = email.trim();
@@ -20,10 +21,6 @@ export function validateAuthForm(email: string, password: string): AuthValidatio
 
   if (!password) {
     return { valid: false, error: "Please enter your password." };
-  }
-
-  if (password.length < 6) {
-    return { valid: false, error: "Password must be at least 6 characters long." };
   }
 
   return { valid: true, trimmedEmail };

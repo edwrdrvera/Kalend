@@ -41,5 +41,23 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Claude Code local state
+# Local coding-agent state and overrides
 .claude/
+.codex/
+.agents/
+AGENTS.md
+
+# Local coding-agent hand-off notes
+/CONTEXT.md
+/HANDOFF*.md
+# Ignore /docs entirely: keeps local plans and hand-off notes out of the
+# repo. Already-tracked docs files (see git ls-files docs/) stay tracked
+# because .gitignore does not affect files already in the index.
+/docs/
+
+# Design canvas files
+/DirectionB.dc.html
+/Main.dc.html
+/OverdueVariant.dc.html
+/canvas.json
+/kalend-sidebar-redesign.html

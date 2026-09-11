@@ -14,24 +14,30 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
-import type { CalendarEvent } from "./Calendar";
-import { getEventColorClasses } from "@/lib/event-colors";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
+import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
+import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
 
 interface MonthGridProps {
   viewDate: Date;
   selectedDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
+  categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
-  onCreateEvent: (day: Date) => void;
-  onEventClick: (event: CalendarEvent) => void;
+  onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  onTaskClick: (task: CalendarTask) => void;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
+const MAX_VISIBLE_TASKS = 2;
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
@@ -46,16 +52,19 @@ function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
   });
 }
 
+/** Tasks due on this exact day. Unlike events, a task's due date is a
+ *  single point in time, not a range, so this is a same-day check. */
+function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
+  return tasks.filter((task) => task.due_at && isSameDay(new Date(task.due_at), day));
+}
+
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="grid grid-cols-7 border-b border-neutral-800 shrink-0">
+    <div className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
       {days.map((day) => (
-        <div
-          key={day}
-          className="px-3 py-2 text-center text-xs font-semibold text-neutral-500"
-        >
-          {day}
+        <div key={day} className="flex items-center justify-center">
+          <CalendarWeekdayLabel>{day}</CalendarWeekdayLabel>
         </div>
       ))}
     </div>
@@ -63,36 +72,46 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base =
-    "flex flex-col items-start gap-1 border-b border-r border-neutral-800 p-2 text-left transition-colors overflow-hidden";
+  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
+  const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
-    return `${base} bg-neutral-900/40 text-neutral-600`;
+    // Out-of-month cells: transparent background, faded numbers only.
+    return `${base} border-transparent bg-transparent`;
   }
 
-  return `${base} hover:bg-neutral-900`;
+  if (isTodayDay) {
+    // Today: primary-colored border + subtle primary tint, matching the
+    // mockup's accent-border treatment (translated from orange to indigo).
+    return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/15`;
+  }
+
+  return `${base} border-border bg-card hover:bg-muted/40 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
-  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
+  const plain = "text-xs font-medium";
 
   const isCurrentMonth = isSameMonth(day, viewMonth);
   const isSelected = isSameDay(day, selectedDate);
   const isTodayDay = isSameDay(day, new Date());
 
-  if (isSelected) {
-    return `${base} bg-blue-600 text-white`;
+  if (isSelected && !isTodayDay) {
+    // Selected: primary-filled circle badge.
+    return "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium bg-primary text-primary-foreground";
   }
 
   if (isTodayDay) {
-    return `${base} bg-neutral-800 text-blue-400`;
+    // Today: bold accent-colored text, no circle. The cell itself
+    // carries the today highlight (tinted border + wash).
+    return `${plain} text-primary font-bold`;
   }
 
   if (!isCurrentMonth) {
-    return `${base} text-neutral-600`;
+    return `${plain} text-muted-foreground/40`;
   }
 
-  return `${base} text-neutral-300`;
+  return `${plain} text-foreground`;
 }
 
 /** Build a 7x6 (42 cell) grid: the weeks spanning the visible month, padded out
@@ -122,31 +141,42 @@ function DayCell({
   monthStart,
   selectedDate,
   events,
+  tasks,
+  categories,
   onDateSelect,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
 }: {
   day: Date;
   monthStart: Date;
   selectedDate: Date;
   events: CalendarEvent[];
+  tasks: CalendarTask[];
+  categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
-  onCreateEvent: (day: Date) => void;
-  onEventClick: (event: CalendarEvent) => void;
+  onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  onTaskClick: (task: CalendarTask) => void;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
-  const handleCellClick = () => {
+  const dayTasks = getTasksForDay(day, tasks);
+  const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
+  const taskOverflowCount = dayTasks.length - visibleTasks.length;
+
+  const handleCellClick = (e: React.MouseEvent<HTMLDivElement>) => {
     onDateSelect(day);
-    onCreateEvent(day);
+    onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
-  const handleCellKeyDown = (e: React.KeyboardEvent) => {
+  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      handleCellClick();
+      onDateSelect(day);
+      onCreateEvent(day, e.currentTarget.getBoundingClientRect());
     }
   };
 
@@ -157,6 +187,7 @@ function DayCell({
     <div
       role="button"
       tabIndex={0}
+      aria-label={`Create event on ${format(day, "EEEE, MMMM d, yyyy")}`}
       onClick={handleCellClick}
       onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
@@ -172,16 +203,24 @@ function DayCell({
             title={event.title}
             onClick={(e) => {
               e.stopPropagation();
-              onEventClick(event);
+              onEventClick(event, e.currentTarget.getBoundingClientRect());
             }}
-            className={`w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${getEventColorClasses(event.color)}`}
+            className={`w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
-            {event.title}
+            <span className="block truncate">{event.title}</span>
           </button>
         ))}
         {overflowCount > 0 && (
-          <span className="px-1.5 text-left text-[10px] font-medium text-neutral-500">
+          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
             +{overflowCount} more
+          </span>
+        )}
+        {visibleTasks.map((task) => (
+          <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
+        ))}
+        {taskOverflowCount > 0 && (
+          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
+            +{taskOverflowCount} more
           </span>
         )}
       </div>
@@ -193,10 +232,13 @@ export default function MonthGrid({
   viewDate,
   selectedDate,
   events,
+  tasks,
+  categories,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
   onEventClick,
+  onTaskClick,
   view,
   onViewChange,
 }: MonthGridProps) {
@@ -214,7 +256,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 border-l border-neutral-800">
+      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}
@@ -222,9 +264,12 @@ export default function MonthGrid({
             monthStart={monthStart}
             selectedDate={selectedDate}
             events={events}
+            tasks={tasks}
+            categories={categories}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}
+            onTaskClick={onTaskClick}
           />
         ))}
       </div>

@@ -1,51 +1,39 @@
 # Kalend
 
-Kalend is an open-source, minimal calendar and productivity app built with **Next.js App Router (React 19)**, **TypeScript**, **Tailwind CSS v4**, **shadcn/ui**, **Supabase Auth**, and **Drizzle ORM** on **PostgreSQL**.
+Kalend is a fast, minimal calendar and task manager designed for students. Give every class, project, and job its own Space, then see all your events and tasks together in one calendar view.
 
-The project focuses on high-speed interaction, clean dark-mode ergonomics, and zero-setup academic/developer workflows without the maintenance overhead of heavy all-in-one productivity databases.
-
----
-
-## Current Features
-
-### 📅 Calendar Engine & Views
-- **Month Grid**: 7×6 monthly calendar view with current-day/selected-day highlighting, out-of-month dimming, and overflow pills (`+N more`).
-- **Week View**: 7-day column grid with day-name headers, today/selected day indicators, 24-hour time slots, and a live red current-time marker.
-- **Day View**: Single-day timeline view sharing the same precise 24-hour time grid and navigation controls.
-- **All-Day & Multi-Day Row**: Dedicated horizontal lane stacking (`AllDayRow`) for untimed and multi-day events across Day and Week views.
-- **Collapsible Sidebar**: Smoothly animated sidebar toggle with an interactive mini month-picker that synchronizes with the main calendar view.
-
-### ⚡ Event Interactions
-- **Drag-to-Resize**: Drag top or bottom handles of event blocks in Week and Day views to adjust duration with 15-minute slot snapping and optimistic rollback on failure.
-- **Drag-to-Move**: Drag whole event blocks across days and time slots with live preview, pointer thresholding, and click suppression.
-- **Minimal Event Modal**: Borderless oversized title input, progressive disclosure time-range picker, popover color selector, and optimistic delete flows.
-
-### 🔐 Authentication & Session Security
-- **Supabase Auth**: Dedicated `/login` and `/signup` pages with dark-themed cards, client-side input validation, error alerts, and loading states.
-- **SSR Middleware**: Automatic session refresh via `@supabase/ssr` with route protection that keeps unauthorized visitors on `/login` and redirects authenticated users to the calendar.
+**Live app: [kalend.space](https://kalend.space)**
 
 ---
 
-## Planned Roadmap & Upcoming Features
+## Features
 
-The core calendar and authentication engine is complete. The following features are actively planned and organized across upcoming development phases:
+### 📅 Calendar
+- **Month, Week, and Day views** to see your schedule at the level of detail you need, with easy switching between them.
+- **Today marker** so you always know where you are, plus a red line showing the current time in Week and Day views.
+- **All-day and multi-day events** displayed in their own row at the top of Week and Day views.
+- **Mini calendar** in the sidebar for quick date navigation.
+- **Collapsible sidebar** that tucks away when you need more screen space.
 
-### 📋 Phase 3 — Integrated Task & Deadline Management
-- [ ] **Task Data Layer**: Dedicated `tasks` schema and CRUD API endpoints (`/api/tasks`).
-- [ ] **Task Sidebar & List View**: Interactive task drawer/sidebar to manage homework, project deliverables, and to-do items.
-- [ ] **Calendar Deadline Overlays**: Render task due dates and assignment deadlines directly on Month, Week, and Day calendar grids next to scheduled classes.
+### ✏️ Events
+- **Drag to move** events to a different day or time.
+- **Drag to resize** an event's edges to make it shorter or longer, snapping to 15-minute increments.
+- **Clean editing modal** for creating and editing events with a title, time range, and color.
 
-### 🎓 Phase 4 — Academic Course Organization & Templates
-- [ ] **Course Scoping & Color-Coding**: Define courses (e.g. *CS 101*, *MATH 240*, *PHYS 211*) so lecture blocks, labs, and assignments inherit uniform course colors.
-- [ ] **First-Run Template Picker**: Onboarding wizard to generate pre-configured course loads and semester schedules with 1 click.
-- [ ] **Syllabus & Schedule Quick-Import**: Paste raw course hours or upload a syllabus to auto-generate recurring weekly lecture blocks and midterm dates.
-- [ ] **LMS Calendar Feed (.ics)**: Subscribe to university Canvas / Blackboard calendar feeds to auto-sync assignment deadlines.
+### ✅ Tasks
+- **Task list** in the sidebar to create, complete, and delete tasks.
+- **Optional due dates** that show up on the calendar alongside your events.
 
-### ⚡ Phase 5 — Developer Polish & Mobile Responsiveness
-- [ ] **Responsive Mobile Layout**: Mobile-first views with auto-collapsing drawer and gesture navigation.
-- [ ] **`Cmd+K` Quick-Capture Command Bar**: Keyboard-driven event and task creation (e.g. `type: "CS101 MWF 10am"`).
-- [ ] **Continuous Integration (CI)**: Automated GitHub Actions workflow running TypeScript verification, linting, and tests on all PRs.
-- [ ] **Route-Level Error Boundaries**: Dedicated `loading.tsx`, `error.tsx`, and `not-found.tsx` fallback states.
+### 🗂️ Spaces
+- **One Space per commitment** — give every class, project, and job its own Space to hold all its events and tasks.
+- **Toggle visibility** to hide a Space's items when you want a cleaner view.
+- **Color-coded** so you can tell at a glance what everything belongs to.
+- **Space manager** in the sidebar to create, rename, recolor, and delete Spaces.
+
+### 🔐 Account
+- **Waitlist** on the landing page to register interest before the app opens publicly.
+- **Log in** with a demo account to explore the full app.
+- **Your data stays yours.** Everything you create is private to your account.
 
 ---
 
@@ -55,7 +43,7 @@ The core calendar and authentication engine is complete. The following features 
 | :--- | :--- |
 | **Framework** | [Next.js](https://nextjs.org/) (App Router, Turbopack, React 19) |
 | **Language** | [TypeScript](https://www.typescriptlang.org/) (Strict Mode) |
-| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) (Base-Nova) |
+| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) + [daisyUI](https://daisyui.com/) |
 | **Icons** | [Lucide React](https://lucide.dev/) |
 | **Date Utilities** | [date-fns](https://date-fns.org/) |
 | **Authentication** | [Supabase Auth](https://supabase.com/auth) (`@supabase/ssr`, `@supabase/supabase-js`) |
@@ -69,44 +57,73 @@ The core calendar and authentication engine is complete. The following features 
 
 ```text
 Kalend/
-├── drizzle/                     # Drizzle SQL migrations and metadata snapshots
+├── drizzle/                     # SQL migrations and metadata snapshots
 ├── src/
 │   ├── app/                     # Next.js App Router
-│   │   ├── api/                 # API Route Handlers
-│   │   │   ├── events/          # Events CRUD endpoints (GET, POST, PATCH, DELETE)
+│   │   ├── api/
+│   │   │   ├── categories/      # Categories CRUD endpoints
+│   │   │   ├── events/          # Events CRUD endpoints
+│   │   │   ├── tasks/           # Tasks CRUD endpoints
+│   │   │   ├── waitlist/        # Waitlist signup endpoint
 │   │   │   ├── ping/            # Health check endpoint
-│   │   │   └── test/            # Mock & echo testing endpoints
-│   │   ├── login/               # /login page
-│   │   ├── signup/              # /signup page
-│   │   ├── globals.css          # Tailwind theme tokens and base layers
-│   │   ├── layout.tsx           # Root dark layout and font configuration
-│   │   └── page.tsx             # Root page rendering Calendar component
-│   ├── components/              # React UI Components
-│   │   ├── ui/                  # shadcn/ui primitives (button, dialog, input, label, popover)
-│   │   ├── AllDayRow.tsx        # Multi-day and all-day horizontal event lanes
-│   │   ├── AuthCard.tsx         # Reusable auth card for login and registration
-│   │   ├── Calendar.tsx         # Main calendar state manager and event coordinator
-│   │   ├── CalendarHeader.tsx   # Header bar with title, view switcher, and navigation
-│   │   ├── CalendarSidebar.tsx  # Collapsible sidebar wrapper
-│   │   ├── DayGrid.tsx          # Single-day calendar view
-│   │   ├── EventModal.tsx       # Minimalist create/edit/delete event modal
-│   │   ├── MiniCalendar.tsx     # Sidebar mini month-picker
-│   │   ├── MonthGrid.tsx        # Full monthly 7x6 day grid
-│   │   ├── TimeGrid.tsx         # 24-hour hour grid with drag-move & drag-resize
-│   │   └── ViewSwitcher.tsx     # Segmented control for Month, Week, and Day views
-│   ├── db/                      # Database configuration and schema
+│   │   │   └── test/            # Test endpoint
+│   │   ├── (app)/               # Authenticated app shell
+│   │   │   └── app/             # Main calendar page
+│   │   ├── (marketing)/         # Public-facing pages
+│   │   │   ├── login/           # Login page
+│   │   │   └── page.tsx         # Landing page
+│   │   └── globals.css          # Tailwind theme tokens
+│   ├── components/
+│   │   ├── ui/                  # shadcn/ui primitives
+│   │   ├── landing/             # Landing page sections and waitlist form
+│   │   ├── Calendar.tsx         # Main calendar state manager
+│   │   ├── CalendarHeader.tsx   # Header with view switcher and navigation
+│   │   ├── CalendarSidebar.tsx  # Collapsible sidebar
+│   │   ├── CalendarWeekdayLabel.tsx # Weekday column headers
+│   │   ├── AgendaSummary.tsx    # Sidebar agenda summary panel
+│   │   ├── MonthGrid.tsx        # Month view
+│   │   ├── WeekGrid.tsx         # Week view
+│   │   ├── DayGrid.tsx          # Day view
+│   │   ├── TimeGrid.tsx         # Shared 24-hour grid with drag-move and drag-resize
+│   │   ├── AllDayRow.tsx        # All-day and multi-day event lanes
+│   │   ├── EventCreatePopover.tsx # Inline event creation popover
+│   │   ├── TaskChip.tsx         # Task badge on calendar grids
+│   │   ├── TaskDueRow.tsx       # Task due dates in the all-day row
+│   │   ├── CategoryManager.tsx  # Sidebar category manager
+│   │   ├── CategorySelect.tsx   # Category picker for forms
+│   │   ├── ColorSwatchPicker.tsx # Color picker popover
+│   │   ├── DateField.tsx        # Date input field
+│   │   ├── MiniCalendar.tsx     # Sidebar mini month picker
+│   │   ├── ThemeToggle.tsx      # Light/dark mode toggle
+│   │   ├── ViewSwitcher.tsx     # Month/Week/Day toggle
+│   │   ├── SettingsMenu.tsx     # Settings menu
+│   │   ├── AuthCard.tsx         # Shared login card
+│   │   ├── AuthCardShell.tsx    # Auth page layout shell
+│   │   ├── KalendAppIcon.tsx    # App icon component
+│   │   ├── KalendMark.tsx       # Logo mark component
+│   │   └── KalendWordmark.tsx   # Logo wordmark component
+│   ├── db/
 │   │   ├── schema/
-│   │   │   └── events.ts        # Drizzle events table definition and types
-│   │   └── index.ts             # Postgres pooler connection with Drizzle client
-│   ├── lib/                     # Utilities and helpers
-│   │   ├── __tests__/           # Unit and integration test suites
-│   │   ├── auth-validation.ts   # Client and form input validation
-│   │   ├── event-colors.ts      # Event color palettes and Tailwind class maps
-│   │   ├── time-grid-layout.ts  # Cluster packing, overlap splitting, and all-day math
-│   │   ├── utils.ts             # shadcn cn() className merger
-│   │   └── supabase/            # Supabase browser, server, and middleware clients
-│   └── middleware.ts            # Root Next.js middleware for route protection
-├── drizzle.config.ts            # Drizzle Kit configuration
+│   │   │   ├── events.ts        # Events table
+│   │   │   ├── tasks.ts         # Tasks table
+│   │   │   ├── categories.ts    # Categories table
+│   │   │   ├── waitlist.ts      # Waitlist table
+│   │   │   └── index.ts         # Schema barrel export
+│   │   ├── seed.ts              # Sample data seed script
+│   │   └── index.ts             # Database connection
+│   ├── lib/
+│   │   ├── __tests__/           # Unit and integration tests
+│   │   ├── supabase/            # Supabase browser, server, and middleware clients
+│   │   ├── api.ts               # Shared API fetch helpers
+│   │   ├── auth-validation.ts   # Input validation
+│   │   ├── calendar-types.ts    # Calendar-specific TypeScript types
+│   │   ├── event-colors.ts      # Color palette helpers
+│   │   ├── popover-position.ts  # Popover placement utilities
+│   │   ├── theme.tsx            # Theme context and provider
+│   │   ├── time-grid-layout.ts  # Event overlap layout math
+│   │   └── utils.ts             # Shared utilities
+│   └── middleware.ts            # Route protection middleware
+├── drizzle.config.ts
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -148,6 +165,14 @@ NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT-REF].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR-ANON-KEY]
 ```
 
+Restart `bun run dev` after changing `.env.local`; Next.js includes
+`NEXT_PUBLIC_*` values in the browser bundle when the development server starts.
+
+For Vercel deployments, add both Supabase variables to the **Production** and
+**Preview** environments, then redeploy each affected deployment. Updating a
+Vercel environment variable does not change a browser bundle that has already
+been built.
+
 ### 4. Run Database Migrations
 Apply the schema migrations to your PostgreSQL database:
 
@@ -167,6 +192,15 @@ bun run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### 6. Seed Sample Data (Optional)
+Find your user id in the Supabase dashboard under **Authentication > Users** (or run `select id, email from auth.users;` in the SQL editor). Load the sample events from `src/db/data/data.csv` into your account:
+
+```bash
+SEED_USER_ID=<your-uuid> bun run db:seed
+```
+
+Safe to run more than once: rows already present (matched by title and start time) are skipped instead of duplicated.
+
 ---
 
 ## Development & Testing
@@ -178,7 +212,7 @@ bun test
 
 ### TypeScript Verification
 ```bash
-bun run ./node_modules/typescript/bin/tsc --noEmit
+bunx tsc --noEmit
 ```
 
 ### Linting
@@ -190,6 +224,12 @@ bun run ./node_modules/eslint/bin/eslint.js .
 ```bash
 bun run build
 ```
+
+### Vercel Deployment
+
+Before exposing the public waitlist endpoint, configure its required Vercel
+Firewall rule for both Production and Preview deployments. See
+[`docs/vercel-deployment.md`](docs/vercel-deployment.md).
 
 ---
 

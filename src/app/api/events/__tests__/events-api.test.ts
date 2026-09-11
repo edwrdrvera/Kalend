@@ -1,4 +1,5 @@
-import { describe, expect, it, mock, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach } from "bun:test";
+import { setupMockDb, type MockDbState, type MockAuthUser } from "@/test-utils/mock-db";
 
 interface MockEvent {
   id: string;
@@ -7,104 +8,28 @@ interface MockEvent {
   end_at: Date;
   user_id: string;
   color?: string;
+  color_overridden?: boolean;
+  category_id?: string | null;
   created_at?: Date;
 }
 
-let mockCurrentUser: { id: string; email: string } | null = {
+let mockCurrentUser: MockAuthUser | null = {
   id: "user-uuid-123",
   email: "student@university.edu",
 };
 
-const mockDbState = {
-  events: [] as MockEvent[],
+const mockDbState: MockDbState<MockEvent> = {
+  rows: [],
   shouldFail: false,
 };
 
-function extractIdFromCondition(condition: unknown): string | null {
-  if (!condition) return null;
-  if (typeof condition === "string") return condition;
+const OWNED_CATEGORY_ID = "11111111-1111-4111-8111-111111111111";
+const MISSING_CATEGORY_ID = "22222222-2222-4222-8222-222222222222";
 
-  const seen = new Set<unknown>();
-  const queue: unknown[] = [condition];
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
-    seen.add(curr);
+// Category rows used to test ownership validation.
+const mockCategoryRows: { id: string; user_id: string; color: string }[] = [];
 
-    const record = curr as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      const val = record[key];
-      if (typeof val === "string") {
-        if (val.startsWith("evt-") || val.includes("existent")) return val;
-      } else if (val && typeof val === "object") {
-        queue.push(val);
-      }
-    }
-  }
-
-  return null;
-}
-
-mock.module("@/lib/supabase/auth-user", () => ({
-  getAuthenticatedUser: mock(async () => mockCurrentUser),
-}));
-
-mock.module("@/db", () => {
-  return {
-    db: {
-      select: () => ({
-        from: () => ({
-          where: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Connection failed");
-            if (!mockCurrentUser) return [];
-            return mockDbState.events.filter((e) => e.user_id === mockCurrentUser!.id);
-          }),
-        }),
-      }),
-      insert: () => ({
-        values: (vals: Record<string, unknown>) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Insert failed");
-            const row = { id: "evt-uuid-1", created_at: new Date(), ...vals } as MockEvent;
-            mockDbState.events.push(row);
-            return [row];
-          }),
-        }),
-      }),
-      update: () => ({
-        set: (vals: Record<string, unknown>) => ({
-          where: (condition: unknown) => ({
-            returning: mock(async () => {
-              if (mockDbState.shouldFail) throw new Error("DB Update failed");
-              const targetId = extractIdFromCondition(condition);
-              const idx = mockDbState.events.findIndex(
-                (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
-              );
-              if (idx === -1) return [];
-              const updated = { ...mockDbState.events[idx], ...vals };
-              mockDbState.events[idx] = updated;
-              return [updated];
-            }),
-          }),
-        }),
-      }),
-      delete: () => ({
-        where: (condition: unknown) => ({
-          returning: mock(async () => {
-            if (mockDbState.shouldFail) throw new Error("DB Delete failed");
-            const targetId = extractIdFromCondition(condition);
-            const idx = mockDbState.events.findIndex(
-              (e) => e.id === targetId && (!mockCurrentUser || e.user_id === mockCurrentUser.id)
-            );
-            if (idx === -1) return [];
-            const [deleted] = mockDbState.events.splice(idx, 1);
-            return [deleted];
-          }),
-        }),
-      }),
-    },
-  };
-});
+setupMockDb("evt-", mockDbState, () => mockCurrentUser, {}, false, () => mockCategoryRows);
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -116,7 +41,7 @@ describe("Events API Endpoints", () => {
       id: "user-uuid-123",
       email: "student@university.edu",
     };
-    mockDbState.events = [
+    mockDbState.rows = [
       {
         id: "evt-uuid-1",
         title: "CS 101 Lecture",
@@ -135,6 +60,14 @@ describe("Events API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockDbState.transactionCount = 0;
+    mockDbState.lockCount = 0;
+    mockCategoryRows.length = 0;
+    mockCategoryRows.push({
+      id: OWNED_CATEGORY_ID,
+      user_id: "user-uuid-123",
+      color: "green",
+    });
   });
 
   describe("GET /api/events", () => {
@@ -192,11 +125,65 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("Unauthorized");
     });
 
+    it("returns 400 for malformed JSON without inserting an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      });
+
+      const response = await POST(req);
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-object JSON without inserting an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '\"Event\"', "42"]) {
+        const response = await POST(new Request("http://localhost/api/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }));
+
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when required fields are missing", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Incomplete Event" }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toBe("title, start_at, and end_at are required");
+    });
+
+    it("returns 400 when title is blank", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "   ",
+          start_at: "2026-08-11T10:00:00Z",
+          end_at: "2026-08-11T11:00:00Z",
+        }),
       });
 
       const response = await POST(req);
@@ -245,6 +232,25 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at must be before end_at");
     });
 
+    it("returns 400 when color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Math Lecture",
+          start_at: "2026-08-11T10:00:00Z",
+          end_at: "2026-08-11T11:00:00Z",
+          color: "chartreuse",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+
+      const json = await response.json();
+      expect(json.error).toBe("color must be a supported color");
+    });
+
     it("returns 201 with created event and binds user_id from session", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
@@ -286,6 +292,62 @@ describe("Events API Endpoints", () => {
       expect(json.success).toBe(false);
       expect(json.error).toBe("Internal Server Error");
     });
+
+    it("links the event to a category when category_id is given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: OWNED_CATEGORY_ID,
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(201);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe(OWNED_CATEGORY_ID);
+    });
+
+    it("rejects a malformed category_id before starting a transaction", async () => {
+      const before = mockDbState.rows.map((event) => ({ ...event }));
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: "category-not-a-uuid",
+        }),
+      });
+
+      const response = await POST(req);
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("Space must be a valid identifier");
+      expect(mockDbState.transactionCount).toBe(0);
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns null category_id when none is given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+        }),
+      });
+
+      const response = await POST(req);
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
+    });
   });
 
   describe("PATCH /api/events/[id]", () => {
@@ -301,6 +363,39 @@ describe("Events API Endpoints", () => {
       expect(response.status).toBe(401);
     });
 
+    it("returns 400 for malformed JSON without updating an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("returns 400 for non-object JSON without updating an event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const body of ["null", "[]", '\"Updated\"', "42"]) {
+        const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("Request body must be an object");
+      }
+
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when no updatable fields are provided", async () => {
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
@@ -314,6 +409,18 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toBe("No updatable fields provided");
+    });
+
+    it("returns 400 when an updated color is outside the supported palette", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ color: "chartreuse" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color must be a supported color");
     });
 
     it("returns 400 when start_at date is invalid", async () => {
@@ -364,7 +471,7 @@ describe("Events API Endpoints", () => {
       expect(json.error).toBe("start_at must be before end_at");
     });
 
-    it("allows updating only start_at without comparing against the unchanged end_at", async () => {
+    it("allows a valid partial start_at update after comparing with the locked row", async () => {
       const req = new Request("http://localhost/api/events/evt-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -373,6 +480,40 @@ describe("Events API Endpoints", () => {
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
       expect(response.status).toBe(200);
+      expect(mockDbState.transactionCount).toBeGreaterThan(0);
+      expect(mockDbState.lockCount).toBeGreaterThan(0);
+    });
+
+    it("rejects a partial start_at equal to the existing end without mutation", async () => {
+      const original = mockDbState.rows[0].start_at;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ start_at: "2026-08-10T11:00:00Z" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect(mockDbState.rows[0].start_at).toEqual(original);
+    });
+
+    it("rejects a partial end_at before the existing start without mutation", async () => {
+      const original = mockDbState.rows[0].end_at;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ end_at: "2026-08-10T09:00:00Z" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect(mockDbState.rows[0].end_at).toEqual(original);
+    });
+
+    it("rejects non-boolean color_overridden", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ color_overridden: "false" }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("color_overridden must be a boolean");
     });
 
     it("returns 404 when event id does not exist", async () => {
@@ -422,6 +563,142 @@ describe("Events API Endpoints", () => {
       expect(json.success).toBe(true);
       expect(json.data.title).toBe("CS 101 Lecture - Rescheduled");
       expect(json.data.color).toBe("green");
+    });
+
+    it("sets category_id when given", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: OWNED_CATEGORY_ID }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBe(OWNED_CATEGORY_ID);
+    });
+
+    it("rejects a malformed category_id before starting a transaction", async () => {
+      const before = mockDbState.rows.map((event) => ({ ...event }));
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: "category-not-a-uuid" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("Space must be a valid identifier");
+      expect(mockDbState.transactionCount).toBe(0);
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("clears category_id when explicitly set to null, falling back to the event's own color", async () => {
+      mockDbState.rows[0].category_id = OWNED_CATEGORY_ID;
+      mockDbState.rows[0].color = "blue";
+      mockDbState.rows[0].color_overridden = false;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.category_id).toBeNull();
+      expect(json.data.color).toBe("green");
+      expect(json.data.color_overridden).toBe(false);
+    });
+
+    it("preserves an explicit override when unlinking a Space", async () => {
+      mockDbState.rows[0].category_id = OWNED_CATEGORY_ID;
+      mockDbState.rows[0].color = "purple";
+      mockDbState.rows[0].color_overridden = true;
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ category_id: null }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const json = await response.json();
+      expect(json.data.color).toBe("purple");
+      expect(json.data.color_overridden).toBe(true);
+    });
+  });
+
+  describe("category ownership validation", () => {
+    it("POST returns 400 when category_id belongs to another user", async () => {
+      // Replace with a category owned by a different user.
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: OWNED_CATEGORY_ID, user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Stolen category event",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: OWNED_CATEGORY_ID,
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "The selected Space is unavailable"
+      );
+    });
+
+    it("POST returns 400 when category_id does not exist", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Ghost category event",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          category_id: MISSING_CATEGORY_ID,
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "The selected Space is unavailable"
+      );
+    });
+
+    it("PATCH returns 400 when category_id belongs to another user", async () => {
+      mockCategoryRows.length = 0;
+      mockCategoryRows.push({ id: OWNED_CATEGORY_ID, user_id: "other-user-456", color: "red" });
+
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: OWNED_CATEGORY_ID }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe(
+        "The selected Space is unavailable"
+      );
+    });
+
+    it("PATCH succeeds when clearing category_id with null (no ownership check needed)", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category_id: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+      expect((await response.json()).data.category_id).toBeNull();
     });
   });
 

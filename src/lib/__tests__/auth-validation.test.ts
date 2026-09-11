@@ -28,7 +28,7 @@ describe("validateAuthForm", () => {
     });
 
     it("trims leading and trailing whitespace from valid email", () => {
-      const result = validateAuthForm("  user@example.com  ", "password123");
+      const result = validateAuthForm("  user@example.com  ", "grapefruit19");
       expect(result.valid).toBe(true);
       expect(result.trimmedEmail).toBe("user@example.com");
       expect(result.error).toBeUndefined();
@@ -42,23 +42,16 @@ describe("validateAuthForm", () => {
       expect(result.error).toBe("Please enter your password.");
     });
 
-    it("rejects a password shorter than 6 characters", () => {
-      const result = validateAuthForm("user@example.com", "12345");
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe("Password must be at least 6 characters long.");
-    });
-
-    it("accepts a password with exactly 6 characters", () => {
-      const result = validateAuthForm("user@example.com", "123456");
+    it("accepts a short password (no strength rule without signup)", () => {
+      const result = validateAuthForm("user@example.com", "abc123");
       expect(result.valid).toBe(true);
       expect(result.trimmedEmail).toBe("user@example.com");
       expect(result.error).toBeUndefined();
     });
 
-    it("accepts a strong, long password", () => {
-      const result = validateAuthForm("user@example.com", "superSecureP@ssw0rd!#");
+    it("accepts any non-empty password, including a common one", () => {
+      const result = validateAuthForm("user@example.com", "password1");
       expect(result.valid).toBe(true);
-      expect(result.trimmedEmail).toBe("user@example.com");
       expect(result.error).toBeUndefined();
     });
   });

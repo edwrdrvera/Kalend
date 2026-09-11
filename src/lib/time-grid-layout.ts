@@ -1,5 +1,5 @@
 import { startOfDay, endOfDay, isSameDay, differenceInCalendarDays } from "date-fns";
-import type { CalendarEvent } from "@/components/Calendar";
+import type { CalendarEvent } from "@/lib/calendar-types";
 
 export interface TimeGridBlock {
   event: CalendarEvent;
