@@ -168,7 +168,12 @@ export default function EventCreatePopover({
       <div
         aria-hidden
         style={{ position: "fixed", inset: 0, zIndex: 49 }}
-        onPointerDown={onClose}
+        // Close on click (not pointerdown) so the backdrop stays mounted
+        // through the full pointer cycle. If we close on pointerdown, React
+        // removes the backdrop before pointerup/click fire, and those events
+        // land on the now-exposed calendar grid — selecting a day and opening
+        // a new creation popover.
+        onClick={onClose}
       />
       {/* Fixed, compact editor that stays visually subordinate to the calendar. */}
       <div

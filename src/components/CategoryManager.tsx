@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   Check,
   Ellipsis,
@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverBackdrop, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DEFAULT_EVENT_COLOR,
   EVENT_COLOR_SWATCH_CLASSES,
@@ -247,70 +247,18 @@ function CategoryRow({
 }
 
 function CreateCategoryForm({
-  open,
   draft,
   onDraftChange,
-  onDismiss,
   onDiscard,
   onCreateCategory,
 }: {
-  open: boolean;
   draft: { name: string; color: EventColor };
   onDraftChange: (draft: { name: string; color: EventColor }) => void;
-  onDismiss: () => void;
   onDiscard: () => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const discard = () => {
-    onDiscard();
-    setError(null);
-    setSubmitting(false);
-  };
-
-  // onDismiss and discard close over state that changes every render; stash the
-  // latest versions in refs so the effect only needs to re-run when `open` does.
-  const onDismissRef = useRef(onDismiss);
-  onDismissRef.current = onDismiss;
-  const discardRef = useRef(discard);
-  discardRef.current = discard;
-
-  useEffect(() => {
-    if (!open) return;
-
-    const pickerPopupContains = (target: Node) => {
-      const trigger = formRef.current?.querySelector<HTMLElement>(
-        '[aria-label^="Change color"][aria-expanded="true"]'
-      );
-      const popupId = trigger?.getAttribute("aria-controls");
-      return popupId ? document.getElementById(popupId)?.contains(target) : false;
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node) || formRef.current?.contains(target)) return;
-      if (pickerPopupContains(target)) return;
-      onDismissRef.current();
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      const openPicker = formRef.current?.querySelector(
-        '[aria-label^="Change color"][aria-expanded="true"]'
-      );
-      if (!openPicker) discardRef.current();
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown, true);
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown, true);
-      document.removeEventListener("keydown", handleKeyDown, true);
-    };
-  }, [open]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -321,22 +269,22 @@ function CreateCategoryForm({
 
     try {
       await onCreateCategory(draft.name.trim(), draft.color);
-      discard();
+      onDiscard();
+      setError(null);
+      setSubmitting(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create Space");
       setSubmitting(false);
     }
   };
 
-  if (!open) return null;
-
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-1.5 border-y border-border py-1.5">
-      <div className="flex min-h-9 items-center gap-1">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
         <ColorSwatchPicker
           color={draft.color}
           onColorChange={(color) => onDraftChange({ ...draft, color })}
-          className="mx-1.5 size-3 rounded-[3px] ring-offset-muted"
+          className="size-3 rounded-[3px]"
         />
         <input
           value={draft.name}
@@ -346,6 +294,17 @@ function CreateCategoryForm({
           autoFocus
           className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
         />
+      </div>
+
+      <div className="flex items-center justify-end gap-1">
+        <button
+          type="button"
+          onClick={onDiscard}
+          aria-label="Cancel"
+          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <X className="size-4" />
+        </button>
         <button
           type="submit"
           disabled={!draft.name.trim() || submitting}
@@ -354,17 +313,9 @@ function CreateCategoryForm({
         >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
         </button>
-        <button
-          type="button"
-          onClick={discard}
-          aria-label="Cancel"
-          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <X className="size-4" />
-        </button>
       </div>
 
-      {error && <p className="px-11 text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </form>
   );
 }
@@ -393,35 +344,46 @@ export default function CategoryManager({
     <div className="flex flex-col px-4 pb-2 pt-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xs font-semibold text-foreground">Spaces</h2>
-        <button
-          type="button"
-          onClick={() => (creating ? discardDraft() : setCreating(true))}
-          aria-label={creating ? "Cancel creating Space" : "Create a Space"}
-          aria-expanded={creating}
-          title={!creating && hasDraft ? "Continue Space draft" : undefined}
-          className="grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+        <Popover
+          open={creating}
+          onOpenChange={(open, details) => {
+            if (open) setCreating(true);
+            else if (details.reason === "escape-key") discardDraft();
+            else setCreating(false);
+          }}
         >
-          <span className="relative">
+          <PopoverTrigger
+            aria-label={creating ? "Cancel creating Space" : "Create a Space"}
+            aria-expanded={creating}
+            title={!creating && hasDraft ? "Continue Space draft" : undefined}
+            className="relative grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+          >
             {creating ? <X className="size-4" /> : <Plus className="size-4" />}
             {!creating && hasDraft && (
               <span
                 aria-label="Space draft saved"
-                className="absolute -right-1 -top-1 size-1.5 rounded-full bg-primary"
+                className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-primary"
               />
             )}
-          </span>
-        </button>
+          </PopoverTrigger>
+          <PopoverBackdrop />
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-[min(260px,calc(100vw-2rem))] p-2.5"
+          >
+            <CreateCategoryForm
+              draft={draft}
+              onDraftChange={setDraft}
+              onDiscard={discardDraft}
+              onCreateCategory={onCreateCategory}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="mt-1.5 flex flex-col gap-1">
-        <CreateCategoryForm
-          open={creating}
-          draft={draft}
-          onDraftChange={setDraft}
-          onDismiss={() => setCreating(false)}
-          onDiscard={discardDraft}
-          onCreateCategory={onCreateCategory}
-        />
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>

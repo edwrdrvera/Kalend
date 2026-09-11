@@ -47,6 +47,25 @@ function PopoverContent({
   )
 }
 
+/** Invisible full-screen backdrop that absorbs clicks so they don't reach
+ *  elements behind the popover (e.g. the calendar grid). Only needed on
+ *  creation-form popovers where a stray click would select a day. Portaled
+ *  so an ancestor's transform/filter/contain can't clip it. */
+function PopoverBackdrop({
+  className,
+  ...props
+}: PopoverPrimitive.Backdrop.Props) {
+  return (
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Backdrop
+        data-slot="popover-backdrop"
+        className={cn("fixed inset-0 z-40", className)}
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
+  )
+}
+
 function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -82,6 +101,7 @@ function PopoverDescription({
 
 export {
   Popover,
+  PopoverBackdrop,
   PopoverContent,
   PopoverDescription,
   PopoverHeader,

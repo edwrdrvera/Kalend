@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { Check, ChevronRight, Loader2, Plus, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverBackdrop, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   EVENT_COLOR_SWATCH_CLASSES,
   isEventColor,
@@ -366,6 +366,7 @@ export default function TaskList({
               />
             )}
           </PopoverTrigger>
+          <PopoverBackdrop />
           <PopoverContent
             side="right"
             align="start"
