@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
+import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import AllDayRow from "./AllDayRow";
 import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
@@ -47,9 +48,9 @@ function DayColumnHeader({
     <div className={`flex shrink-0 border-b border-border bg-background ${isToday ? "bg-primary/[0.03]" : ""}`}>
       <div className="w-16 shrink-0 border-r border-border" />
       <div className="flex h-[74px] flex-1 flex-col items-start justify-center gap-0.5 pl-5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <CalendarWeekdayLabel>
           {format(day, "EEE")}
-        </span>
+        </CalendarWeekdayLabel>
         <span className={numberCls}>{format(day, "d")}</span>
       </div>
     </div>
