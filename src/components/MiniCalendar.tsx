@@ -217,7 +217,7 @@ export default function MiniCalendar({
   };
 
   return (
-    <div className="mx-3 mb-2 rounded-lg border border-border bg-card p-2.5">
+    <div className="px-3 py-2.5">
       <MiniCalendarHeader
         browseDate={browseDate}
         collapsible={collapsible}
