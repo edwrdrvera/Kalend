@@ -85,10 +85,26 @@ describe("taskDueLabel", () => {
   it("distinguishes overdue, today, future, and undated tasks", () => {
     const now = new Date(2030, 8, 9, 12);
 
-    expect(taskDueLabel(task("past", "Past", at(8, 23)), now)).toBe("Overdue");
-    expect(taskDueLabel(task("today", "Today", at(9, 23)), now)).toBe("Due today");
-    expect(taskDueLabel(task("future", "Future", at(10, 23)), now)).toBe("Due");
-    expect(taskDueLabel(task("none", "None", null), now)).toBe("No due date");
+    expect(taskDueLabel(task("past", "Past", at(8, 23)), now)).toEqual({
+      label: "Overdue",
+      overdue: true,
+      dueToday: false,
+    });
+    expect(taskDueLabel(task("today", "Today", at(9, 23)), now)).toEqual({
+      label: "Due today",
+      overdue: false,
+      dueToday: true,
+    });
+    expect(taskDueLabel(task("future", "Future", at(10, 23)), now)).toEqual({
+      label: "Due",
+      overdue: false,
+      dueToday: false,
+    });
+    expect(taskDueLabel(task("none", "None", null), now)).toEqual({
+      label: "No due date",
+      overdue: false,
+      dueToday: false,
+    });
   });
 });
 

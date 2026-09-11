@@ -95,11 +95,20 @@ export function summarizeSidebarAgenda(
   return { activeItemCount, overdueTaskCount };
 }
 
-export function taskDueLabel(task: CalendarTask, now = new Date()): string {
-  if (!task.due_at) return "No due date";
+export interface TaskDueLabel {
+  label: string;
+  overdue: boolean;
+  dueToday: boolean;
+}
+
+export function taskDueLabel(task: CalendarTask, now = new Date()): TaskDueLabel {
+  if (!task.due_at) return { label: "No due date", overdue: false, dueToday: false };
 
   const dueAt = new Date(task.due_at);
-  if (!task.completed && dueAt < now && !isSameDay(dueAt, now)) return "Overdue";
-  if (isSameDay(dueAt, now)) return "Due today";
-  return "Due";
+  const overdue = !task.completed && dueAt < now && !isSameDay(dueAt, now);
+  const dueToday = isSameDay(dueAt, now);
+
+  if (overdue) return { label: "Overdue", overdue, dueToday };
+  if (dueToday) return { label: "Due today", overdue, dueToday };
+  return { label: "Due", overdue, dueToday };
 }

@@ -81,8 +81,8 @@ function TaskRow({
   onToggleComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
 }) {
-  const dueLabel = taskDueLabel(task);
-  const urgent = !task.completed && (dueLabel === "Overdue" || dueLabel === "Due today");
+  const { label: dueLabel, overdue, dueToday } = taskDueLabel(task);
+  const urgent = !task.completed && (overdue || dueToday);
 
   return (
     <div className="group flex min-h-10 items-center gap-2 border-b border-border/70 px-1 py-2 last:border-b-0 hover:bg-muted/45">
@@ -285,12 +285,12 @@ export default function TaskList({
 }: TaskListProps) {
   const sections = buildSidebarAgenda(events, tasks, selectedDate);
   const summary = summarizeSidebarAgenda(sections, tasks);
-  const agendaItemCount = sections.reduce((count, section) => count + section.items.length, 0);
+  const hasAgendaItems = sections.some((section) => section.items.length > 0);
   const [collapsePreference, setCollapsePreference] = useState<boolean | null>(() => {
     const stored = localStorage.getItem(COLLAPSED_STORAGE_KEY);
     return stored === null ? null : stored === "true";
   });
-  const collapsed = collapsePreference ?? agendaItemCount === 0;
+  const collapsed = collapsePreference ?? !hasAgendaItems;
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<TaskDraft | null>(null);
 
