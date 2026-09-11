@@ -32,7 +32,7 @@ export default function ColorSwatchPicker({
     return (
       <span
         aria-hidden
-        className={cn("size-7 shrink-0 rounded-full", EVENT_COLOR_SWATCH_CLASSES[color], className)}
+        className={cn("size-7 shrink-0 rounded-sm", EVENT_COLOR_SWATCH_CLASSES[color], className)}
       />
     );
   }
@@ -42,7 +42,7 @@ export default function ColorSwatchPicker({
       <PopoverTrigger
         aria-label={`Change color, currently ${color}`}
         className={cn(
-          "size-7 shrink-0 rounded-full ring-2 ring-transparent ring-offset-2 ring-offset-popover transition-all hover:scale-105 hover:ring-foreground/20",
+          "size-7 shrink-0 rounded-sm ring-1 ring-transparent ring-offset-1 ring-offset-popover transition-colors hover:ring-foreground/25",
           EVENT_COLOR_SWATCH_CLASSES[color],
           className
         )}
@@ -60,11 +60,11 @@ export default function ColorSwatchPicker({
               aria-label={c}
               aria-pressed={color === c}
               className={cn(
-                "size-6 rounded-full transition-transform",
+                "size-6 rounded-sm transition-colors",
                 EVENT_COLOR_SWATCH_CLASSES[c],
                 color === c
                   ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"
-                  : "hover:scale-110"
+                  : "hover:ring-1 hover:ring-foreground/25"
               )}
             />
           ))}

@@ -1,8 +1,22 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  Layers3,
+  Loader2,
+  Pencil,
+  Pin,
+  PinOff,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Popover, PopoverBackdrop, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DEFAULT_EVENT_COLOR,
   EVENT_COLOR_SWATCH_CLASSES,
@@ -10,6 +24,7 @@ import {
   type EventColor,
 } from "@/lib/event-colors";
 import ColorSwatchPicker from "./ColorSwatchPicker";
+import { APP_INPUT_CLS } from "./DateField";
 import type { CalendarCategory } from "@/lib/calendar-types";
 
 interface CategoryManagerProps {
@@ -25,22 +40,30 @@ interface CategoryManagerProps {
     updates: { name?: string; color?: string }
   ) => void;
   onDeleteCategory: (category: CalendarCategory) => Promise<void>;
+  pinnedSpaceIds: string[];
+  onTogglePinSpace: (categoryId: string) => void;
 }
 
 function CategoryRow({
   category,
   selected,
   visible,
+  pinned,
   onSelect,
+  onDeselect,
   onToggleVisibility,
+  onTogglePin,
   onUpdateCategory,
   onDeleteCategory,
 }: {
   category: CalendarCategory;
   selected: boolean;
   visible: boolean;
+  pinned: boolean;
   onSelect: () => void;
+  onDeselect: () => void;
   onToggleVisibility: () => void;
+  onTogglePin: () => void;
   onUpdateCategory: (updates: { name?: string; color?: string }) => void;
   onDeleteCategory: () => Promise<void>;
 }) {
@@ -48,6 +71,7 @@ function CategoryRow({
   const [name, setName] = useState(category.name);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const color: EventColor = isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR;
 
   const cancelEdit = () => {
@@ -60,6 +84,11 @@ function CategoryRow({
     if (!trimmed) return cancelEdit();
     if (trimmed !== category.name) onUpdateCategory({ name: trimmed });
     setEditing(false);
+  };
+
+  const startEditing = () => {
+    setActionsOpen(false);
+    setEditing(true);
   };
 
   const deleteSpace = async () => {
@@ -77,6 +106,7 @@ function CategoryRow({
     // delete leaves the row disabled with no way to retry.
     try {
       await onDeleteCategory();
+      setActionsOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete Space");
     } finally {
@@ -85,19 +115,29 @@ function CategoryRow({
   };
 
   return (
-    <div className={cn("group flex flex-wrap items-center gap-1 rounded-lg px-1 py-1", selected && "bg-primary/10")}>
-      <button
-        type="button"
-        onClick={onToggleVisibility}
-        aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
-        aria-pressed={visible}
+    <div
+      className={cn(
+        "group relative flex min-h-[30px] flex-wrap items-center gap-0.5 rounded-md px-1 transition-colors hover:bg-muted/60 focus-within:bg-muted/40",
+        selected && "bg-muted"
+      )}
+    >
+      {selected && (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-y-1.5 left-0 w-0.5 rounded-full",
+            EVENT_COLOR_SWATCH_CLASSES[color]
+          )}
+        />
+      )}
+      <span
+        aria-hidden
         className={cn(
-          "grid size-7 shrink-0 place-items-center rounded-md hover:bg-muted",
-          visible ? "opacity-100" : "opacity-30 grayscale"
+          "ml-1.5 size-2.5 shrink-0 rounded-[3px]",
+          EVENT_COLOR_SWATCH_CLASSES[color],
+          !visible && "opacity-30 grayscale"
         )}
-      >
-        <span className={cn("size-3 rounded-[4px]", EVENT_COLOR_SWATCH_CLASSES[color])} />
-      </button>
+      />
 
       {editing ? (
         <input
@@ -109,7 +149,7 @@ function CategoryRow({
           }}
           aria-label="Space name"
           autoFocus
-          className="h-7 min-w-0 flex-1 rounded border border-input bg-background px-1.5 text-sm font-medium text-foreground outline-none focus:border-primary"
+          className={cn(APP_INPUT_CLS, "min-w-0 flex-1 font-medium")}
         />
       ) : (
         <button
@@ -117,8 +157,8 @@ function CategoryRow({
           onClick={onSelect}
           aria-current={selected ? "true" : undefined}
           className={cn(
-            "min-w-0 flex-1 rounded-md px-1.5 py-1 text-left text-sm font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-            !visible && "text-muted-foreground line-through",
+            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            !visible && "text-muted-foreground opacity-65",
             selected && "font-semibold"
           )}
         >
@@ -126,106 +166,189 @@ function CategoryRow({
         </button>
       )}
 
-      {!editing && (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          aria-label={`Rename ${category.name}`}
-          className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <Pencil className="size-3.5" />
-        </button>
+      {editing ? (
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={saveName}
+            aria-label={`Save ${category.name}`}
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Check className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={cancelEdit}
+            aria-label={`Cancel renaming ${category.name}`}
+            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex shrink-0 items-center gap-0.5">
+          {selected && (
+            <button
+              type="button"
+              onClick={onDeselect}
+              aria-label="Clear Space filter"
+              title="Back to All Spaces"
+              className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onToggleVisibility}
+            aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
+            aria-pressed={visible}
+            title={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
+            className={cn(
+              "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100",
+              selected && "md:opacity-100"
+            )}
+          >
+            {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+          </button>
+          <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
+            <PopoverTrigger
+              aria-label={`More actions for ${category.name}`}
+              className={cn(
+                "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
+                selected && "md:opacity-100"
+              )}
+            >
+              <Ellipsis className="size-4" />
+            </PopoverTrigger>
+          <PopoverContent align="end" className="w-48 gap-1 p-1.5">
+            <button
+              type="button"
+              onClick={startEditing}
+              aria-label={`Rename ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+            >
+              <Pencil className="size-3.5 text-muted-foreground" />
+              Rename
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onTogglePin();
+                setActionsOpen(false);
+              }}
+              aria-label={pinned ? `Unpin ${category.name}` : `Pin ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+            >
+              {pinned ? (
+                <PinOff className="size-3.5 text-muted-foreground" />
+              ) : (
+                <Pin className="size-3.5 text-muted-foreground" />
+              )}
+              {pinned ? "Unpin" : "Pin to sidebar"}
+            </button>
+            <div className="flex min-h-9 items-center justify-between gap-2 rounded-md px-2 text-sm">
+              <span>Color</span>
+              <ColorSwatchPicker
+                color={color}
+                onColorChange={(nextColor) => {
+                  onUpdateCategory({ color: nextColor });
+                  setActionsOpen(false);
+                }}
+                className="size-5 rounded-[5px]"
+              />
+            </div>
+            <div className="my-0.5 border-t border-border" />
+            <button
+              type="button"
+              onClick={deleteSpace}
+              disabled={deleting}
+              aria-label={`Delete ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm text-destructive outline-none hover:bg-destructive/10 focus-visible:bg-destructive/10 disabled:opacity-40"
+            >
+              {deleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              Delete
+            </button>
+          </PopoverContent>
+        </Popover>
+        </div>
       )}
 
-      <ColorSwatchPicker
-        color={color}
-        onColorChange={(nextColor) => onUpdateCategory({ color: nextColor })}
-        className="size-5"
-      />
-
-      <button
-        type="button"
-        onClick={deleteSpace}
-        disabled={deleting}
-        aria-label={`Delete ${category.name}`}
-        className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive disabled:opacity-40"
-      >
-        {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
-      </button>
-
-      {error && <p className="w-full px-8 text-xs text-destructive">{error}</p>}
+      {error && <p className="w-full px-11 pb-2 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
 
 function CreateCategoryForm({
-  open,
-  onClose,
+  draft,
+  onDraftChange,
+  onDiscard,
   onCreateCategory,
 }: {
-  open: boolean;
-  onClose: () => void;
+  draft: { name: string; color: EventColor };
+  onDraftChange: (draft: { name: string; color: EventColor }) => void;
+  onDiscard: () => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
 }) {
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const close = () => {
-    onClose();
-    setName("");
-    setColor(DEFAULT_EVENT_COLOR);
-    setError(null);
-    setSubmitting(false);
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!name.trim() || submitting) return;
+    if (!draft.name.trim() || submitting) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await onCreateCategory(name.trim(), color);
-      close();
+      await onCreateCategory(draft.name.trim(), draft.color);
+      onDiscard();
+      setError(null);
+      setSubmitting(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create Space");
       setSubmitting(false);
     }
   };
 
-  if (!open) return null;
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
-        <ColorSwatchPicker color={color} onColorChange={setColor} className="size-6" />
+        <ColorSwatchPicker
+          color={draft.color}
+          onColorChange={(color) => onDraftChange({ ...draft, color })}
+          className="size-3 rounded-[3px]"
+        />
         <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => event.key === "Escape" && close()}
+          value={draft.name}
+          onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
           placeholder="Space name"
           aria-label="New Space name"
           autoFocus
-          className="h-7 flex-1 rounded border border-input bg-transparent px-1.5 text-xs text-foreground outline-none focus:border-primary"
+          className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
         />
-        <button
-          type="submit"
-          disabled={!name.trim() || submitting}
-          aria-label="Add Space"
-          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-        >
-          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-        </button>
+      </div>
+
+      <div className="flex items-center justify-end gap-1">
         <button
           type="button"
-          onClick={close}
+          onClick={onDiscard}
           aria-label="Cancel"
-          className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-4" />
+        </button>
+        <button
+          type="submit"
+          disabled={!draft.name.trim() || submitting}
+          aria-label="Add Space"
+          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+        >
+          {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
         </button>
       </div>
 
@@ -233,6 +356,9 @@ function CreateCategoryForm({
     </form>
   );
 }
+
+/** How many individual space rows to show before collapsing the rest. */
+const VISIBLE_SPACE_CAP = 3;
 
 export default function CategoryManager({
   categories,
@@ -244,30 +370,73 @@ export default function CategoryManager({
   onCreateCategory,
   onUpdateCategory,
   onDeleteCategory,
+  pinnedSpaceIds,
+  onTogglePinSpace,
 }: CategoryManagerProps) {
   const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
+  const hasDraft = Boolean(draft.name.trim()) || draft.color !== DEFAULT_EVENT_COLOR;
+  const [overflowOpen, setOverflowOpen] = useState(false);
+
+  const overflowCount = Math.max(0, categories.length - VISIBLE_SPACE_CAP);
+  const overflowCategories = categories.slice(VISIBLE_SPACE_CAP);
+  // Always show the selected space inline, even if it's past the cap.
+  const selectedIsOverflow =
+    selectedSpaceId !== null &&
+    categories.findIndex((c) => c.id === selectedSpaceId) >= VISIBLE_SPACE_CAP;
+  const visibleCategories = selectedIsOverflow
+    ? [...categories.slice(0, VISIBLE_SPACE_CAP), categories.find((c) => c.id === selectedSpaceId)!]
+    : categories.slice(0, VISIBLE_SPACE_CAP);
+
+  const discardDraft = () => {
+    setCreating(false);
+    setDraft({ name: "", color: DEFAULT_EVENT_COLOR });
+  };
 
   return (
-    <div className="flex flex-col px-4 pb-3 pt-2">
+    <div className="flex flex-col px-3 pb-1 pt-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-extrabold tracking-[-0.035em] text-foreground">Spaces</h2>
-        <button
-          type="button"
-          onClick={() => setCreating((current) => !current)}
-          aria-label={creating ? "Cancel creating Space" : "Create a Space"}
-          aria-expanded={creating}
-          className="grid size-8 place-items-center rounded-lg text-foreground hover:bg-muted"
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Spaces</h2>
+        <Popover
+          open={creating}
+          onOpenChange={(open, details) => {
+            if (open) setCreating(true);
+            else if (details.reason === "escape-key") discardDraft();
+            else setCreating(false);
+          }}
         >
-          {creating ? <X className="size-5" /> : <Plus className="size-5" />}
-        </button>
+          <PopoverTrigger
+            aria-label={creating ? "Cancel creating Space" : "Create a Space"}
+            aria-expanded={creating}
+            title={!creating && hasDraft ? "Continue Space draft" : undefined}
+            className="relative grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+          >
+            {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+            {!creating && hasDraft && (
+              <span
+                aria-label="Space draft saved"
+                className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-primary"
+              />
+            )}
+          </PopoverTrigger>
+          <PopoverBackdrop />
+          <PopoverContent
+            side="right"
+            align="start"
+            sideOffset={8}
+            className="w-[min(260px,calc(100vw-2rem))] p-2.5"
+          >
+            <CreateCategoryForm
+              draft={draft}
+              onDraftChange={setDraft}
+              onDiscard={discardDraft}
+              onCreateCategory={onCreateCategory}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
-      <div className="mt-2 flex flex-col gap-1.5">
-        <CreateCategoryForm
-          open={creating}
-          onClose={() => setCreating(false)}
-          onCreateCategory={onCreateCategory}
-        />
+      <div className="mt-1 flex flex-col gap-0.5">
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>
@@ -278,24 +447,70 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "rounded-lg px-2 py-1.5 text-left text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-                selectedSpaceId === null && "bg-primary/10 font-semibold text-primary"
+                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                selectedSpaceId === null && "bg-[#e8e7e5] font-semibold dark:bg-[#262626]"
               )}
             >
-              All Spaces
+              <span className="grid size-7 shrink-0 place-items-center text-muted-foreground">
+                <Layers3 className="size-3.5" />
+              </span>
+              <span className="px-1.5">All Spaces</span>
             </button>
-            {categories.map((category) => (
+            {visibleCategories.map((category) => (
               <CategoryRow
                 key={category.id}
                 category={category}
                 selected={selectedSpaceId === category.id}
                 visible={!hiddenCategoryIds.includes(category.id)}
+                pinned={pinnedSpaceIds.includes(category.id)}
                 onSelect={() => onSelectSpace(category.id)}
+                onDeselect={() => onSelectSpace(null)}
                 onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                onTogglePin={() => onTogglePinSpace(category.id)}
                 onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
             ))}
+            {overflowCount > 0 && (
+              <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+                <PopoverTrigger
+                  className="mt-0.5 px-3 text-left text-[12px] text-muted-foreground hover:text-foreground"
+                >
+                  {overflowCount} more
+                </PopoverTrigger>
+                <PopoverBackdrop />
+                <PopoverContent
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  className="w-[min(260px,calc(100vw-2rem))] max-h-[min(300px,50vh)] overflow-y-auto p-1.5"
+                >
+                  <div className="flex flex-col gap-1">
+                    {overflowCategories.map((category) => (
+                      <CategoryRow
+                        key={category.id}
+                        category={category}
+                        selected={selectedSpaceId === category.id}
+                        visible={!hiddenCategoryIds.includes(category.id)}
+                        pinned={pinnedSpaceIds.includes(category.id)}
+                        onSelect={() => {
+                          onSelectSpace(category.id);
+                          setOverflowOpen(false);
+                        }}
+                        onDeselect={() => {
+                          onSelectSpace(null);
+                          setOverflowOpen(false);
+                        }}
+                        onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                        onTogglePin={() => onTogglePinSpace(category.id)}
+                        onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
+                        onDeleteCategory={() => onDeleteCategory(category)}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
         )}
       </div>

@@ -1,8 +1,13 @@
 "use client";
 
 import { isPast } from "date-fns";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getTaskColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import {
+  EVENT_COLOR_SWATCH_CLASSES,
+  isEventColor,
+  resolveDisplayColor,
+} from "@/lib/event-colors";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskChipProps {
@@ -19,6 +24,12 @@ interface TaskChipProps {
  *  separate task-edit view yet to open instead. */
 export default function TaskChip({ task, categories, onClick, className }: TaskChipProps) {
   const overdue = !task.completed && task.due_at && isPast(new Date(task.due_at));
+  const displayColor = resolveDisplayColor(
+    task.color,
+    task.category_id,
+    task.color_overridden,
+    categories
+  );
 
   return (
     <button
@@ -29,23 +40,40 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
         onClick?.(task);
       }}
       aria-pressed={task.completed}
+      aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
       className={cn(
-        "flex min-h-8 w-full min-w-0 items-center gap-2 truncate rounded-md border px-2 text-left text-[11px] font-semibold",
+        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm border border-transparent px-1.5 text-left text-[11px] font-medium text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
         task.completed
-          ? "border-border text-muted-foreground line-through"
+          ? "text-muted-foreground"
           : overdue
-            ? "border-red-500/60 text-red-600 dark:text-red-400"
-            : getTaskColorClasses(resolveDisplayColor(task.color, task.category_id, task.color_overridden, categories)),
+            ? "text-destructive"
+            : "text-foreground",
         className
       )}
     >
       <span
+        aria-hidden="true"
         className={cn(
-          "size-3.5 shrink-0 rounded-[3px] border border-current bg-white/55",
-          task.completed && "bg-current"
+          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+          task.completed
+            ? "border-muted-foreground bg-muted-foreground text-background"
+            : overdue
+              ? "border-destructive text-transparent group-hover:bg-destructive/10"
+              : "border-muted-foreground/70 text-transparent group-hover:border-foreground"
+        )}
+      >
+        <Check className="size-3" strokeWidth={3} />
+      </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "size-1.5 shrink-0 rounded-[2px]",
+          isEventColor(displayColor)
+            ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
+            : "bg-muted-foreground/70"
         )}
       />
-      <span className="truncate">{task.title}</span>
+      <span className={cn("truncate", task.completed && "line-through")}>{task.title}</span>
     </button>
   );
 }

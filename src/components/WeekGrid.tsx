@@ -12,6 +12,7 @@ import {
 } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
+import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import AllDayRow from "./AllDayRow";
 import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
@@ -69,9 +70,9 @@ function WeekDaysHeader({
             onClick={() => onDateSelect(day)}
             className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-4 transition-colors hover:bg-muted/40 lg:pl-5"
           >
-            <span className="w-9 text-center text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <CalendarWeekdayLabel className="w-9 text-center">
               {format(day, "EEE")}
-            </span>
+            </CalendarWeekdayLabel>
             <span className={getDayNumberClasses(day, selectedDate)}>
               {format(day, "d")}
             </span>

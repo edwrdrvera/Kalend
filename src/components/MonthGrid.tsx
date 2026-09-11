@@ -17,6 +17,7 @@ import {
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
+import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -60,13 +61,10 @@ function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="mb-2 grid grid-cols-7 gap-2 px-2 pt-2 shrink-0">
+    <div className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
       {days.map((day) => (
-        <div
-          key={day}
-          className="rounded-full bg-muted py-1.5 text-center text-[11px] font-semibold tracking-wide text-muted-foreground"
-        >
-          {day}
+        <div key={day} className="flex items-center justify-center">
+          <CalendarWeekdayLabel>{day}</CalendarWeekdayLabel>
         </div>
       ))}
     </div>

@@ -6,7 +6,7 @@ import { format, isSameDay } from "date-fns";
 import { Clock, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
+import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
 import { DEFAULT_EVENT_COLOR, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import { eventColorReducer, initialEventColor } from "@/lib/event-color-state";
 import type { EventFormValues } from "@/lib/event-form";
@@ -110,15 +110,12 @@ export default function EventCreatePopover({
       ? anchorRect.right + SIDE_GAP
       : anchorRect.left - POPOVER_WIDTH - SIDE_GAP;
 
-  // Tail triangle dimensions.
-  const TAIL_W = 10; // px — how far the tip extends from the panel edge
-  const TAIL_H = 16; // px — top-to-bottom span of the triangle base
-  // Vertically center the tail on the anchor's midpoint; clamp to stay
-  // within the panel's visible area.
+  const tailWidth = 8;
+  const tailHeight = 14;
   const anchorCenterY = anchorRect.top + anchorRect.height / 2;
   const tailTop = Math.max(
-    14,
-    Math.min(anchorCenterY - top - TAIL_H / 2, POPOVER_HEIGHT_ESTIMATE - 14 - TAIL_H)
+    12,
+    Math.min(anchorCenterY - top - tailHeight / 2, POPOVER_HEIGHT_ESTIMATE - 12 - tailHeight)
   );
 
   // Escape closes the panel.
@@ -171,11 +168,14 @@ export default function EventCreatePopover({
       <div
         aria-hidden
         style={{ position: "fixed", inset: 0, zIndex: 49 }}
-        onPointerDown={onClose}
+        // Close on click (not pointerdown) so the backdrop stays mounted
+        // through the full pointer cycle. If we close on pointerdown, React
+        // removes the backdrop before pointerup/click fire, and those events
+        // land on the now-exposed calendar grid — selecting a day and opening
+        // a new creation popover.
+        onClick={onClose}
       />
-      {/* Outer wrapper: fixed position + entry animation.
-          drop-shadow (not box-shadow) traces the combined outline of the panel
-          AND the tail triangle, so the shadow wraps the whole shape as one piece. */}
+      {/* Fixed, compact editor that stays visually subordinate to the calendar. */}
       <div
         role="dialog"
         aria-label={isEditing ? "Edit event" : "Create event"}
@@ -185,41 +185,33 @@ export default function EventCreatePopover({
           left,
           width: POPOVER_WIDTH,
           zIndex: 50,
-          filter: "drop-shadow(0 8px 28px rgba(0,0,0,0.16))",
+          filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.12))",
         }}
         className="animate-in fade-in-0 zoom-in-95 duration-100"
       >
-      {/* Panel + tail as one solid shape. The tail is a clip-path triangle
-          inside the panel div, extending outside its bounds — overflow: visible
-          is the default so it peeks past the rounded rect. The ring renders on
-          the rounded rect; drop-shadow on the wrapper covers the tail tip. */}
-      <div className="relative rounded-2xl bg-popover text-popover-foreground ring-1 ring-foreground/10">
-        {/* Tail — inline SVG so only the two outer slanted edges get the
-            border stroke; the flat edge that abuts the panel has no stroke,
-            making the tail look like a continuous part of the panel body. */}
+      <div className="relative rounded-md border border-border bg-popover text-popover-foreground">
         <svg
+          aria-hidden="true"
           className="absolute overflow-visible"
           style={{
             top: tailTop,
-            width: TAIL_W,
-            height: TAIL_H,
-            ...(side === "right" ? { left: -TAIL_W } : { right: -TAIL_W }),
+            width: tailWidth,
+            height: tailHeight,
+            ...(side === "right" ? { left: -tailWidth } : { right: -tailWidth }),
           }}
-          viewBox={`0 0 ${TAIL_W} ${TAIL_H}`}
-          xmlns="http://www.w3.org/2000/svg"
+          viewBox={`0 0 ${tailWidth} ${tailHeight}`}
         >
           <path
             d={
               side === "right"
-                ? `M ${TAIL_W} 0 L 0 ${TAIL_H / 2} L ${TAIL_W} ${TAIL_H}`
-                : `M 0 0 L ${TAIL_W} ${TAIL_H / 2} L 0 ${TAIL_H}`
+                ? `M ${tailWidth} 0 L 0 ${tailHeight / 2} L ${tailWidth} ${tailHeight}`
+                : `M 0 0 L ${tailWidth} ${tailHeight / 2} L 0 ${tailHeight}`
             }
-            className="fill-popover stroke-foreground/10"
+            className="fill-popover stroke-border"
             strokeWidth="1"
-            strokeLinejoin="miter"
           />
         </svg>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
           {/* Title */}
           <label htmlFor="new-event-title" className="sr-only">
             Event title
@@ -231,7 +223,7 @@ export default function EventCreatePopover({
             placeholder={isEditing ? "Event title" : "New event"}
             required
             autoFocus
-            className="h-auto rounded-none border-x-0 border-t-0 border-b-2 border-input/40 bg-transparent px-0 py-1 text-base font-semibold outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+            className={cn(APP_INPUT_CLS, "w-full font-semibold")}
           />
 
           {/* Collapsed time summary → expands to date/time pickers */}
@@ -247,7 +239,7 @@ export default function EventCreatePopover({
                 <button
                   type="button"
                   onClick={() => setTimeExpanded(true)}
-                  className="-mx-1 flex items-center gap-2 rounded-lg px-1 py-1.5 text-left text-xs text-foreground/80 transition-colors hover:bg-muted/50"
+                  className="-mx-1 flex items-center gap-2 rounded-sm px-1 py-1 text-left text-xs text-foreground/80 transition-colors hover:bg-muted/50"
                 >
                   <Clock className="size-3.5 shrink-0 text-muted-foreground" />
                   <span>{formatTimeRangeSummary(startAt, endAt)}</span>
@@ -330,29 +322,29 @@ export default function EventCreatePopover({
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
             {isEditing && onDelete && (
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onDelete}
                 aria-label="Delete event"
-                className="px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="mr-auto rounded-sm px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="size-3.5" />
               </Button>
             )}
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="flex-1"
+              className="rounded-sm px-3"
               onClick={onClose}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} size="sm" className="flex-1">
+            <Button type="submit" disabled={submitting} size="sm" className="rounded-sm px-3">
               {submitting ? (isEditing ? "Saving…" : "Creating…") : isEditing ? "Save changes" : "Create event"}
             </Button>
           </div>
