@@ -54,3 +54,10 @@ AGENTS.md
 # repo. Already-tracked docs files (see git ls-files docs/) stay tracked
 # because .gitignore does not affect files already in the index.
 /docs/
+
+# Design canvas files
+/DirectionB.dc.html
+/Main.dc.html
+/OverdueVariant.dc.html
+/canvas.json
+/kalend-sidebar-redesign.html
