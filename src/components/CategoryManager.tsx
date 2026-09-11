@@ -269,6 +269,13 @@ function CreateCategoryForm({
     setSubmitting(false);
   };
 
+  // onDismiss and discard close over state that changes every render; stash the
+  // latest versions in refs so the effect only needs to re-run when `open` does.
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+  const discardRef = useRef(discard);
+  discardRef.current = discard;
+
   useEffect(() => {
     if (!open) return;
 
@@ -284,7 +291,7 @@ function CreateCategoryForm({
       const target = event.target;
       if (!(target instanceof Node) || formRef.current?.contains(target)) return;
       if (pickerPopupContains(target)) return;
-      onDismiss();
+      onDismissRef.current();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -292,7 +299,7 @@ function CreateCategoryForm({
       const openPicker = formRef.current?.querySelector(
         '[aria-label^="Change color"][aria-expanded="true"]'
       );
-      if (!openPicker) discard();
+      if (!openPicker) discardRef.current();
     };
 
     document.addEventListener("pointerdown", handlePointerDown, true);
@@ -301,7 +308,7 @@ function CreateCategoryForm({
       document.removeEventListener("pointerdown", handlePointerDown, true);
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  });
+  }, [open]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
