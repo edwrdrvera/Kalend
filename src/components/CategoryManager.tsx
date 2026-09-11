@@ -320,6 +320,9 @@ function CreateCategoryForm({
   );
 }
 
+/** How many individual space rows to show before collapsing the rest. */
+const VISIBLE_SPACE_CAP = 3;
+
 export default function CategoryManager({
   categories,
   loading,
@@ -334,6 +337,16 @@ export default function CategoryManager({
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
   const hasDraft = Boolean(draft.name.trim()) || draft.color !== DEFAULT_EVENT_COLOR;
+  const [expanded, setExpanded] = useState(false);
+
+  // Auto-expand when the selected space would be hidden behind the toggle.
+  const selectedIsHidden =
+    selectedSpaceId !== null &&
+    !expanded &&
+    categories.findIndex((c) => c.id === selectedSpaceId) >= VISIBLE_SPACE_CAP;
+  const showAll = expanded || selectedIsHidden;
+  const overflowCount = Math.max(0, categories.length - VISIBLE_SPACE_CAP);
+  const visibleCategories = showAll ? categories : categories.slice(0, VISIBLE_SPACE_CAP);
 
   const discardDraft = () => {
     setCreating(false);
@@ -343,7 +356,7 @@ export default function CategoryManager({
   return (
     <div className="flex flex-col px-4 pb-2 pt-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-foreground">Spaces</h2>
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Spaces</h2>
         <Popover
           open={creating}
           onOpenChange={(open, details) => {
@@ -403,7 +416,7 @@ export default function CategoryManager({
               </span>
               <span className="px-1.5">All Spaces</span>
             </button>
-            {categories.map((category) => (
+            {visibleCategories.map((category) => (
               <CategoryRow
                 key={category.id}
                 category={category}
@@ -415,6 +428,15 @@ export default function CategoryManager({
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
             ))}
+            {overflowCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpanded(!showAll)}
+                className="mt-0.5 px-3 text-left text-[12px] text-muted-foreground hover:text-foreground"
+              >
+                {showAll ? "Show less" : `${overflowCount} more`}
+              </button>
+            )}
           </div>
         )}
       </div>

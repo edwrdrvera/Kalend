@@ -13,6 +13,14 @@ const categories: CalendarCategory[] = [
   { id: "space-2", name: "Personal", color: "purple" },
 ];
 
+const manyCategories: CalendarCategory[] = [
+  { id: "space-1", name: "Work", color: "green" },
+  { id: "space-2", name: "Personal", color: "purple" },
+  { id: "space-3", name: "School", color: "blue" },
+  { id: "space-4", name: "Fitness", color: "red" },
+  { id: "space-5", name: "Side Project", color: "yellow" },
+];
+
 /** `CategoryManager` gates deletion on the global `window.confirm`. happy-dom
  *  does not declare one, so reach it through a narrow view of the window. */
 const confirmHost = testWindow as unknown as { confirm?: (message?: string) => boolean };
@@ -39,6 +47,7 @@ interface Calls {
 }
 
 interface RenderOptions {
+  categories?: CalendarCategory[];
   selectedSpaceId?: string | null;
   hiddenCategoryIds?: string[];
   loading?: boolean;
@@ -54,7 +63,7 @@ async function renderManager(options: RenderOptions = {}) {
   await act(() =>
     root?.render(
       createElement(CategoryManager, {
-        categories,
+        categories: options.categories ?? categories,
         loading: options.loading ?? false,
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (spaceId) => calls.selected.push(spaceId),
@@ -366,5 +375,58 @@ describe("CategoryManager creation drafts", () => {
     expect(created).toEqual([{ name: "Research", color: "blue" }]);
     expect(byLabel("New Space name")).toBeNull();
     expect(byLabel("Space draft saved")).toBeNull();
+  });
+});
+
+describe("CategoryManager overflow toggle", () => {
+  it("shows all spaces when 3 or fewer exist", async () => {
+    await renderManager({ categories });
+
+    expect(nameButton("Work")).toBeDefined();
+    expect(nameButton("Personal")).toBeDefined();
+    expect(document.body.textContent).not.toContain("more");
+  });
+
+  it("collapses spaces beyond 3 behind a toggle", async () => {
+    await renderManager({ categories: manyCategories });
+
+    // All Spaces + first 3 individual spaces are visible
+    expect(nameButton("All Spaces")).toBeDefined();
+    expect(nameButton("Work")).toBeDefined();
+    expect(nameButton("Personal")).toBeDefined();
+    expect(nameButton("School")).toBeDefined();
+    // 4th and 5th are hidden
+    expect(nameButton("Fitness")).toBeUndefined();
+    expect(nameButton("Side Project")).toBeUndefined();
+    expect(document.body.textContent).toContain("2 more");
+  });
+
+  it("expands the full list on toggle click and collapses again", async () => {
+    await renderManager({ categories: manyCategories });
+
+    const toggle = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
+      b.textContent?.includes("more")
+    );
+    expect(toggle).toBeDefined();
+
+    await act(() => toggle?.click());
+    expect(nameButton("Fitness")).toBeDefined();
+    expect(nameButton("Side Project")).toBeDefined();
+    expect(document.body.textContent).toContain("Show less");
+
+    const collapse = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
+      b.textContent?.includes("Show less")
+    );
+    await act(() => collapse?.click());
+    expect(nameButton("Fitness")).toBeUndefined();
+    expect(nameButton("Side Project")).toBeUndefined();
+  });
+
+  it("auto-expands when the selected space is hidden", async () => {
+    await renderManager({ categories: manyCategories, selectedSpaceId: "space-5" });
+
+    // "Side Project" is the 5th space and would normally be hidden,
+    // but it's selected so the list auto-expands.
+    expect(nameButton("Side Project")).toBeDefined();
   });
 });
