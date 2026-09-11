@@ -20,7 +20,7 @@ interface AgendaSummaryProps {
   onSummaryClick: () => void;
 }
 
-// -- Task draft helpers (extracted from the old TaskList) -------------------
+// -- Task draft helpers -----------------------------------------------------
 
 interface TaskDraft {
   title: string;
@@ -191,14 +191,15 @@ export default function AgendaSummary({
   const sections = buildSidebarAgenda(events, tasks, selectedDate);
   const summary = summarizeSidebarAgenda(sections, tasks);
 
-  const eventCount = sections.reduce(
-    (n, s) => n + s.items.filter((i) => i.kind === "event").length,
-    0
-  );
-  const taskCount = sections.reduce(
-    (n, s) => n + s.items.filter((i) => i.kind === "task" && !i.task.completed).length,
-    0
-  );
+  // Single pass over all items for the display counts.
+  let eventCount = 0;
+  let taskCount = 0;
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (item.kind === "event") eventCount += 1;
+      else if (!item.task.completed) taskCount += 1;
+    }
+  }
 
   const isEmpty = summary.activeItemCount === 0;
   const hasOverdue = summary.overdueTaskCount > 0;
@@ -230,7 +231,7 @@ export default function AgendaSummary({
             ? "border border-destructive/25 bg-destructive/[0.06]"
             : isEmpty
               ? "opacity-50"
-              : "bg-muted/60"
+              : "bg-[#f0efed] dark:bg-[#1f1f1f]"
         )}
       >
         {loading ? (

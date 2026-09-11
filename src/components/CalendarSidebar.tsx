@@ -88,17 +88,19 @@ export default function CalendarSidebar({
           <X className="size-4" />
         </button>
 
-        <CategoryManager
-          categories={categories}
-          loading={categoriesLoading}
-          selectedSpaceId={selectedSpaceId}
-          onSelectSpace={onSelectSpace}
-          hiddenCategoryIds={hiddenCategoryIds}
-          onToggleCategoryVisibility={onToggleCategoryVisibility}
-          onCreateCategory={onCreateCategory}
-          onUpdateCategory={onUpdateCategory}
-          onDeleteCategory={onDeleteCategory}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <CategoryManager
+            categories={categories}
+            loading={categoriesLoading}
+            selectedSpaceId={selectedSpaceId}
+            onSelectSpace={onSelectSpace}
+            hiddenCategoryIds={hiddenCategoryIds}
+            onToggleCategoryVisibility={onToggleCategoryVisibility}
+            onCreateCategory={onCreateCategory}
+            onUpdateCategory={onUpdateCategory}
+            onDeleteCategory={onDeleteCategory}
+          />
+        </div>
 
         <AgendaSummary
           events={events}
@@ -110,8 +112,6 @@ export default function CalendarSidebar({
           onCreateTask={onCreateTask}
           onSummaryClick={() => {}}
         />
-
-        <div className="flex-1" />
 
         <div className="shrink-0 border-t border-border pt-2">
           <MiniCalendar

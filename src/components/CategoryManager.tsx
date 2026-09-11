@@ -123,7 +123,7 @@ function CategoryRow({
       <span
         aria-hidden
         className={cn(
-          "ml-1.5 size-3 shrink-0 rounded-[4px]",
+          "ml-1.5 size-2.5 shrink-0 rounded-[3px]",
           EVENT_COLOR_SWATCH_CLASSES[color],
           !visible && "opacity-30 grayscale"
         )}
@@ -408,7 +408,7 @@ export default function CategoryManager({
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
                 "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
-                selectedSpaceId === null && "bg-muted font-semibold"
+                selectedSpaceId === null && "bg-[#e8e7e5] font-semibold dark:bg-[#262626]"
               )}
             >
               <span className="grid size-7 shrink-0 place-items-center text-muted-foreground">

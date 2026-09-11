@@ -155,14 +155,14 @@ describe("CategoryManager selection", () => {
 
     // The swatch is a plain span, not a button — it identifies color, nothing else.
     const workRow = nameButton("Work")?.parentElement;
-    const swatch = workRow?.querySelector("span.size-3");
+    const swatch = workRow?.querySelector("span.size-2\\.5");
     expect(swatch).not.toBeNull();
     expect(swatch?.className).toContain("opacity-30");
     expect(swatch?.className).toContain("grayscale");
 
     // Visible spaces have a full-color swatch without dimming.
     const personalRow = nameButton("Personal")?.parentElement;
-    const personalSwatch = personalRow?.querySelector("span.size-3");
+    const personalSwatch = personalRow?.querySelector("span.size-2\\.5");
     expect(personalSwatch).not.toBeNull();
     expect(personalSwatch?.className).not.toContain("opacity-30");
   });
