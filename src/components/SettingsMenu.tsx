@@ -49,11 +49,12 @@ export default function SettingsMenu() {
       <PopoverTrigger
         aria-label="Settings"
         title="Settings"
-        className="grid size-9 shrink-0 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
-        <Settings size={18} />
+        <span>Settings</span>
+        <Settings className="ml-auto size-4" />
       </PopoverTrigger>
-      <PopoverContent align="end" side="top" className="w-64">
+      <PopoverContent align="start" side="top" className="w-60">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription>Manage your Kalend preferences and session.</PopoverDescription>

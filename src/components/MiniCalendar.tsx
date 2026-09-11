@@ -13,33 +13,61 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+
+const COLLAPSED_STORAGE_KEY = "kalend:mini-calendar-collapsed";
 
 interface MiniCalendarProps {
   currentDate: Date;
   viewDate: Date;
   onDateSelect: (date: Date) => void;
+  collapsible?: boolean;
 }
 
-// mainViewDate is kept in the signature so callers don't have to change,
-// even though we no longer use it to conditionally hide the label.
 function MiniCalendarHeader({
   browseDate,
+  collapsible,
+  collapsed,
+  onToggleCollapsed,
   onPrevMonth,
   onNextMonth,
 }: {
   browseDate: Date;
-  mainViewDate: Date;
+  collapsible: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between">
+    <div
+      className={
+        collapsed ? "flex items-center justify-between" : "mb-3 flex items-center justify-between"
+      }
+    >
       <h2 className="text-[13px] font-bold tracking-[-0.02em] text-foreground">
-        {format(browseDate, "MMMM")}
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Expand mini calendar" : "Collapse mini calendar"}
+            aria-expanded={!collapsed}
+            className="flex items-center gap-1 rounded-sm px-1 py-0.5 transition-colors hover:bg-muted"
+          >
+            {format(browseDate, "MMMM")}
+            {collapsed ? (
+              <ChevronDown className="size-3.5" />
+            ) : (
+              <ChevronUp className="size-3.5" />
+            )}
+          </button>
+        ) : (
+          format(browseDate, "MMMM")
+        )}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
         <button
+          type="button"
           onClick={onPrevMonth}
           className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Previous month"
@@ -47,6 +75,7 @@ function MiniCalendarHeader({
           <ChevronLeft size={16} />
         </button>
         <button
+          type="button"
           onClick={onNextMonth}
           className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Next month"
@@ -129,6 +158,7 @@ function MiniCalendarGrid({
             
             return (
               <button
+                type="button"
                 key={`day-${day.getTime()}`}
                 onClick={() => onDateSelect(day)}
                 className={getDayClasses(day, monthStart, currentDate)}
@@ -147,6 +177,7 @@ export default function MiniCalendar({
   currentDate,
   viewDate,
   onDateSelect,
+  collapsible = false,
 }: MiniCalendarProps) {
   // The month this mini calendar is browsing, kept separate from the main
   // calendar's viewDate so its own prev/next arrows can page through
@@ -155,28 +186,55 @@ export default function MiniCalendar({
   // selecting a date, Today), so this only drifts from the main view while
   // the user is actively browsing it here.
   const [browseDate, setBrowseDate] = useState(viewDate);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     setBrowseDate(viewDate);
   }, [viewDate]);
 
+  useEffect(() => {
+    if (!collapsible) return;
+
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true");
+    } catch {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+    }
+  }, [collapsible]);
+
   const handleNextMonth = () => setBrowseDate((current) => addMonths(current, 1));
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
+  const handleToggleCollapsed = () => {
+    const nextCollapsed = !collapsed;
+    setCollapsed(nextCollapsed);
+
+    try {
+      localStorage.setItem(COLLAPSED_STORAGE_KEY, String(nextCollapsed));
+    } catch {
+      // The control still works for the current session when storage is unavailable.
+    }
+  };
 
   return (
     <div className="mx-3 mb-2 rounded-lg border border-border bg-card p-2.5">
       <MiniCalendarHeader
         browseDate={browseDate}
-        mainViewDate={viewDate}
+        collapsible={collapsible}
+        collapsed={collapsible && collapsed}
+        onToggleCollapsed={handleToggleCollapsed}
         onPrevMonth={handlePrevMonth}
         onNextMonth={handleNextMonth}
       />
-      <MiniCalendarDaysOfWeek />
-      <MiniCalendarGrid
-        viewDate={browseDate}
-        currentDate={currentDate}
-        onDateSelect={onDateSelect}
-      />
+      {(!collapsible || !collapsed) && (
+        <>
+          <MiniCalendarDaysOfWeek />
+          <MiniCalendarGrid
+            viewDate={browseDate}
+            currentDate={currentDate}
+            onDateSelect={onDateSelect}
+          />
+        </>
+      )}
     </div>
   );
 }
