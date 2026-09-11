@@ -9,6 +9,8 @@ import {
   Layers3,
   Loader2,
   Pencil,
+  Pin,
+  PinOff,
   Plus,
   Trash2,
   X,
@@ -38,24 +40,30 @@ interface CategoryManagerProps {
     updates: { name?: string; color?: string }
   ) => void;
   onDeleteCategory: (category: CalendarCategory) => Promise<void>;
+  pinnedSpaceIds: string[];
+  onTogglePinSpace: (categoryId: string) => void;
 }
 
 function CategoryRow({
   category,
   selected,
   visible,
+  pinned,
   onSelect,
   onDeselect,
   onToggleVisibility,
+  onTogglePin,
   onUpdateCategory,
   onDeleteCategory,
 }: {
   category: CalendarCategory;
   selected: boolean;
   visible: boolean;
+  pinned: boolean;
   onSelect: () => void;
   onDeselect: () => void;
   onToggleVisibility: () => void;
+  onTogglePin: () => void;
   onUpdateCategory: (updates: { name?: string; color?: string }) => void;
   onDeleteCategory: () => Promise<void>;
 }) {
@@ -109,7 +117,7 @@ function CategoryRow({
   return (
     <div
       className={cn(
-        "group relative flex min-h-9 flex-wrap items-center gap-1 rounded-lg px-1 transition-colors hover:bg-muted/60 focus-within:bg-muted/40",
+        "group relative flex min-h-[30px] flex-wrap items-center gap-0.5 rounded-md px-1 transition-colors hover:bg-muted/60 focus-within:bg-muted/40",
         selected && "bg-muted"
       )}
     >
@@ -222,6 +230,22 @@ function CategoryRow({
             >
               <Pencil className="size-3.5 text-muted-foreground" />
               Rename
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onTogglePin();
+                setActionsOpen(false);
+              }}
+              aria-label={pinned ? `Unpin ${category.name}` : `Pin ${category.name}`}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+            >
+              {pinned ? (
+                <PinOff className="size-3.5 text-muted-foreground" />
+              ) : (
+                <Pin className="size-3.5 text-muted-foreground" />
+              )}
+              {pinned ? "Unpin" : "Pin to sidebar"}
             </button>
             <div className="flex min-h-9 items-center justify-between gap-2 rounded-md px-2 text-sm">
               <span>Color</span>
@@ -346,6 +370,8 @@ export default function CategoryManager({
   onCreateCategory,
   onUpdateCategory,
   onDeleteCategory,
+  pinnedSpaceIds,
+  onTogglePinSpace,
 }: CategoryManagerProps) {
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
@@ -368,7 +394,7 @@ export default function CategoryManager({
   };
 
   return (
-    <div className="flex flex-col px-4 pb-2 pt-4">
+    <div className="flex flex-col px-3 pb-1 pt-3">
       <div className="flex items-center justify-between">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Spaces</h2>
         <Popover
@@ -410,7 +436,7 @@ export default function CategoryManager({
         </Popover>
       </div>
 
-      <div className="mt-1.5 flex flex-col gap-1">
+      <div className="mt-1 flex flex-col gap-0.5">
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>
@@ -421,7 +447,7 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
                 selectedSpaceId === null && "bg-[#e8e7e5] font-semibold dark:bg-[#262626]"
               )}
             >
@@ -436,9 +462,11 @@ export default function CategoryManager({
                 category={category}
                 selected={selectedSpaceId === category.id}
                 visible={!hiddenCategoryIds.includes(category.id)}
+                pinned={pinnedSpaceIds.includes(category.id)}
                 onSelect={() => onSelectSpace(category.id)}
                 onDeselect={() => onSelectSpace(null)}
                 onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                onTogglePin={() => onTogglePinSpace(category.id)}
                 onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
@@ -464,6 +492,7 @@ export default function CategoryManager({
                         category={category}
                         selected={selectedSpaceId === category.id}
                         visible={!hiddenCategoryIds.includes(category.id)}
+                        pinned={pinnedSpaceIds.includes(category.id)}
                         onSelect={() => {
                           onSelectSpace(category.id);
                           setOverflowOpen(false);
@@ -473,6 +502,7 @@ export default function CategoryManager({
                           setOverflowOpen(false);
                         }}
                         onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                        onTogglePin={() => onTogglePinSpace(category.id)}
                         onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                         onDeleteCategory={() => onDeleteCategory(category)}
                       />

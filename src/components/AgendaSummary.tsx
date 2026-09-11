@@ -288,7 +288,7 @@ function TaskRow({
   );
 }
 
-function AgendaDetailList({
+export function AgendaDetailList({
   sections,
   categories,
   onEventClick,
@@ -409,10 +409,10 @@ export default function AgendaSummary({
   };
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-3 py-2">
       <div
         className={cn(
-          "flex items-center gap-2.5 rounded-lg px-3 py-2.5",
+          "flex items-center gap-2 rounded-lg px-2.5 py-2",
           hasOverdue
             ? "border border-destructive/25 bg-destructive/[0.06]"
             : isEmpty
@@ -421,7 +421,7 @@ export default function AgendaSummary({
         )}
       >
         {loading ? (
-          <div className="flex min-h-[28px] flex-1 items-center gap-2.5">
+          <div className="flex min-h-[24px] flex-1 items-center gap-2">
             <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
             <span className="text-[13px] text-muted-foreground">Loading…</span>
           </div>
@@ -438,7 +438,7 @@ export default function AgendaSummary({
                       : "Agenda summary"
                 }
                 className={cn(
-                  "flex min-h-[28px] min-w-0 flex-1 items-center gap-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex min-h-[24px] min-w-0 flex-1 items-center gap-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   !isEmpty && "cursor-pointer"
                 )}
               >

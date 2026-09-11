@@ -49,7 +49,7 @@ export default function SettingsMenu() {
       <PopoverTrigger
         aria-label="Settings"
         title="Settings"
-        className="flex h-10 w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         <span className="size-2 shrink-0 rounded-full bg-green-500" aria-hidden />
         <span className="min-w-0 truncate text-xs">Demo account</span>

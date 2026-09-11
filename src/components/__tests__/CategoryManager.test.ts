@@ -76,6 +76,8 @@ async function renderManager(options: RenderOptions = {}) {
           (async (category) => {
             calls.deleted.push(category);
           }),
+        pinnedSpaceIds: [],
+        onTogglePinSpace: () => {},
       })
     )
   );
