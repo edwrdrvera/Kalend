@@ -44,6 +44,14 @@ describe("MiniCalendar collapse behavior", () => {
     expect(document.querySelectorAll("button").length).toBeGreaterThan(2);
   });
 
+  it("initializes collapsed on mount when previously collapsed (no flash)", async () => {
+    localStorage.setItem("kalend:mini-calendar-collapsed", "true");
+    await renderMiniCalendar(true);
+
+    expect(document.querySelector('[aria-label="Expand mini calendar"]')).not.toBeNull();
+    expect(document.querySelectorAll("button").length).toBe(3);
+  });
+
   it("persists an explicit collapsed preference", async () => {
     await renderMiniCalendar(true);
 

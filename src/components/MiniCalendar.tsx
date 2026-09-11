@@ -186,21 +186,22 @@ export default function MiniCalendar({
   // selecting a date, Today), so this only drifts from the main view while
   // the user is actively browsing it here.
   const [browseDate, setBrowseDate] = useState(viewDate);
-  const [collapsed, setCollapsed] = useState(false);
+  // Read the stored preference during init (not in an effect) so the first
+  // render already reflects it, instead of flashing expanded for one frame.
+  const [collapsed, setCollapsed] = useState(() => {
+    if (!collapsible) return false;
+
+    try {
+      return localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true";
+    } catch {
+      // Storage can be unavailable in privacy-restricted browser contexts.
+      return false;
+    }
+  });
 
   useEffect(() => {
     setBrowseDate(viewDate);
   }, [viewDate]);
-
-  useEffect(() => {
-    if (!collapsible) return;
-
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSED_STORAGE_KEY) === "true");
-    } catch {
-      // Storage can be unavailable in privacy-restricted browser contexts.
-    }
-  }, [collapsible]);
 
   const handleNextMonth = () => setBrowseDate((current) => addMonths(current, 1));
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
