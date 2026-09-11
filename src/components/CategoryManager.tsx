@@ -45,6 +45,7 @@ function CategoryRow({
   selected,
   visible,
   onSelect,
+  onDeselect,
   onToggleVisibility,
   onUpdateCategory,
   onDeleteCategory,
@@ -53,6 +54,7 @@ function CategoryRow({
   selected: boolean;
   visible: boolean;
   onSelect: () => void;
+  onDeselect: () => void;
   onToggleVisibility: () => void;
   onUpdateCategory: (updates: { name?: string; color?: string }) => void;
   onDeleteCategory: () => Promise<void>;
@@ -177,6 +179,17 @@ function CategoryRow({
         </div>
       ) : (
         <div className="flex shrink-0 items-center gap-0.5">
+          {selected && (
+            <button
+              type="button"
+              onClick={onDeselect}
+              aria-label="Clear Space filter"
+              title="Back to All Spaces"
+              className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={onToggleVisibility}
@@ -424,6 +437,7 @@ export default function CategoryManager({
                 selected={selectedSpaceId === category.id}
                 visible={!hiddenCategoryIds.includes(category.id)}
                 onSelect={() => onSelectSpace(category.id)}
+                onDeselect={() => onSelectSpace(null)}
                 onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
                 onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
                 onDeleteCategory={() => onDeleteCategory(category)}
@@ -452,6 +466,10 @@ export default function CategoryManager({
                         visible={!hiddenCategoryIds.includes(category.id)}
                         onSelect={() => {
                           onSelectSpace(category.id);
+                          setOverflowOpen(false);
+                        }}
+                        onDeselect={() => {
+                          onSelectSpace(null);
                           setOverflowOpen(false);
                         }}
                         onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
