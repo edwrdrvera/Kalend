@@ -450,7 +450,7 @@ export default function CalendarSidebar({
             onDateSelect={onDateSelect}
             collapsible
           />
-          <div className="border-t border-border px-2 py-1.5">
+          <div className="flex items-center justify-end border-t border-border px-2 py-1.5">
             <SettingsMenu />
           </div>
         </div>
