@@ -337,16 +337,17 @@ export default function CategoryManager({
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
   const hasDraft = Boolean(draft.name.trim()) || draft.color !== DEFAULT_EVENT_COLOR;
-  const [expanded, setExpanded] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
 
-  // Auto-expand when the selected space would be hidden behind the toggle.
-  const selectedIsHidden =
-    selectedSpaceId !== null &&
-    !expanded &&
-    categories.findIndex((c) => c.id === selectedSpaceId) >= VISIBLE_SPACE_CAP;
-  const showAll = expanded || selectedIsHidden;
   const overflowCount = Math.max(0, categories.length - VISIBLE_SPACE_CAP);
-  const visibleCategories = showAll ? categories : categories.slice(0, VISIBLE_SPACE_CAP);
+  const overflowCategories = categories.slice(VISIBLE_SPACE_CAP);
+  // Always show the selected space inline, even if it's past the cap.
+  const selectedIsOverflow =
+    selectedSpaceId !== null &&
+    categories.findIndex((c) => c.id === selectedSpaceId) >= VISIBLE_SPACE_CAP;
+  const visibleCategories = selectedIsOverflow
+    ? [...categories.slice(0, VISIBLE_SPACE_CAP), categories.find((c) => c.id === selectedSpaceId)!]
+    : categories.slice(0, VISIBLE_SPACE_CAP);
 
   const discardDraft = () => {
     setCreating(false);
@@ -429,13 +430,38 @@ export default function CategoryManager({
               />
             ))}
             {overflowCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setExpanded(!showAll)}
-                className="mt-0.5 px-3 text-left text-[12px] text-muted-foreground hover:text-foreground"
-              >
-                {showAll ? "Show less" : `${overflowCount} more`}
-              </button>
+              <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
+                <PopoverTrigger
+                  className="mt-0.5 px-3 text-left text-[12px] text-muted-foreground hover:text-foreground"
+                >
+                  {overflowCount} more
+                </PopoverTrigger>
+                <PopoverBackdrop />
+                <PopoverContent
+                  side="right"
+                  align="start"
+                  sideOffset={8}
+                  className="w-[min(260px,calc(100vw-2rem))] max-h-[min(300px,50vh)] overflow-y-auto p-1.5"
+                >
+                  <div className="flex flex-col gap-1">
+                    {overflowCategories.map((category) => (
+                      <CategoryRow
+                        key={category.id}
+                        category={category}
+                        selected={selectedSpaceId === category.id}
+                        visible={!hiddenCategoryIds.includes(category.id)}
+                        onSelect={() => {
+                          onSelectSpace(category.id);
+                          setOverflowOpen(false);
+                        }}
+                        onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
+                        onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
+                        onDeleteCategory={() => onDeleteCategory(category)}
+                      />
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
         )}

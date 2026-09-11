@@ -1,12 +1,32 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { AlertTriangle, Calendar, ChevronRight, Loader2, Plus, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import { Popover, PopoverBackdrop, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  EVENT_COLOR_SWATCH_CLASSES,
+  isEventColor,
+  resolveDisplayColor,
+} from "@/lib/event-colors";
 import CategorySelect from "./CategorySelect";
-import { buildSidebarAgenda, summarizeSidebarAgenda } from "@/lib/sidebar-agenda";
+import {
+  buildSidebarAgenda,
+  summarizeSidebarAgenda,
+  taskDueLabel,
+  type SidebarAgendaSection,
+} from "@/lib/sidebar-agenda";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 
 interface AgendaSummaryProps {
@@ -17,7 +37,9 @@ interface AgendaSummaryProps {
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
-  onSummaryClick: () => void;
+  onToggleTaskComplete: (task: CalendarTask) => void;
+  onDeleteTask: (task: CalendarTask) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
 }
 
 // -- Task draft helpers -----------------------------------------------------
@@ -158,6 +180,167 @@ function CreateTaskForm({
   );
 }
 
+// -- Agenda detail rows -----------------------------------------------------
+
+function EventRow({
+  event,
+  allDay,
+  categories,
+  onEventClick,
+}: {
+  event: CalendarEvent;
+  allDay: boolean;
+  categories: CalendarCategory[];
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
+}) {
+  const displayColor = resolveDisplayColor(
+    event.color,
+    event.category_id,
+    event.color_overridden,
+    categories
+  );
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => onEventClick(event, e.currentTarget.getBoundingClientRect())}
+      className="flex min-h-10 w-full items-center gap-2 border-b border-border/70 px-1 py-2 text-left transition-colors last:border-b-0 hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      aria-label={`Edit event: ${event.title}`}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "size-3.5 shrink-0 rounded-[4px]",
+          isEventColor(displayColor)
+            ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
+            : "bg-muted-foreground/70"
+        )}
+      />
+      <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-foreground">
+        {event.title}
+      </span>
+      <span className="shrink-0 text-xs text-muted-foreground">
+        {allDay ? "All day" : format(new Date(event.start_at), "h:mm a")}
+      </span>
+    </button>
+  );
+}
+
+function TaskRow({
+  task,
+  onToggleComplete,
+  onDeleteTask,
+}: {
+  task: CalendarTask;
+  onToggleComplete: (task: CalendarTask) => void;
+  onDeleteTask: (task: CalendarTask) => void;
+}) {
+  const { label: dueLabel, overdue, dueToday } = taskDueLabel(task);
+  const urgent = !task.completed && (overdue || dueToday);
+
+  return (
+    <div className="group flex min-h-10 items-center gap-2 border-b border-border/70 px-1 py-2 last:border-b-0 hover:bg-muted/45">
+      <button
+        type="button"
+        onClick={() => onToggleComplete(task)}
+        aria-pressed={task.completed}
+        aria-label={task.completed ? "Mark as not done" : "Mark as done"}
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center rounded-[4px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          task.completed
+            ? "border-muted-foreground bg-muted-foreground text-foreground"
+            : "border-muted-foreground/70 text-transparent hover:border-muted-foreground"
+        )}
+      >
+        <Check className="size-3" strokeWidth={3} />
+      </button>
+
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-[13px]",
+          task.completed ? "text-muted-foreground line-through" : "text-foreground"
+        )}
+      >
+        {task.title}
+      </span>
+
+      <span
+        className={cn(
+          "shrink-0 rounded-md px-1.5 py-0.5 text-[11px]",
+          urgent
+            ? "bg-destructive/10 text-destructive"
+            : "bg-muted text-muted-foreground",
+          task.completed && "opacity-60"
+        )}
+      >
+        {dueLabel}
+      </span>
+
+      <button
+        type="button"
+        onClick={() => onDeleteTask(task)}
+        aria-label="Delete task"
+        className="shrink-0 text-muted-foreground transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
+      >
+        <Trash2 className="size-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function AgendaDetailList({
+  sections,
+  categories,
+  onEventClick,
+  onToggleComplete,
+  onDeleteTask,
+}: {
+  sections: SidebarAgendaSection[];
+  categories: CalendarCategory[];
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  onToggleComplete: (task: CalendarTask) => void;
+  onDeleteTask: (task: CalendarTask) => void;
+}) {
+  return (
+    <div>
+      {sections.map((section) => (
+        <section key={section.key} aria-labelledby={`agenda-${section.key}`}>
+          <h3
+            id={`agenda-${section.key}`}
+            className="border-b border-border px-1 pb-2 text-xs font-medium text-muted-foreground"
+          >
+            {section.heading}
+          </h3>
+          {section.items.length === 0 ? (
+            <p className="px-1 py-2.5 text-xs text-muted-foreground">Nothing scheduled</p>
+          ) : (
+            <div>
+              {section.items.map((item) =>
+                item.kind === "event" ? (
+                  <EventRow
+                    key={`event-${item.event.id}`}
+                    event={item.event}
+                    allDay={item.allDay}
+                    categories={categories}
+                    onEventClick={onEventClick}
+                  />
+                ) : (
+                  <TaskRow
+                    key={`task-${item.task.id}`}
+                    task={item.task}
+                    onToggleComplete={onToggleComplete}
+                    onDeleteTask={onDeleteTask}
+                  />
+                )
+              )}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // -- Summary text -----------------------------------------------------------
 
 function summaryText(eventCount: number, taskCount: number, overdueCount: number): string {
@@ -186,7 +369,9 @@ export default function AgendaSummary({
   categories,
   selectedSpaceId,
   onCreateTask,
-  onSummaryClick,
+  onToggleTaskComplete,
+  onDeleteTask,
+  onEventClick,
 }: AgendaSummaryProps) {
   const sections = buildSidebarAgenda(events, tasks, selectedDate);
   const summary = summarizeSidebarAgenda(sections, tasks);
@@ -204,6 +389,7 @@ export default function AgendaSummary({
   const isEmpty = summary.activeItemCount === 0;
   const hasOverdue = summary.overdueTaskCount > 0;
 
+  const [detailOpen, setDetailOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<TaskDraft | null>(null);
 
@@ -241,36 +427,56 @@ export default function AgendaSummary({
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={isEmpty ? undefined : onSummaryClick}
-              disabled={isEmpty}
-              aria-label={
-                isEmpty
-                  ? "Nothing scheduled"
-                  : hasOverdue
-                    ? "Agenda summary with overdue tasks"
-                    : "Agenda summary"
-              }
-              className={cn(
-                "flex min-h-[28px] min-w-0 flex-1 items-center gap-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                !isEmpty && "cursor-pointer"
-              )}
-            >
-              {hasOverdue ? (
-                <AlertTriangle className="size-4 shrink-0 text-destructive" />
-              ) : (
-                <Calendar className="size-4 shrink-0 text-muted-foreground" />
-              )}
-              <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
-                {isEmpty
-                  ? "Nothing scheduled"
-                  : summaryText(eventCount, taskCount, summary.overdueTaskCount)}
-              </span>
-              {!isEmpty && (
-                <ChevronRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
-              )}
-            </button>
+            <Popover open={detailOpen} onOpenChange={setDetailOpen}>
+              <PopoverTrigger
+                disabled={isEmpty}
+                aria-label={
+                  isEmpty
+                    ? "Nothing scheduled"
+                    : hasOverdue
+                      ? "Agenda summary with overdue tasks"
+                      : "Agenda summary"
+                }
+                className={cn(
+                  "flex min-h-[28px] min-w-0 flex-1 items-center gap-2.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  !isEmpty && "cursor-pointer"
+                )}
+              >
+                {hasOverdue ? (
+                  <AlertTriangle className="size-4 shrink-0 text-destructive" />
+                ) : (
+                  <Calendar className="size-4 shrink-0 text-muted-foreground" />
+                )}
+                <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+                  {isEmpty
+                    ? "Nothing scheduled"
+                    : summaryText(eventCount, taskCount, summary.overdueTaskCount)}
+                </span>
+                {!isEmpty && (
+                  <ChevronRight
+                    className={cn(
+                      "ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-150",
+                      detailOpen && "rotate-90"
+                    )}
+                  />
+                )}
+              </PopoverTrigger>
+              <PopoverBackdrop />
+              <PopoverContent
+                side="right"
+                align="start"
+                sideOffset={8}
+                className="w-[min(340px,calc(100vw-2rem))] max-h-[min(400px,70vh)] overflow-y-auto p-2.5"
+              >
+                <AgendaDetailList
+                  sections={sections}
+                  categories={categories}
+                  onEventClick={onEventClick}
+                  onToggleComplete={onToggleTaskComplete}
+                  onDeleteTask={onDeleteTask}
+                />
+              </PopoverContent>
+            </Popover>
 
             <Popover
               open={creating}

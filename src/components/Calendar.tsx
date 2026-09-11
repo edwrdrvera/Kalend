@@ -194,6 +194,9 @@ export default function Calendar() {
           tasksLoading={tasks.loading}
           eventsLoading={events.loading}
           onCreateTask={tasks.createTask}
+          onToggleTaskComplete={tasks.toggleComplete}
+          onDeleteTask={tasks.deleteTask}
+          onEventClick={handleEventClick}
           categories={categories.data}
           categoriesLoading={categories.loading}
           hiddenCategoryIds={hiddenSpaceIds}

@@ -18,6 +18,9 @@ interface CalendarSidebarProps {
   tasksLoading: boolean;
   eventsLoading: boolean;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
+  onToggleTaskComplete: (task: CalendarTask) => void;
+  onDeleteTask: (task: CalendarTask) => void;
+  onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
   categoriesLoading: boolean;
   selectedSpaceId: string | null;
@@ -41,6 +44,9 @@ export default function CalendarSidebar({
   tasksLoading,
   eventsLoading,
   onCreateTask,
+  onToggleTaskComplete,
+  onDeleteTask,
+  onEventClick,
   categories,
   categoriesLoading,
   selectedSpaceId,
@@ -110,7 +116,9 @@ export default function CalendarSidebar({
           categories={categories}
           selectedSpaceId={selectedSpaceId}
           onCreateTask={onCreateTask}
-          onSummaryClick={() => {}}
+          onToggleTaskComplete={onToggleTaskComplete}
+          onDeleteTask={onDeleteTask}
+          onEventClick={onEventClick}
         />
 
         <div className="shrink-0 border-t border-border pt-2">

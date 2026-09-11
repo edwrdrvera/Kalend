@@ -401,7 +401,7 @@ describe("CategoryManager overflow toggle", () => {
     expect(document.body.textContent).toContain("2 more");
   });
 
-  it("expands the full list on toggle click and collapses again", async () => {
+  it("opens a popover with overflow spaces on toggle click", async () => {
     await renderManager({ categories: manyCategories });
 
     const toggle = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
@@ -410,23 +410,16 @@ describe("CategoryManager overflow toggle", () => {
     expect(toggle).toBeDefined();
 
     await act(() => toggle?.click());
+    // Overflow spaces appear in the popover
     expect(nameButton("Fitness")).toBeDefined();
     expect(nameButton("Side Project")).toBeDefined();
-    expect(document.body.textContent).toContain("Show less");
-
-    const collapse = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
-      b.textContent?.includes("Show less")
-    );
-    await act(() => collapse?.click());
-    expect(nameButton("Fitness")).toBeUndefined();
-    expect(nameButton("Side Project")).toBeUndefined();
   });
 
-  it("auto-expands when the selected space is hidden", async () => {
+  it("shows the selected space inline even when it would overflow", async () => {
     await renderManager({ categories: manyCategories, selectedSpaceId: "space-5" });
 
     // "Side Project" is the 5th space and would normally be hidden,
-    // but it's selected so the list auto-expands.
+    // but it's selected so it appears inline.
     expect(nameButton("Side Project")).toBeDefined();
   });
 });

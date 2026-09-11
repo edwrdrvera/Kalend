@@ -62,8 +62,14 @@ function byLabel(label: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[aria-label="${label}"]`);
 }
 
+interface Interactions {
+  eventClicks: string[];
+  taskToggles: string[];
+  taskDeletes: string[];
+}
+
 async function renderSummary(options: RenderOptions = {}) {
-  const clicks: number[] = [];
+  const interactions: Interactions = { eventClicks: [], taskToggles: [], taskDeletes: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -77,11 +83,13 @@ async function renderSummary(options: RenderOptions = {}) {
         categories,
         selectedSpaceId: null,
         onCreateTask: async () => {},
-        onSummaryClick: () => clicks.push(1),
+        onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
+        onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
+        onEventClick: (event) => interactions.eventClicks.push(event.id),
       })
     )
   );
-  return clicks;
+  return interactions;
 }
 
 describe("AgendaSummary display states", () => {
@@ -136,20 +144,31 @@ describe("AgendaSummary display states", () => {
 });
 
 describe("AgendaSummary interactions", () => {
-  it("calls onSummaryClick when clicked in normal state", async () => {
-    const clicks = await renderSummary({ events: [makeEvent()] });
+  it("opens agenda detail popover when clicked in normal state", async () => {
+    const interactions = await renderSummary({
+      events: [makeEvent()],
+      tasks: [makeTask()],
+    });
 
     await act(() => byLabel("Agenda summary")?.click());
-    expect(clicks).toEqual([1]);
+    // The popover should show the event and task details
+    expect(byLabel("Edit event: Biology lecture")).not.toBeNull();
+    expect(byLabel("Mark as done")).not.toBeNull();
+    expect(byLabel("Delete task")).not.toBeNull();
+
+    // Interactions work within the popover
+    await act(() => byLabel("Mark as done")?.click());
+    expect(interactions.taskToggles).toEqual(["task-1"]);
+
+    await act(() => byLabel("Delete task")?.click());
+    expect(interactions.taskDeletes).toEqual(["task-1"]);
   });
 
-  it("does not fire onSummaryClick in empty state", async () => {
-    const clicks = await renderSummary();
+  it("does not open in empty state", async () => {
+    await renderSummary();
 
     const button = byLabel("Nothing scheduled") as HTMLButtonElement | null;
     expect(button?.disabled).toBe(true);
-    await act(() => button?.click());
-    expect(clicks).toEqual([]);
   });
 
   it("opens the task creation popover from the + button", async () => {
