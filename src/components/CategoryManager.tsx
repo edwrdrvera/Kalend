@@ -120,27 +120,14 @@ function CategoryRow({
           )}
         />
       )}
-      <button
-        type="button"
-        onClick={onToggleVisibility}
-        aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
-        aria-pressed={visible}
-        title={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
+      <span
+        aria-hidden
         className={cn(
-          "relative grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
-          !visible && "text-foreground"
+          "ml-1.5 size-3 shrink-0 rounded-[4px]",
+          EVENT_COLOR_SWATCH_CLASSES[color],
+          !visible && "opacity-30 grayscale"
         )}
-      >
-        {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-        <span
-          aria-hidden
-          className={cn(
-            "absolute bottom-1 right-1 size-1.5 rounded-full ring-1 ring-background",
-            EVENT_COLOR_SWATCH_CLASSES[color],
-            !visible && "opacity-45 grayscale"
-          )}
-        />
-      </button>
+      />
 
       {editing ? (
         <input
@@ -189,16 +176,30 @@ function CategoryRow({
           </button>
         </div>
       ) : (
-        <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
-          <PopoverTrigger
-            aria-label={`More actions for ${category.name}`}
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onToggleVisibility}
+            aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
+            aria-pressed={visible}
+            title={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
             className={cn(
-              "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
+              "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100",
               selected && "md:opacity-100"
             )}
           >
-            <Ellipsis className="size-4" />
-          </PopoverTrigger>
+            {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+          </button>
+          <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
+            <PopoverTrigger
+              aria-label={`More actions for ${category.name}`}
+              className={cn(
+                "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
+                selected && "md:opacity-100"
+              )}
+            >
+              <Ellipsis className="size-4" />
+            </PopoverTrigger>
           <PopoverContent align="end" className="w-48 gap-1 p-1.5">
             <button
               type="button"
@@ -237,6 +238,7 @@ function CategoryRow({
             </button>
           </PopoverContent>
         </Popover>
+        </div>
       )}
 
       {error && <p className="w-full px-11 pb-2 text-xs text-destructive">{error}</p>}

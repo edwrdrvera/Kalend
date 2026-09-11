@@ -141,20 +141,45 @@ describe("CategoryManager selection", () => {
     expect(selected?.parentElement?.querySelector(".absolute.inset-y-1\\.5")).not.toBeNull();
   });
 
-  it("uses visibility icons and muted text without presenting hidden Spaces as completed", async () => {
+  it("leads with a passive color swatch and dims it when hidden", async () => {
     await renderManager({ hiddenCategoryIds: ["space-1"] });
 
+    // The swatch is a plain span, not a button — it identifies color, nothing else.
+    const workRow = nameButton("Work")?.parentElement;
+    const swatch = workRow?.querySelector("span.size-3");
+    expect(swatch).not.toBeNull();
+    expect(swatch?.className).toContain("opacity-30");
+    expect(swatch?.className).toContain("grayscale");
+
+    // Visible spaces have a full-color swatch without dimming.
+    const personalRow = nameButton("Personal")?.parentElement;
+    const personalSwatch = personalRow?.querySelector("span.size-3");
+    expect(personalSwatch).not.toBeNull();
+    expect(personalSwatch?.className).not.toContain("opacity-30");
+  });
+
+  it("shows the visibility toggle on hover alongside the ellipsis", async () => {
+    await renderManager({ hiddenCategoryIds: ["space-1"] });
+
+    // The visibility toggle exists and has the correct label.
     const visibility = byLabel("Show Work on calendar");
-    expect(visibility?.getAttribute("title")).toBe("Show Work on calendar");
+    expect(visibility).not.toBeNull();
     expect(visibility?.querySelector("svg")).not.toBeNull();
+
+    // Hidden spaces still use muted text without line-through.
     expect(nameButton("Work")?.className).toContain("opacity-65");
     expect(nameButton("Work")?.className).not.toContain("line-through");
   });
 
-  it("keeps the selected row action visible without hover", async () => {
+  it("keeps the selected row actions visible without hover", async () => {
     await renderManager({ selectedSpaceId: "space-1" });
 
+    // Both the visibility toggle and the ellipsis stay visible on selected rows.
+    expect(byLabel("Hide Work on calendar")?.className).toContain("md:opacity-100");
     expect(byLabel("More actions for Work")?.className).toContain("md:opacity-100");
+
+    // Non-selected rows reveal on hover/focus.
+    expect(byLabel("Hide Personal on calendar")?.className).toContain("md:group-hover:opacity-100");
     expect(byLabel("More actions for Personal")?.className).toContain("md:group-focus-within:opacity-100");
   });
 
