@@ -1,9 +1,11 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Check,
   Ellipsis,
+  Eye,
+  EyeOff,
   Layers3,
   Loader2,
   Pencil,
@@ -105,21 +107,39 @@ function CategoryRow({
   return (
     <div
       className={cn(
-        "group flex min-h-9 flex-wrap items-center gap-1 rounded-lg px-1 transition-colors hover:bg-muted/60",
+        "group relative flex min-h-9 flex-wrap items-center gap-1 rounded-lg px-1 transition-colors hover:bg-muted/60 focus-within:bg-muted/40",
         selected && "bg-muted"
       )}
     >
+      {selected && (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-y-1.5 left-0 w-0.5 rounded-full",
+            EVENT_COLOR_SWATCH_CLASSES[color]
+          )}
+        />
+      )}
       <button
         type="button"
         onClick={onToggleVisibility}
         aria-label={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
         aria-pressed={visible}
+        title={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
         className={cn(
-          "grid size-7 shrink-0 place-items-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring",
-          visible ? "opacity-100" : "opacity-30 grayscale"
+          "relative grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+          !visible && "text-foreground"
         )}
       >
-        <span className={cn("size-3 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[color])} />
+        {visible ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+        <span
+          aria-hidden
+          className={cn(
+            "absolute bottom-1 right-1 size-1.5 rounded-full ring-1 ring-background",
+            EVENT_COLOR_SWATCH_CLASSES[color],
+            !visible && "opacity-45 grayscale"
+          )}
+        />
       </button>
 
       {editing ? (
@@ -140,8 +160,8 @@ function CategoryRow({
           onClick={onSelect}
           aria-current={selected ? "true" : undefined}
           className={cn(
-            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            !visible && "text-muted-foreground line-through",
+            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            !visible && "text-muted-foreground opacity-65",
             selected && "font-semibold"
           )}
         >
@@ -172,7 +192,10 @@ function CategoryRow({
         <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
           <PopoverTrigger
             aria-label={`More actions for ${category.name}`}
-            className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground"
+            className={cn(
+              "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
+              selected && "md:opacity-100"
+            )}
           >
             <Ellipsis className="size-4" />
           </PopoverTrigger>
@@ -223,46 +246,73 @@ function CategoryRow({
 
 function CreateCategoryForm({
   open,
-  onClose,
+  draft,
+  onDraftChange,
+  onDismiss,
+  onDiscard,
   onCreateCategory,
 }: {
   open: boolean;
-  onClose: () => void;
+  draft: { name: string; color: EventColor };
+  onDraftChange: (draft: { name: string; color: EventColor }) => void;
+  onDismiss: () => void;
+  onDiscard: () => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Close the form when focus leaves it entirely, but only if the user
-  // hasn't started typing (don't discard their work).
-  const handleBlur = (e: FocusEvent) => {
-    if (name.trim() || submitting) return;
-    const next = e.relatedTarget as Node | null;
-    if (next && formRef.current?.contains(next)) return;
-    close();
-  };
-
-  const close = () => {
-    onClose();
-    setName("");
-    setColor(DEFAULT_EVENT_COLOR);
+  const discard = () => {
+    onDiscard();
     setError(null);
     setSubmitting(false);
   };
 
+  useEffect(() => {
+    if (!open) return;
+
+    const pickerPopupContains = (target: Node) => {
+      const trigger = formRef.current?.querySelector<HTMLElement>(
+        '[aria-label^="Change color"][aria-expanded="true"]'
+      );
+      const popupId = trigger?.getAttribute("aria-controls");
+      return popupId ? document.getElementById(popupId)?.contains(target) : false;
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || formRef.current?.contains(target)) return;
+      if (pickerPopupContains(target)) return;
+      onDismiss();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const openPicker = formRef.current?.querySelector(
+        '[aria-label^="Change color"][aria-expanded="true"]'
+      );
+      if (!openPicker) discard();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  });
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!name.trim() || submitting) return;
+    if (!draft.name.trim() || submitting) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await onCreateCategory(name.trim(), color);
-      close();
+      await onCreateCategory(draft.name.trim(), draft.color);
+      discard();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create Space");
       setSubmitting(false);
@@ -272,17 +322,16 @@ function CreateCategoryForm({
   if (!open) return null;
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} onBlur={handleBlur} className="flex flex-col gap-1.5 border-y border-border py-1.5">
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-1.5 border-y border-border py-1.5">
       <div className="flex min-h-9 items-center gap-1">
         <ColorSwatchPicker
-          color={color}
-          onColorChange={setColor}
+          color={draft.color}
+          onColorChange={(color) => onDraftChange({ ...draft, color })}
           className="mx-1.5 size-3 rounded-[3px] ring-offset-muted"
         />
         <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          onKeyDown={(event) => event.key === "Escape" && close()}
+          value={draft.name}
+          onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
           placeholder="Space name"
           aria-label="New Space name"
           autoFocus
@@ -290,7 +339,7 @@ function CreateCategoryForm({
         />
         <button
           type="submit"
-          disabled={!name.trim() || submitting}
+          disabled={!draft.name.trim() || submitting}
           aria-label="Add Space"
           className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
         >
@@ -298,7 +347,7 @@ function CreateCategoryForm({
         </button>
         <button
           type="button"
-          onClick={close}
+          onClick={discard}
           aria-label="Cancel"
           className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -323,6 +372,13 @@ export default function CategoryManager({
   onDeleteCategory,
 }: CategoryManagerProps) {
   const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
+  const hasDraft = Boolean(draft.name.trim()) || draft.color !== DEFAULT_EVENT_COLOR;
+
+  const discardDraft = () => {
+    setCreating(false);
+    setDraft({ name: "", color: DEFAULT_EVENT_COLOR });
+  };
 
   return (
     <div className="flex flex-col px-4 pb-2 pt-4">
@@ -330,19 +386,31 @@ export default function CategoryManager({
         <h2 className="text-xs font-semibold text-foreground">Spaces</h2>
         <button
           type="button"
-          onClick={() => setCreating((current) => !current)}
+          onClick={() => (creating ? discardDraft() : setCreating(true))}
           aria-label={creating ? "Cancel creating Space" : "Create a Space"}
           aria-expanded={creating}
+          title={!creating && hasDraft ? "Continue Space draft" : undefined}
           className="grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
         >
-          {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+          <span className="relative">
+            {creating ? <X className="size-4" /> : <Plus className="size-4" />}
+            {!creating && hasDraft && (
+              <span
+                aria-label="Space draft saved"
+                className="absolute -right-1 -top-1 size-1.5 rounded-full bg-primary"
+              />
+            )}
+          </span>
         </button>
       </div>
 
       <div className="mt-1.5 flex flex-col gap-1">
         <CreateCategoryForm
           open={creating}
-          onClose={() => setCreating(false)}
+          draft={draft}
+          onDraftChange={setDraft}
+          onDismiss={() => setCreating(false)}
+          onDiscard={discardDraft}
           onCreateCategory={onCreateCategory}
         />
 
@@ -355,7 +423,7 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-xs font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-9 items-center gap-1 rounded-lg px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring",
                 selectedSpaceId === null && "bg-muted font-semibold"
               )}
             >

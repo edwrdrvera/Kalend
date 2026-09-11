@@ -43,6 +43,7 @@ interface RenderOptions {
   hiddenCategoryIds?: string[];
   loading?: boolean;
   onDeleteCategory?: (category: CalendarCategory) => Promise<void>;
+  onCreateCategory?: (name: string, color: string) => Promise<void>;
 }
 
 async function renderManager(options: RenderOptions = {}) {
@@ -59,7 +60,7 @@ async function renderManager(options: RenderOptions = {}) {
         onSelectSpace: (spaceId) => calls.selected.push(spaceId),
         hiddenCategoryIds: options.hiddenCategoryIds ?? [],
         onToggleCategoryVisibility: (categoryId) => calls.toggled.push(categoryId),
-        onCreateCategory: async () => {},
+        onCreateCategory: options.onCreateCategory ?? (async () => {}),
         onUpdateCategory: (category, updates) => calls.updated.push({ category, updates }),
         onDeleteCategory:
           options.onDeleteCategory ??
@@ -85,6 +86,10 @@ function byLabel(label: string): HTMLElement | null {
 
 function pressKey(element: HTMLElement, key: string) {
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+}
+
+function pointerDown(element: HTMLElement) {
+  element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
 }
 
 async function openActions(name: string) {
@@ -133,6 +138,24 @@ describe("CategoryManager selection", () => {
     // Weight, not just a tinted background, distinguishes the selected row.
     expect(selected?.className).toContain("font-semibold");
     expect(unselected?.className).not.toContain("font-semibold");
+    expect(selected?.parentElement?.querySelector(".absolute.inset-y-1\\.5")).not.toBeNull();
+  });
+
+  it("uses visibility icons and muted text without presenting hidden Spaces as completed", async () => {
+    await renderManager({ hiddenCategoryIds: ["space-1"] });
+
+    const visibility = byLabel("Show Work on calendar");
+    expect(visibility?.getAttribute("title")).toBe("Show Work on calendar");
+    expect(visibility?.querySelector("svg")).not.toBeNull();
+    expect(nameButton("Work")?.className).toContain("opacity-65");
+    expect(nameButton("Work")?.className).not.toContain("line-through");
+  });
+
+  it("keeps the selected row action visible without hover", async () => {
+    await renderManager({ selectedSpaceId: "space-1" });
+
+    expect(byLabel("More actions for Work")?.className).toContain("md:opacity-100");
+    expect(byLabel("More actions for Personal")?.className).toContain("md:group-focus-within:opacity-100");
   });
 
   it("marks All Spaces as current when nothing is focused", async () => {
@@ -241,5 +264,82 @@ describe("CategoryManager rename", () => {
     expect(byLabel("Rename Work")).not.toBeNull();
     expect(byLabel("Change color, currently green")).not.toBeNull();
     expect(byLabel("Delete Work")).not.toBeNull();
+  });
+});
+
+describe("CategoryManager creation drafts", () => {
+  it("closes an empty composer on outside interaction", async () => {
+    await renderManager();
+    await act(() => byLabel("Create a Space")?.click());
+
+    await act(() => pointerDown(nameButton("Work") as HTMLButtonElement));
+    expect(byLabel("New Space name")).toBeNull();
+    expect(byLabel("Space draft saved")).toBeNull();
+  });
+
+  it("collapses on outside interaction and restores a nonempty draft", async () => {
+    await renderManager();
+    await act(() => byLabel("Create a Space")?.click());
+    const input = byLabel("New Space name") as HTMLInputElement;
+    await act(() => typeInto(input, "Research"));
+
+    await act(() => pointerDown(nameButton("Work") as HTMLButtonElement));
+    expect(byLabel("New Space name")).toBeNull();
+    expect(byLabel("Space draft saved")).not.toBeNull();
+
+    await act(() => byLabel("Create a Space")?.click());
+    expect((byLabel("New Space name") as HTMLInputElement).value).toBe("Research");
+  });
+
+  it("discards the draft on Escape", async () => {
+    await renderManager();
+    await act(() => byLabel("Create a Space")?.click());
+    await act(() => typeInto(byLabel("New Space name") as HTMLInputElement, "Discard me"));
+    await act(() => pressKey(byLabel("New Space name") as HTMLInputElement, "Escape"));
+
+    expect(byLabel("New Space name")).toBeNull();
+    expect(byLabel("Space draft saved")).toBeNull();
+    await act(() => byLabel("Create a Space")?.click());
+    expect((byLabel("New Space name") as HTMLInputElement).value).toBe("");
+  });
+
+  it("discards the draft from Cancel", async () => {
+    await renderManager();
+    await act(() => byLabel("Create a Space")?.click());
+    await act(() => typeInto(byLabel("New Space name") as HTMLInputElement, "Discard me"));
+    await act(() => byLabel("Cancel")?.click());
+
+    expect(byLabel("Space draft saved")).toBeNull();
+    await act(() => byLabel("Create a Space")?.click());
+    expect((byLabel("New Space name") as HTMLInputElement).value).toBe("");
+  });
+
+  it("does not dismiss while choosing a color from the portaled picker", async () => {
+    await renderManager();
+    await act(() => byLabel("Create a Space")?.click());
+    await act(() => byLabel("Change color, currently blue")?.click());
+    const green = byLabel("green");
+    expect(green).not.toBeNull();
+
+    await act(() => pointerDown(green as HTMLButtonElement));
+    await act(() => green?.click());
+    expect(byLabel("New Space name")).not.toBeNull();
+    expect(byLabel("Change color, currently green")).not.toBeNull();
+  });
+
+  it("clears the draft after successful creation", async () => {
+    const created: Array<{ name: string; color: string }> = [];
+    await renderManager({
+      onCreateCategory: async (name, color) => {
+        created.push({ name, color });
+      },
+    });
+    await act(() => byLabel("Create a Space")?.click());
+    await act(() => typeInto(byLabel("New Space name") as HTMLInputElement, "Research"));
+    await act(async () => byLabel("Add Space")?.click());
+
+    expect(created).toEqual([{ name: "Research", color: "blue" }]);
+    expect(byLabel("New Space name")).toBeNull();
+    expect(byLabel("Space draft saved")).toBeNull();
   });
 });
