@@ -11,6 +11,7 @@ const spaces = [
 const event: CalendarEvent = {
   id: "event-1", title: "Lecture", start_at: "2026-09-08T10:00:00Z",
   end_at: "2026-09-08T11:00:00Z", color: "blue", category_id: "space-1", color_overridden: false,
+  location: null, icon: null,
 };
 
 describe("event editor Space color transitions", () => {
@@ -84,6 +85,7 @@ describe("event editor Space color transitions", () => {
     const detached = eventColorReducer(reset, { type: "space", categoryId: null, categories: spaces });
     const payload = (state: typeof picked) => JSON.parse(JSON.stringify(eventFormPayload({
       ...state, title: event.title, startAt: event.start_at, endAt: event.end_at,
+      location: null, icon: null,
     })));
     expect(payload(picked)).toMatchObject({ color: "orange", color_overridden: true, category_id: "space-1" });
     expect(payload(reset)).toMatchObject({ color_overridden: false, category_id: "space-1" });

@@ -18,6 +18,8 @@ function makeEvent(
     color: overrides.color ?? null,
     color_overridden: overrides.color_overridden ?? false,
     category_id: overrides.category_id ?? null,
+    location: overrides.location ?? null,
+    icon: overrides.icon ?? null,
   };
 }
 

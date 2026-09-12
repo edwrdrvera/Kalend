@@ -512,12 +512,15 @@ export default function TimeGrid({
                 const displayHeight = isResizing
                   ? ((resizeDrag.liveEndMinutes - resizeDrag.liveStartMinutes) / MINUTES_PER_DAY) * 100
                   : height;
+                // Below this block height there's only room for the title and
+                // time range; the location line would run into the border.
+                const showLocation = Boolean(event.location) && height >= (45 / MINUTES_PER_DAY) * 100;
 
                 return (
                   <button
                     key={event.id}
                     type="button"
-                    title={event.title}
+                    title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onPointerMove={handleMovePointerMove}
                     onPointerUp={() => handleMovePointerUp(event)}
@@ -541,10 +544,18 @@ export default function TimeGrid({
                      *  including in a MIN_BLOCK_HEIGHT_PERCENT-clamped short
                      *  event, where flow content could otherwise center or
                      *  drift within the padded box. */}
-                    <span className="absolute inset-x-1.5 top-0.5 truncate">{event.title}</span>
+                    <span className="absolute inset-x-1.5 top-0.5 truncate">
+                      {event.icon && <span className="mr-1">{event.icon}</span>}
+                      {event.title}
+                    </span>
                     <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-80">
                       {format(new Date(event.start_at), "h:mm")} – {format(new Date(event.end_at), "h:mm")}
                     </span>
+                    {showLocation && (
+                      <span className="absolute inset-x-1.5 top-9 truncate text-[11px] font-medium opacity-70">
+                        {event.location}
+                      </span>
+                    )}
 
                     {onEventResize && !moveDrag?.moved && (
                       <>
@@ -596,7 +607,10 @@ export default function TimeGrid({
           >
             {/* Same top-left-pinned title treatment as the real block above,
              *  so the name doesn't drift within the ghost either. */}
-            <span className="absolute inset-x-1.5 top-0.5 truncate">{draggedEvent.title}</span>
+            <span className="absolute inset-x-1.5 top-0.5 truncate">
+              {draggedEvent.icon && <span className="mr-1">{draggedEvent.icon}</span>}
+              {draggedEvent.title}
+            </span>
           </div>
         )}
       </div>

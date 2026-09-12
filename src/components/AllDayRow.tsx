@@ -83,7 +83,7 @@ export default function AllDayRow({
               <button
                 key={event.id}
                 type="button"
-                title={event.title}
+                title={event.location ? `${event.title} (${event.location})` : event.title}
                 onClick={(e) => onEventClick?.(event, e.currentTarget.getBoundingClientRect())}
                 style={{
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
@@ -91,6 +91,7 @@ export default function AllDayRow({
                 }}
                 className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
               >
+                {event.icon && <span className="mr-1">{event.icon}</span>}
                 {event.title}
               </button>
             ))}

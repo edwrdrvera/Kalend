@@ -9,8 +9,10 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 interface RouteContext { params: Promise<{ id: string }>; }
-interface UpdateEventBody { title?: unknown; start_at?: unknown; end_at?: unknown; color?: unknown; color_overridden?: unknown; category_id?: unknown; }
+interface UpdateEventBody { title?: unknown; start_at?: unknown; end_at?: unknown; color?: unknown; color_overridden?: unknown; category_id?: unknown; location?: unknown; icon?: unknown; }
 const badRequest = (error: string) => NextResponse.json({ success: false, error }, { status: 400 });
+const MAX_LOCATION_LENGTH = 500;
+const MAX_ICON_LENGTH = 10;
 
 export async function PATCH(request: Request, { params }: RouteContext) {
   try {
@@ -26,11 +28,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     if (body.color !== undefined && (typeof body.color !== "string" || !isEventColor(body.color))) return badRequest("color must be a supported color");
     if (body.color_overridden !== undefined && typeof body.color_overridden !== "boolean") return badRequest("color_overridden must be a boolean");
     if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) return badRequest("Space must be a valid identifier");
+    if (body.location !== undefined && body.location !== null && (typeof body.location !== "string" || body.location.length > MAX_LOCATION_LENGTH)) return badRequest(`location must be a string of at most ${MAX_LOCATION_LENGTH} characters`);
+    if (body.icon !== undefined && body.icon !== null && (typeof body.icon !== "string" || body.icon.length > MAX_ICON_LENGTH)) return badRequest(`icon must be a string of at most ${MAX_ICON_LENGTH} characters`);
     const startAt = body.start_at === undefined ? undefined : new Date(body.start_at);
     const endAt = body.end_at === undefined ? undefined : new Date(body.end_at);
     if (startAt && Number.isNaN(startAt.getTime())) return badRequest("start_at must be a valid date");
     if (endAt && Number.isNaN(endAt.getTime())) return badRequest("end_at must be a valid date");
-    if (![body.title, body.start_at, body.end_at, body.color, body.color_overridden, body.category_id].some((v) => v !== undefined)) return badRequest("No updatable fields provided");
+    if (![body.title, body.start_at, body.end_at, body.color, body.color_overridden, body.category_id, body.location, body.icon].some((v) => v !== undefined)) return badRequest("No updatable fields provided");
 
     const result = await retryTransaction(() => db.transaction(async (tx) => {
       const [existing] = await tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for("update");
@@ -51,6 +55,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       if (startAt) updates.start_at = startAt;
       if (endAt) updates.end_at = endAt;
       if (body.category_id !== undefined) updates.category_id = body.category_id as string | null;
+      if (body.location !== undefined) updates.location = body.location as string | null;
+      if (body.icon !== undefined) updates.icon = body.icon as string | null;
       if (body.color_overridden !== undefined) updates.color_overridden = body.color_overridden as boolean;
       if (body.color !== undefined) updates.color = body.color as string;
       else if (body.category_id === null || (body.color_overridden === false && !targetCategory)) updates.color = visibleColor;

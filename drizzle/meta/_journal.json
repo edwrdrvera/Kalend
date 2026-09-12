@@ -57,6 +57,13 @@
       "when": 1788671506563,
       "tag": "0007_new_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789247770217,
+      "tag": "0008_noisy_lady_ursula",
+      "breakpoints": true
     }
   ]
 }
