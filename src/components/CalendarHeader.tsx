@@ -37,7 +37,7 @@ export default function CalendarHeader({
           </button>
           <button
             onClick={onToday}
-            className="hidden h-8 rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+            className="hidden h-8 items-center rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
           >
             Today
           </button>

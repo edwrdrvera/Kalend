@@ -103,7 +103,6 @@ export default function DayGrid({
         className="flex flex-1 flex-col overflow-y-auto"
       >
         <div className="sticky top-0 z-10">
-          <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
           <AllDayRow
             days={days}
             events={events}
