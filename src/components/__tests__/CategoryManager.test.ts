@@ -99,8 +99,11 @@ function pressKey(element: HTMLElement, key: string) {
   element.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 }
 
-function pointerDown(element: HTMLElement) {
-  element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
+/** Simulates an outside interaction that dismisses a base-ui Popover.
+ *  Non-modal popovers use `intentional` outside-press detection, which
+ *  responds to `click`, not raw `pointerdown`. */
+function clickOutside(element: HTMLElement) {
+  element.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
 }
 
 async function openActions(name: string) {
@@ -308,7 +311,7 @@ describe("CategoryManager creation drafts", () => {
     await renderManager();
     await act(() => byLabel("Create a Space")?.click());
 
-    await act(() => pointerDown(nameButton("Work") as HTMLButtonElement));
+    await act(() => clickOutside(nameButton("Work") as HTMLButtonElement));
     expect(byLabel("New Space name")).toBeNull();
     expect(byLabel("Space draft saved")).toBeNull();
   });
@@ -319,7 +322,7 @@ describe("CategoryManager creation drafts", () => {
     const input = byLabel("New Space name") as HTMLInputElement;
     await act(() => typeInto(input, "Research"));
 
-    await act(() => pointerDown(nameButton("Work") as HTMLButtonElement));
+    await act(() => clickOutside(nameButton("Work") as HTMLButtonElement));
     expect(byLabel("New Space name")).toBeNull();
     expect(byLabel("Space draft saved")).not.toBeNull();
 
@@ -357,7 +360,6 @@ describe("CategoryManager creation drafts", () => {
     const green = byLabel("green");
     expect(green).not.toBeNull();
 
-    await act(() => pointerDown(green as HTMLButtonElement));
     await act(() => green?.click());
     expect(byLabel("New Space name")).not.toBeNull();
     expect(byLabel("Change color, currently green")).not.toBeNull();
