@@ -363,7 +363,7 @@ export default function CalendarSidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Open sidebar"
-        className="absolute left-3 top-3 z-30 grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm md:hidden"
+        className="absolute left-3 top-[9px] z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
       >
         <Menu className="size-4" />
       </button>
@@ -399,7 +399,7 @@ export default function CalendarSidebar({
       <aside
         style={{ "--sidebar-w": `${width}px` } as React.CSSProperties}
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-[min(320px,calc(100vw-2rem))] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[var(--sidebar-w)] md:translate-x-0 md:shadow-none md:transition-none",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:relative md:z-auto md:w-[var(--sidebar-w)] md:translate-x-0 md:shadow-none md:transition-none",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed && "md:hidden",
           dragging && "select-none"
@@ -409,12 +409,12 @@ export default function CalendarSidebar({
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+          className="absolute right-4 top-4 z-10 grid size-8 place-items-center rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
         >
           <X className="size-4" />
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto pt-14 md:pt-0">
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}

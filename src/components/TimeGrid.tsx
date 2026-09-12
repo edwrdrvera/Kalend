@@ -447,14 +447,14 @@ export default function TimeGrid({
   return (
     <div className="flex">
       {/* Hour labels — border-r connects to the column grid's left edge */}
-      <div className="w-16 shrink-0 border-r border-border">
+      <div className="w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
           <div
             key={hour}
             style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-3 text-right text-xs text-muted-foreground"
+            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-xs"
           >
-            <span className="relative -top-2">{formatHourLabel(hour)}</span>
+            <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
         ))}
       </div>
