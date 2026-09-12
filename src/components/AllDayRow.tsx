@@ -38,7 +38,7 @@ export default function AllDayRow({
   const hasTasks = tasksByDay.some((dayTasks) => dayTasks.length > 0);
 
   return (
-    <div className="flex min-h-[50px] shrink-0 border-b border-border bg-card">
+    <div className="flex min-h-[50px] shrink-0 select-none border-b border-border bg-card">
       <div className="flex w-10 shrink-0 items-start justify-end border-r border-border pr-1 pt-4 sm:w-16 sm:pr-3">
         <span className="text-[10px] leading-none text-muted-foreground sm:text-xs">all-day</span>
       </div>
