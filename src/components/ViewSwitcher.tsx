@@ -26,14 +26,14 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           onClick={() => onViewChange(value)}
           aria-pressed={view === value}
           className={cn(
-            "h-8 border-r border-border px-1.5 transition-colors last:border-r-0 sm:px-2.5",
+            "h-8 border-r border-border px-1.5 transition-colors last:border-r-0 md:px-2.5",
             view === value
               ? "bg-muted text-foreground"
               : "hover:bg-muted/50 hover:text-foreground"
           )}
         >
-          <span className="sm:hidden">{short}</span>
-          <span className="hidden sm:inline">{label}</span>
+          <span className="md:hidden">{short}</span>
+          <span className="hidden md:inline">{label}</span>
         </button>
       ))}
     </div>

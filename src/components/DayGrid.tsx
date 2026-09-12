@@ -47,7 +47,7 @@ function DayColumnHeader({
 
   return (
     <div className={cn(
-      "hidden shrink-0 border-b border-border bg-background sm:flex",
+      "hidden shrink-0 border-b border-border bg-background md:flex",
       isToday && "bg-primary/[0.03]"
     )}>
       <div className="w-10 shrink-0 border-r border-border sm:w-16" />
