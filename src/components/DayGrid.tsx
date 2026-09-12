@@ -94,19 +94,21 @@ export default function DayGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
-      <AllDayRow
-        days={days}
-        events={events}
-        tasks={tasks}
-        categories={categories}
-        onEventClick={onEventClick}
-        onTaskClick={onTaskClick}
-      />
       <div
         ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
       >
+        <div className="sticky top-0 z-10">
+          <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
+          <AllDayRow
+            days={days}
+            events={events}
+            tasks={tasks}
+            categories={categories}
+            onEventClick={onEventClick}
+            onTaskClick={onTaskClick}
+          />
+        </div>
         <TimeGrid
           days={days}
           events={timedEvents}

@@ -399,7 +399,7 @@ export default function CalendarSidebar({
       <aside
         style={{ "--sidebar-w": `${width}px` } as React.CSSProperties}
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-[min(320px,calc(100vw-2rem))] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[var(--sidebar-w)] md:translate-x-0 md:shadow-none",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-[min(320px,calc(100vw-2rem))] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-[var(--sidebar-w)] md:translate-x-0 md:shadow-none md:transition-none",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           collapsed && "md:hidden",
           dragging && "select-none"
@@ -409,7 +409,7 @@ export default function CalendarSidebar({
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute right-12 top-6 z-10 grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+          className="absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
         >
           <X className="size-4" />
         </button>
@@ -450,7 +450,7 @@ export default function CalendarSidebar({
             onDateSelect={onDateSelect}
             collapsible
           />
-          <div className="border-t border-border px-2 py-1.5">
+          <div className="flex items-center justify-end border-t border-border px-2 py-1.5">
             <SettingsMenu />
           </div>
         </div>

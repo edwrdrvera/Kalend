@@ -105,10 +105,18 @@ export default function EventCreatePopover({
   // to the chosen side.
   const rawTop = anchorRect.top + anchorRect.height / 2 - POPOVER_HEIGHT_ESTIMATE / 2;
   const top = Math.max(8, Math.min(rawTop, window.innerHeight - POPOVER_HEIGHT_ESTIMATE - 8));
+  // On viewports narrower than the panel (plus its 8px margins), shrink the
+  // panel to fit instead of letting it overflow the screen.
+  const effectiveWidth = Math.min(POPOVER_WIDTH, window.innerWidth - 16);
   const left =
     side === "right"
       ? anchorRect.right + SIDE_GAP
-      : anchorRect.left - POPOVER_WIDTH - SIDE_GAP;
+      : anchorRect.left - effectiveWidth - SIDE_GAP;
+  const clampedLeft = Math.max(8, Math.min(left, window.innerWidth - effectiveWidth - 8));
+  // If the anchor sits close enough to the viewport edge that clamping had
+  // to move the panel away from it, the tail arrow would no longer point at
+  // the anchor cell — hide it rather than show a misleading pointer.
+  const wasClamped = clampedLeft !== left;
 
   const tailWidth = 8;
   const tailHeight = 14;
@@ -182,35 +190,37 @@ export default function EventCreatePopover({
         style={{
           position: "fixed",
           top,
-          left,
-          width: POPOVER_WIDTH,
+          left: clampedLeft,
+          width: effectiveWidth,
           zIndex: 50,
           filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.12))",
         }}
         className="animate-in fade-in-0 zoom-in-95 duration-100"
       >
       <div className="relative rounded-md border border-border bg-popover text-popover-foreground">
-        <svg
-          aria-hidden="true"
-          className="absolute overflow-visible"
-          style={{
-            top: tailTop,
-            width: tailWidth,
-            height: tailHeight,
-            ...(side === "right" ? { left: -tailWidth } : { right: -tailWidth }),
-          }}
-          viewBox={`0 0 ${tailWidth} ${tailHeight}`}
-        >
-          <path
-            d={
-              side === "right"
-                ? `M ${tailWidth} 0 L 0 ${tailHeight / 2} L ${tailWidth} ${tailHeight}`
-                : `M 0 0 L ${tailWidth} ${tailHeight / 2} L 0 ${tailHeight}`
-            }
-            className="fill-popover stroke-border"
-            strokeWidth="1"
-          />
-        </svg>
+        {!wasClamped && (
+          <svg
+            aria-hidden="true"
+            className="absolute overflow-visible"
+            style={{
+              top: tailTop,
+              width: tailWidth,
+              height: tailHeight,
+              ...(side === "right" ? { left: -tailWidth } : { right: -tailWidth }),
+            }}
+            viewBox={`0 0 ${tailWidth} ${tailHeight}`}
+          >
+            <path
+              d={
+                side === "right"
+                  ? `M ${tailWidth} 0 L 0 ${tailHeight / 2} L ${tailWidth} ${tailHeight}`
+                  : `M 0 0 L ${tailWidth} ${tailHeight / 2} L 0 ${tailHeight}`
+              }
+              className="fill-popover stroke-border"
+              strokeWidth="1"
+            />
+          </svg>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
           {/* Title */}
           <label htmlFor="new-event-title" className="sr-only">
