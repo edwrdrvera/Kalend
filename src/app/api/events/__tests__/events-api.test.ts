@@ -10,6 +10,8 @@ interface MockEvent {
   color?: string;
   color_overridden?: boolean;
   category_id?: string | null;
+  location?: string | null;
+  icon?: string | null;
   created_at?: Date;
 }
 
@@ -49,6 +51,8 @@ describe("Events API Endpoints", () => {
         end_at: new Date("2026-08-10T11:00:00Z"),
         user_id: "user-uuid-123",
         color: "blue",
+        location: "Main Hall",
+        icon: "🎓",
       },
       {
         id: "evt-uuid-other",
@@ -91,6 +95,8 @@ describe("Events API Endpoints", () => {
       expect(json.data.length).toBe(1);
       expect(json.data[0].title).toBe("CS 101 Lecture");
       expect(json.data[0].user_id).toBe("user-uuid-123");
+      expect(json.data[0].location).toBe("Main Hall");
+      expect(json.data[0].icon).toBe("🎓");
     });
 
     it("returns 500 when database throws an error", async () => {
@@ -347,6 +353,112 @@ describe("Events API Endpoints", () => {
       const response = await POST(req);
       const json = await response.json();
       expect(json.data.category_id).toBeNull();
+    });
+
+    it("returns 201 with location and icon when both are given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          location: "Room 204, Science Building",
+          icon: "🧪",
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(201);
+
+      const json = await response.json();
+      expect(json.data.location).toBe("Room 204, Science Building");
+      expect(json.data.icon).toBe("🧪");
+    });
+
+    it("returns null location and icon when neither is given", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+        }),
+      });
+
+      const response = await POST(req);
+      const json = await response.json();
+      expect(json.data.location).toBeNull();
+      expect(json.data.icon).toBeNull();
+    });
+
+    it("returns 400 when location is not a string", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          location: 42,
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
+    });
+
+    it("returns 400 when location exceeds the max length", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          location: "x".repeat(501),
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
+    });
+
+    it("returns 400 when icon is not a string", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          icon: 42,
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
+    });
+
+    it("returns 400 when icon exceeds the max length", async () => {
+      const req = new Request("http://localhost/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Physics Lab",
+          start_at: "2026-08-11T14:00:00Z",
+          end_at: "2026-08-11T16:00:00Z",
+          icon: "x".repeat(11),
+        }),
+      });
+
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
     });
   });
 
@@ -626,6 +738,95 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.data.color).toBe("purple");
       expect(json.data.color_overridden).toBe(true);
+    });
+
+    it("sets location and icon when given", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: "Library, Room 3", icon: "📚" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.location).toBe("Library, Room 3");
+      expect(json.data.icon).toBe("📚");
+    });
+
+    it("clears location and icon when explicitly set to null", async () => {
+      mockDbState.rows[0].location = "Old Room";
+      mockDbState.rows[0].icon = "📖";
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location: null, icon: null }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.location).toBeNull();
+      expect(json.data.icon).toBeNull();
+    });
+
+    it("leaves location and icon unchanged when omitted", async () => {
+      mockDbState.rows[0].location = "Existing Room";
+      mockDbState.rows[0].icon = "🎓";
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "CS 101 Lecture - Moved" }),
+      });
+
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(200);
+
+      const json = await response.json();
+      expect(json.data.location).toBe("Existing Room");
+      expect(json.data.icon).toBe("🎓");
+    });
+
+    it("returns 400 when an updated location is not a string", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ location: 42 }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
+    });
+
+    it("returns 400 when an updated location exceeds the max length", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ location: "x".repeat(501) }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
+    });
+
+    it("returns 400 when an updated icon is not a string", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ icon: 42 }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
+    });
+
+    it("returns 400 when an updated icon exceeds the max length", async () => {
+      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        body: JSON.stringify({ icon: "x".repeat(11) }),
+      });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
     });
   });
 
