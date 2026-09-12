@@ -3,7 +3,7 @@
 import { useState, useEffect, useReducer, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
-import { Clock, Trash2 } from "lucide-react";
+import { Clock, MapPin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
@@ -16,6 +16,9 @@ import { POPOVER_WIDTH } from "@/lib/popover-position";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
+/** Mirrors the API's field limits (`src/app/api/events/route.ts`). */
+const MAX_LOCATION_LENGTH = 500;
+const MAX_ICON_LENGTH = 10;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 /** Used for vertical centering; approximate — exact height varies with content. */
@@ -83,6 +86,8 @@ export default function EventCreatePopover({
 }: EventCreatePopoverProps) {
   const isEditing = Boolean(event);
   const [title, setTitle] = useState(() => event?.title ?? "");
+  const [icon, setIcon] = useState(() => event?.icon ?? "");
+  const [location, setLocation] = useState(() => event?.location ?? "");
   const [startAt, setStartAt] = useState(() =>
     toDateTimeLocal(event ? new Date(event.start_at) : initialStart ?? new Date())
   );
@@ -163,6 +168,8 @@ export default function EventCreatePopover({
       color,
       colorOverridden,
       categoryId,
+      location: location.trim() || null,
+      icon: icon.trim() || null,
     });
   };
 
@@ -222,19 +229,46 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
-          {/* Title */}
-          <label htmlFor="new-event-title" className="sr-only">
-            Event title
-          </label>
-          <input
-            id="new-event-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={isEditing ? "Event title" : "New event"}
-            required
-            autoFocus
-            className={cn(APP_INPUT_CLS, "w-full font-semibold")}
-          />
+          {/* Title, with a small optional icon/symbol alongside it */}
+          <div className="flex items-center gap-1.5">
+            <label htmlFor="new-event-icon" className="sr-only">
+              Event icon
+            </label>
+            <input
+              id="new-event-icon"
+              value={icon}
+              onChange={(e) => setIcon(e.target.value.slice(0, MAX_ICON_LENGTH))}
+              maxLength={MAX_ICON_LENGTH}
+              className={cn(APP_INPUT_CLS, "w-9 shrink-0 text-center")}
+            />
+            <label htmlFor="new-event-title" className="sr-only">
+              Event title
+            </label>
+            <input
+              id="new-event-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={isEditing ? "Event title" : "New event"}
+              required
+              autoFocus
+              className={cn(APP_INPUT_CLS, "w-full font-semibold")}
+            />
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center gap-2">
+            <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+            <label htmlFor="new-event-location" className="sr-only">
+              Location
+            </label>
+            <input
+              id="new-event-location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              maxLength={MAX_LOCATION_LENGTH}
+              className={cn(APP_INPUT_CLS, "w-full")}
+            />
+          </div>
 
           {/* Collapsed time summary → expands to date/time pickers */}
           <div className="flex flex-col">

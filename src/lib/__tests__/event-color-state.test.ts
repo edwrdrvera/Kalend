@@ -85,6 +85,7 @@ describe("event editor Space color transitions", () => {
     const detached = eventColorReducer(reset, { type: "space", categoryId: null, categories: spaces });
     const payload = (state: typeof picked) => JSON.parse(JSON.stringify(eventFormPayload({
       ...state, title: event.title, startAt: event.start_at, endAt: event.end_at,
+      location: null, icon: null,
     })));
     expect(payload(picked)).toMatchObject({ color: "orange", color_overridden: true, category_id: "space-1" });
     expect(payload(reset)).toMatchObject({ color_overridden: false, category_id: "space-1" });

@@ -7,6 +7,8 @@ export interface EventFormValues {
   color: EventColor;
   colorOverridden: boolean;
   categoryId: string | null;
+  location: string | null;
+  icon: string | null;
 }
 
 export function eventFormPayload(values: EventFormValues) {
@@ -17,5 +19,7 @@ export function eventFormPayload(values: EventFormValues) {
     color: values.color,
     color_overridden: values.colorOverridden,
     category_id: values.categoryId,
+    location: values.location,
+    icon: values.icon,
   };
 }
