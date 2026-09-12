@@ -68,26 +68,47 @@ export function useTasks(): UseTasksReturn {
     setRetryKey((k) => k + 1);
   };
 
-  // Not optimistic: the create form (TaskList) shows its own inline error
-  // on failure, so this just throws and lets the caller handle it rather
-  // than writing to the global error banner.
+  // Optimistic: adds a temp-ID task immediately so the form can close right
+  // away, replaces it with the server's row on success, removes it and
+  // surfaces the error on failure (same rollback approach as toggleComplete).
   const createTask = async (
     title: string,
     dueAt?: string,
     categoryId?: string | null
   ): Promise<void> => {
-    const json = await mutateResource<CalendarTask>(
-      "/api/tasks",
-      "POST",
-      { title, due_at: dueAt, category_id: categoryId },
-      "Failed to create task"
-    );
+    const tempId = crypto.randomUUID();
+    const optimisticTask: CalendarTask = {
+      id: tempId,
+      title,
+      due_at: dueAt ?? null,
+      completed: false,
+      color: null,
+      color_overridden: false,
+      category_id: categoryId ?? null,
+    };
 
-    if (!json.data) {
-      throw new Error("Failed to create task");
+    setTasks((prev) => [...prev, optimisticTask]);
+
+    try {
+      const json = await mutateResource<CalendarTask>(
+        "/api/tasks",
+        "POST",
+        { title, due_at: dueAt, category_id: categoryId },
+        "Failed to create task"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to create task");
+      }
+
+      const savedTask = json.data;
+      setTasks((prev) =>
+        prev.map((t) => (t.id === tempId ? savedTask : t))
+      );
+    } catch (err) {
+      setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      setError(err instanceof Error ? err.message : "Failed to create task");
     }
-
-    setTasks((prev) => [...prev, json.data as CalendarTask]);
   };
 
   // Optimistic: flips the checkbox immediately, rolls back just the

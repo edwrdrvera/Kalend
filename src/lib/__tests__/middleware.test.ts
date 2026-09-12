@@ -32,7 +32,7 @@ mock.module("@supabase/ssr", () => {
   };
 });
 
-import { updateSession } from "../supabase/middleware";
+import { updateSession, AUTH_USER_ID_HEADER } from "../supabase/middleware";
 
 describe("Auth Middleware (updateSession)", () => {
   beforeEach(() => {
@@ -106,6 +106,26 @@ describe("Auth Middleware (updateSession)", () => {
 
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
+    });
+
+    it("forwards the validated user id to the destination route handler", async () => {
+      const request = new NextRequest("http://localhost:3000/api/events");
+      const response = await updateSession(request);
+
+      expect(response.headers.get(`x-middleware-request-${AUTH_USER_ID_HEADER}`)).toBe(
+        "user-uuid-999"
+      );
+    });
+
+    it("strips any inbound copy of the auth header before forwarding its own", async () => {
+      const request = new NextRequest("http://localhost:3000/api/events", {
+        headers: { [AUTH_USER_ID_HEADER]: "forged-user-id" },
+      });
+      const response = await updateSession(request);
+
+      expect(response.headers.get(`x-middleware-request-${AUTH_USER_ID_HEADER}`)).toBe(
+        "user-uuid-999"
+      );
     });
   });
 

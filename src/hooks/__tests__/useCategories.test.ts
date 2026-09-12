@@ -150,23 +150,35 @@ describe("useCategories", () => {
     unmount();
   });
 
-  it("createCategory() appends the new category to data", async () => {
+  it("createCategory() adds the category optimistically before the server responds", async () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});
 
     const newCat: CalendarCategory = { id: "cat-3", name: "Exams", color: "red" };
-    stubFetch({ success: true, data: newCat });
+    const resolve = deferredFetch({ success: true, data: newCat });
+
+    const createPromise = result.current.createCategory("Exams", "red");
+    await act(() => {});
+
+    // The optimistic category should already be visible, under a temp id.
+    expect(result.current.data).toHaveLength(3);
+    const optimistic = result.current.data[2];
+    expect(optimistic.name).toBe("Exams");
+    expect(optimistic.color).toBe("red");
+    expect(optimistic.id).not.toBe(newCat.id);
 
     await act(async () => {
-      await result.current.createCategory("Exams", "red");
+      resolve();
+      await createPromise;
     });
 
+    // The temp entry is replaced by the server's row (real id).
     expect(result.current.data).toHaveLength(3);
     expect(result.current.data[2]).toEqual(newCat);
     unmount();
   });
 
-  it("createCategory() throws and leaves data unchanged on failure", async () => {
+  it("createCategory() rolls back the optimistic category on failure", async () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});
 
@@ -174,18 +186,12 @@ describe("useCategories", () => {
 
     stubFetch({ success: false, error: "Validation failed" }, 400);
 
-    let thrownError: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.createCategory("Bad", "red");
-      } catch (err) {
-        thrownError = err as Error;
-      }
+      await result.current.createCategory("Bad", "red");
     });
 
-    expect(thrownError).not.toBeNull();
-    expect(thrownError!.message).toBe("Validation failed");
     expect(result.current.data).toEqual(dataBefore);
+    expect(result.current.error).toBe("Validation failed");
     unmount();
   });
 
