@@ -200,7 +200,7 @@ function DayCell({
           <button
             key={event.id}
             type="button"
-            title={event.location ? `${event.title} – ${event.location}` : event.title}
+            title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();
               onEventClick(event, e.currentTarget.getBoundingClientRect());

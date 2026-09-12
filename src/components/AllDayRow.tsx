@@ -83,7 +83,7 @@ export default function AllDayRow({
               <button
                 key={event.id}
                 type="button"
-                title={event.location ? `${event.title} – ${event.location}` : event.title}
+                title={event.location ? `${event.title} (${event.location})` : event.title}
                 onClick={(e) => onEventClick?.(event, e.currentTarget.getBoundingClientRect())}
                 style={{
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,

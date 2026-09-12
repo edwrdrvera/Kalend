@@ -520,7 +520,7 @@ export default function TimeGrid({
                   <button
                     key={event.id}
                     type="button"
-                    title={event.location ? `${event.title} – ${event.location}` : event.title}
+                    title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onPointerMove={handleMovePointerMove}
                     onPointerUp={() => handleMovePointerUp(event)}
