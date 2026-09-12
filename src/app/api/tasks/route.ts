@@ -76,6 +76,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // This ownership check and the insert below stay two round trips rather
+    // than one combined query. Merging them needs either an insert-from-select
+    // (which requires fabricating id/created_at client-side since Postgres
+    // only applies column defaults to columns omitted from the target list,
+    // not ones populated by a SELECT) or a scalar subquery inside category_id
+    // with a rollback DELETE when it resolves to null. Both trade a well
+    // understood, easily verified query for a harder-to-verify one, for a
+    // saving that's now marginal: both queries hit the same local Postgres
+    // instance, and the auth check that used to precede them (see
+    // getAuthenticatedUser()) no longer costs a network round trip.
     if (body.category_id) {
       const [cat] = await db
         .select()
