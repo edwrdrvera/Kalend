@@ -59,7 +59,9 @@ function LoadingSpinner() {
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(new Date());
-  const [view, setView] = useState<CalendarView>("week");
+  const [view, setView] = useState<CalendarView>(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? "day" : "week"
+  );
   const [mounted, setMounted] = useState(false);
   const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
   const { selectedSpaceId, hiddenSpaceIds } = spaceFocus;
