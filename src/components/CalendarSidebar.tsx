@@ -363,7 +363,7 @@ export default function CalendarSidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Open sidebar"
-        className="absolute left-3 top-3 z-30 grid size-9 place-items-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm md:hidden"
+        className="absolute left-3 top-[9px] z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
       >
         <Menu className="size-4" />
       </button>
