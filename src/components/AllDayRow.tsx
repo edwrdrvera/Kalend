@@ -39,8 +39,8 @@ export default function AllDayRow({
 
   return (
     <div className="flex min-h-[50px] shrink-0 border-b border-border bg-card">
-      <div className="flex w-16 shrink-0 items-start justify-end border-r border-border pr-3 pt-4">
-        <span className="text-xs leading-none text-muted-foreground">all-day</span>
+      <div className="flex w-10 shrink-0 items-start justify-end border-r border-border pr-1 pt-4 sm:w-16 sm:pr-3">
+        <span className="text-[10px] leading-none text-muted-foreground sm:text-xs">all-day</span>
       </div>
       <div className="relative flex flex-1 flex-col py-1">
         <div
