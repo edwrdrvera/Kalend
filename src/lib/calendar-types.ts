@@ -10,6 +10,8 @@ export interface CalendarEvent {
   color: string | null;
   color_overridden: boolean;
   category_id: string | null;
+  location: string | null;
+  icon: string | null;
 }
 
 export interface EventsApiResponse {

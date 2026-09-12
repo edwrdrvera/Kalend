@@ -40,7 +40,12 @@ interface CreateEventBody {
   color?: unknown;
   color_overridden?: unknown;
   category_id?: unknown;
+  location?: unknown;
+  icon?: unknown;
 }
+
+const MAX_LOCATION_LENGTH = 500;
+const MAX_ICON_LENGTH = 10;
 
 export async function POST(request: Request) {
   try {
@@ -109,6 +114,12 @@ export async function POST(request: Request) {
     if (body.category_id !== undefined && body.category_id !== null && (typeof body.category_id !== "string" || !isUuid(body.category_id))) {
       return NextResponse.json({ success: false, error: "Space must be a valid identifier" }, { status: 400 });
     }
+    if (body.location !== undefined && body.location !== null && (typeof body.location !== "string" || body.location.length > MAX_LOCATION_LENGTH)) {
+      return NextResponse.json({ success: false, error: `location must be a string of at most ${MAX_LOCATION_LENGTH} characters` }, { status: 400 });
+    }
+    if (body.icon !== undefined && body.icon !== null && (typeof body.icon !== "string" || body.icon.length > MAX_ICON_LENGTH)) {
+      return NextResponse.json({ success: false, error: `icon must be a string of at most ${MAX_ICON_LENGTH} characters` }, { status: 400 });
+    }
 
     const result = await retryTransaction(() => db.transaction(async (tx) => {
       let category = null;
@@ -131,6 +142,8 @@ export async function POST(request: Request) {
           color: body.color as string | undefined,
           color_overridden: body.color_overridden as boolean | undefined ?? false,
           category_id: (body.category_id as string | null | undefined) ?? null,
+          location: (body.location as string | null | undefined) ?? null,
+          icon: (body.icon as string | null | undefined) ?? null,
         })
         .returning();
       return newEvent;

@@ -41,7 +41,8 @@ function getWeekDays(viewDate: Date): Date[] {
 }
 
 function getDayNumberClasses(day: Date, selectedDate: Date): string {
-  const base = "flex size-9 items-center justify-center rounded-full text-lg font-bold tracking-[-0.03em]";
+  const base =
+    "flex size-6 items-center justify-center rounded-full text-sm font-bold tracking-[-0.03em] sm:size-9 sm:text-lg";
   if (isSameDay(day, selectedDate)) return `${base} bg-primary text-primary-foreground`;
   if (isSameDay(day, new Date())) return `${base} text-primary`;
   return `${base} text-foreground`;
@@ -57,8 +58,8 @@ function WeekDaysHeader({
   onDateSelect: (date: Date) => void;
 }) {
   return (
-    <div className="flex h-[74px] shrink-0 border-b border-border bg-card">
-      <div className="w-16 shrink-0" />
+    <div className="flex h-14 shrink-0 border-b border-border bg-card sm:h-[74px]">
+      <div className="w-10 shrink-0 sm:w-16" />
       <div
         className="grid flex-1"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
@@ -68,10 +69,13 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-4 transition-colors hover:bg-muted/40 lg:pl-5"
+            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-muted/40 sm:pl-4 lg:pl-5"
           >
-            <CalendarWeekdayLabel className="w-9 text-center">
+            <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">
               {format(day, "EEE")}
+            </CalendarWeekdayLabel>
+            <CalendarWeekdayLabel className="block w-6 text-center sm:hidden">
+              {format(day, "EEEEE")}
             </CalendarWeekdayLabel>
             <span className={getDayNumberClasses(day, selectedDate)}>
               {format(day, "d")}
@@ -118,23 +122,25 @@ export default function WeekGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <WeekDaysHeader
-        days={days}
-        selectedDate={selectedDate}
-        onDateSelect={onDateSelect}
-      />
-      <AllDayRow
-        days={days}
-        events={events}
-        tasks={tasks}
-        categories={categories}
-        onEventClick={onEventClick}
-        onTaskClick={onTaskClick}
-      />
       <div
         ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
       >
+        <div className="sticky top-0 z-10">
+          <WeekDaysHeader
+            days={days}
+            selectedDate={selectedDate}
+            onDateSelect={onDateSelect}
+          />
+          <AllDayRow
+            days={days}
+            events={events}
+            tasks={tasks}
+            categories={categories}
+            onEventClick={onEventClick}
+            onTaskClick={onTaskClick}
+          />
+        </div>
         <TimeGrid
           days={days}
           events={timedEvents}

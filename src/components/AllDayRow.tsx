@@ -39,8 +39,8 @@ export default function AllDayRow({
 
   return (
     <div className="flex min-h-[50px] shrink-0 border-b border-border bg-card">
-      <div className="flex w-16 shrink-0 items-start justify-end border-r border-border pr-3 pt-4">
-        <span className="text-xs leading-none text-muted-foreground">all-day</span>
+      <div className="flex w-10 shrink-0 items-start justify-end border-r border-border pr-1 pt-4 sm:w-16 sm:pr-3">
+        <span className="text-[10px] leading-none text-muted-foreground sm:text-xs">all-day</span>
       </div>
       <div className="relative flex flex-1 flex-col py-1">
         <div
@@ -83,7 +83,7 @@ export default function AllDayRow({
               <button
                 key={event.id}
                 type="button"
-                title={event.title}
+                title={event.location ? `${event.title} (${event.location})` : event.title}
                 onClick={(e) => onEventClick?.(event, e.currentTarget.getBoundingClientRect())}
                 style={{
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
@@ -91,6 +91,7 @@ export default function AllDayRow({
                 }}
                 className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
               >
+                {event.icon && <span className="mr-1">{event.icon}</span>}
                 {event.title}
               </button>
             ))}

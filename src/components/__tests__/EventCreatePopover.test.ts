@@ -35,6 +35,8 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     color: "blue",
     color_overridden: false,
     category_id: null,
+    location: null,
+    icon: null,
     ...overrides,
   };
 }
@@ -196,6 +198,8 @@ describe("EventCreatePopover submitted values", () => {
       "color",
       "colorOverridden",
       "endAt",
+      "icon",
+      "location",
       "startAt",
       "title",
     ]);
@@ -273,5 +277,65 @@ describe("EventCreatePopover submitted values", () => {
     expect(values?.categoryId).toBe("space-2");
     // Joining a Space inherits its colour; it is not a custom colour choice.
     expect(values?.colorOverridden).toBe(false);
+  });
+});
+
+describe("EventCreatePopover location and icon", () => {
+  it("starts a new Event with empty location and icon fields", async () => {
+    await renderPopover({ event: null });
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
+    expect(locationInput?.value).toBe("");
+    expect(iconInput?.value).toBe("");
+  });
+
+  it("initialises the fields from an existing Event", async () => {
+    await renderPopover({ event: makeEvent({ location: "Room 204", icon: "🧪" }) });
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
+    expect(locationInput?.value).toBe("Room 204");
+    expect(iconInput?.value).toBe("🧪");
+  });
+
+  it("submits the typed location and icon", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      event: null,
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
+    if (!titleInput || !locationInput || !iconInput) throw new Error("Expected fields were not rendered");
+    await act(() => typeInto(titleInput, "Study session"));
+    await act(() => typeInto(locationInput, "Library, 2nd floor"));
+    await act(() => typeInto(iconInput, "📚"));
+    await submitForm();
+
+    const values = submitted as EventFormValues | null;
+    expect(values?.location).toBe("Library, 2nd floor");
+    expect(values?.icon).toBe("📚");
+  });
+
+  it("submits null for location and icon when left blank", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      event: null,
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    if (!titleInput) throw new Error("Event title input was not rendered");
+    await act(() => typeInto(titleInput, "Untitled meeting"));
+    await submitForm();
+
+    const values = submitted as EventFormValues | null;
+    expect(values?.location).toBeNull();
+    expect(values?.icon).toBeNull();
   });
 });

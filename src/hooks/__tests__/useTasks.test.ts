@@ -139,7 +139,7 @@ describe("useTasks", () => {
     unmount();
   });
 
-  it("createTask() sends the selected Space as category_id and appends the new task", async () => {
+  it("createTask() adds the task optimistically, then sends the selected Space as category_id", async () => {
     const { result, act, unmount } = renderHook(() => useTasks());
     await act(() => {});
 
@@ -153,10 +153,25 @@ describe("useTasks", () => {
       category_id: "cat-1",
     };
 
-    stubFetch({ success: true, data: newTask });
+    const resolve = deferredFetch({ success: true, data: newTask });
+
+    const createPromise = result.current.createTask(
+      "New task",
+      "2026-09-15T12:00:00Z",
+      "cat-1"
+    );
+    await act(() => {});
+
+    // The optimistic task should already be visible, under a temp id.
+    expect(result.current.data).toHaveLength(3);
+    const optimistic = result.current.data[2];
+    expect(optimistic.title).toBe("New task");
+    expect(optimistic.category_id).toBe("cat-1");
+    expect(optimistic.id).not.toBe(newTask.id);
 
     await act(async () => {
-      await result.current.createTask("New task", "2026-09-15T12:00:00Z", "cat-1");
+      resolve();
+      await createPromise;
     });
 
     expect(fetchMock).toHaveBeenCalledWith("/api/tasks", {
@@ -168,6 +183,7 @@ describe("useTasks", () => {
         category_id: "cat-1",
       }),
     });
+    // The temp entry is replaced by the server's row (real id).
     expect(result.current.data).toHaveLength(3);
     expect(result.current.data[2]).toEqual(newTask);
     unmount();
@@ -191,7 +207,7 @@ describe("useTasks", () => {
     unmount();
   });
 
-  it("createTask() throws and leaves data unchanged on failure", async () => {
+  it("createTask() rolls back the optimistic task on failure", async () => {
     const { result, act, unmount } = renderHook(() => useTasks());
     await act(() => {});
 
@@ -199,18 +215,12 @@ describe("useTasks", () => {
 
     stubFetch({ success: false, error: "Validation failed" }, 400);
 
-    let thrownError: Error | null = null;
     await act(async () => {
-      try {
-        await result.current.createTask("Bad task");
-      } catch (err) {
-        thrownError = err as Error;
-      }
+      await result.current.createTask("Bad task");
     });
 
-    expect(thrownError).not.toBeNull();
-    expect(thrownError!.message).toBe("Validation failed");
     expect(result.current.data).toEqual(dataBefore);
+    expect(result.current.error).toBe("Validation failed");
     unmount();
   });
 

@@ -200,14 +200,19 @@ function DayCell({
           <button
             key={event.id}
             type="button"
-            title={event.title}
+            title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();
               onEventClick(event, e.currentTarget.getBoundingClientRect());
             }}
             className={`w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
           >
-            <span className="block truncate">{event.title}</span>
+            {/* Month cells are too narrow for a location line, so only the
+             *  icon (if set) rides along with the title here. */}
+            <span className="block truncate">
+              {event.icon && <span className="mr-1">{event.icon}</span>}
+              {event.title}
+            </span>
           </button>
         ))}
         {overflowCount > 0 && (

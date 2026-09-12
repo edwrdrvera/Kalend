@@ -83,21 +83,35 @@ export function useCategories(
     setRetryKey((k) => k + 1);
   };
 
-  // Not optimistic: CategoryManager shows its own inline error on failure,
-  // so this just throws and lets the caller handle it.
+  // Optimistic: adds a temp-ID category immediately so the form can close
+  // right away, replaces it with the server's row on success, removes it and
+  // surfaces the error on failure (same rollback approach as updateCategory).
   const createCategory = async (name: string, color: string): Promise<void> => {
-    const json = await mutateResource<CalendarCategory>(
-      "/api/categories",
-      "POST",
-      { name, color },
-      "Failed to create Space"
-    );
+    const tempId = crypto.randomUUID();
+    const optimisticCategory: CalendarCategory = { id: tempId, name, color };
 
-    if (!json.data) {
-      throw new Error("Failed to create Space");
+    setCategories((prev) => [...prev, optimisticCategory]);
+
+    try {
+      const json = await mutateResource<CalendarCategory>(
+        "/api/categories",
+        "POST",
+        { name, color },
+        "Failed to create Space"
+      );
+
+      if (!json.data) {
+        throw new Error("Failed to create Space");
+      }
+
+      const savedCategory = json.data;
+      setCategories((prev) =>
+        prev.map((c) => (c.id === tempId ? savedCategory : c))
+      );
+    } catch (err) {
+      setCategories((prev) => prev.filter((c) => c.id !== tempId));
+      setError(err instanceof Error ? err.message : "Failed to create Space");
     }
-
-    setCategories((prev) => [...prev, json.data as CalendarCategory]);
   };
 
   // Optimistic: applies the name/color change immediately, rolls back on

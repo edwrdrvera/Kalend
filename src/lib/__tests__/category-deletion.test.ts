@@ -17,6 +17,8 @@ const response: CategoryDeleteApiResponse = {
     color: "green",
     color_overridden: false,
     category_id: null,
+    location: null,
+    icon: null,
   }],
   tasks: [{
     id: "task-1",
