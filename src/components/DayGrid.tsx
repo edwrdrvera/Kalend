@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
@@ -45,7 +46,10 @@ function DayColumnHeader({
   else numberCls += " text-foreground";
 
   return (
-    <div className={`flex shrink-0 border-b border-border bg-background ${isToday ? "bg-primary/[0.03]" : ""}`}>
+    <div className={cn(
+      "hidden shrink-0 border-b border-border bg-background sm:flex",
+      isToday && "bg-primary/[0.03]"
+    )}>
       <div className="w-10 shrink-0 border-r border-border sm:w-16" />
       <div className="flex h-[74px] flex-1 flex-col items-start justify-center gap-0.5 pl-5">
         <CalendarWeekdayLabel>
