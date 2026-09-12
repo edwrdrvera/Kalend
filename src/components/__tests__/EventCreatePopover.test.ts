@@ -35,6 +35,8 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     color: "blue",
     color_overridden: false,
     category_id: null,
+    location: null,
+    icon: null,
     ...overrides,
   };
 }

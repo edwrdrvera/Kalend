@@ -11,6 +11,7 @@ const spaces = [
 const event: CalendarEvent = {
   id: "event-1", title: "Lecture", start_at: "2026-09-08T10:00:00Z",
   end_at: "2026-09-08T11:00:00Z", color: "blue", category_id: "space-1", color_overridden: false,
+  location: null, icon: null,
 };
 
 describe("event editor Space color transitions", () => {
