@@ -14,6 +14,7 @@ import {
   isSameDay,
   addDays,
 } from "date-fns";
+import { Plus } from "lucide-react";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
@@ -30,6 +31,7 @@ interface MonthGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
   view: CalendarView;
@@ -72,7 +74,7 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
+  const base = "group relative flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
   const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
@@ -145,6 +147,7 @@ function DayCell({
   categories,
   onDateSelect,
   onCreateEvent,
+  onCreateTaskForDay,
   onEventClick,
   onTaskClick,
 }: {
@@ -156,6 +159,7 @@ function DayCell({
   categories: CalendarCategory[];
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
 }) {
@@ -229,6 +233,18 @@ function DayCell({
           </span>
         )}
       </div>
+      <button
+        type="button"
+        title="Add task"
+        aria-label={`Add task on ${format(day, "EEEE, MMMM d, yyyy")}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onCreateTaskForDay(day, e.currentTarget.getBoundingClientRect());
+        }}
+        className="absolute bottom-1.5 right-1.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-card text-muted-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Plus className="size-3" />
+      </button>
     </div>
   );
 }
@@ -242,6 +258,7 @@ export default function MonthGrid({
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
+  onCreateTaskForDay,
   onEventClick,
   onTaskClick,
   view,
@@ -273,6 +290,7 @@ export default function MonthGrid({
             categories={categories}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
+            onCreateTaskForDay={onCreateTaskForDay}
             onEventClick={onEventClick}
             onTaskClick={onTaskClick}
           />
