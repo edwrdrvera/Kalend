@@ -7,7 +7,8 @@ import { Popover, PopoverBackdrop, PopoverContent, PopoverTrigger } from "@/comp
 import MiniCalendar from "./MiniCalendar";
 import CategoryManager from "./CategoryManager";
 import SettingsMenu from "./SettingsMenu";
-import AgendaSummary, { AgendaDetailList } from "./AgendaSummary";
+import { AgendaDetailList } from "./AgendaSummary";
+import SidebarAgendaPanel from "./SidebarAgendaPanel";
 import {
   DEFAULT_EVENT_COLOR,
   EVENT_COLOR_SWATCH_CLASSES,
@@ -414,7 +415,8 @@ export default function CalendarSidebar({
           <X className="size-4" />
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pt-14 md:pt-0">
+        {/* Zone 1: Spaces Rail */}
+        <div className="shrink-0 overflow-y-auto border-b border-border pt-14 md:pt-0" style={{ maxHeight: "40%" }}>
           <CategoryManager
             categories={categories}
             loading={categoriesLoading}
@@ -430,7 +432,8 @@ export default function CalendarSidebar({
           />
         </div>
 
-        <AgendaSummary
+        {/* Zone 2: Agenda Panel */}
+        <SidebarAgendaPanel
           events={events}
           tasks={tasks}
           selectedDate={currentDate}
@@ -443,6 +446,7 @@ export default function CalendarSidebar({
           onEventClick={onEventClick}
         />
 
+        {/* Zone 3: Pinned Bottom */}
         <div className="shrink-0 border-t border-border pt-1">
           <MiniCalendar
             currentDate={currentDate}
