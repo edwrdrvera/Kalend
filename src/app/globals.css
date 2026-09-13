@@ -94,6 +94,7 @@
 
     /* Icon rail — the permanently dark 64px navigation column. */
     --rail-bg: #1e1b2e;
+    --mini-cal-bg: #faf9f7;
 }
 
 .dark {
@@ -132,6 +133,7 @@
     --sidebar-accent-foreground: #e5e5e5;
     --sidebar-border: #262626;
     --sidebar-ring: #818cf8;
+    --mini-cal-bg: #1f1e1c;
 }
 
 @layer base {
