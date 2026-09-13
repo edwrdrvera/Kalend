@@ -44,7 +44,7 @@ interface AgendaSummaryProps {
 
 // -- Task draft helpers -----------------------------------------------------
 
-interface TaskDraft {
+export interface TaskDraft {
   title: string;
   showDueDate: boolean;
   dueDate: string;
@@ -52,17 +52,20 @@ interface TaskDraft {
   initialCategoryId: string | null;
 }
 
-function newTaskDraft(selectedSpaceId: string | null): TaskDraft {
+/** `initialDueDate` ("yyyy-MM-dd") pre-fills and reveals the due date field —
+ *  used when the draft is opened from a specific calendar day rather than
+ *  the sidebar's undated default. */
+export function newTaskDraft(selectedSpaceId: string | null, initialDueDate?: string): TaskDraft {
   return {
     title: "",
-    showDueDate: false,
-    dueDate: "",
+    showDueDate: Boolean(initialDueDate),
+    dueDate: initialDueDate ?? "",
     categoryId: selectedSpaceId,
     initialCategoryId: selectedSpaceId,
   };
 }
 
-function hasTaskDraftInput(draft: TaskDraft): boolean {
+export function hasTaskDraftInput(draft: TaskDraft): boolean {
   return Boolean(
     draft.title.trim() ||
     draft.dueDate ||
@@ -72,7 +75,7 @@ function hasTaskDraftInput(draft: TaskDraft): boolean {
 
 // -- Task composer ----------------------------------------------------------
 
-function CreateTaskForm({
+export function CreateTaskForm({
   draft,
   onDraftChange,
   onDiscard,
