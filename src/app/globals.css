@@ -141,6 +141,13 @@
   html {
     @apply font-sans;
     }
+  /* Theme the text caret in every input/textarea to match the primary
+   * accent, so it feels intentional rather than browser-default blue. */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: var(--primary);
+    }
 }
 
 /* Kalend mark hover animations (see src/components/KalendMark.tsx). Dot
