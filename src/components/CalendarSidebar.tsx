@@ -7,6 +7,7 @@ import IconRail from "./IconRail";
 import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -24,6 +25,9 @@ interface CalendarSidebarProps {
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
+  branches: Branch[];
+  activeBranchId: string | null;
+  onOpenBranch: (branch: Branch) => void;
 }
 
 export default function CalendarSidebar({
@@ -42,6 +46,9 @@ export default function CalendarSidebar({
   selectedSpaceId,
   onSelectSpace,
   onCreateCategory,
+  branches,
+  activeBranchId,
+  onOpenBranch,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -56,6 +63,9 @@ export default function CalendarSidebar({
     onToggleTaskComplete,
     onDeleteTask,
     onEventClick,
+    branches,
+    activeBranchId,
+    onOpenBranch,
   } as const;
 
   const miniCalProps = {

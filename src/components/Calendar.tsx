@@ -7,13 +7,26 @@ import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
+import SpacePanel from "./SpacePanel";
 import { computePopoverSide } from "@/lib/popover-position";
+import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
+import { resolveBranchTasks } from "@/lib/branch-types";
+import { branchesForSpaces, findBranch } from "@/lib/branch-stub";
+import {
+  branchPanelReducer,
+  initialBranchPanelState,
+  loadBranchPanelState,
+  saveBranchPanelState,
+} from "@/lib/branch-panel-state";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
+
+type PanelMode = "pinned" | "sheet" | "fullscreen";
 
 function ErrorToast({
   message,
@@ -66,6 +79,14 @@ export default function Calendar() {
   const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
   const { selectedSpaceId } = spaceFocus;
 
+  // Space Panel: which branch is open, remembered per Space + globally (see
+  // branch-panel-state.ts). Bound to a branch, not the date.
+  const [branchPanel, dispatchBranchPanel] = useReducer(
+    branchPanelReducer,
+    initialBranchPanelState
+  );
+  const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
+
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
   const categories = useCategories(
@@ -78,6 +99,25 @@ export default function Calendar() {
 
   useEffect(() => {
     setMounted(true);
+    // Restore remembered open/closed + last-branch-per-Space (never throws).
+    dispatchBranchPanel({ type: "hydrate", state: loadBranchPanelState() });
+  }, []);
+
+  // Persist panel preferences whenever they change.
+  useEffect(() => {
+    saveBranchPanelState(branchPanel);
+  }, [branchPanel]);
+
+  // Track the responsive mode: pinned (>=1200) narrows the canvas; below that
+  // the panel is an overlay sheet (>=900) or a full-screen sheet (<900).
+  useEffect(() => {
+    const compute = () => {
+      const w = window.innerWidth;
+      setPanelMode(w >= 1200 ? "pinned" : w >= 900 ? "sheet" : "fullscreen");
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
   }, []);
 
   const handleRetry = () => {
@@ -168,11 +208,50 @@ export default function Calendar() {
     await events.deleteEvent(event);
   };
 
+  // Opening a branch focuses its Space and slides the panel in (one action,
+  // per the brief's rail-flyout and breadcrumb entry points).
+  const handleOpenBranch = (branch: Branch) => {
+    dispatchSpaceFocus({ type: "select", spaceId: branch.spaceId });
+    dispatchBranchPanel({
+      type: "openBranch",
+      branchId: branch.id,
+      spaceId: branch.spaceId,
+    });
+  };
+
+  const handleClosePanel = () => dispatchBranchPanel({ type: "close" });
+
+  // Changing the active Space in the rail closes the panel (FR7): the open
+  // branch no longer applies.
+  const handleSelectSpace = (spaceId: string | null) => {
+    dispatchSpaceFocus({ type: "select", spaceId });
+    dispatchBranchPanel({ type: "spaceChanged", spaceId });
+  };
+
+  // Clearing the Space filter chip returns to All Spaces and closes the panel.
+  const handleClearSpace = () => {
+    dispatchSpaceFocus({ type: "select", spaceId: null });
+    dispatchBranchPanel({ type: "cleared" });
+  };
+
   if (!mounted) return null;
 
   const visibleEvents = filterBySpace(events.data, spaceFocus);
   const visibleTasks = filterBySpace(tasks.data, spaceFocus);
   const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
+
+  // Branches for the current Space list + the resolved active branch.
+  const branches = branchesForSpaces(categories.data);
+  const spaceBranches = selectedSpaceId
+    ? branches.filter((b) => b.spaceId === selectedSpaceId)
+    : [];
+  const activeBranch =
+    branchPanel.open && branchPanel.activeBranchId
+      ? findBranch(categories.data, branchPanel.activeBranchId)
+      : null;
+  const panelTasks = activeBranch
+    ? resolveBranchTasks(activeBranch, tasks.data)
+    : [];
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
@@ -197,8 +276,11 @@ export default function Calendar() {
           onEventClick={handleEventClick}
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
-          onSelectSpace={(spaceId) => dispatchSpaceFocus({ type: "select", spaceId })}
+          onSelectSpace={handleSelectSpace}
           onCreateCategory={categories.createCategory}
+          branches={spaceBranches}
+          activeBranchId={branchPanel.activeBranchId}
+          onOpenBranch={handleOpenBranch}
         />
         {events.initialLoading ? (
           <div className="flex-1">
@@ -211,7 +293,7 @@ export default function Calendar() {
                 <span className="min-w-0 truncate font-medium">Space: {selectedSpace.name}</span>
                 <button
                   type="button"
-                  onClick={() => dispatchSpaceFocus({ type: "select", spaceId: null })}
+                  onClick={handleClearSpace}
                   className="shrink-0 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   All Spaces
@@ -271,6 +353,60 @@ export default function Calendar() {
               />
             )}
           </div>
+        )}
+
+        {/* Space Panel (fourth region). Pinned: an in-flow column whose width
+            animates 0<->330 so the canvas reflows in the same transition.
+            Below 1200px: an overlay sheet with a scrim; below 900px: full
+            screen. Both overlay modes are modal dialogs (see SpacePanel). */}
+        {panelMode === "pinned" ? (
+          <div
+            className={cn(
+              "relative h-full shrink-0 overflow-hidden transition-[width] duration-[180ms] ease-out motion-reduce:transition-none",
+              activeBranch ? "w-[330px]" : "w-0"
+            )}
+          >
+            <div className="h-full w-[330px]">
+              {activeBranch && (
+                <SpacePanel
+                  branch={activeBranch}
+                  tasks={panelTasks}
+                  modal={false}
+                  onClose={handleClosePanel}
+                  onToggleComplete={tasks.toggleComplete}
+                  onAddTask={() => {}}
+                  onOpenSettings={() => {}}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          activeBranch && (
+            <>
+              <button
+                type="button"
+                aria-label="Close panel"
+                onClick={handleClosePanel}
+                className="absolute inset-0 z-40 bg-foreground/20 motion-safe:animate-[fadeIn_180ms_ease-out]"
+              />
+              <div
+                className={cn(
+                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[fadeIn_180ms_ease-out]",
+                  panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[330px]"
+                )}
+              >
+                <SpacePanel
+                  branch={activeBranch}
+                  tasks={panelTasks}
+                  modal
+                  onClose={handleClosePanel}
+                  onToggleComplete={tasks.toggleComplete}
+                  onAddTask={() => {}}
+                  onOpenSettings={() => {}}
+                />
+              </div>
+            </>
+          )
         )}
       {eventPopover && (
         <EventCreatePopover

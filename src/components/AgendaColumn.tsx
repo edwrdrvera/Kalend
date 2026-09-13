@@ -4,9 +4,11 @@ import { Calendar, Loader2 } from "lucide-react";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
 import AgendaTasksGroup from "./AgendaTasksGroup";
+import BranchList from "./BranchList";
 
 interface AgendaColumnProps {
   selectedDate: Date;
@@ -23,6 +25,9 @@ interface AgendaColumnProps {
   onToggleTaskComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  branches: Branch[];
+  activeBranchId: string | null;
+  onOpenBranch: (branch: Branch) => void;
 }
 
 export default function AgendaColumn({
@@ -36,6 +41,9 @@ export default function AgendaColumn({
   onToggleTaskComplete,
   onDeleteTask,
   onEventClick,
+  branches,
+  activeBranchId,
+  onOpenBranch,
 }: AgendaColumnProps) {
   const dayStart = startOfDay(selectedDate);
   const dayEnd = new Date(dayStart);
@@ -64,6 +72,12 @@ export default function AgendaColumn({
       data-testid="agenda-column"
       className="flex h-full w-full flex-col bg-card"
     >
+      <BranchList
+        branches={branches}
+        activeBranchId={activeBranchId}
+        onOpenBranch={onOpenBranch}
+      />
+
       <AgendaDateHeader
         selectedDate={selectedDate}
         eventCount={eventCount}
