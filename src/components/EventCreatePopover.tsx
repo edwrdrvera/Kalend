@@ -3,7 +3,7 @@
 import { useState, useEffect, useReducer, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
-import { Clock, MapPin, Trash2 } from "lucide-react";
+import { Clock, MapPin, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
@@ -105,6 +105,7 @@ export default function EventCreatePopover({
   );
   const { color, categoryId, colorOverridden } = colorState;
   const [timeExpanded, setTimeExpanded] = useState(false);
+  const [locationExpanded, setLocationExpanded] = useState(() => Boolean(event?.location));
   const [validationError, setValidationError] = useState<string | null>(null);
 
   // Fixed position: vertically centered on the anchor, horizontally offset
@@ -143,6 +144,11 @@ export default function EventCreatePopover({
 
   const start = splitDateTimeLocal(startAt);
   const end = splitDateTimeLocal(endAt);
+
+  const handleRemoveLocation = () => {
+    setLocationExpanded(false);
+    setLocation("");
+  };
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
@@ -250,19 +256,57 @@ export default function EventCreatePopover({
             />
           </div>
 
-          {/* Location */}
-          <div className="flex items-center gap-2">
-            <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
-            <label htmlFor="new-event-location" className="sr-only">
-              Location
-            </label>
-            <input
-              id="new-event-location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              maxLength={MAX_LOCATION_LENGTH}
-              className={cn(APP_INPUT_CLS, "w-full")}
-            />
+          {/* Collapsed "+ Add location" button → expands to the location input */}
+          <div className="flex flex-col">
+            <div
+              inert={locationExpanded}
+              className={cn(
+                "grid transition-all duration-150 ease-in-out",
+                locationExpanded ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
+              )}
+            >
+              <div className="overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setLocationExpanded(true)}
+                  className="-mx-1 flex items-center gap-2 rounded-sm px-1 py-1 text-left text-xs text-foreground/80 transition-colors hover:bg-muted/50"
+                >
+                  <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span>+ Add location</span>
+                </button>
+              </div>
+            </div>
+            <div
+              inert={!locationExpanded}
+              className={cn(
+                "grid transition-all duration-150 ease-in-out",
+                locationExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="overflow-hidden">
+                <div className="flex items-center gap-2">
+                  <MapPin className="size-3.5 shrink-0 text-muted-foreground" />
+                  <label htmlFor="new-event-location" className="sr-only">
+                    Location
+                  </label>
+                  <input
+                    id="new-event-location"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    maxLength={MAX_LOCATION_LENGTH}
+                    className={cn(APP_INPUT_CLS, "w-full")}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveLocation}
+                    aria-label="Remove location"
+                    className="shrink-0 rounded-sm p-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Collapsed time summary → expands to date/time pickers */}
