@@ -12,6 +12,7 @@ import { eventColorReducer, initialEventColor } from "@/lib/event-color-state";
 import type { EventFormValues } from "@/lib/event-form";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
+import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
@@ -234,15 +235,7 @@ export default function EventCreatePopover({
             <label htmlFor="new-event-icon" className="sr-only">
               Event icon
             </label>
-            <input
-              id="new-event-icon"
-              value={icon}
-              onChange={(e) => setIcon(e.target.value.slice(0, MAX_ICON_LENGTH))}
-              placeholder="🙂"
-              title="Optional emoji or symbol for this event"
-              maxLength={MAX_ICON_LENGTH}
-              className={cn(APP_INPUT_CLS, "w-9 shrink-0 text-center")}
-            />
+            <IconPicker value={icon} onChange={setIcon} maxLength={MAX_ICON_LENGTH} />
             <label htmlFor="new-event-title" className="sr-only">
               Event title
             </label>
