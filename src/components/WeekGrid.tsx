@@ -10,6 +10,7 @@ import {
   isSameDay,
   setHours,
 } from "date-fns";
+import { Plus } from "lucide-react";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
@@ -27,6 +28,7 @@ interface WeekGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
@@ -52,10 +54,12 @@ function WeekDaysHeader({
   days,
   selectedDate,
   onDateSelect,
+  onCreateTaskForDay,
 }: {
   days: Date[];
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
 }) {
   return (
     <div className="flex h-14 shrink-0 border-b border-border bg-card sm:h-[74px]">
@@ -65,22 +69,35 @@ function WeekDaysHeader({
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
         {days.map((day) => (
-          <button
-            key={day.getTime()}
-            type="button"
-            onClick={() => onDateSelect(day)}
-            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-muted/40 sm:pl-4 lg:pl-5"
-          >
-            <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">
-              {format(day, "EEE")}
-            </CalendarWeekdayLabel>
-            <CalendarWeekdayLabel className="block w-6 text-center sm:hidden">
-              {format(day, "EEEEE")}
-            </CalendarWeekdayLabel>
-            <span className={getDayNumberClasses(day, selectedDate)}>
-              {format(day, "d")}
-            </span>
-          </button>
+          <div key={day.getTime()} className="group relative">
+            <button
+              type="button"
+              onClick={() => onDateSelect(day)}
+              className="flex w-full cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-muted/40 sm:pl-4 lg:pl-5"
+            >
+              <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">
+                {format(day, "EEE")}
+              </CalendarWeekdayLabel>
+              <CalendarWeekdayLabel className="block w-6 text-center sm:hidden">
+                {format(day, "EEEEE")}
+              </CalendarWeekdayLabel>
+              <span className={getDayNumberClasses(day, selectedDate)}>
+                {format(day, "d")}
+              </span>
+            </button>
+            <button
+              type="button"
+              title="Add task"
+              aria-label={`Add task on ${format(day, "EEEE, MMMM d, yyyy")}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateTaskForDay(day, e.currentTarget.getBoundingClientRect());
+              }}
+              className="absolute right-1 top-1 flex size-5 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus className="size-3" />
+            </button>
+          </div>
         ))}
       </div>
     </div>
@@ -96,6 +113,7 @@ export default function WeekGrid({
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
+  onCreateTaskForDay,
   onEventClick,
   onTaskClick,
   onEventMove,
@@ -131,6 +149,7 @@ export default function WeekGrid({
             days={days}
             selectedDate={selectedDate}
             onDateSelect={onDateSelect}
+            onCreateTaskForDay={onCreateTaskForDay}
           />
           <AllDayRow
             days={days}

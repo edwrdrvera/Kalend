@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
@@ -20,6 +21,7 @@ interface DayGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
@@ -33,9 +35,11 @@ interface DayGridProps {
 function DayColumnHeader({
   day,
   selectedDate,
+  onCreateTaskForDay,
 }: {
   day: Date;
   selectedDate: Date;
+  onCreateTaskForDay: (day: Date, anchorRect: DOMRect) => void;
 }) {
   const isSelected = isSameDay(day, selectedDate);
   const isToday = isSameDay(day, new Date());
@@ -47,7 +51,7 @@ function DayColumnHeader({
 
   return (
     <div className={cn(
-      "hidden shrink-0 border-b border-border bg-background md:flex",
+      "group relative hidden shrink-0 border-b border-border bg-background md:flex",
       isToday && "bg-primary/[0.03]"
     )}>
       <div className="w-10 shrink-0 border-r border-border sm:w-16" />
@@ -57,6 +61,18 @@ function DayColumnHeader({
         </CalendarWeekdayLabel>
         <span className={numberCls}>{format(day, "d")}</span>
       </div>
+      <button
+        type="button"
+        title="Add task"
+        aria-label={`Add task on ${format(day, "EEEE, MMMM d, yyyy")}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          onCreateTaskForDay(day, e.currentTarget.getBoundingClientRect());
+        }}
+        className="absolute right-3 top-3 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Plus className="size-3.5" />
+      </button>
     </div>
   );
 }
@@ -73,6 +89,7 @@ export default function DayGrid({
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
+  onCreateTaskForDay,
   onEventClick,
   onTaskClick,
   onEventMove,
@@ -103,6 +120,11 @@ export default function DayGrid({
         className="flex flex-1 flex-col overflow-y-auto"
       >
         <div className="sticky top-0 z-10">
+          <DayColumnHeader
+            day={viewDate}
+            selectedDate={selectedDate}
+            onCreateTaskForDay={onCreateTaskForDay}
+          />
           <AllDayRow
             days={days}
             events={events}
