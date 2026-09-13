@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef, useReducer } from "react";
-import { startOfMonth } from "date-fns";
+import { startOfMonth, format } from "date-fns";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
+import TaskCreatePopover from "./TaskCreatePopover";
 import { computePopoverSide } from "@/lib/popover-position";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent } from "@/lib/calendar-types";
@@ -117,6 +118,14 @@ export default function Calendar() {
   const [popoverError, setPopoverError] = useState<string | null>(null);
   const [popoverKey, setPopoverKey] = useState(0);
 
+  // The task-for-day popover opened from a grid's "+ Task" trigger.
+  const [taskPopover, setTaskPopover] = useState<{
+    rect: DOMRect;
+    side: "left" | "right";
+    day: Date;
+    initialSpaceId: string | null;
+  } | null>(null);
+
   const getPopoverSide = (anchorRect: DOMRect) => {
     const containerRect = calendarContentRef.current?.getBoundingClientRect();
     return containerRect ? computePopoverSide(anchorRect, containerRect) : "right";
@@ -132,6 +141,15 @@ export default function Calendar() {
     });
     setPopoverError(null);
     setPopoverKey((key) => key + 1);
+  };
+
+  const handleCreateTaskForDay = (day: Date, anchorRect: DOMRect) => {
+    setTaskPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      day,
+      initialSpaceId: selectedSpaceId,
+    });
   };
 
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
@@ -237,6 +255,7 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateTaskForDay={handleCreateTaskForDay}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 view={view}
@@ -253,6 +272,7 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateTaskForDay={handleCreateTaskForDay}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onEventMove={events.changeEventTime}
@@ -271,6 +291,7 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateTaskForDay={handleCreateTaskForDay}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onEventMove={events.changeEventTime}
@@ -295,6 +316,17 @@ export default function Calendar() {
           onClose={() => setEventPopover(null)}
           submitting={popoverSubmitting}
           error={popoverError}
+        />
+      )}
+      {taskPopover && (
+        <TaskCreatePopover
+          anchorRect={taskPopover.rect}
+          side={taskPopover.side}
+          initialDueDate={format(taskPopover.day, "yyyy-MM-dd")}
+          initialSpaceId={taskPopover.initialSpaceId}
+          categories={categories.data}
+          onCreateTask={tasks.createTask}
+          onClose={() => setTaskPopover(null)}
         />
       )}
     </div>
