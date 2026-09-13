@@ -6,7 +6,7 @@ import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calend
 import { typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
-const { default: AgendaSummary } = await import("../AgendaSummary");
+const { default: AgendaSummary, newTaskDraft } = await import("../AgendaSummary");
 
 const categories: CalendarCategory[] = [
   { id: "space-1", name: "Work", color: "green" },
@@ -198,5 +198,29 @@ describe("AgendaSummary interactions", () => {
     await act(() => byLabel("Create a task")?.click());
     expect(document.querySelector<HTMLInputElement>('[aria-label="New task title"]')?.value)
       .toBe("Keep this");
+  });
+});
+
+describe("newTaskDraft", () => {
+  it("pre-fills and reveals the due date when one is given", () => {
+    const draft = newTaskDraft("space-1", "2030-09-15");
+    expect(draft).toEqual({
+      title: "",
+      showDueDate: true,
+      dueDate: "2030-09-15",
+      categoryId: "space-1",
+      initialCategoryId: "space-1",
+    });
+  });
+
+  it("keeps the due date hidden and empty without one (existing behavior)", () => {
+    const draft = newTaskDraft("space-1");
+    expect(draft).toEqual({
+      title: "",
+      showDueDate: false,
+      dueDate: "",
+      categoryId: "space-1",
+      initialCategoryId: "space-1",
+    });
   });
 });
