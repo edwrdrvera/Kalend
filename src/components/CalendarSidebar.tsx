@@ -52,6 +52,12 @@ export default function CalendarSidebar({
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // The agenda's branch list shows only the active Space's branches; the rail
+  // flyouts use the full list.
+  const spaceBranches = selectedSpaceId
+    ? branches.filter((b) => b.spaceId === selectedSpaceId)
+    : [];
+
   const agendaProps = {
     selectedDate: currentDate,
     events,
@@ -63,7 +69,7 @@ export default function CalendarSidebar({
     onToggleTaskComplete,
     onDeleteTask,
     onEventClick,
-    branches,
+    branches: spaceBranches,
     activeBranchId,
     onOpenBranch,
   } as const;
@@ -105,6 +111,8 @@ export default function CalendarSidebar({
           activeView="calendar"
           onViewChange={() => {}}
           onCreateSpace={() => onCreateCategory("New Space", "blue")}
+          branches={branches}
+          onOpenBranch={onOpenBranch}
         />
         <div className="flex h-full w-[300px] flex-col border-r border-border">
           <div className="min-h-0 flex-1 overflow-hidden">

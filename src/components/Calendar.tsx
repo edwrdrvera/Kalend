@@ -240,11 +240,8 @@ export default function Calendar() {
   const visibleTasks = filterBySpace(tasks.data, spaceFocus);
   const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
 
-  // Branches for the current Space list + the resolved active branch.
+  // All branches (for the rail flyouts + agenda list) and the active branch.
   const branches = branchesForSpaces(categories.data);
-  const spaceBranches = selectedSpaceId
-    ? branches.filter((b) => b.spaceId === selectedSpaceId)
-    : [];
   const activeBranch =
     branchPanel.open && branchPanel.activeBranchId
       ? findBranch(categories.data, branchPanel.activeBranchId)
@@ -278,7 +275,7 @@ export default function Calendar() {
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={handleSelectSpace}
           onCreateCategory={categories.createCategory}
-          branches={spaceBranches}
+          branches={branches}
           activeBranchId={branchPanel.activeBranchId}
           onOpenBranch={handleOpenBranch}
         />
@@ -374,7 +371,7 @@ export default function Calendar() {
                   modal={false}
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
-                  onAddTask={() => {}}
+                  onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
                   onOpenSettings={() => {}}
                 />
               )}
@@ -401,7 +398,7 @@ export default function Calendar() {
                   modal
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
-                  onAddTask={() => {}}
+                  onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
                   onOpenSettings={() => {}}
                 />
               </div>
@@ -417,6 +414,23 @@ export default function Calendar() {
           initialStart={eventPopover.start}
           initialSpaceId={eventPopover.initialSpaceId}
           categories={categories.data}
+          breadcrumb={(() => {
+            const spaceId = eventPopover.event?.category_id;
+            if (!spaceId) return null;
+            const branch = branches.find((b) => b.spaceId === spaceId);
+            if (!branch) return null;
+            const label =
+              branch.name === branch.spaceName
+                ? branch.spaceName
+                : `${branch.spaceName} › ${branch.name}`;
+            return {
+              label,
+              onOpen: () => {
+                handleOpenBranch(branch);
+                setEventPopover(null);
+              },
+            };
+          })()}
           onSubmit={handlePopoverSubmit}
           onDelete={eventPopover.event ? handleDeleteEvent : undefined}
           onClose={() => setEventPopover(null)}

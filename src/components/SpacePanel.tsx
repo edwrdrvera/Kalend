@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
+import { APP_INPUT_CLS } from "@/components/DateField";
 import type { Branch } from "@/lib/branch-types";
 import type { CalendarTask } from "@/lib/calendar-types";
 import SpacePanelHeader from "./SpacePanelHeader";
@@ -22,7 +23,8 @@ interface SpacePanelProps {
   modal: boolean;
   onClose: () => void;
   onToggleComplete: (task: CalendarTask) => void;
-  onAddTask: () => void;
+  /** Creates a task in this branch's Space (title only; date/Space implied). */
+  onCreateTask: (title: string) => Promise<void>;
   onOpenSettings: () => void;
 }
 
@@ -32,10 +34,21 @@ export default function SpacePanel({
   modal,
   onClose,
   onToggleComplete,
-  onAddTask,
+  onCreateTask,
   onOpenSettings,
 }: SpacePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+
+  // Reset the task composer when the panel swaps to a different branch — the
+  // recommended "adjust state during render" pattern, not an effect.
+  const [renderedBranchId, setRenderedBranchId] = useState(branch.id);
+  if (renderedBranchId !== branch.id) {
+    setRenderedBranchId(branch.id);
+    setComposerOpen(false);
+    setNewTitle("");
+  }
 
   // Move focus into the panel on open; restore it to the opener on close.
   useEffect(() => {
@@ -43,6 +56,15 @@ export default function SpacePanel({
     panelRef.current?.focus();
     return () => opener?.focus?.();
   }, []);
+
+  async function handleCreateTask(e: FormEvent) {
+    e.preventDefault();
+    const title = newTitle.trim();
+    if (!title) return;
+    await onCreateTask(title);
+    setNewTitle("");
+    setComposerOpen(false);
+  }
 
   // Escape closes when focus is inside the panel (all breakpoints). In modal
   // mode, keep Tab focus contained within the panel.
@@ -89,11 +111,34 @@ export default function SpacePanel({
       >
         <PanelMeetsSection meets={branch.meets} />
         <PanelPeopleSection people={branch.people} />
-        <PanelTasksSection
-          tasks={tasks}
-          onToggleComplete={onToggleComplete}
-          onAdd={onAddTask}
-        />
+        <div>
+          <PanelTasksSection
+            tasks={tasks}
+            onToggleComplete={onToggleComplete}
+            onAdd={() => setComposerOpen(true)}
+          />
+          {composerOpen && (
+            <form onSubmit={handleCreateTask} className="px-4 pb-3">
+              <input
+                autoFocus
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setComposerOpen(false);
+                    setNewTitle("");
+                  }
+                }}
+                onBlur={() => {
+                  if (!newTitle.trim()) setComposerOpen(false);
+                }}
+                aria-label="New task title"
+                placeholder="New task"
+                className={cn(APP_INPUT_CLS, "w-full")}
+              />
+            </form>
+          )}
+        </div>
         <PanelLinksSection links={branch.links} />
       </div>
 
