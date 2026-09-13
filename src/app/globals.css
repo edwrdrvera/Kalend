@@ -91,6 +91,9 @@
     --sidebar-accent-foreground: #1c1a16;
     --sidebar-border: #e5e7eb;
     --sidebar-ring: #4f46e5;
+
+    /* Icon rail — the permanently dark 64px navigation column. */
+    --rail-bg: #1e1b2e;
 }
 
 .dark {

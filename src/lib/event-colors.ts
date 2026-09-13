@@ -89,6 +89,20 @@ export function getTaskColorClasses(color: string | null): string {
   return TASK_COLOR_CLASSES[color];
 }
 
+// Solid fill + lighter border for Space tiles on the dark icon rail. The rail
+// is always dark regardless of app theme, so no dark: variants needed.
+export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
+  blue: "bg-blue-500 border-blue-400 text-white",
+  green: "bg-green-500 border-green-400 text-white",
+  purple: "bg-purple-500 border-purple-400 text-white",
+  orange: "bg-orange-500 border-orange-400 text-white",
+  red: "bg-red-500 border-red-400 text-white",
+  indigo: "bg-indigo-500 border-indigo-400 text-white",
+  pink: "bg-pink-500 border-pink-400 text-white",
+  yellow: "bg-yellow-500 border-yellow-400 text-white",
+  teal: "bg-teal-500 border-teal-400 text-white",
+};
+
 // Shared by events and tasks: when linked to a category, the color shown on
 // the calendar is looked up live from that category (so recoloring a
 // category updates everything under it immediately) instead of the item's
