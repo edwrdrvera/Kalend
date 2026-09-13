@@ -251,7 +251,7 @@ export default function MonthGrid({
   const days = getGridDays(viewDate);
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}

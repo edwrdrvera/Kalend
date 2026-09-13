@@ -102,11 +102,13 @@ interface LiveDragTarget {
 
 /** Tracks an in-progress top/bottom edge drag on one event block. Minutes
  *  are relative to midnight of the day column being dragged in, not full
- *  `Date`s, so the drag math stays simple; `handleResizePointerUp` converts
- *  back to real dates once the drag ends. `original*` stay fixed for the
- *  whole gesture (the anchor the drag computes deltas from); `live*` is
- *  what gets rendered as the drag moves. */
+ *  `Date`s, so the drag math stays simple; the window-level `pointerup`
+ *  handler converts back to real dates once the drag ends. `original*`
+ *  stay fixed for the whole gesture (the anchor the drag computes deltas
+ *  from); `live*` is what gets rendered as the drag moves. */
 interface ResizeDrag {
+  event: CalendarEvent;
+  day: Date;
   eventId: string;
   edge: "top" | "bottom";
   pointerStartY: number;
@@ -151,15 +153,12 @@ export default function TimeGrid({
   const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
 
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // ── Move-drag refs ─────────────────────────────────────────────────
   const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
-  // Mirrors `moveDrag` so the rAF callback scheduled below always reads the
-  // latest drag state instead of whatever was current when it was queued.
-  // Synced via an effect (not assigned inline) since refs can't be written
-  // during render.
+  // Mirrors `moveDrag` so the window-level event handlers (which outlive
+  // any single render) always read the latest drag state.
   const moveDragRef = useRef<MoveDrag | null>(null);
-  useEffect(() => {
-    moveDragRef.current = moveDrag;
-  });
   // Where the ghost preview would drop right now, snapped to SNAP_MINUTES.
   // Written on every pointer move, read once on pointer up — never in
   // React state, so updating it doesn't trigger a render.
@@ -180,8 +179,7 @@ export default function TimeGrid({
   // unrelated click on the same block — cleared automatically after
   // CLICK_SUPPRESS_WINDOW_MS via suppressClearTimeoutRef below rather than
   // left for a click to clear, so it can't get stuck if that click never
-  // fires. (A setTimeout, not a Date.now() comparison, so nothing impure
-  // needs to be read from inside the component body.)
+  // fires.
   const lastDraggedEventIdRef = useRef<string | null>(null);
   const suppressClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Coalesces rapid native pointermove events (which can fire faster than
@@ -190,7 +188,27 @@ export default function TimeGrid({
   const rafIdRef = useRef<number | null>(null);
   const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
+  // ── Resize-drag refs ───────────────────────────────────────────────
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null);
+  const resizeDragRef = useRef<ResizeDrag | null>(null);
+  // rAF throttle for resize, same pattern as move-drag.
+  const resizeRafRef = useRef<number | null>(null);
+  const latestResizeYRef = useRef<number>(0);
+
+  // ── Prop refs ──────────────────────────────────────────────────────
+  // Keep refs in sync with state/props so window-level event handlers
+  // always read the latest values without stale closures.
+  const daysRef = useRef(days);
+  const onEventMoveRef = useRef(onEventMove);
+  const onEventResizeRef = useRef(onEventResize);
+
+  useEffect(() => {
+    moveDragRef.current = moveDrag;
+    resizeDragRef.current = resizeDrag;
+    daysRef.current = days;
+    onEventMoveRef.current = onEventMove;
+    onEventResizeRef.current = onEventResize;
+  });
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
@@ -204,9 +222,17 @@ export default function TimeGrid({
     }
   }
 
+  function cancelPendingResizeFrame() {
+    if (resizeRafRef.current !== null) {
+      cancelAnimationFrame(resizeRafRef.current);
+      resizeRafRef.current = null;
+    }
+  }
+
   useEffect(() => {
     return () => {
       cancelPendingMoveFrame();
+      cancelPendingResizeFrame();
       if (suppressClearTimeoutRef.current !== null) {
         clearTimeout(suppressClearTimeoutRef.current);
       }
@@ -221,7 +247,6 @@ export default function TimeGrid({
   ) {
     if (!onEventMove || resizeDrag) return;
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
 
     const dayStart = startOfDay(day);
     const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
@@ -316,50 +341,86 @@ export default function TimeGrid({
     liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
   }
 
-  function handleMovePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
-    if (!moveDrag) return;
+  // ── Window-level listeners for move drag ─────────────────────────
+  // Attaching pointermove/pointerup to `window` instead of the event
+  // button guarantees the drag ends cleanly even when the pointer leaves
+  // the element, the browser steals focus, or pointer capture would have
+  // been lost.  The effect fires when `moveDrag` becomes non-null and
+  // cleans up when it goes back to null (or on unmount).
+  const isMoveDragging = moveDrag !== null;
+  useEffect(() => {
+    if (!isMoveDragging) return;
 
-    latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
-    if (rafIdRef.current === null) {
-      rafIdRef.current = requestAnimationFrame(() => {
-        rafIdRef.current = null;
-        const pointer = latestPointerRef.current;
-        if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
-      });
-    }
-  }
-
-  function handleMovePointerUp(event: CalendarEvent) {
-    cancelPendingMoveFrame();
-    if (!moveDrag) return;
-
-    // Reads hasStartedMoveRef/liveDragRef rather than moveDrag.moved — the
-    // ref is updated synchronously in applyPointerMove, while the state
-    // read here can still reflect the render before the pointer crossed
-    // DRAG_THRESHOLD_PX if pointerup lands before that render committed.
-    if (hasStartedMoveRef.current && liveDragRef.current) {
-      const target = liveDragRef.current;
-
-      lastDraggedEventIdRef.current = event.id;
-      if (suppressClearTimeoutRef.current !== null) {
-        clearTimeout(suppressClearTimeoutRef.current);
+    function onPointerMove(e: PointerEvent) {
+      latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          const pointer = latestPointerRef.current;
+          if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
+        });
       }
-      suppressClearTimeoutRef.current = setTimeout(() => {
-        lastDraggedEventIdRef.current = null;
-        suppressClearTimeoutRef.current = null;
-      }, CLICK_SUPPRESS_WINDOW_MS);
-
-      const dayStart = startOfDay(days[target.dayIndex]);
-      onEventMove?.(
-        event,
-        addMinutes(dayStart, target.startMinutes),
-        addMinutes(dayStart, target.startMinutes + moveDrag.durationMinutes)
-      );
     }
-    setMoveDrag(null);
-    hasStartedMoveRef.current = false;
-    liveDragRef.current = null;
-  }
+
+    function onPointerUp() {
+      cancelPendingMoveFrame();
+      const drag = moveDragRef.current;
+      if (!drag) return;
+
+      if (hasStartedMoveRef.current && liveDragRef.current) {
+        const target = liveDragRef.current;
+
+        lastDraggedEventIdRef.current = drag.event.id;
+        if (suppressClearTimeoutRef.current !== null) {
+          clearTimeout(suppressClearTimeoutRef.current);
+        }
+        suppressClearTimeoutRef.current = setTimeout(() => {
+          lastDraggedEventIdRef.current = null;
+          suppressClearTimeoutRef.current = null;
+        }, CLICK_SUPPRESS_WINDOW_MS);
+
+        const dayStart = startOfDay(daysRef.current[target.dayIndex]);
+        onEventMoveRef.current?.(
+          drag.event,
+          addMinutes(dayStart, target.startMinutes),
+          addMinutes(dayStart, target.startMinutes + drag.durationMinutes)
+        );
+      }
+      setMoveDrag(null);
+      hasStartedMoveRef.current = false;
+      liveDragRef.current = null;
+    }
+
+    function onCancel() {
+      cancelPendingMoveFrame();
+      setMoveDrag(null);
+      hasStartedMoveRef.current = false;
+      liveDragRef.current = null;
+    }
+
+    // Prevent text selection and lock cursor while dragging.
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "grabbing";
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+    window.addEventListener("contextmenu", onCancel);
+
+    return () => {
+      cancelPendingMoveFrame();
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+      window.removeEventListener("contextmenu", onCancel);
+    };
+  });
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
@@ -378,16 +439,18 @@ export default function TimeGrid({
     e: ReactPointerEvent<HTMLDivElement>,
     edge: "top" | "bottom",
     event: CalendarEvent,
+    day: Date,
     top: number,
     height: number
   ) {
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
 
     const originalStartMinutes = (top / 100) * MINUTES_PER_DAY;
     const originalEndMinutes = ((top + height) / 100) * MINUTES_PER_DAY;
 
     setResizeDrag({
+      event,
+      day,
       eventId: event.id,
       edge,
       pointerStartY: e.clientY,
@@ -398,54 +461,100 @@ export default function TimeGrid({
     });
   }
 
-  function handleResizePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    if (!resizeDrag) return;
+  // ── Window-level listeners for resize drag ───────────────────────
+  // Same approach as move drag: window listeners via useEffect, plus
+  // rAF throttling so we get at most one state update (and re-render)
+  // per animation frame instead of one per raw pointermove event.
+  const isResizeDragging = resizeDrag !== null;
+  useEffect(() => {
+    if (!isResizeDragging) return;
 
-    const deltaMinutes = snapMinutes(
-      ((e.clientY - resizeDrag.pointerStartY) / DAY_HEIGHT_PX) * MINUTES_PER_DAY
-    );
+    function applyResizeMove() {
+      const drag = resizeDragRef.current;
+      if (!drag) return;
 
-    setResizeDrag((prev) => {
-      if (!prev) return prev;
+      const clientY = latestResizeYRef.current;
+      const deltaMinutes = snapMinutes(
+        ((clientY - drag.pointerStartY) / DAY_HEIGHT_PX) * MINUTES_PER_DAY
+      );
 
-      if (prev.edge === "top") {
-        return {
-          ...prev,
-          liveStartMinutes: clamp(
+      setResizeDrag((prev) => {
+        if (!prev) return prev;
+
+        if (prev.edge === "top") {
+          const next = clamp(
             prev.originalStartMinutes + deltaMinutes,
             0,
             prev.originalEndMinutes - MIN_DURATION_MINUTES
-          ),
-        };
-      }
+          );
+          return next === prev.liveStartMinutes ? prev : { ...prev, liveStartMinutes: next };
+        }
 
-      return {
-        ...prev,
-        liveEndMinutes: clamp(
+        const next = clamp(
           prev.originalEndMinutes + deltaMinutes,
           prev.originalStartMinutes + MIN_DURATION_MINUTES,
           MINUTES_PER_DAY
-        ),
-      };
-    });
-  }
+        );
+        return next === prev.liveEndMinutes ? prev : { ...prev, liveEndMinutes: next };
+      });
+    }
 
-  function handleResizePointerUp(event: CalendarEvent, day: Date) {
-    if (!resizeDrag) return;
+    function onPointerMove(e: PointerEvent) {
+      latestResizeYRef.current = e.clientY;
+      if (resizeRafRef.current === null) {
+        resizeRafRef.current = requestAnimationFrame(() => {
+          resizeRafRef.current = null;
+          applyResizeMove();
+        });
+      }
+    }
 
-    const dayStart = startOfDay(day);
-    onEventResize?.(
-      event,
-      addMinutes(dayStart, resizeDrag.liveStartMinutes),
-      addMinutes(dayStart, resizeDrag.liveEndMinutes)
-    );
-    setResizeDrag(null);
-  }
+    function onPointerUp() {
+      cancelPendingResizeFrame();
+      const drag = resizeDragRef.current;
+      if (!drag) return;
+
+      const dayStart = startOfDay(drag.day);
+      onEventResizeRef.current?.(
+        drag.event,
+        addMinutes(dayStart, drag.liveStartMinutes),
+        addMinutes(dayStart, drag.liveEndMinutes)
+      );
+      setResizeDrag(null);
+    }
+
+    function onCancel() {
+      cancelPendingResizeFrame();
+      setResizeDrag(null);
+    }
+
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "ns-resize";
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+    window.addEventListener("contextmenu", onCancel);
+
+    return () => {
+      cancelPendingResizeFrame();
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+      window.removeEventListener("contextmenu", onCancel);
+    };
+  });
 
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
-    <div className="flex">
+    <div className="flex select-none">
       {/* Hour labels — border-r connects to the column grid's left edge */}
       <div className="w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
@@ -522,14 +631,6 @@ export default function TimeGrid({
                     type="button"
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
-                    onPointerMove={handleMovePointerMove}
-                    onPointerUp={() => handleMovePointerUp(event)}
-                    onPointerCancel={() => {
-                      cancelPendingMoveFrame();
-                      setMoveDrag(null);
-                      hasStartedMoveRef.current = false;
-                      liveDragRef.current = null;
-                    }}
                     onClick={(e) => handleEventClick(e, event)}
                     style={{
                       top: `${displayTop}%`,
@@ -560,18 +661,12 @@ export default function TimeGrid({
                     {onEventResize && !moveDrag?.moved && (
                       <>
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "top", event, top, height)}
-                          onPointerMove={handleResizePointerMove}
-                          onPointerUp={() => handleResizePointerUp(event, day)}
-                          onPointerCancel={() => setResizeDrag(null)}
+                          onPointerDown={(e) => handleResizePointerDown(e, "top", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 top-0 h-1.5 touch-none cursor-ns-resize"
                         />
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "bottom", event, top, height)}
-                          onPointerMove={handleResizePointerMove}
-                          onPointerUp={() => handleResizePointerUp(event, day)}
-                          onPointerCancel={() => setResizeDrag(null)}
+                          onPointerDown={(e) => handleResizePointerDown(e, "bottom", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 bottom-0 h-1.5 touch-none cursor-ns-resize"
                         />
