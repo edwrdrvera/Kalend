@@ -148,6 +148,30 @@
   [contenteditable] {
     caret-color: var(--primary);
     }
+
+  /* Compact app inputs (APP_INPUT_CLS / SMALL_INPUT_CLS in
+   * src/components/DateField.tsx) pair `text-sm` with Tailwind's default
+   * line-height, which is taller than the small text needs and makes the
+   * native caret look oversized. `.kal-caret` is combined with
+   * `leading-tight` on those constants to shrink it, and swaps the
+   * browser's hard on/off blink for a themed, slower fade. `caret-shape:
+   * bar` is a no-op fallback for browsers that don't support it yet. */
+  @keyframes kal-caret-blink {
+    0%,
+    100% {
+      caret-color: var(--primary);
+      }
+    50% {
+      caret-color: transparent;
+      }
+    }
+  .kal-caret {
+    caret-color: var(--primary);
+    caret-shape: bar;
+    }
+  .kal-caret:focus {
+    animation: kal-caret-blink 1s ease-in-out infinite;
+    }
 }
 
 /* Kalend mark hover animations (see src/components/KalendMark.tsx). Dot

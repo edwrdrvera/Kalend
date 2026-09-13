@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  *  adjust width or font weight, but borders, radius, fill, and focus stay
  *  consistent across Space, Task, and Event editors. */
 export const APP_INPUT_CLS =
-  "h-8 rounded-sm border border-input bg-background px-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60";
+  "h-8 rounded-sm border border-input bg-background px-2 text-sm leading-tight text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20 disabled:opacity-60 kal-caret";
 
 export const SMALL_INPUT_CLS = APP_INPUT_CLS;
 
