@@ -357,9 +357,6 @@ function CreateCategoryForm({
   );
 }
 
-/** How many individual space rows to show before collapsing the rest. */
-const VISIBLE_SPACE_CAP = 3;
-
 export default function CategoryManager({
   categories,
   loading,
@@ -376,17 +373,6 @@ export default function CategoryManager({
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState({ name: "", color: DEFAULT_EVENT_COLOR });
   const hasDraft = Boolean(draft.name.trim()) || draft.color !== DEFAULT_EVENT_COLOR;
-  const [overflowOpen, setOverflowOpen] = useState(false);
-
-  const overflowCount = Math.max(0, categories.length - VISIBLE_SPACE_CAP);
-  const overflowCategories = categories.slice(VISIBLE_SPACE_CAP);
-  // Always show the selected space inline, even if it's past the cap.
-  const selectedIsOverflow =
-    selectedSpaceId !== null &&
-    categories.findIndex((c) => c.id === selectedSpaceId) >= VISIBLE_SPACE_CAP;
-  const visibleCategories = selectedIsOverflow
-    ? [...categories.slice(0, VISIBLE_SPACE_CAP), categories.find((c) => c.id === selectedSpaceId)!]
-    : categories.slice(0, VISIBLE_SPACE_CAP);
 
   const discardDraft = () => {
     setCreating(false);
@@ -440,6 +426,18 @@ export default function CategoryManager({
 
         {loading ? (
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>
+        ) : categories.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-3 text-center">
+            <p className="text-[13px] text-muted-foreground">No spaces yet</p>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              aria-label="Create your first space"
+              className="text-[13px] font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              + Create your first space
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col gap-1">
             <button
@@ -456,7 +454,7 @@ export default function CategoryManager({
               </span>
               <span className="px-1.5">All Spaces</span>
             </button>
-            {visibleCategories.map((category) => (
+            {categories.map((category) => (
               <CategoryRow
                 key={category.id}
                 category={category}
@@ -471,46 +469,6 @@ export default function CategoryManager({
                 onDeleteCategory={() => onDeleteCategory(category)}
               />
             ))}
-            {overflowCount > 0 && (
-              <Popover open={overflowOpen} onOpenChange={setOverflowOpen}>
-                <PopoverTrigger
-                  className="mt-0.5 px-3 text-left text-[12px] text-muted-foreground hover:text-foreground"
-                >
-                  {overflowCount} more
-                </PopoverTrigger>
-                <PopoverBackdrop />
-                <PopoverContent
-                  side="right"
-                  align="start"
-                  sideOffset={8}
-                  className="w-[min(260px,calc(100vw-2rem))] max-h-[min(300px,50vh)] overflow-y-auto p-1.5"
-                >
-                  <div className="flex flex-col gap-1">
-                    {overflowCategories.map((category) => (
-                      <CategoryRow
-                        key={category.id}
-                        category={category}
-                        selected={selectedSpaceId === category.id}
-                        visible={!hiddenCategoryIds.includes(category.id)}
-                        pinned={pinnedSpaceIds.includes(category.id)}
-                        onSelect={() => {
-                          onSelectSpace(category.id);
-                          setOverflowOpen(false);
-                        }}
-                        onDeselect={() => {
-                          onSelectSpace(null);
-                          setOverflowOpen(false);
-                        }}
-                        onToggleVisibility={() => onToggleCategoryVisibility(category.id)}
-                        onTogglePin={() => onTogglePinSpace(category.id)}
-                        onUpdateCategory={(updates) => onUpdateCategory(category, updates)}
-                        onDeleteCategory={() => onDeleteCategory(category)}
-                      />
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
           </div>
         )}
       </div>
