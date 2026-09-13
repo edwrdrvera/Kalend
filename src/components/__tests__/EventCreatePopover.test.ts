@@ -339,3 +339,72 @@ describe("EventCreatePopover location and icon", () => {
     expect(values?.icon).toBeNull();
   });
 });
+
+describe("EventCreatePopover location toggle", () => {
+  /** The location input's enclosing `inert` container, if any — used to
+   *  assert the field is non-interactive while collapsed. */
+  function locationContainer(): HTMLElement | null {
+    return document.querySelector<HTMLInputElement>("#new-event-location")?.closest("[inert]") ?? null;
+  }
+
+  function addLocationButton(): HTMLButtonElement | undefined {
+    return [...document.querySelectorAll<HTMLButtonElement>("button")].find((button) =>
+      /add location/i.test(button.textContent ?? "")
+    );
+  }
+
+  function removeLocationButton(): HTMLButtonElement | undefined {
+    return document.querySelector<HTMLButtonElement>('[aria-label="Remove location"]') ?? undefined;
+  }
+
+  it("hides the location input by default for a new event", async () => {
+    await renderPopover({ event: null });
+
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    expect(locationInput === null || locationContainer() !== null).toBe(true);
+    expect(addLocationButton()).toBeDefined();
+  });
+
+  it("reveals the location input when + Add location is clicked", async () => {
+    await renderPopover({ event: null });
+
+    const addButton = addLocationButton();
+    expect(addButton).toBeDefined();
+    await act(() => addButton?.click());
+
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    expect(locationInput).not.toBeNull();
+    expect(locationContainer()).toBeNull();
+  });
+
+  it("starts expanded with the value pre-filled when editing an event with a location", async () => {
+    await renderPopover({ event: makeEvent({ location: "Room 201" }) });
+
+    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
+    expect(locationInput).not.toBeNull();
+    expect(locationInput?.value).toBe("Room 201");
+    expect(locationContainer()).toBeNull();
+  });
+
+  it("hides and clears the location when the remove button is clicked", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      event: makeEvent({ location: "Room 201" }),
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+
+    const removeButton = removeLocationButton();
+    expect(removeButton).toBeDefined();
+    await act(() => removeButton?.click());
+
+    expect(locationContainer()).not.toBeNull();
+    expect(addLocationButton()).toBeDefined();
+
+    await submitForm();
+
+    const values = submitted as EventFormValues | null;
+    expect(values?.location).toBeNull();
+  });
+});
