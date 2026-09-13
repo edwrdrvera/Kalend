@@ -238,6 +238,8 @@ export default function EventCreatePopover({
               id="new-event-icon"
               value={icon}
               onChange={(e) => setIcon(e.target.value.slice(0, MAX_ICON_LENGTH))}
+              placeholder="🙂"
+              title="Optional emoji or symbol for this event"
               maxLength={MAX_ICON_LENGTH}
               className={cn(APP_INPUT_CLS, "w-9 shrink-0 text-center")}
             />
