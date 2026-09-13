@@ -62,7 +62,7 @@ export default function AgendaColumn({
   return (
     <div
       data-testid="agenda-column"
-      className="flex h-full w-[300px] shrink-0 flex-col border-r border-border bg-card"
+      className="flex h-full w-full flex-col bg-card"
     >
       <AgendaDateHeader
         selectedDate={selectedDate}

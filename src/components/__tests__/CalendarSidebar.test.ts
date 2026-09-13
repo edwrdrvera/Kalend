@@ -11,22 +11,6 @@ import { typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: CalendarSidebar } = await import("../CalendarSidebar");
-const { ThemeProvider } = await import("@/lib/theme");
-const { AppRouterContext } =
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  require("next/dist/shared/lib/app-router-context.shared-runtime") as {
-    AppRouterContext: React.Context<import("next/dist/shared/lib/app-router-context.shared-runtime").AppRouterInstance | null>;
-  };
-
-/** Minimal mock satisfying SettingsMenu's useRouter() call. */
-const mockRouter = {
-  back: () => {},
-  forward: () => {},
-  push: () => {},
-  replace: () => {},
-  refresh: () => {},
-  prefetch: () => Promise.resolve(),
-} as unknown as import("next/dist/shared/lib/app-router-context.shared-runtime").AppRouterInstance;
 
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -97,9 +81,7 @@ interface RenderOptions {
   tasks?: CalendarTask[];
   tasksLoading?: boolean;
   eventsLoading?: boolean;
-  categoriesLoading?: boolean;
   selectedSpaceId?: string | null;
-  hiddenCategoryIds?: string[];
   onCreateTask?: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
 }
 
@@ -131,36 +113,23 @@ async function renderSidebar(options: RenderOptions = {}) {
 
   await act(() =>
     root?.render(
-      createElement(
-        AppRouterContext.Provider,
-        { value: mockRouter },
-        createElement(
-          ThemeProvider,
-          null,
-          createElement(CalendarSidebar, {
-          currentDate: today,
-          viewDate: today,
-          onDateSelect: () => {},
-          tasks: options.tasks ?? [],
-          events: options.events ?? [],
-          tasksLoading: options.tasksLoading ?? false,
-          eventsLoading: options.eventsLoading ?? false,
-          onCreateTask,
-          onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
-          onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
-          onEventClick: (event) => interactions.eventClicks.push(event.id),
-          categories: options.categories ?? [],
-          categoriesLoading: options.categoriesLoading ?? false,
-          selectedSpaceId: options.selectedSpaceId ?? null,
-          onSelectSpace: (id) => interactions.selectedSpaces.push(id),
-          hiddenCategoryIds: options.hiddenCategoryIds ?? [],
-          onToggleCategoryVisibility: () => {},
-          onCreateCategory: async () => {},
-          onUpdateCategory: () => {},
-          onDeleteCategory: async () => {},
-        })
-        )
-      )
+      createElement(CalendarSidebar, {
+        currentDate: today,
+        viewDate: today,
+        onDateSelect: () => {},
+        tasks: options.tasks ?? [],
+        events: options.events ?? [],
+        tasksLoading: options.tasksLoading ?? false,
+        eventsLoading: options.eventsLoading ?? false,
+        onCreateTask,
+        onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
+        onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
+        onEventClick: (event) => interactions.eventClicks.push(event.id),
+        categories: options.categories ?? [],
+        selectedSpaceId: options.selectedSpaceId ?? null,
+        onSelectSpace: (id) => interactions.selectedSpaces.push(id),
+        onCreateCategory: async () => {},
+      })
     )
   );
   return interactions;
@@ -170,19 +139,39 @@ function byLabel(label: string): HTMLElement | null {
   return document.querySelector<HTMLElement>(`[aria-label="${label}"]`);
 }
 
-function allByLabel(label: string): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>(`[aria-label="${label}"]`)];
-}
-
 // ── Tests ─────────────────────────────────────────────────────────────────
 
-describe("CalendarSidebar empty state", () => {
-  it("shows a friendly empty-state message when there are no spaces", async () => {
-    await renderSidebar({ categories: [], events: [], tasks: [] });
+describe("CalendarSidebar layout", () => {
+  it("renders the IconRail with its navigation landmark", async () => {
+    await renderSidebar({ categories: fiveCategories });
 
-    const text = document.body.textContent ?? "";
-    // The sidebar should guide the user to create their first space.
-    expect(text).toMatch(/no spaces yet/i);
+    const nav = document.querySelector('nav[aria-label="Main navigation"]');
+    expect(nav).not.toBeNull();
+  });
+
+  it("renders the AgendaColumn", async () => {
+    await renderSidebar();
+
+    const column = document.querySelector('[data-testid="agenda-column"]');
+    expect(column).not.toBeNull();
+  });
+
+  it("renders the MiniCalendar with month navigation", async () => {
+    await renderSidebar();
+
+    const prevBtn = byLabel("Previous month");
+    const nextBtn = byLabel("Next month");
+    expect(prevBtn).not.toBeNull();
+    expect(nextBtn).not.toBeNull();
+  });
+});
+
+describe("CalendarSidebar empty state", () => {
+  it("shows the create-space button when there are no spaces", async () => {
+    await renderSidebar({ categories: [] });
+
+    const createBtn = byLabel("Create space");
+    expect(createBtn).not.toBeNull();
   });
 
   it("shows a calm placeholder when nothing is scheduled for today", async () => {
@@ -191,25 +180,30 @@ describe("CalendarSidebar empty state", () => {
     const text = document.body.textContent ?? "";
     expect(text).toMatch(/nothing scheduled/i);
   });
+});
 
-  it("renders the inline task composer input", async () => {
-    await renderSidebar({ categories: [], events: [], tasks: [] });
+describe("CalendarSidebar categories", () => {
+  it("renders all categories as tiles in the icon rail", async () => {
+    await renderSidebar({ categories: fiveCategories });
 
-    // The task composer should be present as a clickable/focusable element
-    // in the sidebar DOM (not inside a popover).
-    const composer = byLabel("Add a task") ?? byLabel("New task title");
-    expect(composer).not.toBeNull();
+    for (const cat of fiveCategories) {
+      const tile = byLabel(cat.name);
+      expect(tile).not.toBeNull();
+    }
   });
 });
 
-describe("CalendarSidebar categories render", () => {
-  it("renders all category names when given 5 categories", async () => {
-    await renderSidebar({ categories: fiveCategories });
+describe("CalendarSidebar space selection", () => {
+  it("calls onSelectSpace when a Space tile in the rail is clicked", async () => {
+    const interactions = await renderSidebar({
+      categories: [makeCategory({ id: "cat-1", name: "Work" })],
+    });
 
-    const text = document.body.textContent ?? "";
-    for (const cat of fiveCategories) {
-      expect(text).toContain(cat.name);
-    }
+    const tile = byLabel("Work");
+    expect(tile).not.toBeNull();
+    await act(() => tile?.click());
+
+    expect(interactions.selectedSpaces).toContain("cat-1");
   });
 });
 
@@ -221,47 +215,30 @@ describe("CalendarSidebar agenda inline", () => {
       tasks: [makeTask()],
     });
 
-    // The event title and task title should be directly visible in the sidebar
-    // without opening any popover.
     const text = document.body.textContent ?? "";
     expect(text).toContain("Biology lecture");
     expect(text).toContain("Finish lab report");
   });
 });
 
-describe("CalendarSidebar independent scroll", () => {
-  it("has an independently scrollable agenda zone", async () => {
+describe("CalendarSidebar inline task composer", () => {
+  it("has a task creation trigger", async () => {
     await renderSidebar({
-      events: [makeEvent()],
+      categories: [makeCategory()],
       tasks: [makeTask()],
     });
 
-    // Find the agenda panel container. It should have overflow-y: auto
-    // so it scrolls independently from the spaces rail and bottom zone.
-    const agendaPanel = document.querySelector('[data-testid="agenda-panel"]');
-    expect(agendaPanel).not.toBeNull();
-    expect(agendaPanel?.className).toContain("overflow-y-auto");
-  });
-});
-
-describe("CalendarSidebar inline task composer", () => {
-  it("has the task composer inline in the sidebar DOM (not in a popover)", async () => {
-    await renderSidebar({ categories: [makeCategory()] });
-
-    // The composer trigger/input should be present directly in the sidebar.
-    const addTaskTrigger = byLabel("Add a task");
-    expect(addTaskTrigger).not.toBeNull();
-
-    // It should be inside the sidebar aside element, not in a popover portal.
-    const aside = document.querySelector("aside");
-    expect(aside).not.toBeNull();
-    expect(aside?.contains(addTaskTrigger)).toBe(true);
+    const trigger = byLabel("Add a task");
+    expect(trigger).not.toBeNull();
   });
 
   it("calls onCreateTask when a title is typed and submitted", async () => {
-    const interactions = await renderSidebar({ categories: [makeCategory()] });
+    const interactions = await renderSidebar({
+      categories: [makeCategory()],
+      tasks: [makeTask()],
+    });
 
-    // Click the "Add a task" trigger to expand the composer.
+    // Click the "+ Add" trigger to expand the composer.
     const trigger = byLabel("Add a task");
     await act(() => trigger?.click());
 
@@ -295,5 +272,25 @@ describe("CalendarSidebar accessibility", () => {
       const hasAccessibleName = ariaLabel.length > 0 || textContent.length > 0;
       expect(hasAccessibleName).toBe(true);
     }
+  });
+});
+
+describe("CalendarSidebar mobile", () => {
+  it("has a hamburger button that opens the mobile sidebar overlay", async () => {
+    await renderSidebar();
+
+    const hamburger = byLabel("Open sidebar");
+    expect(hamburger).not.toBeNull();
+
+    // Before clicking, the mobile aside should be translated off-screen.
+    const aside = document.querySelector("aside");
+    expect(aside).not.toBeNull();
+    expect(aside?.className).toContain("-translate-x-full");
+
+    // After clicking, the sidebar should slide in.
+    await act(() => hamburger?.click());
+    const asideAfter = document.querySelector("aside");
+    expect(asideAfter?.className).toContain("translate-x-0");
+    expect(asideAfter?.className).not.toContain("-translate-x-full");
   });
 });
