@@ -30,7 +30,7 @@ export default function AgendaScheduleGroup({
 
   return (
     <section aria-label="Schedule">
-      <h3 className="px-1 pb-1 text-[11px] font-medium text-muted-foreground">
+      <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
         Schedule
       </h3>
       <div className="flex flex-col">

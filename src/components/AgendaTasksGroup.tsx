@@ -185,7 +185,7 @@ export default function AgendaTasksGroup({
       className="border-t border-border pt-[14px]"
     >
       <div className="flex items-center justify-between px-1 pb-1">
-        <h3 className="text-[11px] font-medium text-muted-foreground">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
           Tasks
         </h3>
         {/* Always rendered so the header keeps its height; hidden (not removed)
@@ -235,7 +235,7 @@ export default function AgendaTasksGroup({
               <div className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block truncate text-[13px]",
+                    "block truncate text-[14px]",
                     task.completed
                       ? "line-through opacity-50"
                       : "text-foreground"
