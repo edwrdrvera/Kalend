@@ -233,12 +233,6 @@ export default function Calendar() {
     dispatchBranchPanel({ type: "spaceChanged", spaceId });
   };
 
-  // Clearing the Space filter chip returns to All Spaces and closes the panel.
-  const handleClearSpace = () => {
-    dispatchSpaceFocus({ type: "select", spaceId: null });
-    dispatchBranchPanel({ type: "cleared" });
-  };
-
   // Open the Space editor in edit mode for a given Space id (used by the panel
   // overflow/footer and the rail context menu). No-op if the Space is gone.
   const handleEditSpaceById = (spaceId: string) => {
@@ -250,9 +244,8 @@ export default function Calendar() {
 
   const visibleEvents = filterBySpace(events.data, spaceFocus);
   const visibleTasks = filterBySpace(tasks.data, spaceFocus);
-  const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
 
-  // All branches (for the rail flyouts + agenda list) and the active branch.
+  // All branches (for the agenda list) and the active branch.
   const branches = branchesForSpaces(categories.data);
   const activeBranch =
     branchPanel.open && branchPanel.activeBranchId
@@ -296,7 +289,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="right"
               align="end"
-              triggerClassName="grid size-[30px] place-items-center rounded-full bg-white/[0.12] text-[13px] font-semibold text-white/80 transition-colors hover:bg-white/[0.2]"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
               triggerChildren="E"
             />
           }
@@ -316,18 +309,6 @@ export default function Calendar() {
           </div>
         ) : (
           <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
-            {selectedSpace && (
-              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border py-2 pl-14 pr-4 text-sm md:pl-4">
-                <span className="min-w-0 truncate font-medium">Space: {selectedSpace.name}</span>
-                <button
-                  type="button"
-                  onClick={handleClearSpace}
-                  className="shrink-0 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  All Spaces
-                </button>
-              </div>
-            )}
             {view === "month" && (
               <MonthGrid
                 selectedDate={selectedDate}

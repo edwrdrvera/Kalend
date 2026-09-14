@@ -89,8 +89,8 @@ export function getTaskColorClasses(color: string | null): string {
   return TASK_COLOR_CLASSES[color];
 }
 
-// Solid fill + lighter border for Space tiles on the dark icon rail. The rail
-// is always dark regardless of app theme, so no dark: variants needed.
+// Solid fill + lighter border for the active Space tile in the icon rail. The
+// colored fill with white text reads on the rail in both light and dark themes.
 export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
   blue: "bg-blue-500 border-blue-400 text-white",
   green: "bg-green-500 border-green-400 text-white",

@@ -119,8 +119,6 @@ export default function CalendarSidebar({
           onSelectSpace={onSelectSpace}
           onCreateSpace={onCreateSpace}
           onEditSpace={onEditSpace}
-          branches={branches}
-          onOpenBranch={onOpenBranch}
           accountMenu={accountMenu}
         />
         <div className="flex h-full w-[300px] flex-col border-r border-border">
