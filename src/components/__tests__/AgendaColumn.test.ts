@@ -142,15 +142,13 @@ function byTestId(id: string): HTMLElement | null {
 // ── Tests ─────────────────────────────────────────────────────────────────
 
 describe("AgendaColumn date header", () => {
-  it("renders the date in day-of-week + date number format", async () => {
+  it("renders the date as weekday, month and day", async () => {
     await renderColumn();
 
     const text = document.body.textContent ?? "";
-    // September 17, 2030 is a Tuesday
+    // September 17, 2030 is a Tuesday -> "Tuesday, Sep 17"
     expect(text).toContain("Tuesday");
-    expect(text).toContain("17");
-    // Should not include a comma between them (spec says no comma)
-    expect(text).not.toContain("Tuesday,");
+    expect(text).toContain("Sep 17");
   });
 
   it("shows event and task counts in the sub-line", async () => {

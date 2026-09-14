@@ -145,13 +145,40 @@ interface ResizeDrag {
   liveEndMinutes: number;
 }
 
+/** Tracks an in-progress drag across empty slots to create a new event. All
+ *  minutes are relative to midnight of the column being dragged in. `anchor`
+ *  is where the pointer went down; `live` follows the pointer. `moved` flips
+ *  true only once the pointer travels past DRAG_THRESHOLD_PX, so a plain click
+ *  (which selects the day) never creates an event. */
+interface CreateDrag {
+  dayIndex: number;
+  day: Date;
+  anchorMinutes: number;
+  liveMinutes: number;
+  pointerStartY: number;
+  moved: boolean;
+}
+
 interface TimeGridProps {
   /** One column per entry — a single day for the Day view, seven for Week. */
   days: Date[];
   events: CalendarEvent[];
   categories: CalendarCategory[];
-  onSlotClick?: (day: Date, hour: number, anchorRect: DOMRect) => void;
+  /** Single click on an empty slot: select that day. */
+  onSlotSelect?: (day: Date) => void;
+  /** Double click on an empty slot: create an event at that hour. */
+  onSlotCreate?: (day: Date, hour: number, anchorRect: DOMRect) => void;
+  /** Drag across empty slots: create an event spanning the dragged range. */
+  onSlotDragCreate?: (start: Date, end: Date, anchorRect: DOMRect) => void;
+  /** Right-click on an empty slot: open a create menu. */
+  onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
   onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  /** Shift+click on an event: toggle it in the multi-selection. */
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  /** Right-click on an event: open a delete menu. */
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  /** Ids of events currently multi-selected (rendered with a ring). */
+  selectedEventIds?: Set<string>;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
    *  only become draggable when this is provided. */
@@ -171,13 +198,22 @@ export default function TimeGrid({
   days,
   events,
   categories,
-  onSlotClick,
+  onSlotSelect,
+  onSlotCreate,
+  onSlotDragCreate,
+  onSlotContextMenu,
   onEventClick,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   onEventMove,
   onEventResize,
 }: TimeGridProps) {
   const now = useCurrentTime();
   const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
+  // Show the current-time marker (line + gutter label) only when one of the
+  // visible columns is actually today.
+  const showNow = days.some((day) => isSameDay(day, now));
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -222,19 +258,29 @@ export default function TimeGrid({
   const resizeRafRef = useRef<number | null>(null);
   const latestResizeYRef = useRef<number>(0);
 
+  // ── Create-drag refs ───────────────────────────────────────────────
+  const [createDrag, setCreateDrag] = useState<CreateDrag | null>(null);
+  const createDragRef = useRef<CreateDrag | null>(null);
+  // Suppresses the click that fires after a create-drag ends, so the drag
+  // doesn't also select the day.
+  const suppressSlotClickRef = useRef(false);
+
   // ── Prop refs ──────────────────────────────────────────────────────
   // Keep refs in sync with state/props so window-level event handlers
   // always read the latest values without stale closures.
   const daysRef = useRef(days);
   const onEventMoveRef = useRef(onEventMove);
   const onEventResizeRef = useRef(onEventResize);
+  const onSlotDragCreateRef = useRef(onSlotDragCreate);
 
   useEffect(() => {
     moveDragRef.current = moveDrag;
     resizeDragRef.current = resizeDrag;
+    createDragRef.current = createDrag;
     daysRef.current = days;
     onEventMoveRef.current = onEventMove;
     onEventResizeRef.current = onEventResize;
+    onSlotDragCreateRef.current = onSlotDragCreate;
   });
 
   function clientYToMinutes(clientY: number): number {
@@ -455,6 +501,10 @@ export default function TimeGrid({
       }
       return;
     }
+    if (e.shiftKey && onEventShiftClick) {
+      onEventShiftClick(event);
+      return;
+    }
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
@@ -570,12 +620,88 @@ export default function TimeGrid({
     };
   });
 
+  // ── Create-drag ────────────────────────────────────────────────────
+  function handleSlotPointerDown(
+    e: ReactPointerEvent<HTMLDivElement>,
+    dayIndex: number,
+    day: Date
+  ) {
+    if (!onSlotDragCreate || e.button !== 0 || moveDrag || resizeDrag) return;
+    const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
+    setCreateDrag({
+      dayIndex,
+      day,
+      anchorMinutes: minutes,
+      liveMinutes: minutes,
+      pointerStartY: e.clientY,
+      moved: false,
+    });
+  }
+
+  const isCreateDragging = createDrag !== null;
+  useEffect(() => {
+    if (!isCreateDragging) return;
+
+    function onPointerMove(e: PointerEvent) {
+      const drag = createDragRef.current;
+      if (!drag) return;
+      const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
+      const moved = drag.moved || Math.abs(e.clientY - drag.pointerStartY) >= DRAG_THRESHOLD_PX;
+      setCreateDrag((prev) =>
+        prev && (prev.liveMinutes !== minutes || prev.moved !== moved)
+          ? { ...prev, liveMinutes: minutes, moved }
+          : prev
+      );
+    }
+
+    function onPointerUp() {
+      const drag = createDragRef.current;
+      setCreateDrag(null);
+      if (!drag || !drag.moved) return;
+
+      // A real drag happened: suppress the trailing click's day-select and
+      // open the creator for the spanned range (min 15 min).
+      suppressSlotClickRef.current = true;
+      const lo = Math.min(drag.anchorMinutes, drag.liveMinutes);
+      const hi = Math.max(lo + MIN_DURATION_MINUTES, Math.max(drag.anchorMinutes, drag.liveMinutes));
+      const dayStart = startOfDay(drag.day);
+      const columnEl = gridRef.current?.children[drag.dayIndex] as HTMLElement | undefined;
+      const rect =
+        columnEl?.getBoundingClientRect() ?? gridRef.current?.getBoundingClientRect();
+      if (rect) {
+        onSlotDragCreateRef.current?.(
+          addMinutes(dayStart, lo),
+          addMinutes(dayStart, hi),
+          rect
+        );
+      }
+    }
+
+    function onCancel() {
+      setCreateDrag(null);
+    }
+
+    const previousBodyStyle = lockBodyForDrag("ns-resize");
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+
+    return () => {
+      restoreBodyAfterDrag(previousBodyStyle);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+    };
+  });
+
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
     <div className="flex select-none">
       {/* Hour labels — border-r connects to the column grid's left edge */}
-      <div className="w-10 shrink-0 border-r border-border sm:w-16">
+      <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
           <div
             key={hour}
@@ -585,6 +711,15 @@ export default function TimeGrid({
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
         ))}
+        {/* Current-time label, aligned with the red "now" line in the columns. */}
+        {showNow && (
+          <div
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-red-500 px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            style={{ top: nowOffsetPx }}
+          >
+            {format(now, "h:mm")}
+          </div>
+        )}
       </div>
       {/* Grid: gutter's border-r provides the left edge; divide-x adds 1px
           separators between columns; border-r on the grid itself caps the
@@ -609,11 +744,25 @@ export default function TimeGrid({
                   key={hour}
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect())}
+                  onPointerDown={(e) => handleSlotPointerDown(e, dayIndex, day)}
+                  onClick={() => {
+                    if (suppressSlotClickRef.current) {
+                      suppressSlotClickRef.current = false;
+                      return;
+                    }
+                    onSlotSelect?.(day);
+                  }}
+                  onDoubleClick={(e) =>
+                    onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
+                  }
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect());
+                      onSlotSelect?.(day);
                     }
                   }}
                   style={{ height: HOUR_HEIGHT_PX }}
@@ -630,6 +779,27 @@ export default function TimeGrid({
                   <div className="h-[2px] flex-1 bg-red-500" />
                 </div>
               )}
+
+              {/* Create-drag preview: the block the pointer is currently
+                  sketching out, before the creator opens. */}
+              {createDrag?.moved && createDrag.dayIndex === dayIndex && (() => {
+                const lo = Math.min(createDrag.anchorMinutes, createDrag.liveMinutes);
+                const hi = Math.max(
+                  lo + MIN_DURATION_MINUTES,
+                  Math.max(createDrag.anchorMinutes, createDrag.liveMinutes)
+                );
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    style={{
+                      top: `${(lo / MINUTES_PER_DAY) * 100}%`,
+                      height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
+                    }}
+                  >
+                    {format(addMinutes(startOfDay(day), lo), "h:mm")} – {format(addMinutes(startOfDay(day), hi), "h:mm")}
+                  </div>
+                );
+              })()}
 
               {blocks.map(({ event, top, height, left, width }) => {
                 const isBeingDragged = moveDrag?.moved && moveDrag.event.id === event.id;
@@ -651,13 +821,18 @@ export default function TimeGrid({
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onClick={(e) => handleEventClick(e, event)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEventContextMenu?.(event, e.clientX, e.clientY);
+                    }}
                     style={{
                       top: `${displayTop}%`,
                       height: `${displayHeight}%`,
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —

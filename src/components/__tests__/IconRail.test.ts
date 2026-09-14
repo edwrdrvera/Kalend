@@ -4,7 +4,6 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory } from "@/lib/calendar-types";
-import type { Branch } from "@/lib/branch-types";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 
 // DOM globals must be installed (test-dom above) before importing react-dom.
@@ -44,20 +43,16 @@ afterEach(async () => {
 interface RenderOptions {
   categories?: CalendarCategory[];
   selectedSpaceId?: string | null;
-  activeView?: "calendar" | "tasks";
-  branches?: Branch[];
 }
 
 interface Interactions {
   selectedSpaces: (string | null)[];
-  viewChanges: ("calendar" | "tasks")[];
   createSpaceCalls: number;
 }
 
 async function renderRail(options: RenderOptions = {}) {
   const interactions: Interactions = {
     selectedSpaces: [],
-    viewChanges: [],
     createSpaceCalls: 0,
   };
   container = document.createElement("div");
@@ -70,11 +65,8 @@ async function renderRail(options: RenderOptions = {}) {
         categories: options.categories ?? [],
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
-        activeView: options.activeView ?? "calendar",
-        onViewChange: (view) => interactions.viewChanges.push(view),
         onCreateSpace: () => { interactions.createSpaceCalls++; },
-        branches: options.branches ?? [],
-        onOpenBranch: () => {},
+        onEditSpace: () => {},
       })
     )
   );
@@ -96,27 +88,12 @@ describe("IconRail", () => {
     expect(mark).not.toBeNull();
   });
 
-  it("renders Calendar and Tasks view buttons; active has active styling", async () => {
-    await renderRail({ activeView: "calendar" });
+  it("does not render a Tasks view toggle (removed until the view exists)", async () => {
+    await renderRail();
 
-    const calBtn = byLabel("Calendar view");
-    const tasksBtn = byLabel("Tasks view");
-    expect(calBtn).not.toBeNull();
-    expect(tasksBtn).not.toBeNull();
-
-    // Active calendar button has the translucent-white fill class.
-    expect(calBtn?.className).toContain("bg-white/[0.12]");
-    // Inactive tasks button does not.
-    expect(tasksBtn?.className).not.toContain("bg-white/[0.12]");
-  });
-
-  it("clicking a view button calls onViewChange", async () => {
-    const interactions = await renderRail({ activeView: "calendar" });
-
-    const tasksBtn = byLabel("Tasks view");
-    await act(() => tasksBtn?.click());
-
-    expect(interactions.viewChanges).toEqual(["tasks"]);
+    // The dead Calendar/Tasks toggle was removed; neither button should exist.
+    expect(byLabel("Calendar view")).toBeNull();
+    expect(byLabel("Tasks view")).toBeNull();
   });
 
   it("renders one Space tile per category with correct abbreviation", async () => {

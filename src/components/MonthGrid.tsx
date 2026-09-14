@@ -15,6 +15,7 @@ import {
   addDays,
 } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { cn } from "@/lib/utils";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
@@ -32,6 +33,10 @@ interface MonthGridProps {
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onDayContextMenu?: (day: Date, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -147,6 +152,10 @@ function DayCell({
   onCreateEvent,
   onEventClick,
   onTaskClick,
+  onDayContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
 }: {
   day: Date;
   monthStart: Date;
@@ -158,6 +167,10 @@ function DayCell({
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onDayContextMenu?: (day: Date, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
@@ -167,8 +180,15 @@ function DayCell({
   const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
   const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
-  const handleCellClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Single click selects the day (the agenda/side nav follows); double click on
+  // an empty part of the cell opens the event creator. The double-click guard
+  // ignores double-clicks that land on an event/task chip.
+  const handleCellClick = () => {
     onDateSelect(day);
+  };
+
+  const handleCellDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button")) return;
     onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
@@ -176,7 +196,6 @@ function DayCell({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onDateSelect(day);
-      onCreateEvent(day, e.currentTarget.getBoundingClientRect());
     }
   };
 
@@ -187,8 +206,14 @@ function DayCell({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Create event on ${format(day, "EEEE, MMMM d, yyyy")}`}
+      aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
       onClick={handleCellClick}
+      onDoubleClick={handleCellDoubleClick}
+      onContextMenu={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        e.preventDefault();
+        onDayContextMenu?.(day, e.clientX, e.clientY);
+      }}
       onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >
@@ -203,9 +228,22 @@ function DayCell({
             title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();
+              if (e.shiftKey && onEventShiftClick) {
+                onEventShiftClick(event);
+                return;
+              }
               onEventClick(event, e.currentTarget.getBoundingClientRect());
             }}
-            className={`w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEventContextMenu?.(event, e.clientX, e.clientY);
+            }}
+            className={cn(
+              "w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold",
+              getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
+              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1"
+            )}
           >
             {/* Month cells are too narrow for a location line, so only the
              *  icon (if set) rides along with the title here. */}
@@ -244,6 +282,10 @@ export default function MonthGrid({
   onCreateEvent,
   onEventClick,
   onTaskClick,
+  onDayContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   view,
   onViewChange,
 }: MonthGridProps) {
@@ -275,6 +317,10 @@ export default function MonthGrid({
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}
             onTaskClick={onTaskClick}
+            onDayContextMenu={onDayContextMenu}
+            onEventShiftClick={onEventShiftClick}
+            onEventContextMenu={onEventContextMenu}
+            selectedEventIds={selectedEventIds}
           />
         ))}
       </div>

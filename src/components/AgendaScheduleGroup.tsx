@@ -30,10 +30,10 @@ export default function AgendaScheduleGroup({
 
   return (
     <section aria-label="Schedule">
-      <h3 className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h3 className="px-1 pb-1 text-[11px] font-medium text-muted-foreground">
         Schedule
       </h3>
-      <div className="flex flex-col gap-[11px]">
+      <div className="flex flex-col">
         {sorted.map((event) => {
           const allDay = isMultiDayEvent(event);
           const displayColor = resolveDisplayColor(
@@ -54,10 +54,10 @@ export default function AgendaScheduleGroup({
               onClick={(e) =>
                 onEventClick(event, e.currentTarget.getBoundingClientRect())
               }
-              className="flex items-center gap-2 rounded-lg py-2 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Edit event: ${event.title}`}
             >
-              <span className="w-[44px] shrink-0 text-[12px] text-muted-foreground">
+              <span className="w-[58px] shrink-0 whitespace-nowrap text-[12px] font-medium tabular-nums text-muted-foreground">
                 {allDay
                   ? "All day"
                   : format(new Date(event.start_at), "h:mm a")}
@@ -69,7 +69,7 @@ export default function AgendaScheduleGroup({
                   barClass
                 )}
               />
-              <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">
+              <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
                 {event.title}
               </span>
             </button>

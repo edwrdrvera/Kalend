@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IconRail from "./IconRail";
 import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
+import MobileSpacesBar from "./MobileSpacesBar";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 
@@ -24,10 +25,15 @@ interface CalendarSidebarProps {
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
-  onCreateCategory: (name: string, color: string) => Promise<void>;
+  onCreateSpace: () => void;
+  onEditSpace: (category: CalendarCategory) => void;
   branches: Branch[];
   activeBranchId: string | null;
   onOpenBranch: (branch: Branch) => void;
+  /** Account menu element for the desktop rail, composed by the state owner. */
+  accountMenu?: ReactNode;
+  /** Account menu element for the mobile slide-out (light-surface styling). */
+  mobileAccountMenu?: ReactNode;
 }
 
 export default function CalendarSidebar({
@@ -45,10 +51,13 @@ export default function CalendarSidebar({
   categories,
   selectedSpaceId,
   onSelectSpace,
-  onCreateCategory,
+  onCreateSpace,
+  onEditSpace,
   branches,
   activeBranchId,
   onOpenBranch,
+  accountMenu,
+  mobileAccountMenu,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -108,11 +117,9 @@ export default function CalendarSidebar({
           categories={categories}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={onSelectSpace}
-          activeView="calendar"
-          onViewChange={() => {}}
-          onCreateSpace={() => onCreateCategory("New Space", "blue")}
-          branches={branches}
-          onOpenBranch={onOpenBranch}
+          onCreateSpace={onCreateSpace}
+          onEditSpace={onEditSpace}
+          accountMenu={accountMenu}
         />
         <div className="flex h-full w-[300px] flex-col border-r border-border">
           <div className="min-h-0 flex-1 overflow-hidden">
@@ -139,6 +146,13 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-0 flex-1 flex-col pt-14">
+          <MobileSpacesBar
+            categories={categories}
+            selectedSpaceId={selectedSpaceId}
+            onSelectSpace={onSelectSpace}
+            onCreateSpace={onCreateSpace}
+            accountMenu={mobileAccountMenu}
+          />
           <div className="min-h-0 flex-1 overflow-hidden">
             <AgendaColumn {...agendaProps} />
           </div>

@@ -59,6 +59,8 @@ interface EventCreatePopoverProps {
   event?: CalendarEvent | null;
   /** Pre-populates start time when creating from a clicked day or time slot. */
   initialStart?: Date;
+  /** Pre-populates end time when creating from a dragged time range. */
+  initialEnd?: Date;
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
   categories: CalendarCategory[];
@@ -79,6 +81,7 @@ export default function EventCreatePopover({
   side,
   event,
   initialStart,
+  initialEnd,
   initialSpaceId = null,
   categories,
   breadcrumb = null,
@@ -99,7 +102,8 @@ export default function EventCreatePopover({
     toDateTimeLocal(
       event
         ? new Date(event.end_at)
-        : new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
+        : initialEnd ??
+            new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
     )
   );
   const [colorState, dispatchColor] = useReducer(

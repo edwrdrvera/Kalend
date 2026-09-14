@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Plus } from "lucide-react";
 import { addDays, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
@@ -63,6 +63,14 @@ function InlineTaskComposer({
   const [draft, setDraft] = useState<TaskDraft>(() => newDraft(selectedSpaceId));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus without scrolling: the default autoFocus / focus() scrolls the
+  // composer into view, which yanks the agenda's task list upward when the
+  // column overflows. preventScroll keeps the list where it is.
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,14 +94,14 @@ function InlineTaskComposer({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 pt-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2">
       <input
+        ref={inputRef}
         value={draft.title}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        autoFocus
-        className={cn(APP_INPUT_CLS, "w-full")}
+        className={cn(APP_INPUT_CLS, "h-7 w-full text-[13px]")}
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -176,17 +184,24 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className="border-t border-border pt-[14px]"
     >
-      <div className="flex items-center justify-between px-3 pb-2">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex items-center justify-between px-1 pb-1">
+        <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
+        {/* Always rendered so the header keeps its height; hidden (not removed)
+            while the composer is open, so the task rows below never shift. */}
         <button
           type="button"
-          onClick={() => setComposerOpen(!composerOpen)}
-          className="text-[12px] font-medium text-primary"
-          aria-label={composerOpen ? "Close task composer" : "Add a task"}
+          onClick={() => setComposerOpen(true)}
+          className={cn(
+            "grid size-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+            composerOpen && "invisible pointer-events-none"
+          )}
+          aria-label="Add a task"
+          aria-hidden={composerOpen}
+          tabIndex={composerOpen ? -1 : undefined}
         >
-          {composerOpen ? "Cancel" : "+ Add"}
+          <Plus className="size-3.5" />
         </button>
       </div>
 
@@ -199,7 +214,7 @@ export default function AgendaTasksGroup({
           return (
             <div
               key={task.id}
-              className="flex items-start gap-2 rounded-lg py-2"
+              className="flex items-start gap-2 rounded-lg px-1 py-1"
             >
               <button
                 type="button"
@@ -220,7 +235,7 @@ export default function AgendaTasksGroup({
               <div className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block truncate text-[13.5px]",
+                    "block truncate text-[13px]",
                     task.completed
                       ? "line-through opacity-50"
                       : "text-foreground"
@@ -229,7 +244,7 @@ export default function AgendaTasksGroup({
                   {task.title}
                 </span>
                 {category && (
-                  <span className="block text-[11.5px] text-muted-foreground">
+                  <span className="block text-[12px] text-muted-foreground">
                     {category.name}
                   </span>
                 )}
@@ -249,7 +264,7 @@ export default function AgendaTasksGroup({
       )}
 
       {upcomingCount > 0 && (
-        <p className="px-3 pt-3 pb-1 text-[11.5px] text-muted-foreground">
+        <p className="px-1 pt-3 pb-1 text-[12px] text-muted-foreground">
           Next 7 days{" · "}
           <span className="text-primary">{upcomingCount} more</span>
         </p>

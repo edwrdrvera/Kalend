@@ -22,7 +22,7 @@ export default function BranchList({
 
   return (
     <div className="shrink-0 border-b border-border px-3 py-3">
-      <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="mb-1.5 px-1 text-[11px] font-medium text-muted-foreground">
         Branches
       </p>
       <div className="flex flex-col gap-0.5">

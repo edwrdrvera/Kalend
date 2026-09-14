@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogOut, Moon, Settings, Sun } from "lucide-react";
 import {
@@ -15,9 +15,31 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 
-/** Account controls open upward because the trigger sits at the bottom of
- *  the sidebar, with no room below it for the menu. */
-export default function SettingsMenu() {
+interface SettingsMenuProps {
+  /** Content rendered inside the trigger button. Defaults to a gear icon. */
+  triggerChildren?: ReactNode;
+  /** Classes for the trigger button, so callers can match their surface
+   *  (e.g. the dark icon rail's avatar tile). */
+  triggerClassName?: string;
+  /** Accessible label + tooltip for the trigger. */
+  triggerLabel?: string;
+  /** Popover placement relative to the trigger. */
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
+}
+
+const DEFAULT_TRIGGER_CLS =
+  "grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
+/** Account controls. The trigger is customizable so the same menu serves the
+ *  desktop icon rail (avatar tile) and the mobile slide-out. */
+export default function SettingsMenu({
+  triggerChildren,
+  triggerClassName,
+  triggerLabel = "Settings",
+  side = "top",
+  align = "start",
+}: SettingsMenuProps = {}) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,13 +69,13 @@ export default function SettingsMenu() {
   return (
     <Popover>
       <PopoverTrigger
-        aria-label="Settings"
-        title="Settings"
-        className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-label={triggerLabel}
+        title={triggerLabel}
+        className={triggerClassName ?? DEFAULT_TRIGGER_CLS}
       >
-        <Settings className="size-4" />
+        {triggerChildren ?? <Settings className="size-4" />}
       </PopoverTrigger>
-      <PopoverContent align="start" side="top" className="w-60">
+      <PopoverContent align={align} side={side} className="w-60">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription>Manage your Kalend preferences and session.</PopoverDescription>

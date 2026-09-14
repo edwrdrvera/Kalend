@@ -7,8 +7,6 @@ import {
   subMonths,
   startOfWeek,
   startOfMonth,
-  endOfWeek,
-  endOfMonth,
   isSameMonth,
   isSameDay,
   addDays,
@@ -64,7 +62,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-8 text-center text-[10.5px] font-bold text-muted-foreground">
+        <div key={i} className="w-8 text-center text-[11px] font-medium text-muted-foreground">
           {day}
         </div>
       ))}
@@ -106,17 +104,12 @@ function MiniCalendarGrid({
   onDateSelect: (date: Date) => void;
 }) {
   const monthStart = startOfMonth(viewDate);
-  const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
 
-  const weeks = [];
-  let currentWeekStart = startDate;
-
-  while (currentWeekStart <= endDate) {
-    weeks.push(currentWeekStart);
-    currentWeekStart = addDays(currentWeekStart, 7);
-  }
+  // Always render 6 week rows so the grid is a fixed height regardless of how
+  // many weeks the month actually spans (4-6). Keeps the sidebar from shifting
+  // when paging between months.
+  const weeks = Array.from({ length: 6 }, (_, i) => addDays(startDate, i * 7));
 
   return (
     <div className="flex flex-col">
@@ -166,7 +159,7 @@ export default function MiniCalendar({
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
 
   return (
-    <div className="border-t border-border bg-[var(--mini-cal-bg)] pt-[14px] px-4 pb-4">
+    <div className="shrink-0 border-t border-border bg-[var(--mini-cal-bg)] pt-[14px] px-4 pb-4">
       <MiniCalendarHeader
         browseDate={browseDate}
         onPrevMonth={handlePrevMonth}

@@ -1,13 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef, useReducer } from "react";
-import { startOfMonth } from "date-fns";
+import { startOfMonth, setHours } from "date-fns";
+import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
+import SettingsMenu from "./SettingsMenu";
+import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
+import TaskCreateDialog from "./TaskCreateDialog";
+import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { computePopoverSide } from "@/lib/popover-position";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
@@ -87,6 +99,20 @@ export default function Calendar() {
   );
   const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
 
+  // Space create/edit dialog: null when closed, else the open target.
+  const [spaceEditor, setSpaceEditor] = useState<SpaceEditorTarget | null>(null);
+  // Right-click context menu (day/slot/event), and quick task creation.
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    items: ContextMenuItem[];
+  } | null>(null);
+  const [taskCreateDay, setTaskCreateDay] = useState<Date | null>(null);
+  // Events selected via shift+click, for a right-click bulk delete.
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
+  // Ids queued for deletion, pending the custom confirm dialog.
+  const [pendingEventDeletion, setPendingEventDeletion] = useState<string[] | null>(null);
+
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
   const categories = useCategories(
@@ -147,6 +173,7 @@ export default function Calendar() {
     side: "left" | "right";
     event: CalendarEvent | null;
     start: Date;
+    end: Date | null;
     initialSpaceId: string | null;
   } | null>(null);
   const [popoverSubmitting, setPopoverSubmitting] = useState(false);
@@ -164,6 +191,22 @@ export default function Calendar() {
       side: getPopoverSide(anchorRect),
       event: null,
       start: day,
+      end: null,
+      initialSpaceId: selectedSpaceId,
+    });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
+  };
+
+  // Drag-to-create on the time grid: opens the creator prefilled with the
+  // dragged start/end range.
+  const handleCreateEventRange = (start: Date, end: Date, anchorRect: DOMRect) => {
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event: null,
+      start,
+      end,
       initialSpaceId: selectedSpaceId,
     });
     setPopoverError(null);
@@ -171,11 +214,13 @@ export default function Calendar() {
   };
 
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
+    setSelectedEventIds(new Set());
     setEventPopover({
       rect: anchorRect,
       side: getPopoverSide(anchorRect),
       event,
       start: new Date(event.start_at),
+      end: new Date(event.end_at),
       initialSpaceId: event.category_id,
     });
     setPopoverError(null);
@@ -228,19 +273,93 @@ export default function Calendar() {
     dispatchBranchPanel({ type: "spaceChanged", spaceId });
   };
 
-  // Clearing the Space filter chip returns to All Spaces and closes the panel.
-  const handleClearSpace = () => {
-    dispatchSpaceFocus({ type: "select", spaceId: null });
-    dispatchBranchPanel({ type: "cleared" });
+  // Open the Space editor in edit mode for a given Space id (used by the panel
+  // overflow/footer and the rail context menu). No-op if the Space is gone.
+  const handleEditSpaceById = (spaceId: string) => {
+    const category = categories.data.find((c) => c.id === spaceId);
+    if (category) setSpaceEditor({ mode: "edit", category });
+  };
+
+  // ── Right-click menus + event multi-select (Phase 2) ────────────────
+  const cursorRect = (x: number, y: number): DOMRect => new DOMRect(x, y, 1, 1);
+
+  const calendarMenuItems = (day: Date, createEvent: () => void): ContextMenuItem[] => [
+    {
+      label: "Create event",
+      icon: <CalendarPlus className="size-3.5 text-muted-foreground" />,
+      onSelect: () => {
+        handleDateSelect(day);
+        createEvent();
+      },
+    },
+    {
+      label: "Create task",
+      icon: <ListTodo className="size-3.5 text-muted-foreground" />,
+      onSelect: () => {
+        handleDateSelect(day);
+        setTaskCreateDay(day);
+      },
+    },
+  ];
+
+  const handleDayContextMenu = (day: Date, x: number, y: number) =>
+    setContextMenu({
+      x,
+      y,
+      items: calendarMenuItems(day, () => handleCreateEvent(day, cursorRect(x, y))),
+    });
+
+  const handleSlotContextMenu = (day: Date, hour: number, x: number, y: number) =>
+    setContextMenu({
+      x,
+      y,
+      items: calendarMenuItems(day, () =>
+        handleCreateEvent(setHours(day, hour), cursorRect(x, y))
+      ),
+    });
+
+  const handleEventShiftClick = (event: CalendarEvent) =>
+    setSelectedEventIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(event.id)) next.delete(event.id);
+      else next.add(event.id);
+      return next;
+    });
+
+  const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
+    // Act on the whole selection when the right-clicked event is part of it;
+    // otherwise act on just that event.
+    const ids = selectedEventIds.has(event.id) ? [...selectedEventIds] : [event.id];
+    setContextMenu({
+      x,
+      y,
+      items: [
+        {
+          label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
+          destructive: true,
+          icon: <Trash2 className="size-3.5" />,
+          onSelect: () => setPendingEventDeletion(ids),
+        },
+      ],
+    });
+  };
+
+  const confirmDeleteEvents = async () => {
+    if (!pendingEventDeletion) return;
+    const toDelete = events.data.filter((e) => pendingEventDeletion.includes(e.id));
+    setPendingEventDeletion(null);
+    setSelectedEventIds(new Set());
+    for (const event of toDelete) {
+      await events.deleteEvent(event);
+    }
   };
 
   if (!mounted) return null;
 
   const visibleEvents = filterBySpace(events.data, spaceFocus);
   const visibleTasks = filterBySpace(tasks.data, spaceFocus);
-  const selectedSpace = categories.data.find((category) => category.id === selectedSpaceId);
 
-  // All branches (for the rail flyouts + agenda list) and the active branch.
+  // All branches (for the agenda list) and the active branch.
   const branches = branchesForSpaces(categories.data);
   const activeBranch =
     branchPanel.open && branchPanel.activeBranchId
@@ -274,10 +393,29 @@ export default function Calendar() {
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={handleSelectSpace}
-          onCreateCategory={categories.createCategory}
+          onCreateSpace={() => setSpaceEditor({ mode: "create" })}
+          onEditSpace={(category) => setSpaceEditor({ mode: "edit", category })}
           branches={branches}
           activeBranchId={branchPanel.activeBranchId}
           onOpenBranch={handleOpenBranch}
+          accountMenu={
+            <SettingsMenu
+              triggerLabel="Account"
+              side="right"
+              align="end"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              triggerChildren="E"
+            />
+          }
+          mobileAccountMenu={
+            <SettingsMenu
+              triggerLabel="Account"
+              side="bottom"
+              align="end"
+              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+              triggerChildren="E"
+            />
+          }
         />
         {events.initialLoading ? (
           <div className="flex-1">
@@ -285,18 +423,6 @@ export default function Calendar() {
           </div>
         ) : (
           <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
-            {selectedSpace && (
-              <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border py-2 pl-14 pr-4 text-sm md:pl-4">
-                <span className="min-w-0 truncate font-medium">Space: {selectedSpace.name}</span>
-                <button
-                  type="button"
-                  onClick={handleClearSpace}
-                  className="shrink-0 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  All Spaces
-                </button>
-              </div>
-            )}
             {view === "month" && (
               <MonthGrid
                 selectedDate={selectedDate}
@@ -309,6 +435,10 @@ export default function Calendar() {
                 onCreateEvent={handleCreateEvent}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onDayContextMenu={handleDayContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 view={view}
                 onViewChange={setView}
               />
@@ -323,8 +453,13 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onSlotContextMenu={handleSlotContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 view={view}
@@ -341,8 +476,13 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onSlotContextMenu={handleSlotContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 view={view}
@@ -372,7 +512,7 @@ export default function Calendar() {
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => {}}
+                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
                 />
               )}
             </div>
@@ -399,7 +539,7 @@ export default function Calendar() {
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => {}}
+                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
                 />
               </div>
             </>
@@ -412,6 +552,7 @@ export default function Calendar() {
           side={eventPopover.side}
           event={eventPopover.event}
           initialStart={eventPopover.start}
+          initialEnd={eventPopover.end ?? undefined}
           initialSpaceId={eventPopover.initialSpaceId}
           categories={categories.data}
           breadcrumb={(() => {
@@ -437,6 +578,63 @@ export default function Calendar() {
           submitting={popoverSubmitting}
           error={popoverError}
         />
+      )}
+
+      <SpaceEditorDialog
+        target={spaceEditor}
+        onOpenChange={(open) => {
+          if (!open) setSpaceEditor(null);
+        }}
+        onCreate={categories.createCategory}
+        onUpdate={categories.updateCategory}
+        onDelete={categories.deleteCategory}
+      />
+
+      <TaskCreateDialog
+        day={taskCreateDay}
+        categories={categories.data}
+        initialSpaceId={selectedSpaceId}
+        onCreate={tasks.createTask}
+        onOpenChange={(open) => {
+          if (!open) setTaskCreateDay(null);
+        }}
+      />
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {pendingEventDeletion && (
+        <Dialog open onOpenChange={() => setPendingEventDeletion(null)}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle>
+                {pendingEventDeletion.length > 1
+                  ? `Delete ${pendingEventDeletion.length} events?`
+                  : "Delete this event?"}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-[13px] text-muted-foreground">This can&apos;t be undone.</p>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPendingEventDeletion(null)}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={confirmDeleteEvents}>
+                <Trash2 />
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
