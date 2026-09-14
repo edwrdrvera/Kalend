@@ -422,7 +422,7 @@ export default function Calendar() {
             <LoadingSpinner />
           </div>
         ) : (
-          <div ref={calendarContentRef} className="flex min-w-0 flex-1 flex-col overflow-hidden bg-card">
+          <div ref={calendarContentRef} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">
             {view === "month" && (
               <MonthGrid
                 selectedDate={selectedDate}

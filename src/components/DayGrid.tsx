@@ -52,7 +52,7 @@ function DayColumnHeader({
 
   return (
     <div className={cn(
-      "hidden shrink-0 border-b border-border bg-background md:flex",
+      "flex shrink-0 border-b border-border bg-background",
       isToday && "bg-primary/[0.03]"
     )}>
       <div className="w-10 shrink-0 border-r border-border sm:w-16" />
@@ -101,16 +101,17 @@ export default function DayGrid({
   return (
     <div className="flex h-full min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
-        title={format(viewDate, "EEEE, MMMM d, yyyy")}
+        title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subDays(viewDate, 1))}
         onNext={() => onViewDateChange(addDays(viewDate, 1))}
         onToday={() => onDateSelect(new Date())}
         view={view}
         onViewChange={onViewChange}
       />
+      <DayColumnHeader day={viewDate} selectedDate={selectedDate} />
       <div
         ref={scrollRef}
-        className="flex flex-1 flex-col overflow-y-auto"
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
         <div className="sticky top-0 z-10">
           <AllDayRow
