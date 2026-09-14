@@ -183,7 +183,7 @@ export default function AgendaTasksGroup({
         <button
           type="button"
           onClick={() => setComposerOpen(!composerOpen)}
-          className="text-[12px] font-medium text-primary"
+          className="text-[11px] font-medium text-primary"
           aria-label={composerOpen ? "Close task composer" : "Add a task"}
         >
           {composerOpen ? "Cancel" : "+ Add"}
