@@ -57,7 +57,7 @@ export default function AgendaScheduleGroup({
               className="flex items-center gap-2 rounded-lg py-2 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Edit event: ${event.title}`}
             >
-              <span className="w-[44px] shrink-0 text-[12px] text-muted-foreground">
+              <span className="w-[58px] shrink-0 whitespace-nowrap text-[12px] font-medium tabular-nums text-muted-foreground">
                 {allDay
                   ? "All day"
                   : format(new Date(event.start_at), "h:mm a")}
