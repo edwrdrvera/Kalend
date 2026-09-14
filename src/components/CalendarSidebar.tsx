@@ -25,6 +25,7 @@ interface CalendarSidebarProps {
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
   onCreateSpace: () => void;
+  onEditSpace: (category: CalendarCategory) => void;
   branches: Branch[];
   activeBranchId: string | null;
   onOpenBranch: (branch: Branch) => void;
@@ -48,6 +49,7 @@ export default function CalendarSidebar({
   selectedSpaceId,
   onSelectSpace,
   onCreateSpace,
+  onEditSpace,
   branches,
   activeBranchId,
   onOpenBranch,
@@ -112,6 +114,7 @@ export default function CalendarSidebar({
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={onSelectSpace}
           onCreateSpace={onCreateSpace}
+          onEditSpace={onEditSpace}
           branches={branches}
           onOpenBranch={onOpenBranch}
           accountMenu={accountMenu}

@@ -129,6 +129,7 @@ async function renderSidebar(options: RenderOptions = {}) {
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
         onCreateSpace: () => {},
+        onEditSpace: () => {},
         branches: [],
         activeBranchId: null,
         onOpenBranch: () => {},

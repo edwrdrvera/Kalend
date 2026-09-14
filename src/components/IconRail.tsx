@@ -19,6 +19,8 @@ interface IconRailProps {
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
   onCreateSpace: () => void;
+  /** Edit a Space (rename / recolor / delete). Wired to right-click on a tile. */
+  onEditSpace: (category: CalendarCategory) => void;
   /** All branches across Spaces; the tile flyout lists a Space's own. */
   branches: Branch[];
   onOpenBranch: (branch: Branch) => void;
@@ -32,6 +34,7 @@ export default function IconRail({
   selectedSpaceId,
   onSelectSpace,
   onCreateSpace,
+  onEditSpace,
   branches,
   onOpenBranch,
   accountMenu,
@@ -62,6 +65,10 @@ export default function IconRail({
                 title={cat.name}
                 aria-label={cat.name}
                 onClick={() => onSelectSpace(isActive ? null : cat.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  onEditSpace(cat);
+                }}
                 className={cn(
                   "grid size-[34px] place-items-center rounded-[10px] text-[13px] font-semibold transition-colors",
                   isActive

@@ -9,6 +9,7 @@ import DayGrid from "./DayGrid";
 import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
 import SettingsMenu from "./SettingsMenu";
+import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import { computePopoverSide } from "@/lib/popover-position";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
@@ -87,6 +88,9 @@ export default function Calendar() {
     initialBranchPanelState
   );
   const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
+
+  // Space create/edit dialog: null when closed, else the open target.
+  const [spaceEditor, setSpaceEditor] = useState<SpaceEditorTarget | null>(null);
 
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -235,6 +239,13 @@ export default function Calendar() {
     dispatchBranchPanel({ type: "cleared" });
   };
 
+  // Open the Space editor in edit mode for a given Space id (used by the panel
+  // overflow/footer and the rail context menu). No-op if the Space is gone.
+  const handleEditSpaceById = (spaceId: string) => {
+    const category = categories.data.find((c) => c.id === spaceId);
+    if (category) setSpaceEditor({ mode: "edit", category });
+  };
+
   if (!mounted) return null;
 
   const visibleEvents = filterBySpace(events.data, spaceFocus);
@@ -275,7 +286,8 @@ export default function Calendar() {
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={handleSelectSpace}
-          onCreateSpace={() => categories.createCategory("New Space", "blue")}
+          onCreateSpace={() => setSpaceEditor({ mode: "create" })}
+          onEditSpace={(category) => setSpaceEditor({ mode: "edit", category })}
           branches={branches}
           activeBranchId={branchPanel.activeBranchId}
           onOpenBranch={handleOpenBranch}
@@ -382,7 +394,7 @@ export default function Calendar() {
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => {}}
+                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
                 />
               )}
             </div>
@@ -409,7 +421,7 @@ export default function Calendar() {
                   onClose={handleClosePanel}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => {}}
+                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
                 />
               </div>
             </>
@@ -448,6 +460,16 @@ export default function Calendar() {
           error={popoverError}
         />
       )}
+
+      <SpaceEditorDialog
+        target={spaceEditor}
+        onOpenChange={(open) => {
+          if (!open) setSpaceEditor(null);
+        }}
+        onCreate={categories.createCategory}
+        onUpdate={categories.updateCategory}
+        onDelete={categories.deleteCategory}
+      />
     </div>
   );
 }

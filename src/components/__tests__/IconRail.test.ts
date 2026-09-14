@@ -68,6 +68,7 @@ async function renderRail(options: RenderOptions = {}) {
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
         onCreateSpace: () => { interactions.createSpaceCalls++; },
+        onEditSpace: () => {},
         branches: options.branches ?? [],
         onOpenBranch: () => {},
       })

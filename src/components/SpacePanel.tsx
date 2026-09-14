@@ -25,6 +25,8 @@ interface SpacePanelProps {
   onToggleComplete: (task: CalendarTask) => void;
   /** Creates a task in this branch's Space (title only; date/Space implied). */
   onCreateTask: (title: string) => Promise<void>;
+  /** Opens the Space editor (rename / recolor / delete) for this branch's
+   *  Space. Wired to both the header overflow button and the footer row. */
   onOpenSettings: () => void;
 }
 
@@ -100,7 +102,7 @@ export default function SpacePanel({
       onKeyDown={handleKeyDown}
       className="flex h-full w-full flex-col border-l border-border bg-card outline-none"
     >
-      <SpacePanelHeader branch={branch} onClose={onClose} />
+      <SpacePanelHeader branch={branch} onClose={onClose} onOverflow={onOpenSettings} />
 
       {/* Body: scrolls independently; sections self-omit when empty, and
           divide-y draws a hairline only between the sections that render.
