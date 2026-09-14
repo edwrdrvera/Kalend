@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { addDays, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
@@ -180,14 +180,16 @@ export default function AgendaTasksGroup({
         <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
-        <button
-          type="button"
-          onClick={() => setComposerOpen(!composerOpen)}
-          className="text-[11px] font-medium text-primary"
-          aria-label={composerOpen ? "Close task composer" : "Add a task"}
-        >
-          {composerOpen ? "Cancel" : "+ Add"}
-        </button>
+        {!composerOpen && (
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            className="grid size-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Add a task"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col">
