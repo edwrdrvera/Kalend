@@ -184,20 +184,25 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className="border-t border-border pt-[14px]"
     >
-      <div className="flex min-h-5 items-center justify-between px-1 pb-1">
+      <div className="flex items-center justify-between px-1 pb-1">
         <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
-        {!composerOpen && (
-          <button
-            type="button"
-            onClick={() => setComposerOpen(true)}
-            className="grid size-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Add a task"
-          >
-            <Plus className="size-3.5" />
-          </button>
-        )}
+        {/* Always rendered so the header keeps its height; hidden (not removed)
+            while the composer is open, so the task rows below never shift. */}
+        <button
+          type="button"
+          onClick={() => setComposerOpen(true)}
+          className={cn(
+            "grid size-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+            composerOpen && "invisible pointer-events-none"
+          )}
+          aria-label="Add a task"
+          aria-hidden={composerOpen}
+          tabIndex={composerOpen ? -1 : undefined}
+        >
+          <Plus className="size-3.5" />
+        </button>
       </div>
 
       <div className="flex flex-col">
