@@ -7,8 +7,6 @@ import {
   subMonths,
   startOfWeek,
   startOfMonth,
-  endOfWeek,
-  endOfMonth,
   isSameMonth,
   isSameDay,
   addDays,
@@ -106,17 +104,12 @@ function MiniCalendarGrid({
   onDateSelect: (date: Date) => void;
 }) {
   const monthStart = startOfMonth(viewDate);
-  const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart);
-  const endDate = endOfWeek(monthEnd);
 
-  const weeks = [];
-  let currentWeekStart = startDate;
-
-  while (currentWeekStart <= endDate) {
-    weeks.push(currentWeekStart);
-    currentWeekStart = addDays(currentWeekStart, 7);
-  }
+  // Always render 6 week rows so the grid is a fixed height regardless of how
+  // many weeks the month actually spans (4-6). Keeps the sidebar from shifting
+  // when paging between months.
+  const weeks = Array.from({ length: 6 }, (_, i) => addDays(startDate, i * 7));
 
   return (
     <div className="flex flex-col">

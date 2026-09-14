@@ -55,6 +55,7 @@ export default function SpaceEditorDialog({
   const [color, setColor] = useState<EventColor>(DEFAULT_EVENT_COLOR);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Seed the form each time the dialog opens for a target. Keyed on identity
@@ -71,6 +72,7 @@ export default function SpaceEditorDialog({
     setError(null);
     setSubmitting(false);
     setDeleting(false);
+    setConfirmingDelete(false);
   }, [targetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEdit = target?.mode === "edit";
@@ -104,12 +106,6 @@ export default function SpaceEditorDialog({
 
   const handleDelete = async () => {
     if (!target?.category || busy) return;
-    if (
-      !window.confirm(
-        `Delete ${target.category.name}? Its events and tasks stay but become unassigned.`
-      )
-    )
-      return;
 
     setDeleting(true);
     setError(null);
@@ -118,10 +114,52 @@ export default function SpaceEditorDialog({
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete Space");
+      setConfirmingDelete(false);
     } finally {
       setDeleting(false);
     }
   };
+
+  if (target !== null && confirmingDelete && target.category) {
+    return (
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Delete {target.category.name}?</DialogTitle>
+          </DialogHeader>
+
+          <p className="text-[13px] text-muted-foreground">
+            Its events and tasks stay, but become unassigned. This can&apos;t be undone.
+          </p>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+              aria-label="Confirm delete Space"
+            >
+              {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+              Delete Space
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={target !== null} onOpenChange={onOpenChange}>
@@ -155,11 +193,11 @@ export default function SpaceEditorDialog({
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleDelete}
+                onClick={() => setConfirmingDelete(true)}
                 disabled={busy}
                 aria-label="Delete Space"
               >
-                {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                <Trash2 />
                 Delete
               </Button>
             ) : (

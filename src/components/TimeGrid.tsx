@@ -178,6 +178,9 @@ export default function TimeGrid({
 }: TimeGridProps) {
   const now = useCurrentTime();
   const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
+  // Show the current-time marker (line + gutter label) only when one of the
+  // visible columns is actually today.
+  const showNow = days.some((day) => isSameDay(day, now));
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -575,7 +578,7 @@ export default function TimeGrid({
   return (
     <div className="flex select-none">
       {/* Hour labels — border-r connects to the column grid's left edge */}
-      <div className="w-10 shrink-0 border-r border-border sm:w-16">
+      <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
           <div
             key={hour}
@@ -585,6 +588,15 @@ export default function TimeGrid({
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
         ))}
+        {/* Current-time label, aligned with the red "now" line in the columns. */}
+        {showNow && (
+          <div
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-red-500 px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            style={{ top: nowOffsetPx }}
+          >
+            {format(now, "h:mm")}
+          </div>
+        )}
       </div>
       {/* Grid: gutter's border-r provides the left edge; divide-x adds 1px
           separators between columns; border-r on the grid itself caps the
