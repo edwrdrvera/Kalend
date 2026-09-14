@@ -167,8 +167,15 @@ function DayCell({
   const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
   const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
-  const handleCellClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Single click selects the day (the agenda/side nav follows); double click on
+  // an empty part of the cell opens the event creator. The double-click guard
+  // ignores double-clicks that land on an event/task chip.
+  const handleCellClick = () => {
     onDateSelect(day);
+  };
+
+  const handleCellDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button")) return;
     onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
@@ -176,7 +183,6 @@ function DayCell({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onDateSelect(day);
-      onCreateEvent(day, e.currentTarget.getBoundingClientRect());
     }
   };
 
@@ -187,8 +193,9 @@ function DayCell({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Create event on ${format(day, "EEEE, MMMM d, yyyy")}`}
+      aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
       onClick={handleCellClick}
+      onDoubleClick={handleCellDoubleClick}
       onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >

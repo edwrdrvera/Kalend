@@ -148,7 +148,8 @@ export default function WeekGrid({
           onEventClick={onEventClick}
           onEventMove={onEventMove}
           onEventResize={onEventResize}
-          onSlotClick={(day, hour, anchorRect) => {
+          onSlotSelect={(day) => onDateSelect(day)}
+          onSlotCreate={(day, hour, anchorRect) => {
             onDateSelect(day);
             onCreateEvent(setHours(day, hour), anchorRect);
           }}

@@ -119,7 +119,8 @@ export default function DayGrid({
           onEventClick={onEventClick}
           onEventMove={onEventMove}
           onEventResize={onEventResize}
-          onSlotClick={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
+          onSlotSelect={(day) => onDateSelect(day)}
+          onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
         />
       </div>
     </div>
