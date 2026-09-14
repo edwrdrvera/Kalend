@@ -300,6 +300,15 @@ export default function Calendar() {
               triggerChildren="E"
             />
           }
+          mobileAccountMenu={
+            <SettingsMenu
+              triggerLabel="Account"
+              side="bottom"
+              align="end"
+              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+              triggerChildren="E"
+            />
+          }
         />
         {events.initialLoading ? (
           <div className="flex-1">

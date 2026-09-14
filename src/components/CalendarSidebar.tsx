@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import IconRail from "./IconRail";
 import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
+import MobileSpacesBar from "./MobileSpacesBar";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 
@@ -29,8 +30,10 @@ interface CalendarSidebarProps {
   branches: Branch[];
   activeBranchId: string | null;
   onOpenBranch: (branch: Branch) => void;
-  /** Account menu element, composed by the state owner (Calendar). */
+  /** Account menu element for the desktop rail, composed by the state owner. */
   accountMenu?: ReactNode;
+  /** Account menu element for the mobile slide-out (light-surface styling). */
+  mobileAccountMenu?: ReactNode;
 }
 
 export default function CalendarSidebar({
@@ -54,6 +57,7 @@ export default function CalendarSidebar({
   activeBranchId,
   onOpenBranch,
   accountMenu,
+  mobileAccountMenu,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -144,6 +148,13 @@ export default function CalendarSidebar({
         </button>
 
         <div className="flex min-h-0 flex-1 flex-col pt-14">
+          <MobileSpacesBar
+            categories={categories}
+            selectedSpaceId={selectedSpaceId}
+            onSelectSpace={onSelectSpace}
+            onCreateSpace={onCreateSpace}
+            accountMenu={mobileAccountMenu}
+          />
           <div className="min-h-0 flex-1 overflow-hidden">
             <AgendaColumn {...agendaProps} />
           </div>
