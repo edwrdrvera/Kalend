@@ -177,7 +177,7 @@ export default function AgendaTasksGroup({
       className="border-t border-border pt-[14px]"
     >
       <div className="flex items-center justify-between px-3 pb-2">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
         <button
@@ -220,7 +220,7 @@ export default function AgendaTasksGroup({
               <div className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block truncate text-[13.5px]",
+                    "block truncate text-[13px]",
                     task.completed
                       ? "line-through opacity-50"
                       : "text-foreground"
@@ -229,7 +229,7 @@ export default function AgendaTasksGroup({
                   {task.title}
                 </span>
                 {category && (
-                  <span className="block text-[11.5px] text-muted-foreground">
+                  <span className="block text-[12px] text-muted-foreground">
                     {category.name}
                   </span>
                 )}
@@ -249,7 +249,7 @@ export default function AgendaTasksGroup({
       )}
 
       {upcomingCount > 0 && (
-        <p className="px-3 pt-3 pb-1 text-[11.5px] text-muted-foreground">
+        <p className="px-3 pt-3 pb-1 text-[12px] text-muted-foreground">
           Next 7 days{" · "}
           <span className="text-primary">{upcomingCount} more</span>
         </p>

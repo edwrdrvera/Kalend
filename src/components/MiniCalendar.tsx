@@ -62,7 +62,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-8 text-center text-[10.5px] font-bold text-muted-foreground">
+        <div key={i} className="w-8 text-center text-[11px] font-medium text-muted-foreground">
           {day}
         </div>
       ))}

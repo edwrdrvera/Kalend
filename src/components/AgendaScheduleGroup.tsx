@@ -30,7 +30,7 @@ export default function AgendaScheduleGroup({
 
   return (
     <section aria-label="Schedule">
-      <h3 className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <h3 className="px-3 pb-2 text-[11px] font-medium text-muted-foreground">
         Schedule
       </h3>
       <div className="flex flex-col gap-[11px]">
@@ -69,7 +69,7 @@ export default function AgendaScheduleGroup({
                   barClass
                 )}
               />
-              <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">
+              <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
                 {event.title}
               </span>
             </button>
