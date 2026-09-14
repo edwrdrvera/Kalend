@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useReducer } from "react";
-import { startOfMonth } from "date-fns";
+import { startOfMonth, setHours } from "date-fns";
+import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
@@ -10,6 +11,15 @@ import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
+import TaskCreateDialog from "./TaskCreateDialog";
+import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { computePopoverSide } from "@/lib/popover-position";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
@@ -91,6 +101,17 @@ export default function Calendar() {
 
   // Space create/edit dialog: null when closed, else the open target.
   const [spaceEditor, setSpaceEditor] = useState<SpaceEditorTarget | null>(null);
+  // Right-click context menu (day/slot/event), and quick task creation.
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    items: ContextMenuItem[];
+  } | null>(null);
+  const [taskCreateDay, setTaskCreateDay] = useState<Date | null>(null);
+  // Events selected via shift+click, for a right-click bulk delete.
+  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
+  // Ids queued for deletion, pending the custom confirm dialog.
+  const [pendingEventDeletion, setPendingEventDeletion] = useState<string[] | null>(null);
 
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -193,6 +214,7 @@ export default function Calendar() {
   };
 
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
+    setSelectedEventIds(new Set());
     setEventPopover({
       rect: anchorRect,
       side: getPopoverSide(anchorRect),
@@ -256,6 +278,80 @@ export default function Calendar() {
   const handleEditSpaceById = (spaceId: string) => {
     const category = categories.data.find((c) => c.id === spaceId);
     if (category) setSpaceEditor({ mode: "edit", category });
+  };
+
+  // ── Right-click menus + event multi-select (Phase 2) ────────────────
+  const cursorRect = (x: number, y: number): DOMRect => new DOMRect(x, y, 1, 1);
+
+  const calendarMenuItems = (day: Date, createEvent: () => void): ContextMenuItem[] => [
+    {
+      label: "Create event",
+      icon: <CalendarPlus className="size-3.5 text-muted-foreground" />,
+      onSelect: () => {
+        handleDateSelect(day);
+        createEvent();
+      },
+    },
+    {
+      label: "Create task",
+      icon: <ListTodo className="size-3.5 text-muted-foreground" />,
+      onSelect: () => {
+        handleDateSelect(day);
+        setTaskCreateDay(day);
+      },
+    },
+  ];
+
+  const handleDayContextMenu = (day: Date, x: number, y: number) =>
+    setContextMenu({
+      x,
+      y,
+      items: calendarMenuItems(day, () => handleCreateEvent(day, cursorRect(x, y))),
+    });
+
+  const handleSlotContextMenu = (day: Date, hour: number, x: number, y: number) =>
+    setContextMenu({
+      x,
+      y,
+      items: calendarMenuItems(day, () =>
+        handleCreateEvent(setHours(day, hour), cursorRect(x, y))
+      ),
+    });
+
+  const handleEventShiftClick = (event: CalendarEvent) =>
+    setSelectedEventIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(event.id)) next.delete(event.id);
+      else next.add(event.id);
+      return next;
+    });
+
+  const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
+    // Act on the whole selection when the right-clicked event is part of it;
+    // otherwise act on just that event.
+    const ids = selectedEventIds.has(event.id) ? [...selectedEventIds] : [event.id];
+    setContextMenu({
+      x,
+      y,
+      items: [
+        {
+          label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
+          destructive: true,
+          icon: <Trash2 className="size-3.5" />,
+          onSelect: () => setPendingEventDeletion(ids),
+        },
+      ],
+    });
+  };
+
+  const confirmDeleteEvents = async () => {
+    if (!pendingEventDeletion) return;
+    const toDelete = events.data.filter((e) => pendingEventDeletion.includes(e.id));
+    setPendingEventDeletion(null);
+    setSelectedEventIds(new Set());
+    for (const event of toDelete) {
+      await events.deleteEvent(event);
+    }
   };
 
   if (!mounted) return null;
@@ -339,6 +435,10 @@ export default function Calendar() {
                 onCreateEvent={handleCreateEvent}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onDayContextMenu={handleDayContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 view={view}
                 onViewChange={setView}
               />
@@ -356,6 +456,10 @@ export default function Calendar() {
                 onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onSlotContextMenu={handleSlotContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 view={view}
@@ -375,6 +479,10 @@ export default function Calendar() {
                 onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
+                onSlotContextMenu={handleSlotContextMenu}
+                onEventShiftClick={handleEventShiftClick}
+                onEventContextMenu={handleEventContextMenu}
+                selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 view={view}
@@ -481,6 +589,53 @@ export default function Calendar() {
         onUpdate={categories.updateCategory}
         onDelete={categories.deleteCategory}
       />
+
+      <TaskCreateDialog
+        day={taskCreateDay}
+        categories={categories.data}
+        initialSpaceId={selectedSpaceId}
+        onCreate={tasks.createTask}
+        onOpenChange={(open) => {
+          if (!open) setTaskCreateDay(null);
+        }}
+      />
+
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          items={contextMenu.items}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {pendingEventDeletion && (
+        <Dialog open onOpenChange={() => setPendingEventDeletion(null)}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle>
+                {pendingEventDeletion.length > 1
+                  ? `Delete ${pendingEventDeletion.length} events?`
+                  : "Delete this event?"}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-[13px] text-muted-foreground">This can&apos;t be undone.</p>
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPendingEventDeletion(null)}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" onClick={confirmDeleteEvents}>
+                <Trash2 />
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

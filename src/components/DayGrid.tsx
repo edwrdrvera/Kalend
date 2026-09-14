@@ -23,6 +23,10 @@ interface DayGridProps {
   onCreateEventRange?: (start: Date, end: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
   view: CalendarView;
@@ -75,6 +79,10 @@ export default function DayGrid({
   onViewDateChange,
   onCreateEvent,
   onCreateEventRange,
+  onSlotContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   onEventClick,
   onTaskClick,
   onEventMove,
@@ -119,6 +127,10 @@ export default function DayGrid({
           events={timedEvents}
           categories={categories}
           onEventClick={onEventClick}
+          onEventShiftClick={onEventShiftClick}
+          onEventContextMenu={onEventContextMenu}
+          onSlotContextMenu={onSlotContextMenu}
+          selectedEventIds={selectedEventIds}
           onEventMove={onEventMove}
           onEventResize={onEventResize}
           onSlotSelect={(day) => onDateSelect(day)}

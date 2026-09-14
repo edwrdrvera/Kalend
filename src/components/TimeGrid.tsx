@@ -170,7 +170,15 @@ interface TimeGridProps {
   onSlotCreate?: (day: Date, hour: number, anchorRect: DOMRect) => void;
   /** Drag across empty slots: create an event spanning the dragged range. */
   onSlotDragCreate?: (start: Date, end: Date, anchorRect: DOMRect) => void;
+  /** Right-click on an empty slot: open a create menu. */
+  onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
   onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  /** Shift+click on an event: toggle it in the multi-selection. */
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  /** Right-click on an event: open a delete menu. */
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  /** Ids of events currently multi-selected (rendered with a ring). */
+  selectedEventIds?: Set<string>;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
    *  only become draggable when this is provided. */
@@ -193,7 +201,11 @@ export default function TimeGrid({
   onSlotSelect,
   onSlotCreate,
   onSlotDragCreate,
+  onSlotContextMenu,
   onEventClick,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   onEventMove,
   onEventResize,
 }: TimeGridProps) {
@@ -489,6 +501,10 @@ export default function TimeGrid({
       }
       return;
     }
+    if (e.shiftKey && onEventShiftClick) {
+      onEventShiftClick(event);
+      return;
+    }
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
@@ -739,6 +755,10 @@ export default function TimeGrid({
                   onDoubleClick={(e) =>
                     onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
                   }
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -801,13 +821,18 @@ export default function TimeGrid({
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
                     onClick={(e) => handleEventClick(e, event)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEventContextMenu?.(event, e.clientX, e.clientY);
+                    }}
                     style={{
                       top: `${displayTop}%`,
                       height: `${displayHeight}%`,
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
