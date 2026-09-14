@@ -184,7 +184,7 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className="border-t border-border pt-[14px]"
     >
-      <div className="flex items-center justify-between px-1 pb-1">
+      <div className="flex min-h-5 items-center justify-between px-1 pb-1">
         <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
