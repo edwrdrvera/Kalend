@@ -42,15 +42,22 @@ export default function PanelTasksSection({
 }: PanelTasksSectionProps) {
   return (
     <section aria-label="Open tasks" className="px-4 py-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Open tasks
-        </h3>
+      <div className="flex items-start justify-between">
+        <div className="min-w-0">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Open tasks
+          </h3>
+          {/* Distinguishes this Space-wide backlog from the agenda's per-day
+              task list: this shows everything still open, regardless of date. */}
+          <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+            Everything open in this Space
+          </p>
+        </div>
         <button
           type="button"
           aria-label="Add task"
           onClick={onAdd}
-          className="rounded-sm text-[11.5px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 rounded-sm text-[11.5px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           + Add
         </button>
