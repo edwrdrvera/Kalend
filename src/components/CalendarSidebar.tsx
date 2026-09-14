@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IconRail from "./IconRail";
@@ -24,10 +24,12 @@ interface CalendarSidebarProps {
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
-  onCreateCategory: (name: string, color: string) => Promise<void>;
+  onCreateSpace: () => void;
   branches: Branch[];
   activeBranchId: string | null;
   onOpenBranch: (branch: Branch) => void;
+  /** Account menu element, composed by the state owner (Calendar). */
+  accountMenu?: ReactNode;
 }
 
 export default function CalendarSidebar({
@@ -45,10 +47,11 @@ export default function CalendarSidebar({
   categories,
   selectedSpaceId,
   onSelectSpace,
-  onCreateCategory,
+  onCreateSpace,
   branches,
   activeBranchId,
   onOpenBranch,
+  accountMenu,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -108,11 +111,10 @@ export default function CalendarSidebar({
           categories={categories}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={onSelectSpace}
-          activeView="calendar"
-          onViewChange={() => {}}
-          onCreateSpace={() => onCreateCategory("New Space", "blue")}
+          onCreateSpace={onCreateSpace}
           branches={branches}
           onOpenBranch={onOpenBranch}
+          accountMenu={accountMenu}
         />
         <div className="flex h-full w-[300px] flex-col border-r border-border">
           <div className="min-h-0 flex-1 overflow-hidden">

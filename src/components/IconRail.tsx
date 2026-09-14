@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, ListTodo } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
@@ -18,23 +18,23 @@ interface IconRailProps {
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
-  activeView: "calendar" | "tasks";
-  onViewChange: (view: "calendar" | "tasks") => void;
   onCreateSpace: () => void;
   /** All branches across Spaces; the tile flyout lists a Space's own. */
   branches: Branch[];
   onOpenBranch: (branch: Branch) => void;
+  /** Account menu, composed by the state owner (keeps the rail presentational
+   *  and free of router/auth dependencies). Rendered pinned at the bottom. */
+  accountMenu?: ReactNode;
 }
 
 export default function IconRail({
   categories,
   selectedSpaceId,
   onSelectSpace,
-  activeView,
-  onViewChange,
   onCreateSpace,
   branches,
   onOpenBranch,
+  accountMenu,
 }: IconRailProps) {
   return (
     <nav
@@ -42,40 +42,8 @@ export default function IconRail({
       className="flex w-16 shrink-0 flex-col items-center bg-[var(--rail-bg)] pb-3.5 pt-4"
     >
       {/* App mark */}
-      <div className="mb-4 grid size-[30px] place-items-center rounded-[9px] bg-white/90">
+      <div className="grid size-[30px] place-items-center rounded-[9px] bg-white/90">
         <KalendMark size={18} tone="ink" />
-      </div>
-
-      {/* View toggle */}
-      <div className="flex flex-col items-center gap-[5px]">
-        <button
-          type="button"
-          aria-label="Calendar view"
-          title="Calendar"
-          onClick={() => onViewChange("calendar")}
-          className={cn(
-            "grid size-[38px] place-items-center rounded-[11px] transition-colors",
-            activeView === "calendar"
-              ? "bg-white/[0.12] text-white"
-              : "text-white/45 hover:text-white/70"
-          )}
-        >
-          <Calendar className="size-[18px]" />
-        </button>
-        <button
-          type="button"
-          aria-label="Tasks view"
-          title="Tasks"
-          onClick={() => onViewChange("tasks")}
-          className={cn(
-            "grid size-[38px] place-items-center rounded-[11px] transition-colors",
-            activeView === "tasks"
-              ? "bg-white/[0.12] text-white"
-              : "text-white/45 hover:text-white/70"
-          )}
-        >
-          <ListTodo className="size-[18px]" />
-        </button>
       </div>
 
       {/* Divider */}
@@ -145,16 +113,11 @@ export default function IconRail({
         +
       </button>
 
-      {/* Spacer pushes avatar to bottom */}
+      {/* Spacer pushes the account menu to the bottom */}
       <div className="flex-1" />
 
-      {/* Avatar placeholder */}
-      <div
-        className="grid size-[30px] place-items-center rounded-full bg-white/[0.12] text-[13px] font-semibold text-white/80"
-        title="Account"
-      >
-        E
-      </div>
+      {/* Account menu (theme, sign out), composed by the state owner. */}
+      {accountMenu}
     </nav>
   );
 }

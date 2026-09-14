@@ -128,7 +128,7 @@ async function renderSidebar(options: RenderOptions = {}) {
         categories: options.categories ?? [],
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
-        onCreateCategory: async () => {},
+        onCreateSpace: () => {},
         branches: [],
         activeBranchId: null,
         onOpenBranch: () => {},

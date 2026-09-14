@@ -8,6 +8,7 @@ import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
+import SettingsMenu from "./SettingsMenu";
 import { computePopoverSide } from "@/lib/popover-position";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
@@ -274,10 +275,19 @@ export default function Calendar() {
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={handleSelectSpace}
-          onCreateCategory={categories.createCategory}
+          onCreateSpace={() => categories.createCategory("New Space", "blue")}
           branches={branches}
           activeBranchId={branchPanel.activeBranchId}
           onOpenBranch={handleOpenBranch}
+          accountMenu={
+            <SettingsMenu
+              triggerLabel="Account"
+              side="right"
+              align="end"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-white/[0.12] text-[13px] font-semibold text-white/80 transition-colors hover:bg-white/[0.2]"
+              triggerChildren="E"
+            />
+          }
         />
         {events.initialLoading ? (
           <div className="flex-1">
