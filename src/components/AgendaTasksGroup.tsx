@@ -86,14 +86,14 @@ function InlineTaskComposer({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-2 pt-2">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2">
       <input
         value={draft.title}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
         autoFocus
-        className={cn(APP_INPUT_CLS, "w-full")}
+        className={cn(APP_INPUT_CLS, "h-7 w-full text-[13px]")}
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -176,7 +176,7 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className="border-t border-border pt-[14px]"
     >
-      <div className="flex items-center justify-between px-3 pb-2">
+      <div className="flex items-center justify-between px-1 pb-1">
         <h3 className="text-[11px] font-medium text-muted-foreground">
           Tasks
         </h3>
@@ -199,7 +199,7 @@ export default function AgendaTasksGroup({
           return (
             <div
               key={task.id}
-              className="flex items-start gap-2 rounded-lg py-2"
+              className="flex items-start gap-2 rounded-lg px-1 py-1"
             >
               <button
                 type="button"
@@ -249,7 +249,7 @@ export default function AgendaTasksGroup({
       )}
 
       {upcomingCount > 0 && (
-        <p className="px-3 pt-3 pb-1 text-[12px] text-muted-foreground">
+        <p className="px-1 pt-3 pb-1 text-[12px] text-muted-foreground">
           Next 7 days{" · "}
           <span className="text-primary">{upcomingCount} more</span>
         </p>
