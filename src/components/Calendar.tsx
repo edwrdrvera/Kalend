@@ -152,6 +152,7 @@ export default function Calendar() {
     side: "left" | "right";
     event: CalendarEvent | null;
     start: Date;
+    end: Date | null;
     initialSpaceId: string | null;
   } | null>(null);
   const [popoverSubmitting, setPopoverSubmitting] = useState(false);
@@ -169,6 +170,22 @@ export default function Calendar() {
       side: getPopoverSide(anchorRect),
       event: null,
       start: day,
+      end: null,
+      initialSpaceId: selectedSpaceId,
+    });
+    setPopoverError(null);
+    setPopoverKey((key) => key + 1);
+  };
+
+  // Drag-to-create on the time grid: opens the creator prefilled with the
+  // dragged start/end range.
+  const handleCreateEventRange = (start: Date, end: Date, anchorRect: DOMRect) => {
+    setEventPopover({
+      rect: anchorRect,
+      side: getPopoverSide(anchorRect),
+      event: null,
+      start,
+      end,
       initialSpaceId: selectedSpaceId,
     });
     setPopoverError(null);
@@ -181,6 +198,7 @@ export default function Calendar() {
       side: getPopoverSide(anchorRect),
       event,
       start: new Date(event.start_at),
+      end: new Date(event.end_at),
       initialSpaceId: event.category_id,
     });
     setPopoverError(null);
@@ -335,6 +353,7 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onEventMove={events.changeEventTime}
@@ -353,6 +372,7 @@ export default function Calendar() {
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={handleCreateEvent}
+                onCreateEventRange={handleCreateEventRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onEventMove={events.changeEventTime}
@@ -424,6 +444,7 @@ export default function Calendar() {
           side={eventPopover.side}
           event={eventPopover.event}
           initialStart={eventPopover.start}
+          initialEnd={eventPopover.end ?? undefined}
           initialSpaceId={eventPopover.initialSpaceId}
           categories={categories.data}
           breadcrumb={(() => {
