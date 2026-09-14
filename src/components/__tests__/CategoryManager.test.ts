@@ -382,48 +382,31 @@ describe("CategoryManager creation drafts", () => {
   });
 });
 
-describe("CategoryManager overflow toggle", () => {
+describe("CategoryManager space list", () => {
   it("shows all spaces when 3 or fewer exist", async () => {
     await renderManager({ categories });
 
     expect(nameButton("Work")).toBeDefined();
     expect(nameButton("Personal")).toBeDefined();
-    expect(document.body.textContent).not.toContain("more");
   });
 
-  it("collapses spaces beyond 3 behind a toggle", async () => {
+  it("shows all spaces inline when many exist (parent container handles scroll)", async () => {
     await renderManager({ categories: manyCategories });
 
-    // All Spaces + first 3 individual spaces are visible
+    // All Spaces + every individual space are visible inline.
     expect(nameButton("All Spaces")).toBeDefined();
     expect(nameButton("Work")).toBeDefined();
     expect(nameButton("Personal")).toBeDefined();
     expect(nameButton("School")).toBeDefined();
-    // 4th and 5th are hidden
-    expect(nameButton("Fitness")).toBeUndefined();
-    expect(nameButton("Side Project")).toBeUndefined();
-    expect(document.body.textContent).toContain("2 more");
-  });
-
-  it("opens a popover with overflow spaces on toggle click", async () => {
-    await renderManager({ categories: manyCategories });
-
-    const toggle = [...document.querySelectorAll<HTMLButtonElement>("button")].find((b) =>
-      b.textContent?.includes("more")
-    );
-    expect(toggle).toBeDefined();
-
-    await act(() => toggle?.click());
-    // Overflow spaces appear in the popover
     expect(nameButton("Fitness")).toBeDefined();
     expect(nameButton("Side Project")).toBeDefined();
   });
 
-  it("shows the selected space inline even when it would overflow", async () => {
-    await renderManager({ categories: manyCategories, selectedSpaceId: "space-5" });
+  it("shows empty state when no categories exist", async () => {
+    await renderManager({ categories: [] });
 
-    // "Side Project" is the 5th space and would normally be hidden,
-    // but it's selected so it appears inline.
-    expect(nameButton("Side Project")).toBeDefined();
+    const text = document.body.textContent ?? "";
+    expect(text).toMatch(/no spaces yet/i);
+    expect(byLabel("Create your first space")).not.toBeNull();
   });
 });

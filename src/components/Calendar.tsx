@@ -64,7 +64,7 @@ export default function Calendar() {
   );
   const [mounted, setMounted] = useState(false);
   const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
-  const { selectedSpaceId, hiddenSpaceIds } = spaceFocus;
+  const { selectedSpaceId } = spaceFocus;
 
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -84,10 +84,6 @@ export default function Calendar() {
     events.retry();
     tasks.retry();
     categories.retry();
-  };
-
-  const handleToggleCategoryVisibility = (categoryId: string) => {
-    dispatchSpaceFocus({ type: "toggleVisibility", spaceId: categoryId });
   };
 
   // Selecting a day (from the mini calendar, or any of the main grids) also
@@ -200,14 +196,9 @@ export default function Calendar() {
           onDeleteTask={tasks.deleteTask}
           onEventClick={handleEventClick}
           categories={categories.data}
-          categoriesLoading={categories.loading}
-          hiddenCategoryIds={hiddenSpaceIds}
           selectedSpaceId={selectedSpaceId}
           onSelectSpace={(spaceId) => dispatchSpaceFocus({ type: "select", spaceId })}
-          onToggleCategoryVisibility={handleToggleCategoryVisibility}
           onCreateCategory={categories.createCategory}
-          onUpdateCategory={categories.updateCategory}
-          onDeleteCategory={categories.deleteCategory}
         />
         {events.initialLoading ? (
           <div className="flex-1">
