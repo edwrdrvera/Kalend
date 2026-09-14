@@ -47,6 +47,33 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+/** Body text-select/cursor locking for the duration of a drag gesture.
+ *  Kept at module scope on purpose: the React Compiler (via
+ *  eslint-plugin-react-hooks) rejects `document.body.style.* = ...` writes
+ *  that sit inside the component body, even within an effect. A plain
+ *  module-level function is opaque to that analysis, so the imperative DOM
+ *  work lives here instead. Returns the previous values to restore on
+ *  cleanup. */
+interface BodyDragStyle {
+  userSelect: string;
+  cursor: string;
+}
+
+function lockBodyForDrag(cursor: string): BodyDragStyle {
+  const previous: BodyDragStyle = {
+    userSelect: document.body.style.userSelect,
+    cursor: document.body.style.cursor,
+  };
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = cursor;
+  return previous;
+}
+
+function restoreBodyAfterDrag(previous: BodyDragStyle): void {
+  document.body.style.userSelect = previous.userSelect;
+  document.body.style.cursor = previous.cursor;
+}
+
 /** Ticks once a minute so the current-time line stays roughly accurate
  *  without re-rendering on every second. */
 function useCurrentTime(): Date {
@@ -399,10 +426,7 @@ export default function TimeGrid({
     }
 
     // Prevent text selection and lock cursor while dragging.
-    const prevUserSelect = document.body.style.userSelect;
-    const prevCursor = document.body.style.cursor;
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "grabbing";
+    const previousBodyStyle = lockBodyForDrag("grabbing");
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -412,8 +436,7 @@ export default function TimeGrid({
 
     return () => {
       cancelPendingMoveFrame();
-      document.body.style.userSelect = prevUserSelect;
-      document.body.style.cursor = prevCursor;
+      restoreBodyAfterDrag(previousBodyStyle);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onCancel);
@@ -528,10 +551,7 @@ export default function TimeGrid({
       setResizeDrag(null);
     }
 
-    const prevUserSelect = document.body.style.userSelect;
-    const prevCursor = document.body.style.cursor;
-    document.body.style.userSelect = "none";
-    document.body.style.cursor = "ns-resize";
+    const previousBodyStyle = lockBodyForDrag("ns-resize");
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -541,8 +561,7 @@ export default function TimeGrid({
 
     return () => {
       cancelPendingResizeFrame();
-      document.body.style.userSelect = prevUserSelect;
-      document.body.style.cursor = prevCursor;
+      restoreBodyAfterDrag(previousBodyStyle);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onCancel);
