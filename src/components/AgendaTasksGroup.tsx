@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { addDays, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,14 @@ function InlineTaskComposer({
   const [draft, setDraft] = useState<TaskDraft>(() => newDraft(selectedSpaceId));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus without scrolling: the default autoFocus / focus() scrolls the
+  // composer into view, which yanks the agenda's task list upward when the
+  // column overflows. preventScroll keeps the list where it is.
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,11 +96,11 @@ function InlineTaskComposer({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2">
       <input
+        ref={inputRef}
         value={draft.title}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        autoFocus
         className={cn(APP_INPUT_CLS, "h-7 w-full text-[13px]")}
       />
 
