@@ -4,12 +4,14 @@ import { Calendar, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
+  EVENT_COLOR_SWATCH_CLASSES,
   isEventColor,
   RAIL_SPACE_ACTIVE_CLASSES,
   type EventColor,
 } from "@/lib/event-colors";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 import type { CalendarCategory } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 import KalendMark from "./KalendMark";
 
 interface IconRailProps {
@@ -19,6 +21,9 @@ interface IconRailProps {
   activeView: "calendar" | "tasks";
   onViewChange: (view: "calendar" | "tasks") => void;
   onCreateSpace: () => void;
+  /** All branches across Spaces; the tile flyout lists a Space's own. */
+  branches: Branch[];
+  onOpenBranch: (branch: Branch) => void;
 }
 
 export default function IconRail({
@@ -28,6 +33,8 @@ export default function IconRail({
   activeView,
   onViewChange,
   onCreateSpace,
+  branches,
+  onOpenBranch,
 }: IconRailProps) {
   return (
     <nav
@@ -79,22 +86,50 @@ export default function IconRail({
         {categories.map((cat) => {
           const isActive = selectedSpaceId === cat.id;
           const color: EventColor = isEventColor(cat.color) ? cat.color : DEFAULT_EVENT_COLOR;
+          const spaceBranches = branches.filter((b) => b.spaceId === cat.id);
           return (
-            <button
-              key={cat.id}
-              type="button"
-              title={cat.name}
-              aria-label={cat.name}
-              onClick={() => onSelectSpace(isActive ? null : cat.id)}
-              className={cn(
-                "grid size-[34px] place-items-center rounded-[10px] text-[13px] font-semibold transition-colors",
-                isActive
-                  ? cn("border-[1.5px]", RAIL_SPACE_ACTIVE_CLASSES[color])
-                  : "bg-white/[0.06] text-white/50 hover:bg-white/[0.12]"
+            <div key={cat.id} className="group relative">
+              <button
+                type="button"
+                title={cat.name}
+                aria-label={cat.name}
+                onClick={() => onSelectSpace(isActive ? null : cat.id)}
+                className={cn(
+                  "grid size-[34px] place-items-center rounded-[10px] text-[13px] font-semibold transition-colors",
+                  isActive
+                    ? cn("border-[1.5px]", RAIL_SPACE_ACTIVE_CLASSES[color])
+                    : "bg-white/[0.06] text-white/50 hover:bg-white/[0.12]"
+                )}
+              >
+                {spaceAbbreviation(cat.name)}
+              </button>
+
+              {/* Branch flyout: appears on hover or keyboard focus. */}
+              {spaceBranches.length > 0 && (
+                <div className="absolute left-full top-0 z-50 ml-2 hidden min-w-[180px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md group-hover:block group-focus-within:block">
+                  <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {cat.name}
+                  </p>
+                  {spaceBranches.map((branch) => (
+                    <button
+                      key={branch.id}
+                      type="button"
+                      onClick={() => onOpenBranch(branch)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "size-[10px] shrink-0 rounded-[3px]",
+                          EVENT_COLOR_SWATCH_CLASSES[branch.color]
+                        )}
+                      />
+                      <span className="truncate">{branch.name}</span>
+                    </button>
+                  ))}
+                </div>
               )}
-            >
-              {spaceAbbreviation(cat.name)}
-            </button>
+            </div>
           );
         })}
       </div>

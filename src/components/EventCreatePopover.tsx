@@ -3,7 +3,7 @@
 import { useState, useEffect, useReducer, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
-import { Clock, MapPin, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, MapPin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
@@ -62,6 +62,8 @@ interface EventCreatePopoverProps {
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
   categories: CalendarCategory[];
+  /** Path breadcrumb for an event that belongs to a Space; opens its panel. */
+  breadcrumb?: { label: string; onOpen: () => void } | null;
   onSubmit: (values: EventFormValues) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -79,6 +81,7 @@ export default function EventCreatePopover({
   initialStart,
   initialSpaceId = null,
   categories,
+  breadcrumb = null,
   onSubmit,
   onDelete,
   onClose,
@@ -230,6 +233,18 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
+          {/* Breadcrumb into the Space Panel for this event's branch */}
+          {breadcrumb && (
+            <button
+              type="button"
+              onClick={breadcrumb.onOpen}
+              className="-mx-1 -mb-1 flex items-center gap-1 self-start rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="truncate">{breadcrumb.label}</span>
+              <ChevronRight className="size-3 shrink-0" />
+            </button>
+          )}
+
           {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="new-event-icon" className="sr-only">

@@ -7,6 +7,7 @@ import type {
   CalendarEvent,
   CalendarTask,
 } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 
 // Install DOM globals before importing React DOM (see test-dom.ts).
 await import("./test-dom");
@@ -79,6 +80,8 @@ interface RenderOptions {
   categories?: CalendarCategory[];
   loading?: boolean;
   selectedSpaceId?: string | null;
+  branches?: Branch[];
+  activeBranchId?: string | null;
 }
 
 interface Interactions {
@@ -119,6 +122,9 @@ async function renderColumn(options: RenderOptions = {}) {
           interactions.taskToggles.push(task.id),
         onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
         onEventClick: (event) => interactions.eventClicks.push(event.id),
+        branches: options.branches ?? [],
+        activeBranchId: options.activeBranchId ?? null,
+        onOpenBranch: () => {},
       })
     )
   );

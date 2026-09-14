@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 
 // DOM globals must be installed (test-dom above) before importing react-dom.
@@ -44,6 +45,7 @@ interface RenderOptions {
   categories?: CalendarCategory[];
   selectedSpaceId?: string | null;
   activeView?: "calendar" | "tasks";
+  branches?: Branch[];
 }
 
 interface Interactions {
@@ -71,6 +73,8 @@ async function renderRail(options: RenderOptions = {}) {
         activeView: options.activeView ?? "calendar",
         onViewChange: (view) => interactions.viewChanges.push(view),
         onCreateSpace: () => { interactions.createSpaceCalls++; },
+        branches: options.branches ?? [],
+        onOpenBranch: () => {},
       })
     )
   );

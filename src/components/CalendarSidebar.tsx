@@ -7,6 +7,7 @@ import IconRail from "./IconRail";
 import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { Branch } from "@/lib/branch-types";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -24,6 +25,9 @@ interface CalendarSidebarProps {
   selectedSpaceId: string | null;
   onSelectSpace: (spaceId: string | null) => void;
   onCreateCategory: (name: string, color: string) => Promise<void>;
+  branches: Branch[];
+  activeBranchId: string | null;
+  onOpenBranch: (branch: Branch) => void;
 }
 
 export default function CalendarSidebar({
@@ -42,8 +46,17 @@ export default function CalendarSidebar({
   selectedSpaceId,
   onSelectSpace,
   onCreateCategory,
+  branches,
+  activeBranchId,
+  onOpenBranch,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The agenda's branch list shows only the active Space's branches; the rail
+  // flyouts use the full list.
+  const spaceBranches = selectedSpaceId
+    ? branches.filter((b) => b.spaceId === selectedSpaceId)
+    : [];
 
   const agendaProps = {
     selectedDate: currentDate,
@@ -56,6 +69,9 @@ export default function CalendarSidebar({
     onToggleTaskComplete,
     onDeleteTask,
     onEventClick,
+    branches: spaceBranches,
+    activeBranchId,
+    onOpenBranch,
   } as const;
 
   const miniCalProps = {
@@ -95,6 +111,8 @@ export default function CalendarSidebar({
           activeView="calendar"
           onViewChange={() => {}}
           onCreateSpace={() => onCreateCategory("New Space", "blue")}
+          branches={branches}
+          onOpenBranch={onOpenBranch}
         />
         <div className="flex h-full w-[300px] flex-col border-r border-border">
           <div className="min-h-0 flex-1 overflow-hidden">
