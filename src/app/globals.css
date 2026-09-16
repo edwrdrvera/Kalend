@@ -93,11 +93,6 @@
     --sidebar-ring: #4f46e5;
 
     --mini-cal-bg: #ffffff;
-
-    /* Minimal custom scrollbars: a faint, floating thumb over a transparent
-     * track. See the base-layer rule below. */
-    --scrollbar-thumb: rgba(0, 0, 0, 0.2);
-    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.32);
 }
 
 .dark {
@@ -137,39 +132,17 @@
     --sidebar-border: #262626;
     --sidebar-ring: #818cf8;
     --mini-cal-bg: #191919;
-
-    --scrollbar-thumb: rgba(255, 255, 255, 0.18);
-    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    /* Firefox: thin bar, faint thumb, invisible track. */
-    scrollbar-width: thin;
-    scrollbar-color: var(--scrollbar-thumb) transparent;
+    /* Hide scrollbars entirely (Firefox + modern Chromium/Safari) while
+     * keeping the areas scrollable. WebKit fallback below. */
+    scrollbar-width: none;
     }
-  /* WebKit/Chromium: a slim, rounded thumb that floats inside a transparent
-   * track (the 2px transparent border + padding-box clip insets it so the
-   * visible thumb reads as ~4px). Applies to every scroll container. */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-    }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-    }
-  ::-webkit-scrollbar-thumb {
-    background-color: var(--scrollbar-thumb);
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    border-radius: 9999px;
-    }
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: var(--scrollbar-thumb-hover);
-    }
-  ::-webkit-scrollbar-corner {
-    background: transparent;
+    display: none;
     }
   body {
     @apply bg-background text-foreground;

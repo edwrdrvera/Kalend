@@ -777,7 +777,7 @@ export default function TimeGrid({
 
               {isToday && (
                 <div
-                  className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+                  className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
                   style={{ top: nowOffsetPx }}
                 >
                   <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />

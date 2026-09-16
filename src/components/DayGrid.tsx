@@ -116,7 +116,7 @@ export default function DayGrid({
         ref={scrollRef}
         className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        <div className="sticky top-0 z-10">
+        <div className="sticky top-0 z-30">
           <AllDayRow
             days={days}
             events={events}

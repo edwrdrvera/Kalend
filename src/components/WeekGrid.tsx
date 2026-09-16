@@ -139,7 +139,7 @@ export default function WeekGrid({
         ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
       >
-        <div className="sticky top-0 z-10">
+        <div className="sticky top-0 z-30">
           <WeekDaysHeader
             days={days}
             selectedDate={selectedDate}
