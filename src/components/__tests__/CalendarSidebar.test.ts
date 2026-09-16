@@ -170,6 +170,25 @@ describe("CalendarSidebar layout", () => {
   });
 });
 
+describe("CalendarSidebar collapse", () => {
+  it("clicking the logo (collapse toggle) hides the desktop AgendaColumn", async () => {
+    await renderSidebar({ categories: fiveCategories });
+
+    // Both the desktop column and the mobile slide-out render an
+    // AgendaColumn, so collapsing the desktop one drops the count by one
+    // (the mobile slide-out's copy is unaffected).
+    const before = document.querySelectorAll('[data-testid="agenda-column"]');
+    expect(before.length).toBe(2);
+
+    const toggle = byLabel("Collapse sidebar");
+    expect(toggle).not.toBeNull();
+    await act(() => toggle?.click());
+
+    const after = document.querySelectorAll('[data-testid="agenda-column"]');
+    expect(after.length).toBe(1);
+  });
+});
+
 describe("CalendarSidebar empty state", () => {
   it("shows the create-space button when there are no spaces", async () => {
     await renderSidebar({ categories: [] });

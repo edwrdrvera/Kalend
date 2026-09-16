@@ -137,6 +137,12 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Hide scrollbars entirely (Firefox + modern Chromium/Safari) while
+     * keeping the areas scrollable. WebKit fallback below. */
+    scrollbar-width: none;
+    }
+  ::-webkit-scrollbar {
+    display: none;
     }
   body {
     @apply bg-background text-foreground;

@@ -2,12 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
-import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import AllDayRow from "./AllDayRow";
-import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
+import TimeGrid, { DAY_VIEW_HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -29,6 +28,8 @@ interface DayGridProps {
   selectedEventIds?: Set<string>;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible while its popover is open. */
+  pendingRange?: { start: Date; end: Date } | null;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -51,10 +52,7 @@ function DayColumnHeader({
   else numberCls += " text-foreground";
 
   return (
-    <div className={cn(
-      "flex shrink-0 border-b border-border bg-background",
-      isToday && "bg-primary/[0.03]"
-    )}>
+    <div className="flex shrink-0 border-b border-border bg-card">
       <div className="w-10 shrink-0 border-r border-border sm:w-16" />
       <div className="flex h-[74px] flex-1 flex-col items-start justify-center gap-0.5 pl-5">
         <CalendarWeekdayLabel>
@@ -87,6 +85,7 @@ export default function DayGrid({
   onTaskClick,
   onEventMove,
   onEventResize,
+  pendingRange,
   view,
   onViewChange,
 }: DayGridProps) {
@@ -95,7 +94,7 @@ export default function DayGrid({
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT_PX;
+    if (scrollRef.current) scrollRef.current.scrollTop = 8 * DAY_VIEW_HOUR_HEIGHT_PX;
   }, []);
 
   return (
@@ -113,7 +112,7 @@ export default function DayGrid({
         ref={scrollRef}
         className="flex min-h-0 flex-1 flex-col overflow-y-auto"
       >
-        <div className="sticky top-0 z-10">
+        <div className="sticky top-0 z-30">
           <AllDayRow
             days={days}
             events={events}
@@ -137,6 +136,8 @@ export default function DayGrid({
           onSlotSelect={(day) => onDateSelect(day)}
           onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
           onSlotDragCreate={onCreateEventRange}
+          pendingRange={pendingRange}
+          hourHeight={DAY_VIEW_HOUR_HEIGHT_PX}
         />
       </div>
     </div>

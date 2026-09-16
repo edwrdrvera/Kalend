@@ -36,6 +36,8 @@ interface WeekGridProps {
   selectedEventIds?: Set<string>;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible while its popover is open. */
+  pendingRange?: { start: Date; end: Date } | null;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -110,6 +112,7 @@ export default function WeekGrid({
   selectedEventIds,
   onEventMove,
   onEventResize,
+  pendingRange,
   view,
   onViewChange,
 }: WeekGridProps) {
@@ -136,7 +139,7 @@ export default function WeekGrid({
         ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
       >
-        <div className="sticky top-0 z-10">
+        <div className="sticky top-0 z-30">
           <WeekDaysHeader
             days={days}
             selectedDate={selectedDate}
@@ -168,6 +171,7 @@ export default function WeekGrid({
             onCreateEvent(setHours(day, hour), anchorRect);
           }}
           onSlotDragCreate={onCreateEventRange}
+          pendingRange={pendingRange}
         />
       </div>
     </div>

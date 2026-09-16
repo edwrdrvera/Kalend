@@ -159,6 +159,17 @@ describe("IconRail", () => {
 
     expect(interactions.createSpaceCalls).toBe(1);
   });
+
+  it('renders a "View all spaces" button; clicking calls onSelectSpace(null)', async () => {
+    const interactions = await renderRail({ selectedSpaceId: "cat-2" });
+
+    const viewAllBtn = byLabel("View all spaces");
+    expect(viewAllBtn).not.toBeNull();
+
+    await act(() => viewAllBtn?.click());
+
+    expect(interactions.selectedSpaces).toEqual([null]);
+  });
 });
 
 describe("spaceAbbreviation", () => {

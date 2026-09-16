@@ -13,8 +13,10 @@ import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+/** Default hour-row height, used by the week view. */
 export const HOUR_HEIGHT_PX = 64;
-const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
+/** Day view is zoomed out (shorter rows) so more of the day fits on screen. */
+export const DAY_VIEW_HOUR_HEIGHT_PX = 44;
 const MINUTES_PER_DAY = 24 * 60;
 
 // Drags snap the time to this increment.
@@ -186,6 +188,12 @@ interface TimeGridProps {
   /** Fires once a top/bottom edge drag is released, with the event's new
    *  start/end. Resize handles only render when this is provided. */
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible on its day column
+   *  while the popover it opened is still open. */
+  pendingRange?: { start: Date; end: Date } | null;
+  /** Height of one hour row in px. Defaults to the week view's HOUR_HEIGHT_PX;
+   *  the day view passes a smaller value to zoom out. */
+  hourHeight?: number;
 }
 
 /** Shared hour-by-hour grid used by both the Week and Day views: one row per
@@ -208,12 +216,20 @@ export default function TimeGrid({
   selectedEventIds,
   onEventMove,
   onEventResize,
+  pendingRange,
+  hourHeight = HOUR_HEIGHT_PX,
 }: TimeGridProps) {
   const now = useCurrentTime();
-  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
+  // Total grid height derived from the (view-specific) hour-row height.
+  const dayHeight = HOURS.length * hourHeight;
+  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * dayHeight;
   // Show the current-time marker (line + gutter label) only when one of the
   // visible columns is actually today.
   const showNow = days.some((day) => isSameDay(day, now));
+  // Day view is a single column, so the per-day background accents (today
+  // tint, weekend shading) that help tell week columns apart only make the
+  // whole surface look mismatched. Keep day view a flat card surface.
+  const isDayView = days.length === 1;
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -285,7 +301,7 @@ export default function TimeGrid({
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
-    return ((clientY - top) / DAY_HEIGHT_PX) * MINUTES_PER_DAY;
+    return ((clientY - top) / dayHeight) * MINUTES_PER_DAY;
   }
 
   function cancelPendingMoveFrame() {
@@ -376,14 +392,14 @@ export default function TimeGrid({
     // only ever read once, on drop.
     const rect = gridRef.current?.getBoundingClientRect();
     const dayColumnWidth = drag.columnWidth;
-    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * dayHeight;
     const originalLeftPx = drag.originColumnLeft;
-    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight;
 
     const clampedDeltaX = rect
       ? clamp(deltaX, -originalLeftPx, rect.width - dayColumnWidth - originalLeftPx)
       : deltaX;
-    const clampedDeltaY = clamp(deltaY, -originalTopPx, DAY_HEIGHT_PX - durationPx - originalTopPx);
+    const clampedDeltaY = clamp(deltaY, -originalTopPx, dayHeight - durationPx - originalTopPx);
 
     if (ghostRef.current) {
       ghostRef.current.style.transform = `translate3d(${clampedDeltaX}px, ${clampedDeltaY}px, 0)`;
@@ -548,7 +564,7 @@ export default function TimeGrid({
 
       const clientY = latestResizeYRef.current;
       const deltaMinutes = snapMinutes(
-        ((clientY - drag.pointerStartY) / DAY_HEIGHT_PX) * MINUTES_PER_DAY
+        ((clientY - drag.pointerStartY) / dayHeight) * MINUTES_PER_DAY
       );
 
       setResizeDrag((prev) => {
@@ -705,8 +721,8 @@ export default function TimeGrid({
         {HOURS.map((hour) => (
           <div
             key={hour}
-            style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-xs"
+            style={{ height: hourHeight }}
+            className="pr-1.5 text-right text-[9px] text-muted-foreground sm:pr-3 sm:text-[10px]"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
@@ -732,12 +748,20 @@ export default function TimeGrid({
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
           const isToday = isSameDay(day, now);
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const columnBg = isDayView
+            ? "bg-card"
+            : isToday
+              ? "bg-primary/[0.03]"
+              : isWeekend
+                ? "bg-muted/30"
+                : "bg-card";
 
           return (
             <div
               key={day.getTime()}
-              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : "bg-card"}`}
-              style={{ height: DAY_HEIGHT_PX }}
+              className={`relative border-r border-border last:border-r-0 ${columnBg}`}
+              style={{ height: dayHeight }}
             >
               {HOURS.map((hour) => (
                 <div
@@ -765,14 +789,14 @@ export default function TimeGrid({
                       onSlotSelect?.(day);
                     }
                   }}
-                  style={{ height: HOUR_HEIGHT_PX }}
+                  style={{ height: hourHeight }}
                   className="border-b border-border/40"
                 />
               ))}
 
               {isToday && (
                 <div
-                  className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+                  className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
                   style={{ top: nowOffsetPx }}
                 >
                   <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
@@ -797,6 +821,29 @@ export default function TimeGrid({
                     }}
                   >
                     {format(addMinutes(startOfDay(day), lo), "h:mm")} – {format(addMinutes(startOfDay(day), hi), "h:mm")}
+                  </div>
+                );
+              })()}
+
+              {/* Persistent selection box for a drag-create whose popover is
+                  still open. Same visual treatment as the live preview
+                  above, but keyed off `pendingRange` (state in Calendar)
+                  instead of the in-progress drag, so it survives the drag
+                  ending and only clears when the popover closes. */}
+              {pendingRange && isSameDay(pendingRange.start, day) && (() => {
+                const startMinutes = minutesFromMidnight(pendingRange.start);
+                const endMinutes =
+                  startMinutes +
+                  (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    style={{
+                      top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
+                      height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
+                    }}
+                  >
+                    {format(pendingRange.start, "h:mm")} – {format(pendingRange.end, "h:mm")}
                   </div>
                 );
               })()}
@@ -889,8 +936,8 @@ export default function TimeGrid({
             style={{
               left: moveDrag.originColumnLeft,
               width: moveDrag.columnWidth,
-              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
-              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
+              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight,
+              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * dayHeight,
               transform: "translate3d(0, 0, 0)",
             }}
           >
