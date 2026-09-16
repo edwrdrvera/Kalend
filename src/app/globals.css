@@ -57,81 +57,84 @@
      * platforms, where SF Pro isn't available at all. */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    /* Light app theme — clean white workspace from the Direction 1 calendar.
-     * The marketing route keeps its separate warm --kal-* palette below. */
-    --background: #ffffff;
+    /* Light app theme — "warm ink": a warm paper canvas (#faf8f3) with white
+     * cards lifting off it, warm-neutral fills/borders, and a terracotta
+     * accent (#c2410c) in place of the old generic indigo. This shares the
+     * marketing route's --kal-* warmth so the app and landing page feel like
+     * one product. White-on-#c2410c is 5.18:1 (AA). */
+    --background: #faf8f3;
     --foreground: #1c1a16;
     --card: #ffffff;
     --card-foreground: #1c1a16;
     --popover: #ffffff;
     --popover-foreground: #1c1a16;
-    --primary: #4f46e5;
+    --primary: #c2410c;
     --primary-foreground: #ffffff;
-    --secondary: #f5f5f5;
+    --secondary: #f1ece2;
     --secondary-foreground: #1c1a16;
-    --muted: #f5f5f5;
+    --muted: #f1ece2;
     --muted-foreground: #6b6456;
-    --accent: #f5f5f5;
+    --accent: #f1ece2;
     --accent-foreground: #1c1a16;
     --destructive: #dc2626;
-    --border: #e5e7eb;
-    --input: #e5e7eb;
-    --ring: #4f46e5;
-    --chart-1: #4f46e5;
+    --border: #e8e3d8;
+    --input: #e8e3d8;
+    --ring: #c2410c;
+    --chart-1: #c2410c;
     --chart-2: #756f61;
     --chart-3: #1c1a16;
-    --chart-4: #e5e7eb;
-    --chart-5: #f5f5f5;
+    --chart-4: #e8e3d8;
+    --chart-5: #f1ece2;
     --radius: 0.625rem;
     --sidebar: #ffffff;
     --sidebar-foreground: #1c1a16;
-    --sidebar-primary: #4f46e5;
+    --sidebar-primary: #c2410c;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #f5f5f5;
+    --sidebar-accent: #f1ece2;
     --sidebar-accent-foreground: #1c1a16;
-    --sidebar-border: #e5e7eb;
-    --sidebar-ring: #4f46e5;
+    --sidebar-border: #e8e3d8;
+    --sidebar-ring: #c2410c;
 
     --mini-cal-bg: #ffffff;
 }
 
 .dark {
-    /* Dark mode — indigo-400 (#818cf8) as the primary: lighter shade so it
-     * reads as text on dark surfaces (5.9:1 on #121212) and as the button bg
-     * with dark ink foreground (5.3:1). primary-foreground flips to dark ink
-     * so buttons stay legible on the lighter dark-mode accent. */
-    --background: #121212;
-    --foreground: #e5e5e5;
-    --card: #191919;
-    --card-foreground: #e5e5e5;
-    --popover: #191919;
-    --popover-foreground: #e5e5e5;
-    --primary: #818cf8;
+    /* Dark mode — warm ink. A warm near-black canvas (#17150f) with warm dark
+     * surfaces, and a lighter terracotta (#f0916b) as the primary so it reads
+     * as text on dark (7.6:1) and as a button bg with dark ink (7.4:1).
+     * primary-foreground stays dark ink so buttons remain legible. */
+    --background: #17150f;
+    --foreground: #ece7dc;
+    --card: #1f1c16;
+    --card-foreground: #ece7dc;
+    --popover: #1f1c16;
+    --popover-foreground: #ece7dc;
+    --primary: #f0916b;
     --primary-foreground: #1c1a16;
-    --secondary: #262626;
-    --secondary-foreground: #e5e5e5;
-    --muted: #262626;
-    --muted-foreground: #b0b0b0;
-    --accent: #262626;
-    --accent-foreground: #e5e5e5;
+    --secondary: #2a251c;
+    --secondary-foreground: #ece7dc;
+    --muted: #2a251c;
+    --muted-foreground: #b3ab9b;
+    --accent: #2a251c;
+    --accent-foreground: #ece7dc;
     --destructive: #ef4444;
-    --border: #262626;
-    --input: #262626;
-    --ring: #818cf8;
-    --chart-1: #818cf8;
-    --chart-2: #a3a3a3;
-    --chart-3: #e5e5e5;
-    --chart-4: #262626;
-    --chart-5: #191919;
-    --sidebar: #191919;
-    --sidebar-foreground: #e5e5e5;
-    --sidebar-primary: #818cf8;
+    --border: #2a251c;
+    --input: #2a251c;
+    --ring: #f0916b;
+    --chart-1: #f0916b;
+    --chart-2: #b3ab9b;
+    --chart-3: #ece7dc;
+    --chart-4: #2a251c;
+    --chart-5: #1f1c16;
+    --sidebar: #1f1c16;
+    --sidebar-foreground: #ece7dc;
+    --sidebar-primary: #f0916b;
     --sidebar-primary-foreground: #1c1a16;
-    --sidebar-accent: #262626;
-    --sidebar-accent-foreground: #e5e5e5;
-    --sidebar-border: #262626;
-    --sidebar-ring: #818cf8;
-    --mini-cal-bg: #191919;
+    --sidebar-accent: #2a251c;
+    --sidebar-accent-foreground: #ece7dc;
+    --sidebar-border: #2a251c;
+    --sidebar-ring: #f0916b;
+    --mini-cal-bg: #1f1c16;
 }
 
 @layer base {
