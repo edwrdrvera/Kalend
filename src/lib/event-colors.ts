@@ -93,15 +93,15 @@ export function getTaskColorClasses(color: string | null): string {
 // Solid fill + lighter border for the active Space tile in the icon rail. The
 // colored fill with white text reads on the rail in both light and dark themes.
 export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
-  blue: "bg-[var(--evt-blue-solid)] border-[var(--evt-blue-solid)] text-white",
-  green: "bg-[var(--evt-green-solid)] border-[var(--evt-green-solid)] text-white",
-  purple: "bg-[var(--evt-purple-solid)] border-[var(--evt-purple-solid)] text-white",
-  orange: "bg-[var(--evt-orange-solid)] border-[var(--evt-orange-solid)] text-white",
-  red: "bg-[var(--evt-red-solid)] border-[var(--evt-red-solid)] text-white",
-  indigo: "bg-[var(--evt-indigo-solid)] border-[var(--evt-indigo-solid)] text-white",
-  pink: "bg-[var(--evt-pink-solid)] border-[var(--evt-pink-solid)] text-white",
-  yellow: "bg-[var(--evt-yellow-solid)] border-[var(--evt-yellow-solid)] text-white",
-  teal: "bg-[var(--evt-teal-solid)] border-[var(--evt-teal-solid)] text-white",
+  blue: "bg-[var(--evt-blue-deep)] border-[var(--evt-blue-deep)] text-white",
+  green: "bg-[var(--evt-green-deep)] border-[var(--evt-green-deep)] text-white",
+  purple: "bg-[var(--evt-purple-deep)] border-[var(--evt-purple-deep)] text-white",
+  orange: "bg-[var(--evt-orange-deep)] border-[var(--evt-orange-deep)] text-white",
+  red: "bg-[var(--evt-red-deep)] border-[var(--evt-red-deep)] text-white",
+  indigo: "bg-[var(--evt-indigo-deep)] border-[var(--evt-indigo-deep)] text-white",
+  pink: "bg-[var(--evt-pink-deep)] border-[var(--evt-pink-deep)] text-white",
+  yellow: "bg-[var(--evt-yellow-deep)] border-[var(--evt-yellow-deep)] text-white",
+  teal: "bg-[var(--evt-teal-deep)] border-[var(--evt-teal-deep)] text-white",
 };
 
 // Shared by events and tasks: when linked to a category, the color shown on

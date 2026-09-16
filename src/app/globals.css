@@ -137,39 +137,41 @@
     --mini-cal-bg: #1f1c16;
 }
 
-/* Event / Space / Task color palette — "warm ink" harmonized set. The nine
- * enum keys in @/lib/event-colors stay the same (blue/green/.../teal), so no
- * data migration is needed; only their rendered tone changes to earthier,
- * muted colors that sit with the warm-ink theme. Per color:
- *   -solid  deep saturated fill (rail tile + picker swatch + agenda bar); it
- *           carries white text at >=4.5:1, and is shared by both themes.
- *   -fg     pill/chip text (dark shade in light, light shade in dark).
- *   -bg     event pill fill.   -soft  task chip fill (fainter).
- *   -bd     pill/chip border.
- * Light values live here in :root; the .dark block below overrides fg/bg/bd/
- * soft (solid stays put). */
+/* Event / Space / Task color palette — "sunset warm" set: warm-toned but
+ * vibrant, with the nine hues spread out so Spaces stay easy to tell apart.
+ * The nine enum keys in @/lib/event-colors stay the same (blue/green/.../teal),
+ * so no data migration is needed; only the rendered tone changes. Per color:
+ *   -solid  the vibrant identity color — dots, agenda bar, picker swatch.
+ *   -deep   a darker shade of the same hue, used ONLY for the selected rail
+ *           tile, where white text sits on it (every -deep clears >=4.5:1).
+ *   -fg     pill/chip text (in light = -deep; in dark = a light pastel).
+ *   -bg     event pill fill.   -soft  task chip fill (fainter).   -bd  border.
+ * The tint/border values are derived from -solid with color-mix (already used
+ * elsewhere in this file), so a hue is retuned by editing -solid alone. Light
+ * values live in :root; the .dark block overrides fg/bg/soft/bd (solid + deep
+ * carry over). */
 :root {
-    --evt-blue-solid: #2f5877; --evt-blue-fg: #2f5877; --evt-blue-bg: #e3ecf5; --evt-blue-soft: #eef3f8; --evt-blue-bd: #b8cbdd;
-    --evt-green-solid: #4a6033; --evt-green-fg: #4a6033; --evt-green-bg: #e4ecdf; --evt-green-soft: #eef2ea; --evt-green-bd: #c0d0b4;
-    --evt-purple-solid: #6b4a72; --evt-purple-fg: #6b4a72; --evt-purple-bg: #ece2ef; --evt-purple-soft: #f3edf5; --evt-purple-bd: #d3bcd8;
-    --evt-orange-solid: #9a3412; --evt-orange-fg: #9a3412; --evt-orange-bg: #f6e6dc; --evt-orange-soft: #faf0e9; --evt-orange-bd: #e2b99b;
-    --evt-red-solid: #a13a2c; --evt-red-fg: #a13a2c; --evt-red-bg: #f3ddd8; --evt-red-soft: #f9ece8; --evt-red-bd: #dda99f;
-    --evt-indigo-solid: #6b5d2a; --evt-indigo-fg: #6b5d2a; --evt-indigo-bg: #e7e3d3; --evt-indigo-soft: #f0eee2; --evt-indigo-bd: #cdc6a8;
-    --evt-pink-solid: #9d4759; --evt-pink-fg: #9d4759; --evt-pink-bg: #f2e0e2; --evt-pink-soft: #f8edee; --evt-pink-bd: #dcb3ba;
-    --evt-yellow-solid: #8a6a1f; --evt-yellow-fg: #8a6a1f; --evt-yellow-bg: #f4e9d4; --evt-yellow-soft: #faf3e4; --evt-yellow-bd: #ddc98f;
-    --evt-teal-solid: #2f6b5b; --evt-teal-fg: #2f6b5b; --evt-teal-bg: #dcebe6; --evt-teal-soft: #ecf4f1; --evt-teal-bd: #a9cec4;
+    --evt-blue-solid: #3d8299; --evt-blue-deep: #2f6a80; --evt-blue-fg: var(--evt-blue-deep); --evt-blue-bg: color-mix(in srgb, var(--evt-blue-solid) 15%, #ffffff); --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 8%, #ffffff); --evt-blue-bd: color-mix(in srgb, var(--evt-blue-solid) 30%, #ffffff);
+    --evt-green-solid: #7a9b32; --evt-green-deep: #5c7626; --evt-green-fg: var(--evt-green-deep); --evt-green-bg: color-mix(in srgb, var(--evt-green-solid) 15%, #ffffff); --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 8%, #ffffff); --evt-green-bd: color-mix(in srgb, var(--evt-green-solid) 30%, #ffffff);
+    --evt-purple-solid: #9a4a86; --evt-purple-deep: #7e3a6d; --evt-purple-fg: var(--evt-purple-deep); --evt-purple-bg: color-mix(in srgb, var(--evt-purple-solid) 15%, #ffffff); --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 8%, #ffffff); --evt-purple-bd: color-mix(in srgb, var(--evt-purple-solid) 30%, #ffffff);
+    --evt-orange-solid: #e8781c; --evt-orange-deep: #b85712; --evt-orange-fg: var(--evt-orange-deep); --evt-orange-bg: color-mix(in srgb, var(--evt-orange-solid) 15%, #ffffff); --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 8%, #ffffff); --evt-orange-bd: color-mix(in srgb, var(--evt-orange-solid) 30%, #ffffff);
+    --evt-red-solid: #cf4433; --evt-red-deep: #b0392b; --evt-red-fg: var(--evt-red-deep); --evt-red-bg: color-mix(in srgb, var(--evt-red-solid) 15%, #ffffff); --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 8%, #ffffff); --evt-red-bd: color-mix(in srgb, var(--evt-red-solid) 30%, #ffffff);
+    --evt-indigo-solid: #4f6bbf; --evt-indigo-deep: #3f52a0; --evt-indigo-fg: var(--evt-indigo-deep); --evt-indigo-bg: color-mix(in srgb, var(--evt-indigo-solid) 15%, #ffffff); --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 8%, #ffffff); --evt-indigo-bd: color-mix(in srgb, var(--evt-indigo-solid) 30%, #ffffff);
+    --evt-pink-solid: #e05f7a; --evt-pink-deep: #b83f5c; --evt-pink-fg: var(--evt-pink-deep); --evt-pink-bg: color-mix(in srgb, var(--evt-pink-solid) 15%, #ffffff); --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 8%, #ffffff); --evt-pink-bd: color-mix(in srgb, var(--evt-pink-solid) 30%, #ffffff);
+    --evt-yellow-solid: #e0a418; --evt-yellow-deep: #8a6410; --evt-yellow-fg: var(--evt-yellow-deep); --evt-yellow-bg: color-mix(in srgb, var(--evt-yellow-solid) 15%, #ffffff); --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 8%, #ffffff); --evt-yellow-bd: color-mix(in srgb, var(--evt-yellow-solid) 30%, #ffffff);
+    --evt-teal-solid: #1f9a86; --evt-teal-deep: #187563; --evt-teal-fg: var(--evt-teal-deep); --evt-teal-bg: color-mix(in srgb, var(--evt-teal-solid) 15%, #ffffff); --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 8%, #ffffff); --evt-teal-bd: color-mix(in srgb, var(--evt-teal-solid) 30%, #ffffff);
 }
 
 .dark {
-    --evt-blue-fg: #a9c6de; --evt-blue-bg: rgba(91,139,181,.17); --evt-blue-soft: rgba(91,139,181,.10); --evt-blue-bd: rgba(91,139,181,.40);
-    --evt-green-fg: #bcd0a6; --evt-green-bg: rgba(138,168,106,.17); --evt-green-soft: rgba(138,168,106,.10); --evt-green-bd: rgba(138,168,106,.40);
-    --evt-purple-fg: #d1b8d6; --evt-purple-bg: rgba(169,130,176,.17); --evt-purple-soft: rgba(169,130,176,.10); --evt-purple-bd: rgba(169,130,176,.40);
-    --evt-orange-fg: #f0a882; --evt-orange-bg: rgba(207,122,79,.17); --evt-orange-soft: rgba(207,122,79,.10); --evt-orange-bd: rgba(207,122,79,.40);
-    --evt-red-fg: #e8a093; --evt-red-bg: rgba(207,106,88,.17); --evt-red-soft: rgba(207,106,88,.10); --evt-red-bd: rgba(207,106,88,.40);
-    --evt-indigo-fg: #d8cd93; --evt-indigo-bg: rgba(176,160,90,.17); --evt-indigo-soft: rgba(176,160,90,.10); --evt-indigo-bd: rgba(176,160,90,.40);
-    --evt-pink-fg: #e6acb6; --evt-pink-bg: rgba(207,125,142,.17); --evt-pink-soft: rgba(207,125,142,.10); --evt-pink-bd: rgba(207,125,142,.40);
-    --evt-yellow-fg: #e2c98a; --evt-yellow-bg: rgba(207,169,85,.17); --evt-yellow-soft: rgba(207,169,85,.10); --evt-yellow-bd: rgba(207,169,85,.40);
-    --evt-teal-fg: #93cbbc; --evt-teal-bg: rgba(95,160,140,.17); --evt-teal-soft: rgba(95,160,140,.10); --evt-teal-bd: rgba(95,160,140,.40);
+    --evt-blue-fg: #86bdd6; --evt-blue-bg: color-mix(in srgb, var(--evt-blue-solid) 22%, #1f1c16); --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 12%, #1f1c16); --evt-blue-bd: color-mix(in srgb, var(--evt-blue-solid) 40%, #1f1c16);
+    --evt-green-fg: #b6d488; --evt-green-bg: color-mix(in srgb, var(--evt-green-solid) 22%, #1f1c16); --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 12%, #1f1c16); --evt-green-bd: color-mix(in srgb, var(--evt-green-solid) 40%, #1f1c16);
+    --evt-purple-fg: #d3a3c6; --evt-purple-bg: color-mix(in srgb, var(--evt-purple-solid) 22%, #1f1c16); --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 12%, #1f1c16); --evt-purple-bd: color-mix(in srgb, var(--evt-purple-solid) 40%, #1f1c16);
+    --evt-orange-fg: #f2a35f; --evt-orange-bg: color-mix(in srgb, var(--evt-orange-solid) 22%, #1f1c16); --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 12%, #1f1c16); --evt-orange-bd: color-mix(in srgb, var(--evt-orange-solid) 40%, #1f1c16);
+    --evt-red-fg: #ec9184; --evt-red-bg: color-mix(in srgb, var(--evt-red-solid) 22%, #1f1c16); --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 12%, #1f1c16); --evt-red-bd: color-mix(in srgb, var(--evt-red-solid) 40%, #1f1c16);
+    --evt-indigo-fg: #a7b4e8; --evt-indigo-bg: color-mix(in srgb, var(--evt-indigo-solid) 22%, #1f1c16); --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 12%, #1f1c16); --evt-indigo-bd: color-mix(in srgb, var(--evt-indigo-solid) 40%, #1f1c16);
+    --evt-pink-fg: #f0a1b2; --evt-pink-bg: color-mix(in srgb, var(--evt-pink-solid) 22%, #1f1c16); --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 12%, #1f1c16); --evt-pink-bd: color-mix(in srgb, var(--evt-pink-solid) 40%, #1f1c16);
+    --evt-yellow-fg: #ebc766; --evt-yellow-bg: color-mix(in srgb, var(--evt-yellow-solid) 22%, #1f1c16); --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 12%, #1f1c16); --evt-yellow-bd: color-mix(in srgb, var(--evt-yellow-solid) 40%, #1f1c16);
+    --evt-teal-fg: #74cdbb; --evt-teal-bg: color-mix(in srgb, var(--evt-teal-solid) 22%, #1f1c16); --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 12%, #1f1c16); --evt-teal-bd: color-mix(in srgb, var(--evt-teal-solid) 40%, #1f1c16);
 }
 
 @layer base {
