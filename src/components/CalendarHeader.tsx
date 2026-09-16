@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
 
 interface CalendarHeaderProps {
@@ -50,11 +50,10 @@ export default function CalendarHeader({
           </button>
         </div>
       </div>
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center">
         <h1 className="min-w-0 truncate text-base font-extrabold tracking-[-0.035em] text-foreground md:text-xl">
           {title}
         </h1>
-        <ChevronDown className="hidden size-4 shrink-0 text-foreground md:block" aria-hidden="true" />
       </div>
       <div className="ml-auto">
         <ViewSwitcher view={view} onViewChange={onViewChange} />
