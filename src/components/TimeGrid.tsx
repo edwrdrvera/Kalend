@@ -13,8 +13,10 @@ import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+/** Default hour-row height, used by the week view. */
 export const HOUR_HEIGHT_PX = 64;
-const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
+/** Day view is zoomed out (shorter rows) so more of the day fits on screen. */
+export const DAY_VIEW_HOUR_HEIGHT_PX = 44;
 const MINUTES_PER_DAY = 24 * 60;
 
 // Drags snap the time to this increment.
@@ -189,6 +191,9 @@ interface TimeGridProps {
   /** The sketched box from a drag-create, kept visible on its day column
    *  while the popover it opened is still open. */
   pendingRange?: { start: Date; end: Date } | null;
+  /** Height of one hour row in px. Defaults to the week view's HOUR_HEIGHT_PX;
+   *  the day view passes a smaller value to zoom out. */
+  hourHeight?: number;
 }
 
 /** Shared hour-by-hour grid used by both the Week and Day views: one row per
@@ -212,9 +217,12 @@ export default function TimeGrid({
   onEventMove,
   onEventResize,
   pendingRange,
+  hourHeight = HOUR_HEIGHT_PX,
 }: TimeGridProps) {
   const now = useCurrentTime();
-  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
+  // Total grid height derived from the (view-specific) hour-row height.
+  const dayHeight = HOURS.length * hourHeight;
+  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * dayHeight;
   // Show the current-time marker (line + gutter label) only when one of the
   // visible columns is actually today.
   const showNow = days.some((day) => isSameDay(day, now));
@@ -293,7 +301,7 @@ export default function TimeGrid({
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
-    return ((clientY - top) / DAY_HEIGHT_PX) * MINUTES_PER_DAY;
+    return ((clientY - top) / dayHeight) * MINUTES_PER_DAY;
   }
 
   function cancelPendingMoveFrame() {
@@ -384,14 +392,14 @@ export default function TimeGrid({
     // only ever read once, on drop.
     const rect = gridRef.current?.getBoundingClientRect();
     const dayColumnWidth = drag.columnWidth;
-    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * dayHeight;
     const originalLeftPx = drag.originColumnLeft;
-    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight;
 
     const clampedDeltaX = rect
       ? clamp(deltaX, -originalLeftPx, rect.width - dayColumnWidth - originalLeftPx)
       : deltaX;
-    const clampedDeltaY = clamp(deltaY, -originalTopPx, DAY_HEIGHT_PX - durationPx - originalTopPx);
+    const clampedDeltaY = clamp(deltaY, -originalTopPx, dayHeight - durationPx - originalTopPx);
 
     if (ghostRef.current) {
       ghostRef.current.style.transform = `translate3d(${clampedDeltaX}px, ${clampedDeltaY}px, 0)`;
@@ -556,7 +564,7 @@ export default function TimeGrid({
 
       const clientY = latestResizeYRef.current;
       const deltaMinutes = snapMinutes(
-        ((clientY - drag.pointerStartY) / DAY_HEIGHT_PX) * MINUTES_PER_DAY
+        ((clientY - drag.pointerStartY) / dayHeight) * MINUTES_PER_DAY
       );
 
       setResizeDrag((prev) => {
@@ -713,7 +721,7 @@ export default function TimeGrid({
         {HOURS.map((hour) => (
           <div
             key={hour}
-            style={{ height: HOUR_HEIGHT_PX }}
+            style={{ height: hourHeight }}
             className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-xs"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
@@ -753,7 +761,7 @@ export default function TimeGrid({
             <div
               key={day.getTime()}
               className={`relative border-r border-border last:border-r-0 ${columnBg}`}
-              style={{ height: DAY_HEIGHT_PX }}
+              style={{ height: dayHeight }}
             >
               {HOURS.map((hour) => (
                 <div
@@ -781,7 +789,7 @@ export default function TimeGrid({
                       onSlotSelect?.(day);
                     }
                   }}
-                  style={{ height: HOUR_HEIGHT_PX }}
+                  style={{ height: hourHeight }}
                   className="border-b border-border/40"
                 />
               ))}
@@ -928,8 +936,8 @@ export default function TimeGrid({
             style={{
               left: moveDrag.originColumnLeft,
               width: moveDrag.columnWidth,
-              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
-              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
+              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight,
+              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * dayHeight,
               transform: "translate3d(0, 0, 0)",
             }}
           >

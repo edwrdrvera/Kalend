@@ -6,7 +6,7 @@ import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calend
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import AllDayRow from "./AllDayRow";
-import TimeGrid, { HOUR_HEIGHT_PX } from "./TimeGrid";
+import TimeGrid, { DAY_VIEW_HOUR_HEIGHT_PX } from "./TimeGrid";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarView } from "./ViewSwitcher";
 
@@ -94,7 +94,7 @@ export default function DayGrid({
   const timedEvents = events.filter((event) => !isMultiDayEvent(event));
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 8 * HOUR_HEIGHT_PX;
+    if (scrollRef.current) scrollRef.current.scrollTop = 8 * DAY_VIEW_HOUR_HEIGHT_PX;
   }, []);
 
   return (
@@ -137,6 +137,7 @@ export default function DayGrid({
           onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
           onSlotDragCreate={onCreateEventRange}
           pendingRange={pendingRange}
+          hourHeight={DAY_VIEW_HOUR_HEIGHT_PX}
         />
       </div>
     </div>
