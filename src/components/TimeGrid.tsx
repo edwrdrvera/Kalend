@@ -186,6 +186,9 @@ interface TimeGridProps {
   /** Fires once a top/bottom edge drag is released, with the event's new
    *  start/end. Resize handles only render when this is provided. */
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible on its day column
+   *  while the popover it opened is still open. */
+  pendingRange?: { start: Date; end: Date } | null;
 }
 
 /** Shared hour-by-hour grid used by both the Week and Day views: one row per
@@ -208,6 +211,7 @@ export default function TimeGrid({
   selectedEventIds,
   onEventMove,
   onEventResize,
+  pendingRange,
 }: TimeGridProps) {
   const now = useCurrentTime();
   const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
@@ -732,11 +736,12 @@ export default function TimeGrid({
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
           const isToday = isSameDay(day, now);
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
           return (
             <div
               key={day.getTime()}
-              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : "bg-card"}`}
+              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : isWeekend ? "bg-muted/30" : "bg-card"}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
@@ -797,6 +802,29 @@ export default function TimeGrid({
                     }}
                   >
                     {format(addMinutes(startOfDay(day), lo), "h:mm")} – {format(addMinutes(startOfDay(day), hi), "h:mm")}
+                  </div>
+                );
+              })()}
+
+              {/* Persistent selection box for a drag-create whose popover is
+                  still open. Same visual treatment as the live preview
+                  above, but keyed off `pendingRange` (state in Calendar)
+                  instead of the in-progress drag, so it survives the drag
+                  ending and only clears when the popover closes. */}
+              {pendingRange && isSameDay(pendingRange.start, day) && (() => {
+                const startMinutes = minutesFromMidnight(pendingRange.start);
+                const endMinutes =
+                  startMinutes +
+                  (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    style={{
+                      top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
+                      height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
+                    }}
+                  >
+                    {format(pendingRange.start, "h:mm")} – {format(pendingRange.end, "h:mm")}
                   </div>
                 );
               })()}

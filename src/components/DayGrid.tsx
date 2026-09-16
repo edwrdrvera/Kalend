@@ -29,6 +29,8 @@ interface DayGridProps {
   selectedEventIds?: Set<string>;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible while its popover is open. */
+  pendingRange?: { start: Date; end: Date } | null;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -87,6 +89,7 @@ export default function DayGrid({
   onTaskClick,
   onEventMove,
   onEventResize,
+  pendingRange,
   view,
   onViewChange,
 }: DayGridProps) {
@@ -137,6 +140,7 @@ export default function DayGrid({
           onSlotSelect={(day) => onDateSelect(day)}
           onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
           onSlotDragCreate={onCreateEventRange}
+          pendingRange={pendingRange}
         />
       </div>
     </div>
