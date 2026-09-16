@@ -60,6 +60,9 @@ export default function CalendarSidebar({
   mobileAccountMenu,
 }: CalendarSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Desktop-only: collapses the agenda + mini calendar column. The rail
+  // itself always stays visible; mobile's slide-out is unaffected.
+  const [collapsed, setCollapsed] = useState(false);
 
   // The agenda's branch list shows only the active Space's branches; the rail
   // flyouts use the full list.
@@ -120,13 +123,17 @@ export default function CalendarSidebar({
           onCreateSpace={onCreateSpace}
           onEditSpace={onEditSpace}
           accountMenu={accountMenu}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed((v) => !v)}
         />
-        <div className="flex h-full w-[300px] flex-col border-r border-border">
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <AgendaColumn {...agendaProps} />
+        {!collapsed && (
+          <div className="flex h-full w-[300px] flex-col border-r border-border">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <AgendaColumn {...agendaProps} />
+            </div>
+            <MiniCalendar {...miniCalProps} />
           </div>
-          <MiniCalendar {...miniCalProps} />
-        </div>
+        )}
       </div>
 
       {/* Mobile sidebar: slide-out overlay with agenda + mini calendar */}
