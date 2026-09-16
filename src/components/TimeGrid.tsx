@@ -890,7 +890,7 @@ export default function TimeGrid({
                       {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
-                    <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-80">
+                    <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-90">
                       {format(new Date(event.start_at), "h:mm")} – {format(new Date(event.end_at), "h:mm")}
                     </span>
                     {showLocation && (
