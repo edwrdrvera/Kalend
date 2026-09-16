@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useReducer } from "react";
-import { startOfMonth, setHours } from "date-fns";
+import { startOfMonth, setHours, isSameDay } from "date-fns";
 import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
@@ -159,8 +159,13 @@ export default function Calendar() {
   // WeekGrid/DayGrid derive the days they show from it directly, jumping to
   // that day's month would skip past the week or day actually clicked.
   const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    setViewDate(view === "month" ? startOfMonth(date) : date);
+    // Re-clicking the already-selected day is a no-op: only touch state that
+    // actually changes. Setting selectedDate/viewDate to a fresh object for
+    // the same day would re-render the agenda and, worse, refetch events
+    // (useCalendarEvents keys its fetch on viewDate identity) for nothing.
+    const nextViewDate = view === "month" ? startOfMonth(date) : date;
+    if (!isSameDay(date, selectedDate)) setSelectedDate(date);
+    if (!isSameDay(nextViewDate, viewDate)) setViewDate(nextViewDate);
   };
 
   // Ref on the calendar content area — used to get the container rect for
