@@ -19,7 +19,6 @@ import { cn } from "@/lib/utils";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
-import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
 
 interface MonthGridProps {
@@ -42,7 +41,6 @@ interface MonthGridProps {
 }
 
 const MAX_VISIBLE_EVENTS = 3;
-const MAX_VISIBLE_TASKS = 2;
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
@@ -91,32 +89,35 @@ function getCellClasses(day: Date, viewMonth: Date): string {
     return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/15`;
   }
 
-  return `${base} border-border bg-card hover:bg-muted/40 cursor-pointer`;
+  // Weekends get a slightly darker fill than weekdays, in-month only.
+  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-muted/40 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
-  const plain = "text-xs font-medium";
+  // Fixed h-6 w-6 box in every state, so the events below never reflow
+  // when a day becomes selected or today.
+  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
 
   const isCurrentMonth = isSameMonth(day, viewMonth);
   const isSelected = isSameDay(day, selectedDate);
   const isTodayDay = isSameDay(day, new Date());
 
   if (isSelected && !isTodayDay) {
-    // Selected: primary-filled circle badge.
-    return "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium bg-primary text-primary-foreground";
+    return `${base} bg-primary text-primary-foreground`;
   }
 
   if (isTodayDay) {
-    // Today: bold accent-colored text, no circle. The cell itself
-    // carries the today highlight (tinted border + wash).
-    return `${plain} text-primary font-bold`;
+    // Today: bold accent-colored text, no fill. The cell itself carries
+    // the today highlight (tinted border + wash).
+    return `${base} text-primary font-bold`;
   }
 
   if (!isCurrentMonth) {
-    return `${plain} text-muted-foreground/40`;
+    return `${base} text-muted-foreground/40`;
   }
 
-  return `${plain} text-foreground`;
+  return `${base} text-foreground`;
 }
 
 /** Build a 7x6 (42 cell) grid: the weeks spanning the visible month, padded out
@@ -177,8 +178,6 @@ function DayCell({
   const overflowCount = dayEvents.length - visibleEvents.length;
 
   const dayTasks = getTasksForDay(day, tasks);
-  const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
-  const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
   // Single click selects the day (the agenda/side nav follows); double click on
   // an empty part of the cell opens the event creator. The double-click guard
@@ -258,12 +257,9 @@ function DayCell({
             +{overflowCount} more
           </span>
         )}
-        {visibleTasks.map((task) => (
-          <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
-        ))}
-        {taskOverflowCount > 0 && (
+        {dayTasks.length > 0 && (
           <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
-            +{taskOverflowCount} more
+            {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
           </span>
         )}
       </div>
