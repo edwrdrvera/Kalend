@@ -218,6 +218,10 @@ export default function TimeGrid({
   // Show the current-time marker (line + gutter label) only when one of the
   // visible columns is actually today.
   const showNow = days.some((day) => isSameDay(day, now));
+  // Day view is a single column, so the per-day background accents (today
+  // tint, weekend shading) that help tell week columns apart only make the
+  // whole surface look mismatched. Keep day view a flat card surface.
+  const isDayView = days.length === 1;
 
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -737,11 +741,18 @@ export default function TimeGrid({
           const blocks = layoutDayEvents(day, events);
           const isToday = isSameDay(day, now);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const columnBg = isDayView
+            ? "bg-card"
+            : isToday
+              ? "bg-primary/[0.03]"
+              : isWeekend
+                ? "bg-muted/30"
+                : "bg-card";
 
           return (
             <div
               key={day.getTime()}
-              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : isWeekend ? "bg-muted/30" : "bg-card"}`}
+              className={`relative border-r border-border last:border-r-0 ${columnBg}`}
               style={{ height: DAY_HEIGHT_PX }}
             >
               {HOURS.map((hour) => (
