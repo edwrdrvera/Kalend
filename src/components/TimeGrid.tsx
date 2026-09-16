@@ -722,7 +722,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: hourHeight }}
-            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-xs"
+            className="pr-1.5 text-right text-[9px] text-muted-foreground sm:pr-3 sm:text-[10px]"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
