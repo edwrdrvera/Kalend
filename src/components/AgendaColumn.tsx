@@ -99,8 +99,8 @@ export default function AgendaColumn({
           </p>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-[14px]">
-          <div className="flex flex-col gap-[14px]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <div className="flex flex-col gap-3">
             <AgendaScheduleGroup
               events={dayEvents}
               categories={categories}

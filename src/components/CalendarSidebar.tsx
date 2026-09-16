@@ -127,7 +127,7 @@ export default function CalendarSidebar({
           onToggleCollapse={() => setCollapsed((v) => !v)}
         />
         {!collapsed && (
-          <div className="flex h-full w-[300px] flex-col border-r border-border">
+          <div className="flex h-full w-[272px] flex-col border-r border-border">
             <div className="min-h-0 flex-1 overflow-hidden">
               <AgendaColumn {...agendaProps} />
             </div>

@@ -32,7 +32,7 @@ function MiniCalendarHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
+      <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-foreground">
         {format(browseDate, "MMMM yyyy")}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
@@ -62,7 +62,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-8 text-center text-[11px] font-medium text-muted-foreground">
+        <div key={i} className="w-7 text-center text-[11px] font-medium text-muted-foreground">
           {day}
         </div>
       ))}
@@ -71,7 +71,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "flex justify-center items-center w-8 h-8 py-1 text-[11.5px] font-medium transition-colors cursor-pointer";
+  const baseClasses = "flex justify-center items-center w-7 h-7 text-[11.5px] font-medium transition-colors cursor-pointer";
 
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);
@@ -159,7 +159,7 @@ export default function MiniCalendar({
   const handlePrevMonth = () => setBrowseDate((current) => subMonths(current, 1));
 
   return (
-    <div className="shrink-0 border-t border-border bg-[var(--mini-cal-bg)] pt-[14px] px-4 pb-4">
+    <div className="shrink-0 border-t border-border bg-[var(--mini-cal-bg)] pt-3 px-3 pb-3">
       <MiniCalendarHeader
         browseDate={browseDate}
         onPrevMonth={handlePrevMonth}

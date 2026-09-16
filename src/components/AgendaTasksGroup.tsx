@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Plus } from "lucide-react";
-import { addDays, isAfter, isBefore, isSameDay, startOfDay } from "date-fns";
+import { isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
@@ -164,14 +164,7 @@ export default function AgendaTasksGroup({
 }: AgendaTasksGroupProps) {
   const [composerOpen, setComposerOpen] = useState(false);
 
-  // Count tasks due in the next 7 days that aren't shown today.
   const todayStart = startOfDay(selectedDate);
-  const weekEnd = addDays(todayStart, 8);
-  const upcomingCount = tasks.filter((t) => {
-    if (!t.due_at || t.completed) return false;
-    const due = new Date(t.due_at);
-    return isAfter(due, todayStart) && !isSameDay(due, todayStart) && isBefore(due, weekEnd);
-  }).length;
 
   // Only show tasks that belong to the selected date.
   const todayTasks = tasks.filter((t) => {
@@ -182,7 +175,7 @@ export default function AgendaTasksGroup({
   return (
     <section
       aria-label="Tasks"
-      className="border-t border-border pt-[14px]"
+      className="border-t border-border pt-3"
     >
       <div className="flex items-center justify-between px-1 pb-1">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
@@ -214,7 +207,7 @@ export default function AgendaTasksGroup({
           return (
             <div
               key={task.id}
-              className="flex items-start gap-2 rounded-lg px-1 py-1"
+              className="flex items-start gap-2 rounded-lg px-1 py-0.5"
             >
               <button
                 type="button"
@@ -235,7 +228,7 @@ export default function AgendaTasksGroup({
               <div className="min-w-0 flex-1">
                 <span
                   className={cn(
-                    "block truncate text-[14px]",
+                    "block truncate text-[12.5px]",
                     task.completed
                       ? "line-through opacity-50"
                       : "text-foreground"
@@ -244,7 +237,7 @@ export default function AgendaTasksGroup({
                   {task.title}
                 </span>
                 {category && (
-                  <span className="block text-[12px] text-muted-foreground">
+                  <span className="block text-[11px] text-muted-foreground">
                     {category.name}
                   </span>
                 )}
@@ -261,13 +254,6 @@ export default function AgendaTasksGroup({
           onCreateTask={onCreateTask}
           onClose={() => setComposerOpen(false)}
         />
-      )}
-
-      {upcomingCount > 0 && (
-        <p className="px-1 pt-3 pb-1 text-[12px] text-muted-foreground">
-          Next 7 days{" · "}
-          <span className="text-primary">{upcomingCount} more</span>
-        </p>
       )}
     </section>
   );
