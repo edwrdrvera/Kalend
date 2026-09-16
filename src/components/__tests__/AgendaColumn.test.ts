@@ -211,8 +211,8 @@ describe("AgendaColumn schedule section", () => {
     expect(text).toContain("9:00 AM");
     expect(text).toContain("Calculus");
 
-    // Color bar should have the green swatch class
-    const bar = document.querySelector(".bg-green-500");
+    // Color bar should carry the green swatch token class
+    const bar = document.querySelector('[class*="evt-green-solid"]');
     expect(bar).not.toBeNull();
   });
 });

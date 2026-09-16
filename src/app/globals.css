@@ -137,6 +137,41 @@
     --mini-cal-bg: #1f1c16;
 }
 
+/* Event / Space / Task color palette — "warm ink" harmonized set. The nine
+ * enum keys in @/lib/event-colors stay the same (blue/green/.../teal), so no
+ * data migration is needed; only their rendered tone changes to earthier,
+ * muted colors that sit with the warm-ink theme. Per color:
+ *   -solid  deep saturated fill (rail tile + picker swatch + agenda bar); it
+ *           carries white text at >=4.5:1, and is shared by both themes.
+ *   -fg     pill/chip text (dark shade in light, light shade in dark).
+ *   -bg     event pill fill.   -soft  task chip fill (fainter).
+ *   -bd     pill/chip border.
+ * Light values live here in :root; the .dark block below overrides fg/bg/bd/
+ * soft (solid stays put). */
+:root {
+    --evt-blue-solid: #2f5877; --evt-blue-fg: #2f5877; --evt-blue-bg: #e3ecf5; --evt-blue-soft: #eef3f8; --evt-blue-bd: #b8cbdd;
+    --evt-green-solid: #4a6033; --evt-green-fg: #4a6033; --evt-green-bg: #e4ecdf; --evt-green-soft: #eef2ea; --evt-green-bd: #c0d0b4;
+    --evt-purple-solid: #6b4a72; --evt-purple-fg: #6b4a72; --evt-purple-bg: #ece2ef; --evt-purple-soft: #f3edf5; --evt-purple-bd: #d3bcd8;
+    --evt-orange-solid: #9a3412; --evt-orange-fg: #9a3412; --evt-orange-bg: #f6e6dc; --evt-orange-soft: #faf0e9; --evt-orange-bd: #e2b99b;
+    --evt-red-solid: #a13a2c; --evt-red-fg: #a13a2c; --evt-red-bg: #f3ddd8; --evt-red-soft: #f9ece8; --evt-red-bd: #dda99f;
+    --evt-indigo-solid: #6b5d2a; --evt-indigo-fg: #6b5d2a; --evt-indigo-bg: #e7e3d3; --evt-indigo-soft: #f0eee2; --evt-indigo-bd: #cdc6a8;
+    --evt-pink-solid: #9d4759; --evt-pink-fg: #9d4759; --evt-pink-bg: #f2e0e2; --evt-pink-soft: #f8edee; --evt-pink-bd: #dcb3ba;
+    --evt-yellow-solid: #8a6a1f; --evt-yellow-fg: #8a6a1f; --evt-yellow-bg: #f4e9d4; --evt-yellow-soft: #faf3e4; --evt-yellow-bd: #ddc98f;
+    --evt-teal-solid: #2f6b5b; --evt-teal-fg: #2f6b5b; --evt-teal-bg: #dcebe6; --evt-teal-soft: #ecf4f1; --evt-teal-bd: #a9cec4;
+}
+
+.dark {
+    --evt-blue-fg: #a9c6de; --evt-blue-bg: rgba(91,139,181,.17); --evt-blue-soft: rgba(91,139,181,.10); --evt-blue-bd: rgba(91,139,181,.40);
+    --evt-green-fg: #bcd0a6; --evt-green-bg: rgba(138,168,106,.17); --evt-green-soft: rgba(138,168,106,.10); --evt-green-bd: rgba(138,168,106,.40);
+    --evt-purple-fg: #d1b8d6; --evt-purple-bg: rgba(169,130,176,.17); --evt-purple-soft: rgba(169,130,176,.10); --evt-purple-bd: rgba(169,130,176,.40);
+    --evt-orange-fg: #f0a882; --evt-orange-bg: rgba(207,122,79,.17); --evt-orange-soft: rgba(207,122,79,.10); --evt-orange-bd: rgba(207,122,79,.40);
+    --evt-red-fg: #e8a093; --evt-red-bg: rgba(207,106,88,.17); --evt-red-soft: rgba(207,106,88,.10); --evt-red-bd: rgba(207,106,88,.40);
+    --evt-indigo-fg: #d8cd93; --evt-indigo-bg: rgba(176,160,90,.17); --evt-indigo-soft: rgba(176,160,90,.10); --evt-indigo-bd: rgba(176,160,90,.40);
+    --evt-pink-fg: #e6acb6; --evt-pink-bg: rgba(207,125,142,.17); --evt-pink-soft: rgba(207,125,142,.10); --evt-pink-bd: rgba(207,125,142,.40);
+    --evt-yellow-fg: #e2c98a; --evt-yellow-bg: rgba(207,169,85,.17); --evt-yellow-soft: rgba(207,169,85,.10); --evt-yellow-bd: rgba(207,169,85,.40);
+    --evt-teal-fg: #93cbbc; --evt-teal-bg: rgba(95,160,140,.17); --evt-teal-soft: rgba(95,160,140,.10); --evt-teal-bd: rgba(95,160,140,.40);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
