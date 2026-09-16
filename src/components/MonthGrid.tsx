@@ -293,7 +293,7 @@ export default function MonthGrid({
   const days = getGridDays(viewDate);
 
   return (
-    <div className="flex h-full min-w-0 flex-1 select-none flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}
@@ -303,7 +303,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}
