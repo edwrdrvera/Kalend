@@ -79,7 +79,7 @@ export default function TaskCreateDialog({
           <DialogTitle>New task</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
           <input
             ref={inputRef}
             value={title}

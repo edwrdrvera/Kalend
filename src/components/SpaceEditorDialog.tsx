@@ -168,7 +168,7 @@ export default function SpaceEditorDialog({
           <DialogTitle>{isEdit ? "Edit Space" : "New Space"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <ColorSwatchPicker
               color={color}

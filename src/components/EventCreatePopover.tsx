@@ -208,7 +208,7 @@ export default function EventCreatePopover({
           left: clampedLeft,
           width: effectiveWidth,
           zIndex: 50,
-          filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.12))",
+          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.08))",
         }}
         className="animate-in fade-in-0 zoom-in-95 duration-100"
       >
@@ -236,7 +236,7 @@ export default function EventCreatePopover({
             />
           </svg>
         )}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 p-3">
           {/* Breadcrumb into the Space Panel for this event's branch */}
           {breadcrumb && (
             <button
@@ -380,7 +380,7 @@ export default function EventCreatePopover({
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
 
-          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
+          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-2.5">
             {isEditing && onDelete && (
               <Button
                 type="button"
