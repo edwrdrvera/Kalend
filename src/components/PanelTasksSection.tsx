@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { addDays, format, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarTask } from "@/lib/calendar-types";
@@ -57,9 +57,9 @@ export default function PanelTasksSection({
           type="button"
           aria-label="Add task"
           onClick={onAdd}
-          className="shrink-0 rounded-sm text-[11.5px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="grid size-5 shrink-0 place-items-center rounded border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          + Add
+          <Plus className="size-3.5" />
         </button>
       </div>
 

@@ -75,16 +75,16 @@ export default function SettingsMenu({
       >
         {triggerChildren ?? <Settings className="size-4" />}
       </PopoverTrigger>
-      <PopoverContent align={align} side={side} className="w-60">
+      <PopoverContent align={align} side={side} className="w-52">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
-          <PopoverDescription>Manage your Kalend preferences and session.</PopoverDescription>
+          <PopoverDescription className="text-[11px]">Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
         <button
           type="button"
           onClick={toggleTheme}
           aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-          className="mb-3 flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          className="mb-2 flex w-full items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
         >
           {mounted && (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />)}
           <span>Dark mode</span>
@@ -107,7 +107,7 @@ export default function SettingsMenu({
           type="button"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}
