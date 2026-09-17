@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, Loader2 } from "lucide-react";
-import { format, isSameDay, startOfDay } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
@@ -56,16 +56,11 @@ export default function AgendaColumn({
     return start <= dayEnd && end >= dayStart;
   });
 
-  // Tasks due on the selected date (or with no due date).
-  const dayTasks = tasks.filter((t) => {
-    if (!t.due_at) return true;
-    return isSameDay(new Date(t.due_at), dayStart);
-  });
-
   const eventCount = dayEvents.length;
-  const taskCount = dayTasks.filter((t) => !t.completed).length;
-  // Show the column body when there's anything to display, even completed tasks.
-  const isEmpty = eventCount === 0 && dayTasks.length === 0;
+  // Tasks are a persistent to-do list (bucketed by due date in AgendaTasksGroup),
+  // not scoped to the selected day, so the count and emptiness look at all tasks.
+  const taskCount = tasks.filter((t) => !t.completed).length;
+  const isEmpty = eventCount === 0 && tasks.length === 0;
 
   return (
     <div
