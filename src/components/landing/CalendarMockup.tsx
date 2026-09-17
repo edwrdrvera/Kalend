@@ -173,7 +173,7 @@ export default function CalendarMockup() {
             {DAYS.map((day) => (
               <div key={day.date} className="flex flex-col items-start justify-center pl-1.5 min-[520px]:pl-2.5 min-[900px]:pl-4">
                 <span className="text-[8px] font-semibold tracking-wide text-[var(--mock-muted)] uppercase min-[520px]:text-[10px]">{day.label}</span>
-                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[var(--kal-accent)] text-xs font-bold text-[var(--kal-ink)]" : "mt-1 text-sm font-bold"}>
+                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[var(--kal-accent)] text-xs font-bold text-white" : "mt-1 text-sm font-bold"}>
                   {day.date}
                 </span>
               </div>
@@ -403,7 +403,7 @@ function MiniCalendarMockup() {
   return (
     <div className="shrink-0 border-t border-[var(--mock-line)] px-3 pt-2.5 pb-3">
       <div className="mb-2 flex items-center text-[11px] font-semibold tracking-[-0.01em]">
-        <span>September</span>
+        <span>September 2026</span>
         <span className="ml-auto flex items-center gap-2.5 text-[var(--mock-muted)]" aria-hidden>
           <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
             <path d="m8.5 3-4 4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -423,7 +423,7 @@ function MiniCalendarMockup() {
           return (
             <span
               key={`${day}-${index}`}
-              className={`mx-auto grid size-5 place-items-center ${selected ? "rounded-full bg-[var(--kal-accent)] font-semibold text-[var(--kal-ink)]" : muted ? "opacity-40" : ""}`}
+              className={`mx-auto grid size-5 place-items-center rounded-[5px] ${selected ? "bg-[var(--kal-accent)] font-semibold text-white" : muted ? "opacity-40" : ""}`}
             >
               {day}
             </span>
