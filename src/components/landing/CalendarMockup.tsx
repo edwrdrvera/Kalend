@@ -1,4 +1,5 @@
-import { EVENT_COLOR_CLASSES, TASK_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { EVENT_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, RAIL_SPACE_ACTIVE_CLASSES, type EventColor } from "@/lib/event-colors";
 import KalendMark from "@/components/KalendMark";
 
 // A dragged event is "picked up": a solid fill with white text instead of the
@@ -136,28 +137,36 @@ export default function CalendarMockup() {
         className="relative z-10 flex h-[560px] overflow-hidden rounded-[24px] border border-[var(--mock-line)] bg-[var(--mock-bg)] text-left text-[var(--mock-text)] shadow-[0_28px_65px_-28px_rgba(28,26,22,0.3)] transition-colors min-[1100px]:h-[640px]"
         style={{
           "--mock-bg": "#ffffff",
-          "--mock-sidebar": "#fdfcf9",
+          "--mock-sidebar": "#ffffff",
           "--mock-surface": "#ffffff",
           "--mock-soft": "#f5f5f5",
-          "--mock-line": "#e5e7eb",
-          "--mock-text": "#1c1a16",
-          "--mock-muted": "#756f61",
+          "--mock-line": "#e5e5e5",
+          "--mock-text": "#171717",
+          "--mock-muted": "#737373",
         } as React.CSSProperties}
       >
         <CalendarSidebarMockup />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-[64px] items-center gap-2 border-b border-[var(--mock-line)] px-3 min-[700px]:px-4">
-            <span className="grid size-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] text-xs" aria-hidden>‹</span>
-            <span className="grid h-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] px-2.5 text-[11px] font-semibold">Today</span>
-            <span className="grid size-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] text-xs" aria-hidden>›</span>
-            <strong className="ml-2 truncate text-sm tracking-[-0.02em] min-[700px]:text-lg">
-              September
-            </strong>
-            <div className="ml-auto hidden rounded-lg bg-[var(--mock-soft)] p-1 text-[10px] min-[520px]:flex">
-              <span className="rounded-md bg-[var(--mock-surface)] px-2 py-1 font-semibold shadow-sm">Week</span>
-              <span className="px-2 py-1">Month</span>
-              <span className="px-2 py-1">Agenda</span>
+          <div className="flex min-h-[52px] items-center gap-2 border-b border-[var(--mock-line)] px-3 min-[700px]:px-4">
+            <div className="flex items-center gap-1">
+              <span className="grid size-6 place-items-center rounded-md border border-[var(--mock-line)] text-[var(--mock-text)]" aria-hidden>
+                <ChevronLeft size={13} />
+              </span>
+              <span className="hidden h-6 items-center rounded-md border border-[var(--mock-line)] px-2 text-[10px] font-semibold text-[var(--mock-text)] min-[520px]:inline-flex">
+                Today
+              </span>
+              <span className="grid size-6 place-items-center rounded-md border border-[var(--mock-line)] text-[var(--mock-text)]" aria-hidden>
+                <ChevronRight size={13} />
+              </span>
+            </div>
+            <h1 className="min-w-0 truncate text-xs font-extrabold tracking-[-0.03em] text-[var(--mock-text)] min-[700px]:text-sm">
+              September 2026
+            </h1>
+            <div className="ml-auto hidden items-center gap-0.5 rounded-lg bg-[var(--mock-soft)] p-0.5 text-[10px] font-semibold text-[var(--mock-muted)] min-[520px]:flex">
+              <span className="grid h-5 place-items-center rounded-md bg-[var(--mock-surface)] px-2 text-[var(--mock-text)] shadow-sm">Week</span>
+              <span className="grid h-5 place-items-center rounded-md px-2">Month</span>
+              <span className="grid h-5 place-items-center rounded-md px-2">Day</span>
             </div>
           </div>
 
@@ -176,8 +185,9 @@ export default function CalendarMockup() {
           <div className="grid h-[44px] shrink-0 grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-[var(--mock-line)]">
             <span className="self-center text-center text-[8px] text-[var(--mock-muted)]">all-day</span>
             {ALL_DAY_TASKS.map((task) => (
-              <div key={task.title} className={`mx-1 my-2 flex min-w-0 items-center justify-start gap-1 overflow-hidden rounded-md border px-1 py-1 text-[7px] font-medium min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px] ${TASK_COLOR_CLASSES[task.color]}`}>
-                <span className="size-3 shrink-0 rounded-[3px] border border-current/50" aria-hidden />
+              <div key={task.title} className="mx-1 my-2 flex min-w-0 items-center gap-1 overflow-hidden rounded-sm px-1 py-1 text-[7px] font-medium text-[var(--mock-text)] min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px]">
+                <span className="size-2.5 shrink-0 rounded-[2px] border border-[var(--mock-muted)]/70" aria-hidden />
+                <span className={`size-1 shrink-0 rounded-[1px] ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} aria-hidden />
                 <span className="truncate">{task.title}</span>
               </div>
             ))}
@@ -289,7 +299,7 @@ function RailMockup() {
             key={space.abbr}
             className={
               space.active
-                ? `grid size-7 place-items-center rounded-[9px] border text-[11px] font-bold ${EVENT_COLOR_CLASSES[space.color]}`
+                ? `grid size-7 place-items-center rounded-[9px] border-[1.5px] text-[11px] font-bold ${RAIL_SPACE_ACTIVE_CLASSES[space.color]}`
                 : "grid size-7 place-items-center rounded-[9px] bg-[var(--mock-soft)] text-[11px] font-bold text-[var(--mock-muted)]"
             }
           >
@@ -315,22 +325,22 @@ function AgendaColumnMockup() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-[var(--mock-line)] px-3.5 pt-3 pb-2.5">
-        <h3 className="text-[13px] font-semibold leading-tight tracking-[-0.02em]">Monday, Sep 8</h3>
-        <p className="mt-0.5 text-[10px] text-[var(--mock-muted)]">3 events · 4 tasks</p>
+        <h3 className="text-[12px] font-semibold leading-tight tracking-[-0.02em]">Monday, Sep 8</h3>
+        <p className="mt-0.5 text-[9px] text-[var(--mock-muted)]">3 events · 4 tasks</p>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">
         {/* Schedule */}
         <section aria-hidden>
-          <h4 className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Schedule</h4>
+          <h4 className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Schedule</h4>
           <div className="flex flex-col">
             {SCHEDULE.map((event) => (
               <div key={event.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
-                <span className="w-[48px] shrink-0 whitespace-nowrap text-[10px] font-medium tabular-nums text-[var(--mock-muted)]">
+                <span className="w-[44px] shrink-0 whitespace-nowrap text-[9px] font-medium tabular-nums text-[var(--mock-muted)]">
                   {event.time}
                 </span>
                 <span className={`w-[2.5px] self-stretch rounded-full ${EVENT_COLOR_SWATCH_CLASSES[event.color]}`} />
-                <span className="min-w-0 flex-1 truncate text-[11px]">{event.title}</span>
+                <span className="min-w-0 flex-1 truncate text-[10px]">{event.title}</span>
               </div>
             ))}
           </div>
@@ -340,9 +350,9 @@ function AgendaColumnMockup() {
             longer carry their own "+". */}
         <section aria-hidden className="mt-3">
           <div className="flex items-center justify-between px-1 pb-1">
-            <h4 className="text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
-            <span className="grid size-4 place-items-center rounded text-[var(--mock-muted)]">
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <h4 className="text-[8px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
+            <span className="grid size-3.5 place-items-center rounded text-[var(--mock-muted)]">
+              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
                 <path d="M6 2.5v7M2.5 6h7" />
               </svg>
             </span>
@@ -350,23 +360,23 @@ function AgendaColumnMockup() {
           {TASK_BUCKETS.map((bucket) => (
             <div key={bucket.label} className="mt-2 first:mt-0">
               <div className="flex items-center gap-1.5 px-1">
-                <svg width="9" height="9" viewBox="0 0 12 12" fill="none" className="text-[var(--mock-muted)]">
+                <svg width="8" height="8" viewBox="0 0 12 12" fill="none" className="text-[var(--mock-muted)]">
                   <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="text-[10px] font-medium text-[var(--mock-text)]/90">{bucket.label}</span>
-                <span className="text-[10px] font-medium tabular-nums text-[var(--mock-muted)]">{bucket.tasks.length}</span>
+                <span className="text-[9px] font-medium text-[var(--mock-text)]/90">{bucket.label}</span>
+                <span className="text-[9px] font-medium tabular-nums text-[var(--mock-muted)]">{bucket.tasks.length}</span>
               </div>
               <div className="mt-0.5 flex flex-col gap-1">
                 {bucket.tasks.map((task) => (
                   <div key={task.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
                     {task.done ? (
-                      <span className="grid size-[13px] shrink-0 translate-y-[1px] place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
-                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                      <span className="grid size-3 shrink-0 translate-y-[1px] place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
+                        <svg width="7" height="7" viewBox="0 0 12 12" fill="none">
                           <path d="m2.5 6 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </span>
                     ) : (
-                      <span className="size-[13px] shrink-0 translate-y-[1px] rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
+                      <span className="size-3 shrink-0 translate-y-[1px] rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
                     )}
                     {!task.done && (
                       <span className={`size-1.5 shrink-0 translate-y-[1px] rounded-full ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} />
@@ -374,8 +384,8 @@ function AgendaColumnMockup() {
                     <span
                       className={
                         task.done
-                          ? "min-w-0 flex-1 truncate text-[11px] text-[var(--mock-muted)] line-through"
-                          : "min-w-0 flex-1 truncate text-[11px]"
+                          ? "min-w-0 flex-1 truncate text-[10px] text-[var(--mock-muted)] line-through"
+                          : "min-w-0 flex-1 truncate text-[10px]"
                       }
                     >
                       {task.title}
