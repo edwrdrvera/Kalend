@@ -239,7 +239,7 @@ function DayCell({
               onEventContextMenu?.(event, e.clientX, e.clientY);
             }}
             className={cn(
-              "w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold",
+              "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[10px] font-semibold transition-transform active:scale-[0.98]",
               getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
               selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1"
             )}

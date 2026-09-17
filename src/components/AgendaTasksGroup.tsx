@@ -207,7 +207,7 @@ export default function AgendaTasksGroup({
           return (
             <div
               key={task.id}
-              className="flex items-start gap-2 rounded-lg px-1 py-0.5"
+              className="flex items-start gap-2 rounded-sm px-1 py-0.5"
             >
               <button
                 type="button"
