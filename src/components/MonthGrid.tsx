@@ -15,10 +15,10 @@ import {
   addDays,
 } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { cn } from "@/lib/utils";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
-import TaskChip from "./TaskChip";
 import type { CalendarView } from "./ViewSwitcher";
 
 interface MonthGridProps {
@@ -32,12 +32,15 @@ interface MonthGridProps {
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onDayContextMenu?: (day: Date, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
-const MAX_VISIBLE_TASKS = 2;
 
 /** Events whose [start_at, end_at] range overlaps this day at all — so a
  *  multi-day event shows up on every day it spans, not just the first. */
@@ -86,32 +89,35 @@ function getCellClasses(day: Date, viewMonth: Date): string {
     return `${base} border-primary/40 bg-primary/5 ring-1 ring-primary/15`;
   }
 
-  return `${base} border-border bg-card hover:bg-muted/40 cursor-pointer`;
+  // Weekends get a slightly darker fill than weekdays, in-month only.
+  const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-muted/40 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
-  const plain = "text-xs font-medium";
+  // Fixed h-6 w-6 box in every state, so the events below never reflow
+  // when a day becomes selected or today.
+  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium";
 
   const isCurrentMonth = isSameMonth(day, viewMonth);
   const isSelected = isSameDay(day, selectedDate);
   const isTodayDay = isSameDay(day, new Date());
 
   if (isSelected && !isTodayDay) {
-    // Selected: primary-filled circle badge.
-    return "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium bg-primary text-primary-foreground";
+    return `${base} bg-primary text-primary-foreground`;
   }
 
   if (isTodayDay) {
-    // Today: bold accent-colored text, no circle. The cell itself
-    // carries the today highlight (tinted border + wash).
-    return `${plain} text-primary font-bold`;
+    // Today: bold accent-colored text, no fill. The cell itself carries
+    // the today highlight (tinted border + wash).
+    return `${base} text-primary font-bold`;
   }
 
   if (!isCurrentMonth) {
-    return `${plain} text-muted-foreground/40`;
+    return `${base} text-muted-foreground/40`;
   }
 
-  return `${plain} text-foreground`;
+  return `${base} text-foreground`;
 }
 
 /** Build a 7x6 (42 cell) grid: the weeks spanning the visible month, padded out
@@ -147,6 +153,10 @@ function DayCell({
   onCreateEvent,
   onEventClick,
   onTaskClick,
+  onDayContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
 }: {
   day: Date;
   monthStart: Date;
@@ -158,17 +168,26 @@ function DayCell({
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onDayContextMenu?: (day: Date, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
 }) {
   const dayEvents = getEventsForDay(day, events);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
   const dayTasks = getTasksForDay(day, tasks);
-  const visibleTasks = dayTasks.slice(0, MAX_VISIBLE_TASKS);
-  const taskOverflowCount = dayTasks.length - visibleTasks.length;
 
-  const handleCellClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Single click selects the day (the agenda/side nav follows); double click on
+  // an empty part of the cell opens the event creator. The double-click guard
+  // ignores double-clicks that land on an event/task chip.
+  const handleCellClick = () => {
     onDateSelect(day);
+  };
+
+  const handleCellDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("button")) return;
     onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
@@ -176,7 +195,6 @@ function DayCell({
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onDateSelect(day);
-      onCreateEvent(day, e.currentTarget.getBoundingClientRect());
     }
   };
 
@@ -187,8 +205,14 @@ function DayCell({
     <div
       role="button"
       tabIndex={0}
-      aria-label={`Create event on ${format(day, "EEEE, MMMM d, yyyy")}`}
+      aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
       onClick={handleCellClick}
+      onDoubleClick={handleCellDoubleClick}
+      onContextMenu={(e) => {
+        if ((e.target as HTMLElement).closest("button")) return;
+        e.preventDefault();
+        onDayContextMenu?.(day, e.clientX, e.clientY);
+      }}
       onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >
@@ -203,9 +227,22 @@ function DayCell({
             title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();
+              if (e.shiftKey && onEventShiftClick) {
+                onEventShiftClick(event);
+                return;
+              }
               onEventClick(event, e.currentTarget.getBoundingClientRect());
             }}
-            className={`w-full min-w-0 overflow-hidden rounded-[6px] px-1.5 py-0.5 text-left text-[10px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEventContextMenu?.(event, e.clientX, e.clientY);
+            }}
+            className={cn(
+              "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[10px] font-semibold transition-transform active:scale-[0.98]",
+              getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
+              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1"
+            )}
           >
             {/* Month cells are too narrow for a location line, so only the
              *  icon (if set) rides along with the title here. */}
@@ -220,12 +257,9 @@ function DayCell({
             +{overflowCount} more
           </span>
         )}
-        {visibleTasks.map((task) => (
-          <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
-        ))}
-        {taskOverflowCount > 0 && (
+        {dayTasks.length > 0 && (
           <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
-            +{taskOverflowCount} more
+            {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
           </span>
         )}
       </div>
@@ -244,6 +278,10 @@ export default function MonthGrid({
   onCreateEvent,
   onEventClick,
   onTaskClick,
+  onDayContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   view,
   onViewChange,
 }: MonthGridProps) {
@@ -251,7 +289,7 @@ export default function MonthGrid({
   const days = getGridDays(viewDate);
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}
@@ -261,7 +299,7 @@ export default function MonthGrid({
         onViewChange={onViewChange}
       />
       <DaysOfWeekRow />
-      <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
+      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
         {days.map((day) => (
           <DayCell
             key={day.getTime()}
@@ -275,6 +313,10 @@ export default function MonthGrid({
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}
             onTaskClick={onTaskClick}
+            onDayContextMenu={onDayContextMenu}
+            onEventShiftClick={onEventShiftClick}
+            onEventContextMenu={onEventContextMenu}
+            selectedEventIds={selectedEventIds}
           />
         ))}
       </div>

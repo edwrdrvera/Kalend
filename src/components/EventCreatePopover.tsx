@@ -3,7 +3,7 @@
 import { useState, useEffect, useReducer, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { format, isSameDay } from "date-fns";
-import { Clock, MapPin, Trash2 } from "lucide-react";
+import { ChevronRight, Clock, MapPin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
@@ -12,6 +12,7 @@ import { eventColorReducer, initialEventColor } from "@/lib/event-color-state";
 import type { EventFormValues } from "@/lib/event-form";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import CategorySelect from "./CategorySelect";
+import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 
@@ -58,9 +59,13 @@ interface EventCreatePopoverProps {
   event?: CalendarEvent | null;
   /** Pre-populates start time when creating from a clicked day or time slot. */
   initialStart?: Date;
+  /** Pre-populates end time when creating from a dragged time range. */
+  initialEnd?: Date;
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
   categories: CalendarCategory[];
+  /** Path breadcrumb for an event that belongs to a Space; opens its panel. */
+  breadcrumb?: { label: string; onOpen: () => void } | null;
   onSubmit: (values: EventFormValues) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -76,8 +81,10 @@ export default function EventCreatePopover({
   side,
   event,
   initialStart,
+  initialEnd,
   initialSpaceId = null,
   categories,
+  breadcrumb = null,
   onSubmit,
   onDelete,
   onClose,
@@ -95,7 +102,8 @@ export default function EventCreatePopover({
     toDateTimeLocal(
       event
         ? new Date(event.end_at)
-        : new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
+        : initialEnd ??
+            new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
     )
   );
   const [colorState, dispatchColor] = useReducer(
@@ -200,7 +208,7 @@ export default function EventCreatePopover({
           left: clampedLeft,
           width: effectiveWidth,
           zIndex: 50,
-          filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.12))",
+          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.08))",
         }}
         className="animate-in fade-in-0 zoom-in-95 duration-100"
       >
@@ -228,19 +236,25 @@ export default function EventCreatePopover({
             />
           </svg>
         )}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 p-3">
+          {/* Breadcrumb into the Space Panel for this event's branch */}
+          {breadcrumb && (
+            <button
+              type="button"
+              onClick={breadcrumb.onOpen}
+              className="-mx-1 -mb-1 flex items-center gap-1 self-start rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="truncate">{breadcrumb.label}</span>
+              <ChevronRight className="size-3 shrink-0" />
+            </button>
+          )}
+
           {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="new-event-icon" className="sr-only">
               Event icon
             </label>
-            <input
-              id="new-event-icon"
-              value={icon}
-              onChange={(e) => setIcon(e.target.value.slice(0, MAX_ICON_LENGTH))}
-              maxLength={MAX_ICON_LENGTH}
-              className={cn(APP_INPUT_CLS, "w-9 shrink-0 text-center")}
-            />
+            <IconPicker value={icon} onChange={setIcon} maxLength={MAX_ICON_LENGTH} />
             <label htmlFor="new-event-title" className="sr-only">
               Event title
             </label>
@@ -366,7 +380,7 @@ export default function EventCreatePopover({
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
 
-          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-3">
+          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-2.5">
             {isEditing && onDelete && (
               <Button
                 type="button"

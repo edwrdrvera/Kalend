@@ -27,10 +27,17 @@ interface WeekGridProps {
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
+  onCreateEventRange?: (start: Date, end: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskClick: (task: CalendarTask) => void;
+  onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  selectedEventIds?: Set<string>;
   onEventMove?: (event: CalendarEvent, start: Date, end: Date) => void;
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible while its popover is open. */
+  pendingRange?: { start: Date; end: Date } | null;
   view: CalendarView;
   onViewChange: (view: CalendarView) => void;
 }
@@ -96,10 +103,16 @@ export default function WeekGrid({
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
+  onCreateEventRange,
   onEventClick,
   onTaskClick,
+  onSlotContextMenu,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   onEventMove,
   onEventResize,
+  pendingRange,
   view,
   onViewChange,
 }: WeekGridProps) {
@@ -113,7 +126,7 @@ export default function WeekGrid({
   }, []);
 
   return (
-    <div className="flex h-full min-w-0 flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subWeeks(weekStart, 1))}
@@ -126,7 +139,7 @@ export default function WeekGrid({
         ref={scrollRef}
         className="flex flex-1 flex-col overflow-y-auto"
       >
-        <div className="sticky top-0 z-10">
+        <div className="sticky top-0 z-30">
           <WeekDaysHeader
             days={days}
             selectedDate={selectedDate}
@@ -146,12 +159,19 @@ export default function WeekGrid({
           events={timedEvents}
           categories={categories}
           onEventClick={onEventClick}
+          onEventShiftClick={onEventShiftClick}
+          onEventContextMenu={onEventContextMenu}
+          onSlotContextMenu={onSlotContextMenu}
+          selectedEventIds={selectedEventIds}
           onEventMove={onEventMove}
           onEventResize={onEventResize}
-          onSlotClick={(day, hour, anchorRect) => {
+          onSlotSelect={(day) => onDateSelect(day)}
+          onSlotCreate={(day, hour, anchorRect) => {
             onDateSelect(day);
             onCreateEvent(setHours(day, hour), anchorRect);
           }}
+          onSlotDragCreate={onCreateEventRange}
+          pendingRange={pendingRange}
         />
       </div>
     </div>

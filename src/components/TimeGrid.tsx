@@ -9,12 +9,19 @@ import {
 } from "react";
 import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
-import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import {
+  EVENT_COLOR_SWATCH_CLASSES,
+  getEventColorClasses,
+  isEventColor,
+  resolveDisplayColor,
+} from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+/** Default hour-row height, used by the week view. */
 export const HOUR_HEIGHT_PX = 64;
-const DAY_HEIGHT_PX = HOURS.length * HOUR_HEIGHT_PX;
+/** Day view is zoomed out (shorter rows) so more of the day fits on screen. */
+export const DAY_VIEW_HOUR_HEIGHT_PX = 44;
 const MINUTES_PER_DAY = 24 * 60;
 
 // Drags snap the time to this increment.
@@ -45,6 +52,33 @@ function snapMinutes(minutes: number): number {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+/** Body text-select/cursor locking for the duration of a drag gesture.
+ *  Kept at module scope on purpose: the React Compiler (via
+ *  eslint-plugin-react-hooks) rejects `document.body.style.* = ...` writes
+ *  that sit inside the component body, even within an effect. A plain
+ *  module-level function is opaque to that analysis, so the imperative DOM
+ *  work lives here instead. Returns the previous values to restore on
+ *  cleanup. */
+interface BodyDragStyle {
+  userSelect: string;
+  cursor: string;
+}
+
+function lockBodyForDrag(cursor: string): BodyDragStyle {
+  const previous: BodyDragStyle = {
+    userSelect: document.body.style.userSelect,
+    cursor: document.body.style.cursor,
+  };
+  document.body.style.userSelect = "none";
+  document.body.style.cursor = cursor;
+  return previous;
+}
+
+function restoreBodyAfterDrag(previous: BodyDragStyle): void {
+  document.body.style.userSelect = previous.userSelect;
+  document.body.style.cursor = previous.cursor;
 }
 
 /** Ticks once a minute so the current-time line stays roughly accurate
@@ -102,11 +136,13 @@ interface LiveDragTarget {
 
 /** Tracks an in-progress top/bottom edge drag on one event block. Minutes
  *  are relative to midnight of the day column being dragged in, not full
- *  `Date`s, so the drag math stays simple; `handleResizePointerUp` converts
- *  back to real dates once the drag ends. `original*` stay fixed for the
- *  whole gesture (the anchor the drag computes deltas from); `live*` is
- *  what gets rendered as the drag moves. */
+ *  `Date`s, so the drag math stays simple; the window-level `pointerup`
+ *  handler converts back to real dates once the drag ends. `original*`
+ *  stay fixed for the whole gesture (the anchor the drag computes deltas
+ *  from); `live*` is what gets rendered as the drag moves. */
 interface ResizeDrag {
+  event: CalendarEvent;
+  day: Date;
   eventId: string;
   edge: "top" | "bottom";
   pointerStartY: number;
@@ -116,13 +152,40 @@ interface ResizeDrag {
   liveEndMinutes: number;
 }
 
+/** Tracks an in-progress drag across empty slots to create a new event. All
+ *  minutes are relative to midnight of the column being dragged in. `anchor`
+ *  is where the pointer went down; `live` follows the pointer. `moved` flips
+ *  true only once the pointer travels past DRAG_THRESHOLD_PX, so a plain click
+ *  (which selects the day) never creates an event. */
+interface CreateDrag {
+  dayIndex: number;
+  day: Date;
+  anchorMinutes: number;
+  liveMinutes: number;
+  pointerStartY: number;
+  moved: boolean;
+}
+
 interface TimeGridProps {
   /** One column per entry — a single day for the Day view, seven for Week. */
   days: Date[];
   events: CalendarEvent[];
   categories: CalendarCategory[];
-  onSlotClick?: (day: Date, hour: number, anchorRect: DOMRect) => void;
+  /** Single click on an empty slot: select that day. */
+  onSlotSelect?: (day: Date) => void;
+  /** Double click on an empty slot: create an event at that hour. */
+  onSlotCreate?: (day: Date, hour: number, anchorRect: DOMRect) => void;
+  /** Drag across empty slots: create an event spanning the dragged range. */
+  onSlotDragCreate?: (start: Date, end: Date, anchorRect: DOMRect) => void;
+  /** Right-click on an empty slot: open a create menu. */
+  onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
   onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
+  /** Shift+click on an event: toggle it in the multi-selection. */
+  onEventShiftClick?: (event: CalendarEvent) => void;
+  /** Right-click on an event: open a delete menu. */
+  onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
+  /** Ids of events currently multi-selected (rendered with a ring). */
+  selectedEventIds?: Set<string>;
   /** Fires once a whole-block drag is released, with the event's new
    *  start/end (same duration, possibly a different day). Event blocks
    *  only become draggable when this is provided. */
@@ -130,6 +193,12 @@ interface TimeGridProps {
   /** Fires once a top/bottom edge drag is released, with the event's new
    *  start/end. Resize handles only render when this is provided. */
   onEventResize?: (event: CalendarEvent, start: Date, end: Date) => void;
+  /** The sketched box from a drag-create, kept visible on its day column
+   *  while the popover it opened is still open. */
+  pendingRange?: { start: Date; end: Date } | null;
+  /** Height of one hour row in px. Defaults to the week view's HOUR_HEIGHT_PX;
+   *  the day view passes a smaller value to zoom out. */
+  hourHeight?: number;
 }
 
 /** Shared hour-by-hour grid used by both the Week and Day views: one row per
@@ -142,24 +211,38 @@ export default function TimeGrid({
   days,
   events,
   categories,
-  onSlotClick,
+  onSlotSelect,
+  onSlotCreate,
+  onSlotDragCreate,
+  onSlotContextMenu,
   onEventClick,
+  onEventShiftClick,
+  onEventContextMenu,
+  selectedEventIds,
   onEventMove,
   onEventResize,
+  pendingRange,
+  hourHeight = HOUR_HEIGHT_PX,
 }: TimeGridProps) {
   const now = useCurrentTime();
-  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * DAY_HEIGHT_PX;
+  // Total grid height derived from the (view-specific) hour-row height.
+  const dayHeight = HOURS.length * hourHeight;
+  const nowOffsetPx = (minutesFromMidnight(now) / (24 * 60)) * dayHeight;
+  // Show the current-time marker (line + gutter label) only when one of the
+  // visible columns is actually today.
+  const showNow = days.some((day) => isSameDay(day, now));
+  // Day view is a single column, so the per-day background accents (today
+  // tint, weekend shading) that help tell week columns apart only make the
+  // whole surface look mismatched. Keep day view a flat card surface.
+  const isDayView = days.length === 1;
 
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // ── Move-drag refs ─────────────────────────────────────────────────
   const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
-  // Mirrors `moveDrag` so the rAF callback scheduled below always reads the
-  // latest drag state instead of whatever was current when it was queued.
-  // Synced via an effect (not assigned inline) since refs can't be written
-  // during render.
+  // Mirrors `moveDrag` so the window-level event handlers (which outlive
+  // any single render) always read the latest drag state.
   const moveDragRef = useRef<MoveDrag | null>(null);
-  useEffect(() => {
-    moveDragRef.current = moveDrag;
-  });
   // Where the ghost preview would drop right now, snapped to SNAP_MINUTES.
   // Written on every pointer move, read once on pointer up — never in
   // React state, so updating it doesn't trigger a render.
@@ -180,8 +263,7 @@ export default function TimeGrid({
   // unrelated click on the same block — cleared automatically after
   // CLICK_SUPPRESS_WINDOW_MS via suppressClearTimeoutRef below rather than
   // left for a click to clear, so it can't get stuck if that click never
-  // fires. (A setTimeout, not a Date.now() comparison, so nothing impure
-  // needs to be read from inside the component body.)
+  // fires.
   const lastDraggedEventIdRef = useRef<string | null>(null);
   const suppressClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Coalesces rapid native pointermove events (which can fire faster than
@@ -190,11 +272,41 @@ export default function TimeGrid({
   const rafIdRef = useRef<number | null>(null);
   const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
+  // ── Resize-drag refs ───────────────────────────────────────────────
   const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null);
+  const resizeDragRef = useRef<ResizeDrag | null>(null);
+  // rAF throttle for resize, same pattern as move-drag.
+  const resizeRafRef = useRef<number | null>(null);
+  const latestResizeYRef = useRef<number>(0);
+
+  // ── Create-drag refs ───────────────────────────────────────────────
+  const [createDrag, setCreateDrag] = useState<CreateDrag | null>(null);
+  const createDragRef = useRef<CreateDrag | null>(null);
+  // Suppresses the click that fires after a create-drag ends, so the drag
+  // doesn't also select the day.
+  const suppressSlotClickRef = useRef(false);
+
+  // ── Prop refs ──────────────────────────────────────────────────────
+  // Keep refs in sync with state/props so window-level event handlers
+  // always read the latest values without stale closures.
+  const daysRef = useRef(days);
+  const onEventMoveRef = useRef(onEventMove);
+  const onEventResizeRef = useRef(onEventResize);
+  const onSlotDragCreateRef = useRef(onSlotDragCreate);
+
+  useEffect(() => {
+    moveDragRef.current = moveDrag;
+    resizeDragRef.current = resizeDrag;
+    createDragRef.current = createDrag;
+    daysRef.current = days;
+    onEventMoveRef.current = onEventMove;
+    onEventResizeRef.current = onEventResize;
+    onSlotDragCreateRef.current = onSlotDragCreate;
+  });
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
-    return ((clientY - top) / DAY_HEIGHT_PX) * MINUTES_PER_DAY;
+    return ((clientY - top) / dayHeight) * MINUTES_PER_DAY;
   }
 
   function cancelPendingMoveFrame() {
@@ -204,9 +316,17 @@ export default function TimeGrid({
     }
   }
 
+  function cancelPendingResizeFrame() {
+    if (resizeRafRef.current !== null) {
+      cancelAnimationFrame(resizeRafRef.current);
+      resizeRafRef.current = null;
+    }
+  }
+
   useEffect(() => {
     return () => {
       cancelPendingMoveFrame();
+      cancelPendingResizeFrame();
       if (suppressClearTimeoutRef.current !== null) {
         clearTimeout(suppressClearTimeoutRef.current);
       }
@@ -221,7 +341,6 @@ export default function TimeGrid({
   ) {
     if (!onEventMove || resizeDrag) return;
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
 
     const dayStart = startOfDay(day);
     const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
@@ -278,14 +397,14 @@ export default function TimeGrid({
     // only ever read once, on drop.
     const rect = gridRef.current?.getBoundingClientRect();
     const dayColumnWidth = drag.columnWidth;
-    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * dayHeight;
     const originalLeftPx = drag.originColumnLeft;
-    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX;
+    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight;
 
     const clampedDeltaX = rect
       ? clamp(deltaX, -originalLeftPx, rect.width - dayColumnWidth - originalLeftPx)
       : deltaX;
-    const clampedDeltaY = clamp(deltaY, -originalTopPx, DAY_HEIGHT_PX - durationPx - originalTopPx);
+    const clampedDeltaY = clamp(deltaY, -originalTopPx, dayHeight - durationPx - originalTopPx);
 
     if (ghostRef.current) {
       ghostRef.current.style.transform = `translate3d(${clampedDeltaX}px, ${clampedDeltaY}px, 0)`;
@@ -316,50 +435,82 @@ export default function TimeGrid({
     liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
   }
 
-  function handleMovePointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
-    if (!moveDrag) return;
+  // ── Window-level listeners for move drag ─────────────────────────
+  // Attaching pointermove/pointerup to `window` instead of the event
+  // button guarantees the drag ends cleanly even when the pointer leaves
+  // the element, the browser steals focus, or pointer capture would have
+  // been lost.  The effect fires when `moveDrag` becomes non-null and
+  // cleans up when it goes back to null (or on unmount).
+  const isMoveDragging = moveDrag !== null;
+  useEffect(() => {
+    if (!isMoveDragging) return;
 
-    latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
-    if (rafIdRef.current === null) {
-      rafIdRef.current = requestAnimationFrame(() => {
-        rafIdRef.current = null;
-        const pointer = latestPointerRef.current;
-        if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
-      });
-    }
-  }
-
-  function handleMovePointerUp(event: CalendarEvent) {
-    cancelPendingMoveFrame();
-    if (!moveDrag) return;
-
-    // Reads hasStartedMoveRef/liveDragRef rather than moveDrag.moved — the
-    // ref is updated synchronously in applyPointerMove, while the state
-    // read here can still reflect the render before the pointer crossed
-    // DRAG_THRESHOLD_PX if pointerup lands before that render committed.
-    if (hasStartedMoveRef.current && liveDragRef.current) {
-      const target = liveDragRef.current;
-
-      lastDraggedEventIdRef.current = event.id;
-      if (suppressClearTimeoutRef.current !== null) {
-        clearTimeout(suppressClearTimeoutRef.current);
+    function onPointerMove(e: PointerEvent) {
+      latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          rafIdRef.current = null;
+          const pointer = latestPointerRef.current;
+          if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
+        });
       }
-      suppressClearTimeoutRef.current = setTimeout(() => {
-        lastDraggedEventIdRef.current = null;
-        suppressClearTimeoutRef.current = null;
-      }, CLICK_SUPPRESS_WINDOW_MS);
-
-      const dayStart = startOfDay(days[target.dayIndex]);
-      onEventMove?.(
-        event,
-        addMinutes(dayStart, target.startMinutes),
-        addMinutes(dayStart, target.startMinutes + moveDrag.durationMinutes)
-      );
     }
-    setMoveDrag(null);
-    hasStartedMoveRef.current = false;
-    liveDragRef.current = null;
-  }
+
+    function onPointerUp() {
+      cancelPendingMoveFrame();
+      const drag = moveDragRef.current;
+      if (!drag) return;
+
+      if (hasStartedMoveRef.current && liveDragRef.current) {
+        const target = liveDragRef.current;
+
+        lastDraggedEventIdRef.current = drag.event.id;
+        if (suppressClearTimeoutRef.current !== null) {
+          clearTimeout(suppressClearTimeoutRef.current);
+        }
+        suppressClearTimeoutRef.current = setTimeout(() => {
+          lastDraggedEventIdRef.current = null;
+          suppressClearTimeoutRef.current = null;
+        }, CLICK_SUPPRESS_WINDOW_MS);
+
+        const dayStart = startOfDay(daysRef.current[target.dayIndex]);
+        onEventMoveRef.current?.(
+          drag.event,
+          addMinutes(dayStart, target.startMinutes),
+          addMinutes(dayStart, target.startMinutes + drag.durationMinutes)
+        );
+      }
+      setMoveDrag(null);
+      hasStartedMoveRef.current = false;
+      liveDragRef.current = null;
+    }
+
+    function onCancel() {
+      cancelPendingMoveFrame();
+      setMoveDrag(null);
+      hasStartedMoveRef.current = false;
+      liveDragRef.current = null;
+    }
+
+    // Prevent text selection and lock cursor while dragging.
+    const previousBodyStyle = lockBodyForDrag("grabbing");
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+    window.addEventListener("contextmenu", onCancel);
+
+    return () => {
+      cancelPendingMoveFrame();
+      restoreBodyAfterDrag(previousBodyStyle);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+      window.removeEventListener("contextmenu", onCancel);
+    };
+  });
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
@@ -371,6 +522,10 @@ export default function TimeGrid({
       }
       return;
     }
+    if (e.shiftKey && onEventShiftClick) {
+      onEventShiftClick(event);
+      return;
+    }
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
@@ -378,16 +533,18 @@ export default function TimeGrid({
     e: ReactPointerEvent<HTMLDivElement>,
     edge: "top" | "bottom",
     event: CalendarEvent,
+    day: Date,
     top: number,
     height: number
   ) {
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
 
     const originalStartMinutes = (top / 100) * MINUTES_PER_DAY;
     const originalEndMinutes = ((top + height) / 100) * MINUTES_PER_DAY;
 
     setResizeDrag({
+      event,
+      day,
       eventId: event.id,
       edge,
       pointerStartY: e.clientY,
@@ -398,65 +555,192 @@ export default function TimeGrid({
     });
   }
 
-  function handleResizePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    if (!resizeDrag) return;
+  // ── Window-level listeners for resize drag ───────────────────────
+  // Same approach as move drag: window listeners via useEffect, plus
+  // rAF throttling so we get at most one state update (and re-render)
+  // per animation frame instead of one per raw pointermove event.
+  const isResizeDragging = resizeDrag !== null;
+  useEffect(() => {
+    if (!isResizeDragging) return;
 
-    const deltaMinutes = snapMinutes(
-      ((e.clientY - resizeDrag.pointerStartY) / DAY_HEIGHT_PX) * MINUTES_PER_DAY
-    );
+    function applyResizeMove() {
+      const drag = resizeDragRef.current;
+      if (!drag) return;
 
-    setResizeDrag((prev) => {
-      if (!prev) return prev;
+      const clientY = latestResizeYRef.current;
+      const deltaMinutes = snapMinutes(
+        ((clientY - drag.pointerStartY) / dayHeight) * MINUTES_PER_DAY
+      );
 
-      if (prev.edge === "top") {
-        return {
-          ...prev,
-          liveStartMinutes: clamp(
+      setResizeDrag((prev) => {
+        if (!prev) return prev;
+
+        if (prev.edge === "top") {
+          const next = clamp(
             prev.originalStartMinutes + deltaMinutes,
             0,
             prev.originalEndMinutes - MIN_DURATION_MINUTES
-          ),
-        };
-      }
+          );
+          return next === prev.liveStartMinutes ? prev : { ...prev, liveStartMinutes: next };
+        }
 
-      return {
-        ...prev,
-        liveEndMinutes: clamp(
+        const next = clamp(
           prev.originalEndMinutes + deltaMinutes,
           prev.originalStartMinutes + MIN_DURATION_MINUTES,
           MINUTES_PER_DAY
-        ),
-      };
+        );
+        return next === prev.liveEndMinutes ? prev : { ...prev, liveEndMinutes: next };
+      });
+    }
+
+    function onPointerMove(e: PointerEvent) {
+      latestResizeYRef.current = e.clientY;
+      if (resizeRafRef.current === null) {
+        resizeRafRef.current = requestAnimationFrame(() => {
+          resizeRafRef.current = null;
+          applyResizeMove();
+        });
+      }
+    }
+
+    function onPointerUp() {
+      cancelPendingResizeFrame();
+      const drag = resizeDragRef.current;
+      if (!drag) return;
+
+      const dayStart = startOfDay(drag.day);
+      onEventResizeRef.current?.(
+        drag.event,
+        addMinutes(dayStart, drag.liveStartMinutes),
+        addMinutes(dayStart, drag.liveEndMinutes)
+      );
+      setResizeDrag(null);
+    }
+
+    function onCancel() {
+      cancelPendingResizeFrame();
+      setResizeDrag(null);
+    }
+
+    const previousBodyStyle = lockBodyForDrag("ns-resize");
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+    window.addEventListener("contextmenu", onCancel);
+
+    return () => {
+      cancelPendingResizeFrame();
+      restoreBodyAfterDrag(previousBodyStyle);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+      window.removeEventListener("contextmenu", onCancel);
+    };
+  });
+
+  // ── Create-drag ────────────────────────────────────────────────────
+  function handleSlotPointerDown(
+    e: ReactPointerEvent<HTMLDivElement>,
+    dayIndex: number,
+    day: Date
+  ) {
+    if (!onSlotDragCreate || e.button !== 0 || moveDrag || resizeDrag) return;
+    const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
+    setCreateDrag({
+      dayIndex,
+      day,
+      anchorMinutes: minutes,
+      liveMinutes: minutes,
+      pointerStartY: e.clientY,
+      moved: false,
     });
   }
 
-  function handleResizePointerUp(event: CalendarEvent, day: Date) {
-    if (!resizeDrag) return;
+  const isCreateDragging = createDrag !== null;
+  useEffect(() => {
+    if (!isCreateDragging) return;
 
-    const dayStart = startOfDay(day);
-    onEventResize?.(
-      event,
-      addMinutes(dayStart, resizeDrag.liveStartMinutes),
-      addMinutes(dayStart, resizeDrag.liveEndMinutes)
-    );
-    setResizeDrag(null);
-  }
+    function onPointerMove(e: PointerEvent) {
+      const drag = createDragRef.current;
+      if (!drag) return;
+      const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
+      const moved = drag.moved || Math.abs(e.clientY - drag.pointerStartY) >= DRAG_THRESHOLD_PX;
+      setCreateDrag((prev) =>
+        prev && (prev.liveMinutes !== minutes || prev.moved !== moved)
+          ? { ...prev, liveMinutes: minutes, moved }
+          : prev
+      );
+    }
+
+    function onPointerUp() {
+      const drag = createDragRef.current;
+      setCreateDrag(null);
+      if (!drag || !drag.moved) return;
+
+      // A real drag happened: suppress the trailing click's day-select and
+      // open the creator for the spanned range (min 15 min).
+      suppressSlotClickRef.current = true;
+      const lo = Math.min(drag.anchorMinutes, drag.liveMinutes);
+      const hi = Math.max(lo + MIN_DURATION_MINUTES, Math.max(drag.anchorMinutes, drag.liveMinutes));
+      const dayStart = startOfDay(drag.day);
+      const columnEl = gridRef.current?.children[drag.dayIndex] as HTMLElement | undefined;
+      const rect =
+        columnEl?.getBoundingClientRect() ?? gridRef.current?.getBoundingClientRect();
+      if (rect) {
+        onSlotDragCreateRef.current?.(
+          addMinutes(dayStart, lo),
+          addMinutes(dayStart, hi),
+          rect
+        );
+      }
+    }
+
+    function onCancel() {
+      setCreateDrag(null);
+    }
+
+    const previousBodyStyle = lockBodyForDrag("ns-resize");
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("blur", onCancel);
+
+    return () => {
+      restoreBodyAfterDrag(previousBodyStyle);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("blur", onCancel);
+    };
+  });
 
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
-    <div className="flex">
+    <div className="flex select-none">
       {/* Hour labels — border-r connects to the column grid's left edge */}
-      <div className="w-10 shrink-0 border-r border-border sm:w-16">
+      <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
           <div
             key={hour}
-            style={{ height: HOUR_HEIGHT_PX }}
-            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-xs"
+            style={{ height: hourHeight }}
+            className="pr-1.5 text-right text-[9px] text-muted-foreground sm:pr-3 sm:text-[10px]"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
         ))}
+        {/* Current-time label, aligned with the red "now" line in the columns. */}
+        {showNow && (
+          <div
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-red-500 px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            style={{ top: nowOffsetPx }}
+          >
+            {format(now, "h:mm")}
+          </div>
+        )}
       </div>
       {/* Grid: gutter's border-r provides the left edge; divide-x adds 1px
           separators between columns; border-r on the grid itself caps the
@@ -469,39 +753,105 @@ export default function TimeGrid({
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
           const isToday = isSameDay(day, now);
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const columnBg = isDayView
+            ? "bg-card"
+            : isToday
+              ? "bg-foreground/[0.04]"
+              : isWeekend
+                ? "bg-muted/30"
+                : "bg-card";
 
           return (
             <div
               key={day.getTime()}
-              className={`relative border-r border-border last:border-r-0 ${isToday ? "bg-primary/[0.03]" : "bg-card"}`}
-              style={{ height: DAY_HEIGHT_PX }}
+              className={`relative border-r border-border last:border-r-0 ${columnBg}`}
+              style={{ height: dayHeight }}
             >
               {HOURS.map((hour) => (
                 <div
                   key={hour}
                   role="button"
                   tabIndex={0}
-                  onClick={(e) => onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect())}
+                  onPointerDown={(e) => handleSlotPointerDown(e, dayIndex, day)}
+                  onClick={() => {
+                    if (suppressSlotClickRef.current) {
+                      suppressSlotClickRef.current = false;
+                      return;
+                    }
+                    onSlotSelect?.(day);
+                  }}
+                  onDoubleClick={(e) =>
+                    onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
+                  }
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onSlotClick?.(day, hour, e.currentTarget.getBoundingClientRect());
+                      onSlotSelect?.(day);
                     }
                   }}
-                  style={{ height: HOUR_HEIGHT_PX }}
+                  style={{ height: hourHeight }}
                   className="border-b border-border/40"
                 />
               ))}
 
               {isToday && (
                 <div
-                  className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+                  className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
                   style={{ top: nowOffsetPx }}
                 >
                   <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
                   <div className="h-[2px] flex-1 bg-red-500" />
                 </div>
               )}
+
+              {/* Create-drag preview: the block the pointer is currently
+                  sketching out, before the creator opens. */}
+              {createDrag?.moved && createDrag.dayIndex === dayIndex && (() => {
+                const lo = Math.min(createDrag.anchorMinutes, createDrag.liveMinutes);
+                const hi = Math.max(
+                  lo + MIN_DURATION_MINUTES,
+                  Math.max(createDrag.anchorMinutes, createDrag.liveMinutes)
+                );
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    style={{
+                      top: `${(lo / MINUTES_PER_DAY) * 100}%`,
+                      height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
+                    }}
+                  >
+                    {format(addMinutes(startOfDay(day), lo), "h:mm")} – {format(addMinutes(startOfDay(day), hi), "h:mm")}
+                  </div>
+                );
+              })()}
+
+              {/* Persistent selection box for a drag-create whose popover is
+                  still open. Same visual treatment as the live preview
+                  above, but keyed off `pendingRange` (state in Calendar)
+                  instead of the in-progress drag, so it survives the drag
+                  ending and only clears when the popover closes. */}
+              {pendingRange && isSameDay(pendingRange.start, day) && (() => {
+                const startMinutes = minutesFromMidnight(pendingRange.start);
+                const endMinutes =
+                  startMinutes +
+                  (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
+                return (
+                  <div
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    style={{
+                      top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
+                      height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
+                    }}
+                  >
+                    {format(pendingRange.start, "h:mm")} – {format(pendingRange.end, "h:mm")}
+                  </div>
+                );
+              })()}
 
               {blocks.map(({ event, top, height, left, width }) => {
                 const isBeingDragged = moveDrag?.moved && moveDrag.event.id === event.id;
@@ -516,43 +866,59 @@ export default function TimeGrid({
                 // time range; the location line would run into the border.
                 const showLocation = Boolean(event.location) && height >= (45 / MINUTES_PER_DAY) * 100;
 
+                // Floating inset accent bar: a solid rounded bar of the event's
+                // color, inset from the left edge (see the span below). The
+                // block keeps its soft tint fill + hue border; the bar adds a
+                // stronger color cue without touching the edges.
+                const displayColor = resolveDisplayColor(
+                  event.color,
+                  event.category_id,
+                  event.color_overridden,
+                  categories
+                );
+                const accentBarClass = isEventColor(displayColor)
+                  ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
+                  : "bg-muted-foreground/40";
+
                 return (
                   <button
                     key={event.id}
                     type="button"
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
-                    onPointerMove={handleMovePointerMove}
-                    onPointerUp={() => handleMovePointerUp(event)}
-                    onPointerCancel={() => {
-                      cancelPendingMoveFrame();
-                      setMoveDrag(null);
-                      hasStartedMoveRef.current = false;
-                      liveDragRef.current = null;
-                    }}
                     onClick={(e) => handleEventClick(e, event)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEventContextMenu?.(event, e.clientX, e.clientY);
+                    }}
                     style={{
                       top: `${displayTop}%`,
                       height: `${displayHeight}%`,
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
                   >
+                    {/* Floating inset accent bar, hugging the left edge. */}
+                    <span
+                      aria-hidden
+                      className={`pointer-events-none absolute left-1 top-1 bottom-1 w-[3px] rounded-full ${accentBarClass}`}
+                    />
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
                      *  including in a MIN_BLOCK_HEIGHT_PERCENT-clamped short
                      *  event, where flow content could otherwise center or
-                     *  drift within the padded box. */}
-                    <span className="absolute inset-x-1.5 top-0.5 truncate">
+                     *  drift within the padded box. Left inset clears the bar. */}
+                    <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
                       {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
-                    <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-80">
-                      {format(new Date(event.start_at), "h:mm")} – {format(new Date(event.end_at), "h:mm")}
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[10px] font-medium opacity-90">
+                      {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (
-                      <span className="absolute inset-x-1.5 top-9 truncate text-[11px] font-medium opacity-70">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-70">
                         {event.location}
                       </span>
                     )}
@@ -560,18 +926,12 @@ export default function TimeGrid({
                     {onEventResize && !moveDrag?.moved && (
                       <>
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "top", event, top, height)}
-                          onPointerMove={handleResizePointerMove}
-                          onPointerUp={() => handleResizePointerUp(event, day)}
-                          onPointerCancel={() => setResizeDrag(null)}
+                          onPointerDown={(e) => handleResizePointerDown(e, "top", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 top-0 h-1.5 touch-none cursor-ns-resize"
                         />
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "bottom", event, top, height)}
-                          onPointerMove={handleResizePointerMove}
-                          onPointerUp={() => handleResizePointerUp(event, day)}
-                          onPointerCancel={() => setResizeDrag(null)}
+                          onPointerDown={(e) => handleResizePointerDown(e, "bottom", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 bottom-0 h-1.5 touch-none cursor-ns-resize"
                         />
@@ -600,8 +960,8 @@ export default function TimeGrid({
             style={{
               left: moveDrag.originColumnLeft,
               width: moveDrag.columnWidth,
-              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
-              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * DAY_HEIGHT_PX,
+              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight,
+              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * dayHeight,
               transform: "translate3d(0, 0, 0)",
             }}
           >

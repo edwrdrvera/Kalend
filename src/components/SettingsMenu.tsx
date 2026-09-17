@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogOut, Moon, Settings, Sun } from "lucide-react";
 import {
@@ -15,9 +15,31 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 
-/** Account controls open upward because the trigger sits at the bottom of
- *  the sidebar, with no room below it for the menu. */
-export default function SettingsMenu() {
+interface SettingsMenuProps {
+  /** Content rendered inside the trigger button. Defaults to a gear icon. */
+  triggerChildren?: ReactNode;
+  /** Classes for the trigger button, so callers can match their surface
+   *  (e.g. the dark icon rail's avatar tile). */
+  triggerClassName?: string;
+  /** Accessible label + tooltip for the trigger. */
+  triggerLabel?: string;
+  /** Popover placement relative to the trigger. */
+  side?: "top" | "right" | "bottom" | "left";
+  align?: "start" | "center" | "end";
+}
+
+const DEFAULT_TRIGGER_CLS =
+  "grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
+/** Account controls. The trigger is customizable so the same menu serves the
+ *  desktop icon rail (avatar tile) and the mobile slide-out. */
+export default function SettingsMenu({
+  triggerChildren,
+  triggerClassName,
+  triggerLabel = "Settings",
+  side = "top",
+  align = "start",
+}: SettingsMenuProps = {}) {
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,22 +69,22 @@ export default function SettingsMenu() {
   return (
     <Popover>
       <PopoverTrigger
-        aria-label="Settings"
-        title="Settings"
-        className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        aria-label={triggerLabel}
+        title={triggerLabel}
+        className={triggerClassName ?? DEFAULT_TRIGGER_CLS}
       >
-        <Settings className="size-4" />
+        {triggerChildren ?? <Settings className="size-4" />}
       </PopoverTrigger>
-      <PopoverContent align="start" side="top" className="w-60">
+      <PopoverContent align={align} side={side} className="w-52">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
-          <PopoverDescription>Manage your Kalend preferences and session.</PopoverDescription>
+          <PopoverDescription className="text-[11px]">Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
         <button
           type="button"
           onClick={toggleTheme}
           aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-          className="mb-3 flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          className="mb-2 flex w-full items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
         >
           {mounted && (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />)}
           <span>Dark mode</span>
@@ -85,7 +107,7 @@ export default function SettingsMenu() {
           type="button"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}

@@ -49,7 +49,7 @@ describe("TaskChip", () => {
     expect(button.className).toContain("min-h-7");
     expect(button.className).toContain("focus-visible:ring-2");
     expect(button.querySelector("svg")).not.toBeNull();
-    expect(container?.querySelector(".bg-green-500")).not.toBeNull();
+    expect(container?.querySelector('[class*="evt-green-solid"]')).not.toBeNull();
   });
 
   it("uses clear completed and overdue states", async () => {

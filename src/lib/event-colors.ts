@@ -30,20 +30,21 @@ export function isEventColor(color: string | null | undefined): color is EventCo
 // appear literally in source, so color-coding driven by the event's
 // freeform `color` string needs an explicit lookup table like this instead.
 //
-// Full-tinted rounded chip: pastel background in light mode (matches the
-// landing-page mockup palette), dark translucent tint in dark mode. The
-// `dark:` prefix works because globals.css registers the custom variant
-// `@custom-variant dark (&:is(.dark *))`.
+// Full-tinted rounded chip. Colors come from the per-color `--evt-*` design
+// tokens in globals.css (the warm-ink harmonized set): a soft tint fill in
+// light mode, a translucent tint in dark. Light/dark is handled by the token
+// values themselves (the `.dark` block redefines them), so no `dark:` variants
+// are needed here.
 export const EVENT_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "border-blue-300 bg-blue-100/90 text-blue-700 dark:border-blue-500/35 dark:bg-blue-500/15 dark:text-blue-300",
-  green: "border-green-300 bg-green-100/90 text-green-700 dark:border-green-500/35 dark:bg-green-500/15 dark:text-green-300",
-  purple: "border-purple-300 bg-purple-100/90 text-purple-700 dark:border-purple-500/35 dark:bg-purple-500/15 dark:text-purple-300",
-  orange: "border-orange-300 bg-orange-100/90 text-orange-700 dark:border-orange-500/35 dark:bg-orange-500/15 dark:text-orange-300",
-  red: "border-red-300 bg-red-100/90 text-red-700 dark:border-red-500/35 dark:bg-red-500/15 dark:text-red-300",
-  indigo: "border-indigo-300 bg-indigo-100/90 text-indigo-700 dark:border-indigo-500/35 dark:bg-indigo-500/15 dark:text-indigo-300",
-  pink: "border-pink-300 bg-pink-100/90 text-pink-700 dark:border-pink-500/35 dark:bg-pink-500/15 dark:text-pink-300",
-  yellow: "border-yellow-300 bg-yellow-100/90 text-yellow-700 dark:border-yellow-500/35 dark:bg-yellow-500/15 dark:text-yellow-300",
-  teal: "border-teal-300 bg-teal-100/90 text-teal-700 dark:border-teal-500/35 dark:bg-teal-500/15 dark:text-teal-300",
+  blue: "border-[var(--evt-blue-bd)] bg-[var(--evt-blue-bg)] text-[var(--evt-blue-fg)]",
+  green: "border-[var(--evt-green-bd)] bg-[var(--evt-green-bg)] text-[var(--evt-green-fg)]",
+  purple: "border-[var(--evt-purple-bd)] bg-[var(--evt-purple-bg)] text-[var(--evt-purple-fg)]",
+  orange: "border-[var(--evt-orange-bd)] bg-[var(--evt-orange-bg)] text-[var(--evt-orange-fg)]",
+  red: "border-[var(--evt-red-bd)] bg-[var(--evt-red-bg)] text-[var(--evt-red-fg)]",
+  indigo: "border-[var(--evt-indigo-bd)] bg-[var(--evt-indigo-bg)] text-[var(--evt-indigo-fg)]",
+  pink: "border-[var(--evt-pink-bd)] bg-[var(--evt-pink-bg)] text-[var(--evt-pink-fg)]",
+  yellow: "border-[var(--evt-yellow-bd)] bg-[var(--evt-yellow-bg)] text-[var(--evt-yellow-fg)]",
+  teal: "border-[var(--evt-teal-bd)] bg-[var(--evt-teal-bg)] text-[var(--evt-teal-fg)]",
 };
 
 export const DEFAULT_EVENT_COLOR_CLASSES = "bg-muted text-muted-foreground";
@@ -56,30 +57,30 @@ export function getEventColorClasses(color: string | null): string {
 // Solid swatch classes for the color-picker UI itself, distinct from the
 // translucent pill styling used on the calendar grid.
 export const EVENT_COLOR_SWATCH_CLASSES: Record<EventColor, string> = {
-  blue: "bg-blue-500",
-  green: "bg-green-500",
-  purple: "bg-purple-500",
-  orange: "bg-orange-500",
-  red: "bg-red-500",
-  indigo: "bg-indigo-500",
-  pink: "bg-pink-500",
-  yellow: "bg-yellow-500",
-  teal: "bg-teal-500",
+  blue: "bg-[var(--evt-blue-solid)]",
+  green: "bg-[var(--evt-green-solid)]",
+  purple: "bg-[var(--evt-purple-solid)]",
+  orange: "bg-[var(--evt-orange-solid)]",
+  red: "bg-[var(--evt-red-solid)]",
+  indigo: "bg-[var(--evt-indigo-solid)]",
+  pink: "bg-[var(--evt-pink-solid)]",
+  yellow: "bg-[var(--evt-yellow-solid)]",
+  teal: "bg-[var(--evt-teal-solid)]",
 };
 
 // Outlined, not filled, so a task chip on the calendar grid never reads as
 // an event pill at a glance. Text colors are darker in light mode so they
 // remain legible on the warm off-white background.
 export const TASK_COLOR_CLASSES: Record<EventColor, string> = {
-  blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/45 dark:bg-blue-500/10 dark:text-blue-300",
-  green: "border-green-200 bg-green-50 text-green-700 dark:border-green-500/45 dark:bg-green-500/10 dark:text-green-300",
-  purple: "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/45 dark:bg-purple-500/10 dark:text-purple-300",
-  orange: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/45 dark:bg-orange-500/10 dark:text-orange-300",
-  red: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/45 dark:bg-red-500/10 dark:text-red-300",
-  indigo: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/45 dark:bg-indigo-500/10 dark:text-indigo-300",
-  pink: "border-pink-200 bg-pink-50 text-pink-700 dark:border-pink-500/45 dark:bg-pink-500/10 dark:text-pink-300",
-  yellow: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-500/45 dark:bg-yellow-500/10 dark:text-yellow-300",
-  teal: "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-500/45 dark:bg-teal-500/10 dark:text-teal-300",
+  blue: "border-[var(--evt-blue-bd)] bg-[var(--evt-blue-soft)] text-[var(--evt-blue-fg)]",
+  green: "border-[var(--evt-green-bd)] bg-[var(--evt-green-soft)] text-[var(--evt-green-fg)]",
+  purple: "border-[var(--evt-purple-bd)] bg-[var(--evt-purple-soft)] text-[var(--evt-purple-fg)]",
+  orange: "border-[var(--evt-orange-bd)] bg-[var(--evt-orange-soft)] text-[var(--evt-orange-fg)]",
+  red: "border-[var(--evt-red-bd)] bg-[var(--evt-red-soft)] text-[var(--evt-red-fg)]",
+  indigo: "border-[var(--evt-indigo-bd)] bg-[var(--evt-indigo-soft)] text-[var(--evt-indigo-fg)]",
+  pink: "border-[var(--evt-pink-bd)] bg-[var(--evt-pink-soft)] text-[var(--evt-pink-fg)]",
+  yellow: "border-[var(--evt-yellow-bd)] bg-[var(--evt-yellow-soft)] text-[var(--evt-yellow-fg)]",
+  teal: "border-[var(--evt-teal-bd)] bg-[var(--evt-teal-soft)] text-[var(--evt-teal-fg)]",
 };
 
 export const DEFAULT_TASK_COLOR_CLASSES = "border-border text-muted-foreground";
@@ -88,6 +89,20 @@ export function getTaskColorClasses(color: string | null): string {
   if (!color || !isEventColor(color)) return DEFAULT_TASK_COLOR_CLASSES;
   return TASK_COLOR_CLASSES[color];
 }
+
+// Solid fill + lighter border for the active Space tile in the icon rail. The
+// colored fill with white text reads on the rail in both light and dark themes.
+export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
+  blue: "bg-[var(--evt-blue-deep)] border-[var(--evt-blue-deep)] text-white",
+  green: "bg-[var(--evt-green-deep)] border-[var(--evt-green-deep)] text-white",
+  purple: "bg-[var(--evt-purple-deep)] border-[var(--evt-purple-deep)] text-white",
+  orange: "bg-[var(--evt-orange-deep)] border-[var(--evt-orange-deep)] text-white",
+  red: "bg-[var(--evt-red-deep)] border-[var(--evt-red-deep)] text-white",
+  indigo: "bg-[var(--evt-indigo-deep)] border-[var(--evt-indigo-deep)] text-white",
+  pink: "bg-[var(--evt-pink-deep)] border-[var(--evt-pink-deep)] text-white",
+  yellow: "bg-[var(--evt-yellow-deep)] border-[var(--evt-yellow-deep)] text-white",
+  teal: "bg-[var(--evt-teal-deep)] border-[var(--evt-teal-deep)] text-white",
+};
 
 // Shared by events and tasks: when linked to a category, the color shown on
 // the calendar is looked up live from that category (so recoloring a

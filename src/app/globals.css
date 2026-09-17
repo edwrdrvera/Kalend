@@ -57,89 +57,147 @@
      * platforms, where SF Pro isn't available at all. */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    /* Light app theme — clean white workspace from the Direction 1 calendar.
-     * The marketing route keeps its separate warm --kal-* palette below. */
-    --background: #ffffff;
-    --foreground: #1c1a16;
+    /* Light app theme — "neutral ink" (the light mirror of the dark theme):
+     * a true-neutral off-white canvas (#fafafa, no brown/beige cast) with
+     * white cards lifting off it, neutral-gray fills/borders and muted text,
+     * and the vivid pumpkin accent (#ea580c) carried over as the one bit of
+     * color. White-on-#ea580c is 3.6:1 — a deliberate trade for the more
+     * saturated tone; it clears the 3:1 bar for large/UI text but not AA for
+     * small text on the button. */
+    --background: #fafafa;
+    --foreground: #171717;
     --card: #ffffff;
-    --card-foreground: #1c1a16;
+    --card-foreground: #171717;
     --popover: #ffffff;
-    --popover-foreground: #1c1a16;
-    --primary: #4f46e5;
+    --popover-foreground: #171717;
+    --primary: #ea580c;
     --primary-foreground: #ffffff;
     --secondary: #f5f5f5;
-    --secondary-foreground: #1c1a16;
+    --secondary-foreground: #171717;
     --muted: #f5f5f5;
-    --muted-foreground: #756f61;
+    --muted-foreground: #737373;
     --accent: #f5f5f5;
-    --accent-foreground: #1c1a16;
+    --accent-foreground: #171717;
     --destructive: #dc2626;
-    --border: #e5e7eb;
-    --input: #e5e7eb;
-    --ring: #4f46e5;
-    --chart-1: #4f46e5;
-    --chart-2: #756f61;
-    --chart-3: #1c1a16;
-    --chart-4: #e5e7eb;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
+    --ring: #ea580c;
+    --chart-1: #ea580c;
+    --chart-2: #737373;
+    --chart-3: #171717;
+    --chart-4: #e5e5e5;
     --chart-5: #f5f5f5;
     --radius: 0.625rem;
     --sidebar: #ffffff;
-    --sidebar-foreground: #1c1a16;
-    --sidebar-primary: #4f46e5;
+    --sidebar-foreground: #171717;
+    --sidebar-primary: #ea580c;
     --sidebar-primary-foreground: #ffffff;
     --sidebar-accent: #f5f5f5;
-    --sidebar-accent-foreground: #1c1a16;
-    --sidebar-border: #e5e7eb;
-    --sidebar-ring: #4f46e5;
+    --sidebar-accent-foreground: #171717;
+    --sidebar-border: #e5e5e5;
+    --sidebar-ring: #ea580c;
+
+    --mini-cal-bg: #ffffff;
 }
 
 .dark {
-    /* Dark mode — indigo-400 (#818cf8) as the primary: lighter shade so it
-     * reads as text on dark surfaces (5.9:1 on #121212) and as the button bg
-     * with dark ink foreground (5.3:1). primary-foreground flips to dark ink
-     * so buttons stay legible on the lighter dark-mode accent. */
-    --background: #121212;
-    --foreground: #e5e5e5;
-    --card: #191919;
-    --card-foreground: #e5e5e5;
-    --popover: #191919;
-    --popover-foreground: #e5e5e5;
-    --primary: #818cf8;
-    --primary-foreground: #1c1a16;
+    /* Dark mode — neutral ink. A true-neutral near-black canvas (#171717, no
+     * brown/blue cast) with neutral-gray surfaces and off-white text. The
+     * terracotta primary (#f0916b) is kept as the brand accent — it reads as
+     * text on dark (7.6:1) and as a button bg with dark neutral ink (7.4:1). */
+    --background: #171717;
+    --foreground: #e8e8e8;
+    --card: #1f1f1f;
+    --card-foreground: #e8e8e8;
+    --popover: #1f1f1f;
+    --popover-foreground: #e8e8e8;
+    --primary: #f0916b;
+    --primary-foreground: #171717;
     --secondary: #262626;
-    --secondary-foreground: #e5e5e5;
+    --secondary-foreground: #e8e8e8;
     --muted: #262626;
-    --muted-foreground: #a3a3a3;
+    --muted-foreground: #a1a1a1;
     --accent: #262626;
-    --accent-foreground: #e5e5e5;
+    --accent-foreground: #e8e8e8;
     --destructive: #ef4444;
-    --border: #262626;
-    --input: #262626;
-    --ring: #818cf8;
-    --chart-1: #818cf8;
-    --chart-2: #a3a3a3;
-    --chart-3: #e5e5e5;
-    --chart-4: #262626;
-    --chart-5: #191919;
-    --sidebar: #191919;
-    --sidebar-foreground: #e5e5e5;
-    --sidebar-primary: #818cf8;
-    --sidebar-primary-foreground: #1c1a16;
+    --border: #2e2e2e;
+    --input: #2e2e2e;
+    --ring: #f0916b;
+    --chart-1: #f0916b;
+    --chart-2: #a1a1a1;
+    --chart-3: #e8e8e8;
+    --chart-4: #2e2e2e;
+    --chart-5: #1f1f1f;
+    --sidebar: #1f1f1f;
+    --sidebar-foreground: #e8e8e8;
+    --sidebar-primary: #f0916b;
+    --sidebar-primary-foreground: #171717;
     --sidebar-accent: #262626;
-    --sidebar-accent-foreground: #e5e5e5;
-    --sidebar-border: #262626;
-    --sidebar-ring: #818cf8;
+    --sidebar-accent-foreground: #e8e8e8;
+    --sidebar-border: #2e2e2e;
+    --sidebar-ring: #f0916b;
+    --mini-cal-bg: #1f1f1f;
+}
+
+/* Event / Space / Task color palette — "sunset warm" set: warm-toned but
+ * vibrant, with the nine hues spread out so Spaces stay easy to tell apart.
+ * The nine enum keys in @/lib/event-colors stay the same (blue/green/.../teal),
+ * so no data migration is needed; only the rendered tone changes. Per color:
+ *   -solid  the vibrant identity color — dots, agenda bar, picker swatch.
+ *   -deep   a darker shade of the same hue, used ONLY for the selected rail
+ *           tile, where white text sits on it (every -deep clears >=4.5:1).
+ *   -fg     pill/chip text (in light = -deep; in dark = a light pastel).
+ *   -bg     event pill fill.   -soft  task chip fill (fainter).   -bd  border.
+ * The tint/border values are derived from -solid with color-mix (already used
+ * elsewhere in this file), so a hue is retuned by editing -solid alone. Light
+ * values live in :root; the .dark block overrides fg/bg/soft/bd (solid + deep
+ * carry over). */
+:root {
+    --evt-blue-solid: #3d8299; --evt-blue-deep: #2f6a80; --evt-blue-fg: var(--evt-blue-deep); --evt-blue-bg: color-mix(in srgb, var(--evt-blue-solid) 15%, #ffffff); --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 8%, #ffffff); --evt-blue-bd: color-mix(in srgb, var(--evt-blue-solid) 30%, #ffffff);
+    --evt-green-solid: #7a9b32; --evt-green-deep: #5c7626; --evt-green-fg: var(--evt-green-deep); --evt-green-bg: color-mix(in srgb, var(--evt-green-solid) 15%, #ffffff); --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 8%, #ffffff); --evt-green-bd: color-mix(in srgb, var(--evt-green-solid) 30%, #ffffff);
+    --evt-purple-solid: #9a4a86; --evt-purple-deep: #7e3a6d; --evt-purple-fg: var(--evt-purple-deep); --evt-purple-bg: color-mix(in srgb, var(--evt-purple-solid) 15%, #ffffff); --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 8%, #ffffff); --evt-purple-bd: color-mix(in srgb, var(--evt-purple-solid) 30%, #ffffff);
+    --evt-orange-solid: #e8781c; --evt-orange-deep: #b85712; --evt-orange-fg: var(--evt-orange-deep); --evt-orange-bg: color-mix(in srgb, var(--evt-orange-solid) 15%, #ffffff); --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 8%, #ffffff); --evt-orange-bd: color-mix(in srgb, var(--evt-orange-solid) 30%, #ffffff);
+    --evt-red-solid: #cf4433; --evt-red-deep: #b0392b; --evt-red-fg: var(--evt-red-deep); --evt-red-bg: color-mix(in srgb, var(--evt-red-solid) 15%, #ffffff); --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 8%, #ffffff); --evt-red-bd: color-mix(in srgb, var(--evt-red-solid) 30%, #ffffff);
+    --evt-indigo-solid: #4f6bbf; --evt-indigo-deep: #3f52a0; --evt-indigo-fg: var(--evt-indigo-deep); --evt-indigo-bg: color-mix(in srgb, var(--evt-indigo-solid) 15%, #ffffff); --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 8%, #ffffff); --evt-indigo-bd: color-mix(in srgb, var(--evt-indigo-solid) 30%, #ffffff);
+    --evt-pink-solid: #e05f7a; --evt-pink-deep: #b83f5c; --evt-pink-fg: var(--evt-pink-deep); --evt-pink-bg: color-mix(in srgb, var(--evt-pink-solid) 15%, #ffffff); --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 8%, #ffffff); --evt-pink-bd: color-mix(in srgb, var(--evt-pink-solid) 30%, #ffffff);
+    --evt-yellow-solid: #e0a418; --evt-yellow-deep: #8a6410; --evt-yellow-fg: var(--evt-yellow-deep); --evt-yellow-bg: color-mix(in srgb, var(--evt-yellow-solid) 15%, #ffffff); --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 8%, #ffffff); --evt-yellow-bd: color-mix(in srgb, var(--evt-yellow-solid) 30%, #ffffff);
+    --evt-teal-solid: #1f9a86; --evt-teal-deep: #187563; --evt-teal-fg: var(--evt-teal-deep); --evt-teal-bg: color-mix(in srgb, var(--evt-teal-solid) 15%, #ffffff); --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 8%, #ffffff); --evt-teal-bd: color-mix(in srgb, var(--evt-teal-solid) 30%, #ffffff);
+}
+
+.dark {
+    --evt-blue-fg: #86bdd6; --evt-blue-bg: color-mix(in srgb, var(--evt-blue-solid) 22%, #1f1c16); --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 12%, #1f1c16); --evt-blue-bd: color-mix(in srgb, var(--evt-blue-solid) 40%, #1f1c16);
+    --evt-green-fg: #b6d488; --evt-green-bg: color-mix(in srgb, var(--evt-green-solid) 22%, #1f1c16); --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 12%, #1f1c16); --evt-green-bd: color-mix(in srgb, var(--evt-green-solid) 40%, #1f1c16);
+    --evt-purple-fg: #d3a3c6; --evt-purple-bg: color-mix(in srgb, var(--evt-purple-solid) 22%, #1f1c16); --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 12%, #1f1c16); --evt-purple-bd: color-mix(in srgb, var(--evt-purple-solid) 40%, #1f1c16);
+    --evt-orange-fg: #f2a35f; --evt-orange-bg: color-mix(in srgb, var(--evt-orange-solid) 22%, #1f1c16); --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 12%, #1f1c16); --evt-orange-bd: color-mix(in srgb, var(--evt-orange-solid) 40%, #1f1c16);
+    --evt-red-fg: #ec9184; --evt-red-bg: color-mix(in srgb, var(--evt-red-solid) 22%, #1f1c16); --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 12%, #1f1c16); --evt-red-bd: color-mix(in srgb, var(--evt-red-solid) 40%, #1f1c16);
+    --evt-indigo-fg: #a7b4e8; --evt-indigo-bg: color-mix(in srgb, var(--evt-indigo-solid) 22%, #1f1c16); --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 12%, #1f1c16); --evt-indigo-bd: color-mix(in srgb, var(--evt-indigo-solid) 40%, #1f1c16);
+    --evt-pink-fg: #f0a1b2; --evt-pink-bg: color-mix(in srgb, var(--evt-pink-solid) 22%, #1f1c16); --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 12%, #1f1c16); --evt-pink-bd: color-mix(in srgb, var(--evt-pink-solid) 40%, #1f1c16);
+    --evt-yellow-fg: #ebc766; --evt-yellow-bg: color-mix(in srgb, var(--evt-yellow-solid) 22%, #1f1c16); --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 12%, #1f1c16); --evt-yellow-bd: color-mix(in srgb, var(--evt-yellow-solid) 40%, #1f1c16);
+    --evt-teal-fg: #74cdbb; --evt-teal-bg: color-mix(in srgb, var(--evt-teal-solid) 22%, #1f1c16); --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 12%, #1f1c16); --evt-teal-bd: color-mix(in srgb, var(--evt-teal-solid) 40%, #1f1c16);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Hide scrollbars entirely (Firefox + modern Chromium/Safari) while
+     * keeping the areas scrollable. WebKit fallback below. */
+    scrollbar-width: none;
+    }
+  ::-webkit-scrollbar {
+    display: none;
     }
   body {
     @apply bg-background text-foreground;
     }
   html {
     @apply font-sans;
+    }
+  /* Theme the text caret in every input/textarea to match the primary
+   * accent, so it feels intentional rather than browser-default blue. */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: var(--primary);
     }
 }
 
@@ -233,9 +291,9 @@
   --kal-border: #e8e3d8;
   --kal-ink: #1c1a16;
   --kal-muted: #756f61;
-  --kal-primary: #2563eb;
-  --kal-accent: #f97316;
-  --kal-accent-hover: #ea580c;
+  --kal-primary: #ea580c;
+  --kal-accent: #ea580c;
+  --kal-accent-hover: #c2410c;
 
   --kal-cat-blue: #3b82f6;
   --kal-cat-blue-tint: #dbeafe;
@@ -260,6 +318,16 @@
   --kal-tile-mustard: #f0c05a;
   --kal-tile-coral: #f2836b;
   --kal-tile-ink: #171310;
+}
+
+/* Cross-fade for the Space Panel body when swapping branches. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Hero fade-up-on-load animation for the landing page. Elements opt in via

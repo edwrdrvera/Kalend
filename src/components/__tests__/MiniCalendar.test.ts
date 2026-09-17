@@ -9,18 +9,22 @@ const { default: MiniCalendar } = await import("../MiniCalendar");
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+let lastSelectedDate: Date | null = null;
 
-function renderMiniCalendar(collapsible = false) {
+function renderMiniCalendar(
+  currentDate = new Date(2030, 8, 9),
+  viewDate = new Date(2030, 8, 9),
+) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
+  lastSelectedDate = null;
 
   return act(() =>
     root?.render(createElement(MiniCalendar, {
-      currentDate: new Date(2030, 8, 9),
-      viewDate: new Date(2030, 8, 9),
-      onDateSelect: () => {},
-      collapsible,
+      currentDate,
+      viewDate,
+      onDateSelect: (date: Date) => { lastSelectedDate = date; },
     }))
   );
 }
@@ -30,49 +34,101 @@ afterEach(async () => {
   container?.remove();
   root = null;
   container = null;
+  lastSelectedDate = null;
   document.body.replaceChildren();
-  localStorage.clear();
 });
 
-describe("MiniCalendar collapse behavior", () => {
-  it("stays expanded when collapse is not enabled", async () => {
-    localStorage.setItem("kalend:mini-calendar-collapsed", "true");
+describe("MiniCalendar header", () => {
+  it("shows month and year in the header", async () => {
+    await renderMiniCalendar();
+
+    const heading = document.querySelector("h2");
+    expect(heading).not.toBeNull();
+    expect(heading!.textContent).toBe("September 2030");
+  });
+
+  it("has no collapse toggle button", async () => {
     await renderMiniCalendar();
 
     expect(document.querySelector('[aria-label="Collapse mini calendar"]')).toBeNull();
-    expect(document.querySelector('[aria-label="Previous month"]')).not.toBeNull();
-    expect(document.querySelectorAll("button").length).toBeGreaterThan(2);
+    expect(document.querySelector('[aria-label="Expand mini calendar"]')).toBeNull();
+  });
+});
+
+describe("MiniCalendar date selection", () => {
+  it("calls onDateSelect when a date is clicked", async () => {
+    await renderMiniCalendar();
+
+    // Find a button with text "15" (September 15)
+    const buttons = document.querySelectorAll<HTMLButtonElement>("button");
+    const day15 = Array.from(buttons).find((b) => b.textContent === "15");
+    expect(day15).not.toBeNull();
+
+    await act(() => day15!.click());
+    expect(lastSelectedDate).not.toBeNull();
+    expect(lastSelectedDate!.getDate()).toBe(15);
+    expect(lastSelectedDate!.getMonth()).toBe(8); // September
   });
 
-  it("initializes collapsed on mount when previously collapsed (no flash)", async () => {
-    localStorage.setItem("kalend:mini-calendar-collapsed", "true");
-    await renderMiniCalendar(true);
+  it("applies square rounding to the selected date cell", async () => {
+    await renderMiniCalendar();
 
-    expect(document.querySelector('[aria-label="Expand mini calendar"]')).not.toBeNull();
-    expect(document.querySelectorAll("button").length).toBe(3);
-  });
-
-  it("persists an explicit collapsed preference", async () => {
-    await renderMiniCalendar(true);
-
-    const collapseButton = document.querySelector<HTMLButtonElement>(
-      '[aria-label="Collapse mini calendar"]'
+    // The selected date is September 9. Find that button.
+    const buttons = document.querySelectorAll<HTMLButtonElement>("button");
+    const day9 = Array.from(buttons).find(
+      (b) => b.textContent === "9" && b.className.includes("bg-primary")
     );
-    expect(collapseButton).not.toBeNull();
+    expect(day9).not.toBeNull();
+    expect(day9!.className).toContain("rounded-[6px]");
+    expect(day9!.className).not.toContain("rounded-full");
+  });
+});
 
-    await act(() => collapseButton?.click());
+describe("MiniCalendar month navigation", () => {
+  it("navigates to the previous month", async () => {
+    await renderMiniCalendar();
 
-    expect(localStorage.getItem("kalend:mini-calendar-collapsed")).toBe("true");
-    expect(document.querySelector('[aria-label="Expand mini calendar"]')).not.toBeNull();
-    expect(document.querySelectorAll("button").length).toBe(3);
+    const prevButton = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Previous month"]'
+    );
+    expect(prevButton).not.toBeNull();
 
-    await act(() => root?.unmount());
-    container?.remove();
-    root = null;
-    container = null;
-    await renderMiniCalendar(true);
+    await act(() => prevButton!.click());
 
-    expect(document.querySelector('[aria-label="Expand mini calendar"]')).not.toBeNull();
-    expect(document.querySelectorAll("button").length).toBe(3);
+    const heading = document.querySelector("h2");
+    expect(heading!.textContent).toBe("August 2030");
+  });
+
+  it("navigates to the next month", async () => {
+    await renderMiniCalendar();
+
+    const nextButton = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Next month"]'
+    );
+    expect(nextButton).not.toBeNull();
+
+    await act(() => nextButton!.click());
+
+    const heading = document.querySelector("h2");
+    expect(heading!.textContent).toBe("October 2030");
+  });
+});
+
+describe("MiniCalendar out-of-month dates", () => {
+  it("applies muted (but AA-legible) styling to out-of-month dates", async () => {
+    await renderMiniCalendar();
+
+    // September 2030 starts on a Sunday, so the grid's first row starts
+    // with Sept 1. The last row will have out-of-month October dates.
+    const buttons = document.querySelectorAll<HTMLButtonElement>("button");
+    // Out-of-month cells use the full muted-foreground token (5.2:1 light /
+    // 7.4:1 dark), not the /30 alpha that failed contrast. Match the token
+    // without the /30 opacity modifier.
+    const outOfMonthCells = Array.from(buttons).filter(
+      (b) =>
+        b.className.includes("text-muted-foreground") &&
+        !b.className.includes("text-muted-foreground/")
+    );
+    expect(outOfMonthCells.length).toBeGreaterThan(0);
   });
 });

@@ -54,7 +54,7 @@ export default function CategorySelect({
           </>
         )}
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-1">
+      <PopoverContent className="w-48 p-1">
         <ul className="flex flex-col">
           <li>
             <button
@@ -64,12 +64,12 @@ export default function CategorySelect({
                 setOpen(false);
               }}
               className={cn(
-                "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                "flex w-full items-center justify-between rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted",
                 categoryId === null && "bg-muted text-foreground font-medium"
               )}
             >
               <span>No Space</span>
-              {categoryId === null && <Check className="size-3.5" />}
+              {categoryId === null && <Check className="size-3" />}
             </button>
           </li>
           {categories.length > 0 && <li className="border-t border-border my-1" />}
@@ -82,7 +82,7 @@ export default function CategorySelect({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted",
+                  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted",
                   categoryId === category.id && "bg-muted text-foreground font-medium"
                 )}
               >
@@ -97,7 +97,7 @@ export default function CategorySelect({
                   />
                   <span className="truncate">{category.name}</span>
                 </span>
-                {categoryId === category.id && <Check className="size-3.5 shrink-0" />}
+                {categoryId === category.id && <Check className="size-3 shrink-0" />}
               </button>
             </li>
           ))}
