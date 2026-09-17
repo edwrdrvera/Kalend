@@ -115,15 +115,19 @@ describe("MiniCalendar month navigation", () => {
 });
 
 describe("MiniCalendar out-of-month dates", () => {
-  it("applies heavily-muted styling to out-of-month dates", async () => {
+  it("applies muted (but AA-legible) styling to out-of-month dates", async () => {
     await renderMiniCalendar();
 
     // September 2030 starts on a Sunday, so the grid's first row starts
     // with Sept 1. The last row will have out-of-month October dates.
     const buttons = document.querySelectorAll<HTMLButtonElement>("button");
-    // Find a "1" button that has the muted class (October 1, not September 1)
-    const outOfMonthCells = Array.from(buttons).filter((b) =>
-      b.className.includes("text-muted-foreground/30")
+    // Out-of-month cells use the full muted-foreground token (5.2:1 light /
+    // 7.4:1 dark), not the /30 alpha that failed contrast. Match the token
+    // without the /30 opacity modifier.
+    const outOfMonthCells = Array.from(buttons).filter(
+      (b) =>
+        b.className.includes("text-muted-foreground") &&
+        !b.className.includes("text-muted-foreground/")
     );
     expect(outOfMonthCells.length).toBeGreaterThan(0);
   });
