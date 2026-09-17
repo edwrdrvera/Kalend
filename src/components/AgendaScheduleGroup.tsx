@@ -54,10 +54,10 @@ export default function AgendaScheduleGroup({
               onClick={(e) =>
                 onEventClick(event, e.currentTarget.getBoundingClientRect())
               }
-              className="flex items-center gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-center gap-2 rounded-sm px-1 py-0.5 text-left transition hover:bg-muted/45 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label={`Edit event: ${event.title}`}
             >
-              <span className="w-[58px] shrink-0 whitespace-nowrap text-[12px] font-medium tabular-nums text-muted-foreground">
+              <span className="w-[54px] shrink-0 whitespace-nowrap text-[11.5px] font-medium tabular-nums text-muted-foreground">
                 {allDay
                   ? "All day"
                   : format(new Date(event.start_at), "h:mm a")}
@@ -69,7 +69,7 @@ export default function AgendaScheduleGroup({
                   barClass
                 )}
               />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
+              <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
                 {event.title}
               </span>
             </button>

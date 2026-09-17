@@ -211,8 +211,8 @@ describe("AgendaColumn schedule section", () => {
     expect(text).toContain("9:00 AM");
     expect(text).toContain("Calculus");
 
-    // Color bar should have the green swatch class
-    const bar = document.querySelector(".bg-green-500");
+    // Color bar should carry the green swatch token class
+    const bar = document.querySelector('[class*="evt-green-solid"]');
     expect(bar).not.toBeNull();
   });
 });
@@ -261,15 +261,15 @@ describe("AgendaColumn tasks section", () => {
     expect(interactions.taskToggles).toContain("task-toggle");
   });
 
-  it("shows breadcrumb sub-line with category name", async () => {
-    const cat = makeCategory({ id: "cat-school", name: "CS 340" });
+  it("shows a Space color dot driven by the task's category", async () => {
+    const cat = makeCategory({ id: "cat-school", name: "CS 340", color: "green" });
     await renderColumn({
-      tasks: [makeTask({ category_id: "cat-school" })],
+      tasks: [makeTask({ category_id: "cat-school", color_overridden: false })],
       categories: [cat],
     });
 
-    const text = document.body.textContent ?? "";
-    expect(text).toContain("CS 340");
+    const dot = document.querySelector('[class*="evt-green-solid"]');
+    expect(dot).not.toBeNull();
   });
 });
 

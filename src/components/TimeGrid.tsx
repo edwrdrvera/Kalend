@@ -879,7 +879,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-md border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
                   >
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
