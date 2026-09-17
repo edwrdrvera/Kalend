@@ -428,11 +428,18 @@ export default function Calendar() {
           }
         />
         {events.initialLoading ? (
-          <div className="flex-1">
+          <div className="flex-1 bg-background">
             <LoadingSpinner />
           </div>
         ) : (
-          <div ref={calendarContentRef} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card">
+          <div
+            ref={calendarContentRef}
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background p-2 md:p-3"
+          >
+            {/* The grid floats as a rounded card on the warm page background,
+                echoing the landing mock's floating calendar look instead of a
+                flat edge-to-edge white panel. */}
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_6px_22px_-12px_rgba(28,26,22,0.28)]">
             {view === "month" && (
               <MonthGrid
                 selectedDate={selectedDate}
@@ -501,6 +508,7 @@ export default function Calendar() {
                 onViewChange={setView}
               />
             )}
+            </div>
           </div>
         )}
 

@@ -9,7 +9,12 @@ import {
 } from "react";
 import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
-import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import {
+  EVENT_COLOR_SWATCH_CLASSES,
+  getEventColorClasses,
+  isEventColor,
+  resolveDisplayColor,
+} from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -752,7 +757,7 @@ export default function TimeGrid({
           const columnBg = isDayView
             ? "bg-card"
             : isToday
-              ? "bg-primary/[0.03]"
+              ? "bg-foreground/[0.04]"
               : isWeekend
                 ? "bg-muted/30"
                 : "bg-card";
@@ -861,6 +866,20 @@ export default function TimeGrid({
                 // time range; the location line would run into the border.
                 const showLocation = Boolean(event.location) && height >= (45 / MINUTES_PER_DAY) * 100;
 
+                // Floating inset accent bar: a solid rounded bar of the event's
+                // color, inset from the left edge (see the span below). The
+                // block keeps its soft tint fill + hue border; the bar adds a
+                // stronger color cue without touching the edges.
+                const displayColor = resolveDisplayColor(
+                  event.color,
+                  event.category_id,
+                  event.color_overridden,
+                  categories
+                );
+                const accentBarClass = isEventColor(displayColor)
+                  ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
+                  : "bg-muted-foreground/40";
+
                 return (
                   <button
                     key={event.id}
@@ -879,22 +898,27 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : ""} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
                   >
+                    {/* Floating inset accent bar, hugging the left edge. */}
+                    <span
+                      aria-hidden
+                      className={`pointer-events-none absolute left-1 top-1 bottom-1 w-[3px] rounded-full ${accentBarClass}`}
+                    />
                     {/* Absolutely positioned (not just first in flow) so the
                      *  title always sits at the block's top-left corner —
                      *  including in a MIN_BLOCK_HEIGHT_PERCENT-clamped short
                      *  event, where flow content could otherwise center or
-                     *  drift within the padded box. */}
-                    <span className="absolute inset-x-1.5 top-0.5 truncate">
+                     *  drift within the padded box. Left inset clears the bar. */}
+                    <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
                       {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
-                    <span className="absolute inset-x-1.5 top-5 truncate text-[11px] font-medium opacity-90">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium opacity-90">
                       {format(new Date(event.start_at), "h:mm")} – {format(new Date(event.end_at), "h:mm")}
                     </span>
                     {showLocation && (
-                      <span className="absolute inset-x-1.5 top-9 truncate text-[11px] font-medium opacity-70">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-70">
                         {event.location}
                       </span>
                     )}

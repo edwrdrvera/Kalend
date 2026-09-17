@@ -208,7 +208,7 @@ function TaskRow({
     : "bg-muted-foreground/40";
 
   return (
-    <div className="flex items-start gap-2 rounded-sm px-1 py-1">
+    <div className="flex items-start gap-2 rounded-sm px-1 py-0.5">
       <button
         type="button"
         onClick={() => onToggleTaskComplete(task)}
@@ -225,7 +225,7 @@ function TaskRow({
       </button>
       <span
         aria-hidden
-        className={cn("mt-[6px] size-1.5 shrink-0 rounded-full", dotClass)}
+        className={cn("mt-[5px] size-1.5 shrink-0 rounded-full", dotClass)}
       />
       <span
         className={cn(
@@ -274,7 +274,7 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className={cn(precededBySchedule && "border-t border-border pt-3")}
     >
-      <h3 className="px-1 pb-1 text-[12.5px] font-semibold text-foreground">
+      <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
         Tasks
       </h3>
 
@@ -289,7 +289,7 @@ export default function AgendaTasksGroup({
           return (
             <div
               key={bucket.key}
-              className="mt-3 border-t border-border/60 pt-3 first:mt-0 first:border-t-0 first:pt-0"
+              className="mt-2 first:mt-0"
             >
               <div className="flex items-center gap-1.5 px-1">
                 <button
@@ -305,14 +305,14 @@ export default function AgendaTasksGroup({
                   )}
                   <span
                     className={cn(
-                      "text-[12.5px] font-semibold",
-                      bucket.danger ? "text-destructive" : "text-foreground"
+                      "text-[11.5px] font-medium",
+                      bucket.danger ? "text-destructive" : "text-foreground/90"
                     )}
                   >
                     {bucket.label}
                   </span>
                   {bucket.tasks.length > 0 && (
-                    <span className="rounded-full bg-muted px-1.5 py-px text-[10.5px] font-medium text-muted-foreground">
+                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/60">
                       {bucket.tasks.length}
                     </span>
                   )}

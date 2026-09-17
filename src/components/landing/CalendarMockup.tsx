@@ -1,3 +1,12 @@
+import { EVENT_COLOR_CLASSES, TASK_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
+import KalendMark from "@/components/KalendMark";
+
+// A dragged event is "picked up": a solid fill with white text instead of the
+// usual soft tint, so it reads as the one you're moving. Uses the -deep token
+// (not -solid) so white text clears WCAG AA. Only Calculus II drags in this
+// mock, so this is a single literal class string Tailwind's scanner can see.
+const DRAG_CLASS = "border-[var(--evt-indigo-deep)] bg-[var(--evt-indigo-deep)] text-white";
+
 const DAYS = [
   { label: "Sun", date: 7, selected: false },
   { label: "Mon", date: 8, selected: true },
@@ -8,13 +17,58 @@ const DAYS = [
   { label: "Sat", date: 13, selected: false },
 ] as const;
 
-const SCHOOL_SPACES = [
-  { label: "Calculus II", color: "#6366f1" },
-  { label: "Physics I", color: "#3b82f6" },
-  { label: "English Literature", color: "#22a95b" },
-  { label: "Psychology", color: "#a855f7" },
-  { label: "Computer Science", color: "#f97316" },
-] as const;
+// The real sidebar is an icon rail + an agenda column (Schedule + Tasks) with a
+// mini calendar pinned below — see CalendarSidebar / IconRail / AgendaColumn.
+// These constants drive the static mock of that layout. Colors are EventColor
+// keys (the app's "sunset warm" palette), rendered via the same
+// EVENT_COLOR_* helpers the real sidebar uses so the mock can't drift.
+
+// Rail space tiles: 2-letter abbreviations like the app's spaceAbbreviation().
+const RAIL_SPACES: { abbr: string; color: EventColor; active?: boolean }[] = [
+  { abbr: "Sc", color: "indigo", active: true },
+  { abbr: "Wk", color: "orange" },
+  { abbr: "Pe", color: "purple" },
+  { abbr: "Ha", color: "green" },
+];
+
+// Agenda "Schedule" section: the selected day's timed events.
+const SCHEDULE: { time: string; title: string; color: EventColor }[] = [
+  { time: "9:00 AM", title: "Midterm Exam – Algorithms", color: "indigo" },
+  { time: "12:00 PM", title: "Lunch with Edward", color: "orange" },
+  { time: "1:00 PM", title: "Data Structures Lab", color: "blue" },
+];
+
+// Agenda "Tasks" section: the persistent to-do list, grouped into due-date
+// buckets (mirrors AgendaTasksGroup's bucketing). Completed tasks show a filled
+// checkbox + strikethrough; the header count is open tasks only (here: 6).
+const TASK_BUCKETS: {
+  label: string;
+  tasks: { title: string; color: EventColor; done?: boolean }[];
+}[] = [
+  {
+    label: "Today",
+    tasks: [
+      { title: "Line up a hackathon team", color: "indigo", done: true },
+      { title: "Finish algorithms problem set", color: "blue", done: true },
+    ],
+  },
+  {
+    label: "This week",
+    tasks: [
+      { title: "Clear the code review backlog", color: "blue" },
+      { title: "Draft the hackathon pitch", color: "orange" },
+      { title: "Book a dentist follow-up", color: "green" },
+      { title: "Prepare for the algorithms midterm", color: "purple" },
+    ],
+  },
+  {
+    label: "Unscheduled",
+    tasks: [
+      { title: "Read", color: "blue" },
+      { title: "Do chores", color: "green" },
+    ],
+  },
+];
 
 const MINI_CALENDAR_DAYS = [
   31, 1, 2, 3, 4, 5, 6,
@@ -24,38 +78,40 @@ const MINI_CALENDAR_DAYS = [
   28, 29, 30, 1, 2, 3, 4,
 ] as const;
 
-const EVENTS = [
-  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "border-indigo-300 bg-indigo-50 text-indigo-700" },
-  { day: 1, top: 158, height: 108, title: "Work shift", time: "12:00 – 3:00", color: "border-orange-300 bg-orange-50 text-orange-700" },
-  { day: 1, top: 344, height: 58, title: "English Lit", time: "5:00 – 6:30", color: "border-green-300 bg-green-50 text-green-700" },
-  { day: 2, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10:00 – 11:00", color: "border-orange-300 bg-white text-orange-700" },
-  { day: 2, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 2, top: 272, height: 52, title: "Study group", time: "3:00 – 4:00", color: "border-blue-400 bg-white text-blue-700" },
-  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9:00 – 10:15", color: "border-indigo-400 bg-indigo-500 text-white", dragging: true },
-  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11:00 – 1:00", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 3, top: 234, height: 150, title: "Work shift", time: "2:00 – 6:00", color: "border-orange-300 bg-orange-50 text-orange-700" },
-  { day: 4, top: 82, height: 52, title: "English Lit", time: "10:00 – 11:15", color: "border-green-300 bg-green-100 text-green-700" },
-  { day: 4, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3:00 – 4:30", color: "border-orange-400 bg-white text-orange-700" },
-  { day: 5, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "border-indigo-300 bg-indigo-50 text-indigo-700" },
-  { day: 5, top: 158, height: 58, title: "English Lit", time: "12:00 – 1:15", color: "border-green-300 bg-green-50 text-green-700" },
-  { day: 5, top: 310, height: 58, title: "Psychology", time: "4:00 – 5:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 6, top: 44, height: 160, title: "Work shift", time: "9:00 – 1:00", color: "border-orange-400 bg-orange-50 text-orange-700" },
-  { day: 6, top: 234, height: 48, title: "Office hours", time: "2:00 – 3:00", color: "border-blue-400 bg-white text-blue-700" },
-  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30 – 4:30", color: "border-green-400 bg-white text-green-700" },
-] as const;
+// Times are compact (whole hours drop ":00", en-dash with no spaces) and carry
+// am/pm once at the end, or on both ends when the range crosses noon.
+const EVENTS: { day: number; top: number; height: number; title: string; time: string; color: EventColor; dragging?: boolean }[] = [
+  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10–11am", color: "indigo" },
+  { day: 1, top: 158, height: 108, title: "Work shift", time: "12–3pm", color: "orange" },
+  { day: 1, top: 344, height: 58, title: "English Lit", time: "5–6:30pm", color: "green" },
+  { day: 2, top: 6, height: 52, title: "Physics I", time: "8–9:15am", color: "blue" },
+  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10–11am", color: "orange" },
+  { day: 2, top: 196, height: 50, title: "Psychology", time: "1–2:15pm", color: "purple" },
+  { day: 2, top: 272, height: 52, title: "Study group", time: "3–4pm", color: "blue" },
+  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9–10:15am", color: "indigo", dragging: true },
+  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11am–1pm", color: "blue" },
+  { day: 3, top: 234, height: 150, title: "Work shift", time: "2–6pm", color: "orange" },
+  { day: 4, top: 82, height: 52, title: "English Lit", time: "10–11:15am", color: "green" },
+  { day: 4, top: 196, height: 50, title: "Psychology", time: "1–2:15pm", color: "purple" },
+  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3–4:30pm", color: "orange" },
+  { day: 5, top: 6, height: 52, title: "Physics I", time: "8–9:15am", color: "blue" },
+  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10–11am", color: "indigo" },
+  { day: 5, top: 158, height: 58, title: "English Lit", time: "12–1:15pm", color: "green" },
+  { day: 5, top: 310, height: 58, title: "Psychology", time: "4–5:15pm", color: "purple" },
+  { day: 6, top: 44, height: 160, title: "Work shift", time: "9am–1pm", color: "orange" },
+  { day: 6, top: 234, height: 48, title: "Office hours", time: "2–3pm", color: "blue" },
+  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30–4:30pm", color: "green" },
+];
 
-const ALL_DAY_TASKS = [
-  { title: "Read chapter 4", color: "border-stone-200 bg-stone-50 text-stone-600" },
-  { title: "Problem set 2", color: "border-blue-200 bg-blue-50 text-blue-700" },
-  { title: "Lab report", color: "border-green-200 bg-green-50 text-green-700" },
-  { title: "Essay draft", color: "border-purple-200 bg-purple-50 text-purple-700" },
-  { title: "Study for quiz", color: "border-orange-200 bg-orange-50 text-orange-700" },
-  { title: "Plan next week", color: "border-blue-200 bg-blue-50 text-blue-700" },
-  { title: "Grocery run", color: "border-stone-200 bg-stone-50 text-stone-600" },
-] as const;
+const ALL_DAY_TASKS: { title: string; color: EventColor }[] = [
+  { title: "Read chapter 4", color: "indigo" },
+  { title: "Problem set 2", color: "blue" },
+  { title: "Lab report", color: "green" },
+  { title: "Essay draft", color: "purple" },
+  { title: "Study for quiz", color: "orange" },
+  { title: "Plan next week", color: "blue" },
+  { title: "Grocery run", color: "teal" },
+];
 
 const HOURS = ["8 am", "9 am", "10 am", "11 am", "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm"];
 
@@ -102,11 +158,8 @@ export default function CalendarMockup() {
             <span className="grid size-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] text-xs" aria-hidden>‹</span>
             <span className="grid h-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] px-2.5 text-[11px] font-semibold">Today</span>
             <span className="grid size-8 place-items-center rounded-md border border-[var(--mock-line)] bg-[var(--mock-surface)] text-xs" aria-hidden>›</span>
-            <strong className="ml-2 flex items-center gap-1.5 truncate text-sm tracking-[-0.02em] min-[700px]:text-lg">
+            <strong className="ml-2 truncate text-sm tracking-[-0.02em] min-[700px]:text-lg">
               September
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
             </strong>
             <div className="ml-auto hidden rounded-lg bg-[var(--mock-soft)] p-1 text-[10px] min-[520px]:flex">
               <span className="rounded-md bg-[var(--mock-surface)] px-2 py-1 font-semibold shadow-sm">Week</span>
@@ -120,7 +173,7 @@ export default function CalendarMockup() {
             {DAYS.map((day) => (
               <div key={day.date} className="flex flex-col items-start justify-center pl-1.5 min-[520px]:pl-2.5 min-[900px]:pl-4">
                 <span className="text-[8px] font-semibold tracking-wide text-[var(--mock-muted)] uppercase min-[520px]:text-[10px]">{day.label}</span>
-                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[#4f46e5] text-xs font-bold text-white" : "mt-1 text-sm font-bold"}>
+                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[var(--kal-accent)] text-xs font-bold text-[var(--kal-ink)]" : "mt-1 text-sm font-bold"}>
                   {day.date}
                 </span>
               </div>
@@ -130,7 +183,7 @@ export default function CalendarMockup() {
           <div className="grid h-[44px] shrink-0 grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-[var(--mock-line)]">
             <span className="self-center text-center text-[8px] text-[var(--mock-muted)]">all-day</span>
             {ALL_DAY_TASKS.map((task) => (
-              <div key={task.title} className={`mx-1 my-2 flex min-w-0 items-center justify-start gap-1 overflow-hidden rounded-md border px-1 py-1 text-[7px] font-medium min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px] ${task.color}`}>
+              <div key={task.title} className={`mx-1 my-2 flex min-w-0 items-center justify-start gap-1 overflow-hidden rounded-md border px-1 py-1 text-[7px] font-medium min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px] ${TASK_COLOR_CLASSES[task.color]}`}>
                 <span className="size-3 shrink-0 rounded-[3px] border border-current/50" aria-hidden />
                 <span className="truncate">{task.title}</span>
               </div>
@@ -151,7 +204,7 @@ export default function CalendarMockup() {
               {EVENTS.map((event) => (
                 <div
                   key={`${event.day}-${event.title}`}
-                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${"dragging" in event && event.dragging ? "z-20 overflow-visible shadow-[0_8px_16px_rgba(79,70,229,0.2)]" : "overflow-hidden"} ${event.color}`}
+                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${event.dragging ? `z-20 overflow-visible shadow-[0_8px_16px_rgba(63,82,160,0.28)] ${DRAG_CLASS}` : `overflow-hidden ${EVENT_COLOR_CLASSES[event.color]}`}`}
                   style={{
                     left: `calc((100% / 7) * ${event.day - 1} + 3px)`,
                     width: "calc(100% / 7 - 6px)",
@@ -159,9 +212,18 @@ export default function CalendarMockup() {
                     height: event.height,
                   }}
                 >
-                  <strong className="block truncate">{event.title}</strong>
-                  <span className="mt-1 block truncate opacity-70">{event.time}</span>
-                  {"dragging" in event && event.dragging && <DragHand />}
+                  {/* Floating inset accent bar hugging the left edge, matching
+                      the app's week/day events. The dragged event is solid so
+                      it needs no bar. */}
+                  {!event.dragging && (
+                    <span
+                      aria-hidden
+                      className={`pointer-events-none absolute left-1 top-1 bottom-1 w-[2px] rounded-full ${EVENT_COLOR_SWATCH_CLASSES[event.color]}`}
+                    />
+                  )}
+                  <strong className={`block truncate ${event.dragging ? "" : "pl-1.5"}`}>{event.title}</strong>
+                  <span className={`mt-0.5 block truncate opacity-70 ${event.dragging ? "" : "pl-1.5"}`}>{event.time}</span>
+                  {event.dragging && <DragHand />}
                 </div>
               ))}
             </div>
@@ -197,69 +259,168 @@ function DragHand() {
 
 function CalendarSidebarMockup() {
   return (
-    <aside className="hidden w-[248px] shrink-0 flex-col border-r border-[var(--mock-line)] bg-[var(--mock-sidebar)] transition-colors min-[900px]:flex">
-      <div className="flex items-center justify-between px-5 pt-7 pb-5">
-        <strong className="text-lg tracking-[-0.03em]">Spaces</strong>
-        <span className="text-xl font-light text-[#6b6861]" aria-hidden>+</span>
+    <aside className="hidden w-[256px] shrink-0 border-r border-[var(--mock-line)] bg-[var(--mock-sidebar)] transition-colors min-[900px]:flex">
+      <RailMockup />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AgendaColumnMockup />
+        <MiniCalendarMockup />
+      </div>
+    </aside>
+  );
+}
+
+// Icon rail: app mark, "all spaces", Space tiles, add, account avatar.
+function RailMockup() {
+  return (
+    <nav
+      className="flex w-[46px] shrink-0 flex-col items-center border-r border-[var(--mock-line)] bg-[var(--mock-surface)] pt-3.5 pb-3"
+      aria-hidden
+    >
+      <span className="grid size-7 place-items-center rounded-[8px] bg-[var(--kal-accent)]">
+        <KalendMark size={15} tone="white" />
+      </span>
+      <div className="my-2.5 h-px w-5 bg-[var(--mock-line)]" />
+
+      {/* View all spaces (stacked-layers glyph) */}
+      <span className="mb-2 grid size-7 place-items-center rounded-[8px] text-[var(--mock-muted)]">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m12 2 9 5-9 5-9-5 9-5Z" />
+          <path d="m3 12 9 5 9-5" />
+          <path d="m3 17 9 5 9-5" />
+        </svg>
+      </span>
+
+      <div className="flex flex-col items-center gap-1.5">
+        {RAIL_SPACES.map((space) => (
+          <span
+            key={space.abbr}
+            className={
+              space.active
+                ? `grid size-7 place-items-center rounded-[9px] border text-[11px] font-bold ${EVENT_COLOR_CLASSES[space.color]}`
+                : "grid size-7 place-items-center rounded-[9px] bg-[var(--mock-soft)] text-[11px] font-bold text-[var(--mock-muted)]"
+            }
+          >
+            {space.abbr}
+          </span>
+        ))}
       </div>
 
-      <div className="px-5 text-[12px]">
-        <div className="flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-indigo-500" aria-hidden />
-          <span>Spaces</span>
-          <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
-        </div>
-        <div className="ml-3 border-l border-[var(--mock-line)] pl-4">
-          {SCHOOL_SPACES.map((space) => (
-            <div key={space.label} className="flex items-center gap-2.5 py-2 text-[var(--mock-muted)]">
-              <span className="size-2.5 rounded-[3px]" style={{ background: space.color }} aria-hidden />
-              <span className="truncate">{space.label}</span>
+      <span className="mt-1.5 grid size-7 place-items-center rounded-[9px] border border-dashed border-[var(--mock-line)] text-base font-light text-[var(--mock-muted)]">
+        +
+      </span>
+
+      <div className="flex-1" />
+      <span className="grid size-7 place-items-center rounded-full bg-[var(--mock-soft)] text-[9px] font-semibold text-[var(--mock-muted)]">
+        AR
+      </span>
+    </nav>
+  );
+}
+
+// Agenda column: date header, Schedule section, Tasks section (bucketed).
+function AgendaColumnMockup() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0 border-b border-[var(--mock-line)] px-3.5 pt-3 pb-2.5">
+        <h3 className="text-[13px] font-semibold leading-tight tracking-[-0.02em]">Monday, Sep 8</h3>
+        <p className="mt-0.5 text-[10px] text-[var(--mock-muted)]">3 events · 6 tasks</p>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">
+        {/* Schedule */}
+        <section aria-hidden>
+          <h4 className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Schedule</h4>
+          <div className="flex flex-col">
+            {SCHEDULE.map((event) => (
+              <div key={event.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
+                <span className="w-[48px] shrink-0 whitespace-nowrap text-[10px] font-medium tabular-nums text-[var(--mock-muted)]">
+                  {event.time}
+                </span>
+                <span className={`w-[2.5px] self-stretch rounded-full ${EVENT_COLOR_SWATCH_CLASSES[event.color]}`} />
+                <span className="min-w-0 flex-1 truncate text-[11px]">{event.title}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Tasks */}
+        <section aria-hidden className="mt-3">
+          <h4 className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
+          {TASK_BUCKETS.map((bucket) => (
+            <div key={bucket.label} className="mt-2 first:mt-0">
+              <div className="flex items-center gap-1.5 px-1">
+                <svg width="9" height="9" viewBox="0 0 12 12" fill="none" className="text-[var(--mock-muted)]">
+                  <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="text-[10px] font-medium text-[var(--mock-text)]/90">{bucket.label}</span>
+                <span className="text-[10px] font-medium tabular-nums text-[var(--mock-muted)]">{bucket.tasks.length}</span>
+                <span className="ml-auto text-[13px] font-light leading-none text-[var(--mock-muted)]">+</span>
+              </div>
+              {bucket.tasks.map((task) => (
+                <div key={task.title} className="flex items-center gap-2 rounded-sm px-1 py-0.5">
+                  {task.done ? (
+                    <span className="grid size-[13px] shrink-0 place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
+                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                        <path d="m2.5 6 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  ) : (
+                    <span className="size-[13px] shrink-0 rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
+                  )}
+                  {!task.done && (
+                    <span className={`size-1.5 shrink-0 rounded-full ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} />
+                  )}
+                  <span
+                    className={
+                      task.done
+                        ? "min-w-0 flex-1 truncate text-[11px] text-[var(--mock-muted)] line-through"
+                        : "min-w-0 flex-1 truncate text-[11px]"
+                    }
+                  >
+                    {task.title}
+                  </span>
+                </div>
+              ))}
             </div>
           ))}
-        </div>
-        <div className="mt-2 flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-orange-500" aria-hidden />
-          <span>Work</span>
-          <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
-        </div>
-        <div className="flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-purple-500" aria-hidden />
-          <span>Personal</span>
-          <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
-        </div>
+        </section>
       </div>
+    </div>
+  );
+}
 
-      <div className="mx-4 mt-auto mb-4 rounded-[14px] border border-[var(--mock-line)] bg-[var(--mock-surface)] p-4 shadow-[0_8px_24px_-22px_rgba(28,26,22,0.3)]">
-        <div className="mb-3 flex items-center text-[13px] font-semibold tracking-[-0.01em]">
-          <span>September</span>
-          <span className="ml-auto flex items-center gap-3 text-[var(--mock-muted)]" aria-hidden>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="m8.5 3-4 4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="m5.5 3 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </div>
-        <div className="grid auto-rows-[25px] grid-cols-7 gap-y-1 text-center text-[10px] leading-none text-[var(--mock-muted)]">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-            <span key={`${day}-${index}`} className="mx-auto grid size-6 place-items-center font-semibold">{day}</span>
-          ))}
-          {MINI_CALENDAR_DAYS.map((day, index) => {
-            const muted = index === 0 || index > 30;
-            const selected = day === 8 && index < 15;
-            return (
-              <span
-                key={`${day}-${index}`}
-                className={`mx-auto grid size-6 place-items-center ${selected ? "rounded-full bg-indigo-500 font-semibold text-white shadow-[0_3px_8px_rgba(99,102,241,0.3)]" : muted ? "opacity-40" : ""}`}
-              >
-                {day}
-              </span>
-            );
-          })}
-        </div>
+// Mini calendar pinned at the bottom of the agenda column.
+function MiniCalendarMockup() {
+  return (
+    <div className="shrink-0 border-t border-[var(--mock-line)] px-3 pt-2.5 pb-3">
+      <div className="mb-2 flex items-center text-[11px] font-semibold tracking-[-0.01em]">
+        <span>September</span>
+        <span className="ml-auto flex items-center gap-2.5 text-[var(--mock-muted)]" aria-hidden>
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+            <path d="m8.5 3-4 4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+            <path d="m5.5 3 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
       </div>
-
-    </aside>
+      <div className="grid auto-rows-[19px] grid-cols-7 gap-y-0.5 text-center text-[9px] leading-none text-[var(--mock-muted)]">
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+          <span key={`${day}-${index}`} className="mx-auto grid size-5 place-items-center font-semibold">{day}</span>
+        ))}
+        {MINI_CALENDAR_DAYS.map((day, index) => {
+          const muted = index === 0 || index > 30;
+          const selected = day === 8 && index < 15;
+          return (
+            <span
+              key={`${day}-${index}`}
+              className={`mx-auto grid size-5 place-items-center ${selected ? "rounded-full bg-[var(--kal-accent)] font-semibold text-[var(--kal-ink)]" : muted ? "opacity-40" : ""}`}
+            >
+              {day}
+            </span>
+          );
+        })}
+      </div>
+    </div>
   );
 }

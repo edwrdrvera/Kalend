@@ -99,42 +99,42 @@
 }
 
 .dark {
-    /* Dark mode — warm ink. A warm near-black canvas (#17150f) with warm dark
-     * surfaces, and a lighter terracotta (#f0916b) as the primary so it reads
-     * as text on dark (7.6:1) and as a button bg with dark ink (7.4:1).
-     * primary-foreground stays dark ink so buttons remain legible. */
-    --background: #17150f;
-    --foreground: #ece7dc;
-    --card: #1f1c16;
-    --card-foreground: #ece7dc;
-    --popover: #1f1c16;
-    --popover-foreground: #ece7dc;
+    /* Dark mode — neutral ink. A true-neutral near-black canvas (#171717, no
+     * brown/blue cast) with neutral-gray surfaces and off-white text. The
+     * terracotta primary (#f0916b) is kept as the brand accent — it reads as
+     * text on dark (7.6:1) and as a button bg with dark neutral ink (7.4:1). */
+    --background: #171717;
+    --foreground: #e8e8e8;
+    --card: #1f1f1f;
+    --card-foreground: #e8e8e8;
+    --popover: #1f1f1f;
+    --popover-foreground: #e8e8e8;
     --primary: #f0916b;
-    --primary-foreground: #1c1a16;
-    --secondary: #2a251c;
-    --secondary-foreground: #ece7dc;
-    --muted: #2a251c;
-    --muted-foreground: #b3ab9b;
-    --accent: #2a251c;
-    --accent-foreground: #ece7dc;
+    --primary-foreground: #171717;
+    --secondary: #262626;
+    --secondary-foreground: #e8e8e8;
+    --muted: #262626;
+    --muted-foreground: #a1a1a1;
+    --accent: #262626;
+    --accent-foreground: #e8e8e8;
     --destructive: #ef4444;
-    --border: #2a251c;
-    --input: #2a251c;
+    --border: #2e2e2e;
+    --input: #2e2e2e;
     --ring: #f0916b;
     --chart-1: #f0916b;
-    --chart-2: #b3ab9b;
-    --chart-3: #ece7dc;
-    --chart-4: #2a251c;
-    --chart-5: #1f1c16;
-    --sidebar: #1f1c16;
-    --sidebar-foreground: #ece7dc;
+    --chart-2: #a1a1a1;
+    --chart-3: #e8e8e8;
+    --chart-4: #2e2e2e;
+    --chart-5: #1f1f1f;
+    --sidebar: #1f1f1f;
+    --sidebar-foreground: #e8e8e8;
     --sidebar-primary: #f0916b;
-    --sidebar-primary-foreground: #1c1a16;
-    --sidebar-accent: #2a251c;
-    --sidebar-accent-foreground: #ece7dc;
-    --sidebar-border: #2a251c;
+    --sidebar-primary-foreground: #171717;
+    --sidebar-accent: #262626;
+    --sidebar-accent-foreground: #e8e8e8;
+    --sidebar-border: #2e2e2e;
     --sidebar-ring: #f0916b;
-    --mini-cal-bg: #1f1c16;
+    --mini-cal-bg: #1f1f1f;
 }
 
 /* Event / Space / Task color palette — "sunset warm" set: warm-toned but

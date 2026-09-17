@@ -15,10 +15,12 @@ interface ViewSwitcherProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-/** Segmented control for switching between the month, week, and day grids. */
+/** Segmented control for switching between the month, week, and day grids.
+ *  Styled as a soft pill (a warm muted track with a raised card chip for the
+ *  active view), echoing the landing-page mock rather than a hard-bordered box. */
 export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) {
   return (
-    <div className="flex items-center overflow-hidden rounded-md border border-border bg-card text-xs font-semibold text-muted-foreground">
+    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 text-xs font-semibold text-muted-foreground">
       {VIEWS.map(({ value, label, short }) => (
         <button
           key={value}
@@ -26,10 +28,10 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           onClick={() => onViewChange(value)}
           aria-pressed={view === value}
           className={cn(
-            "h-8 border-r border-border px-1.5 transition-colors last:border-r-0 md:px-2.5",
+            "h-7 rounded-md px-1.5 transition-colors md:px-2.5",
             view === value
-              ? "bg-muted text-foreground"
-              : "hover:bg-muted/50 hover:text-foreground"
+              ? "bg-card text-foreground shadow-sm"
+              : "hover:text-foreground"
           )}
         >
           <span className="md:hidden">{short}</span>
