@@ -757,7 +757,7 @@ export default function TimeGrid({
           const columnBg = isDayView
             ? "bg-card"
             : isToday
-              ? "bg-primary/[0.03]"
+              ? "bg-foreground/[0.04]"
               : isWeekend
                 ? "bg-muted/30"
                 : "bg-card";
