@@ -78,7 +78,10 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   const isTodayCurrent = isSameDay(day, new Date());
 
   if (!isCurrentMonth) {
-    return `${baseClasses} rounded-md text-muted-foreground/30`;
+    // Dimmer than in-month dates (which use text-foreground) so they recede,
+    // but the full muted-foreground token stays legible: text-muted-foreground/30
+    // composited to ~1.48:1, a WCAG AA failure. Full token is 5.2:1 light / 7.4:1 dark.
+    return `${baseClasses} rounded-md text-muted-foreground`;
   }
 
   if (isSelected) {
