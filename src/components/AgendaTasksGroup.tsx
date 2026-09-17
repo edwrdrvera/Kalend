@@ -207,29 +207,33 @@ function TaskRow({
     ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
     : "bg-muted-foreground/40";
 
+  // Each leading element (checkbox, dot) sits in an 18px line box that matches
+  // the text's first-line height and centers its contents, so all three centers
+  // align — and stay aligned to the first line when the title wraps.
   return (
-    <div className="flex items-start gap-2 rounded-sm px-1 py-0.5">
-      <button
-        type="button"
-        onClick={() => onToggleTaskComplete(task)}
-        aria-pressed={task.completed}
-        aria-label={task.completed ? "Mark as not done" : "Mark as done"}
-        className={cn(
-          "mt-px flex size-[15px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          task.completed
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-border text-transparent hover:border-muted-foreground"
-        )}
-      >
-        <Check className="size-2.5" strokeWidth={3} />
-      </button>
+    <div className="flex items-start gap-2 rounded-sm px-1 py-1">
+      <span className="flex h-[18px] shrink-0 items-center">
+        <button
+          type="button"
+          onClick={() => onToggleTaskComplete(task)}
+          aria-pressed={task.completed}
+          aria-label={task.completed ? "Mark as not done" : "Mark as done"}
+          className={cn(
+            "flex size-[15px] translate-y-[1px] items-center justify-center rounded-[4px] border-[1.5px] transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            task.completed
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border text-transparent hover:border-muted-foreground"
+          )}
+        >
+          <Check className="size-2.5" strokeWidth={3} />
+        </button>
+      </span>
+      <span className="flex h-[18px] shrink-0 items-center">
+        <span aria-hidden className={cn("size-1.5 translate-y-[1px] rounded-full", dotClass)} />
+      </span>
       <span
-        aria-hidden
-        className={cn("mt-[5px] size-1.5 shrink-0 rounded-full", dotClass)}
-      />
-      <span
         className={cn(
-          "min-w-0 flex-1 text-[12.5px] leading-[1.35]",
+          "min-w-0 flex-1 text-[12.5px] leading-[18px]",
           task.completed ? "line-through opacity-50" : "text-foreground"
         )}
       >
@@ -292,31 +296,42 @@ export default function AgendaTasksGroup({
               className="mt-2 first:mt-0"
             >
               <div className="flex items-center gap-1.5 px-1">
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse(bucket.key)}
-                  aria-expanded={!isCollapsed}
-                  className="flex min-w-0 items-center gap-1.5 rounded-sm py-0.5 text-left transition-colors hover:text-foreground"
-                >
-                  {isCollapsed ? (
-                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                  )}
-                  <span
-                    className={cn(
-                      "text-[11.5px] font-medium",
-                      bucket.danger ? "text-destructive" : "text-foreground/90"
-                    )}
-                  >
-                    {bucket.label}
+                {bucket.tasks.length === 0 ? (
+                  <span className="flex min-w-0 items-center gap-1.5 py-0.5 text-left">
+                    <span
+                      className={cn(
+                        "text-[11.5px] font-medium",
+                        bucket.danger ? "text-destructive" : "text-foreground/90"
+                      )}
+                    >
+                      {bucket.label}
+                    </span>
                   </span>
-                  {bucket.tasks.length > 0 && (
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapse(bucket.key)}
+                    aria-expanded={!isCollapsed}
+                    className="flex min-w-0 items-center gap-1.5 rounded-sm py-0.5 text-left transition-colors hover:text-foreground"
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                    )}
+                    <span
+                      className={cn(
+                        "text-[11.5px] font-medium",
+                        bucket.danger ? "text-destructive" : "text-foreground/90"
+                      )}
+                    >
+                      {bucket.label}
+                    </span>
                     <span className="text-[11px] font-medium tabular-nums text-muted-foreground/60">
                       {bucket.tasks.length}
                     </span>
-                  )}
-                </button>
+                  </button>
+                )}
                 {bucket.canAdd && (
                   <button
                     type="button"
@@ -349,7 +364,7 @@ export default function AgendaTasksGroup({
               )}
 
               {!isCollapsed && (
-                <div className="mt-0.5 flex flex-col">
+                <div className="mt-0.5 flex flex-col gap-1">
                   {bucket.tasks.map((task) => (
                     <TaskRow
                       key={task.id}
