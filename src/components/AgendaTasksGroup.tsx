@@ -249,13 +249,11 @@ export default function AgendaTasksGroup({
   onToggleTaskComplete,
   precededBySchedule = false,
 }: AgendaTasksGroupProps) {
-  const [collapsed, setCollapsed] = useState<Set<TaskBucketKey>>(() => new Set());
+  // Seed collapse state from localStorage in the initializer (client-only; the
+  // populated task list only renders after tasks load client-side, so there is
+  // no server render to mismatch against). readCollapsed() is SSR-safe.
+  const [collapsed, setCollapsed] = useState<Set<TaskBucketKey>>(() => readCollapsed());
   const [composerBucket, setComposerBucket] = useState<TaskBucketKey | null>(null);
-
-  // Read persisted collapse state after mount (localStorage is client-only).
-  useEffect(() => {
-    setCollapsed(readCollapsed());
-  }, []);
 
   const toggleCollapse = (key: TaskBucketKey) => {
     setCollapsed((prev) => {

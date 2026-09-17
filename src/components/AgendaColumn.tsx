@@ -2,7 +2,6 @@
 
 import { Calendar, Loader2 } from "lucide-react";
 import { format, startOfDay } from "date-fns";
-import { isMultiDayEvent } from "@/lib/time-grid-layout";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 import AgendaDateHeader from "./AgendaDateHeader";
