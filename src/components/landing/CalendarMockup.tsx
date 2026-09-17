@@ -78,29 +78,29 @@ const MINI_CALENDAR_DAYS = [
   28, 29, 30, 1, 2, 3, 4,
 ] as const;
 
-// Times are compact (whole hours drop ":00", en-dash with no spaces) and carry
-// am/pm once at the end, or on both ends when the range crosses noon.
+// Times carry am/pm on BOTH ends, matching the app's week/day event blocks
+// (format "h:mm a – h:mm a", e.g. "10:00 AM – 11:00 AM").
 const EVENTS: { day: number; top: number; height: number; title: string; time: string; color: EventColor; dragging?: boolean }[] = [
-  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10–11am", color: "indigo" },
-  { day: 1, top: 158, height: 108, title: "Work shift", time: "12–3pm", color: "orange" },
-  { day: 1, top: 344, height: 58, title: "English Lit", time: "5–6:30pm", color: "green" },
-  { day: 2, top: 6, height: 52, title: "Physics I", time: "8–9:15am", color: "blue" },
-  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10–11am", color: "orange" },
-  { day: 2, top: 196, height: 50, title: "Psychology", time: "1–2:15pm", color: "purple" },
-  { day: 2, top: 272, height: 52, title: "Study group", time: "3–4pm", color: "blue" },
-  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9–10:15am", color: "indigo", dragging: true },
-  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11am–1pm", color: "blue" },
-  { day: 3, top: 234, height: 150, title: "Work shift", time: "2–6pm", color: "orange" },
-  { day: 4, top: 82, height: 52, title: "English Lit", time: "10–11:15am", color: "green" },
-  { day: 4, top: 196, height: 50, title: "Psychology", time: "1–2:15pm", color: "purple" },
-  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3–4:30pm", color: "orange" },
-  { day: 5, top: 6, height: 52, title: "Physics I", time: "8–9:15am", color: "blue" },
-  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10–11am", color: "indigo" },
-  { day: 5, top: 158, height: 58, title: "English Lit", time: "12–1:15pm", color: "green" },
-  { day: 5, top: 310, height: 58, title: "Psychology", time: "4–5:15pm", color: "purple" },
-  { day: 6, top: 44, height: 160, title: "Work shift", time: "9am–1pm", color: "orange" },
-  { day: 6, top: 234, height: 48, title: "Office hours", time: "2–3pm", color: "blue" },
-  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30–4:30pm", color: "green" },
+  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10:00 AM – 11:00 AM", color: "indigo" },
+  { day: 1, top: 158, height: 108, title: "Work shift", time: "12:00 PM – 3:00 PM", color: "orange" },
+  { day: 1, top: 344, height: 58, title: "English Lit", time: "5:00 PM – 6:30 PM", color: "green" },
+  { day: 2, top: 6, height: 52, title: "Physics I", time: "8:00 AM – 9:15 AM", color: "blue" },
+  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10:00 AM – 11:00 AM", color: "orange" },
+  { day: 2, top: 196, height: 50, title: "Psychology", time: "1:00 PM – 2:15 PM", color: "purple" },
+  { day: 2, top: 272, height: 52, title: "Study group", time: "3:00 PM – 4:00 PM", color: "blue" },
+  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9:00 AM – 10:15 AM", color: "indigo", dragging: true },
+  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11:00 AM – 1:00 PM", color: "blue" },
+  { day: 3, top: 234, height: 150, title: "Work shift", time: "2:00 PM – 6:00 PM", color: "orange" },
+  { day: 4, top: 82, height: 52, title: "English Lit", time: "10:00 AM – 11:15 AM", color: "green" },
+  { day: 4, top: 196, height: 50, title: "Psychology", time: "1:00 PM – 2:15 PM", color: "purple" },
+  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3:00 PM – 4:30 PM", color: "orange" },
+  { day: 5, top: 6, height: 52, title: "Physics I", time: "8:00 AM – 9:15 AM", color: "blue" },
+  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10:00 AM – 11:00 AM", color: "indigo" },
+  { day: 5, top: 158, height: 58, title: "English Lit", time: "12:00 PM – 1:15 PM", color: "green" },
+  { day: 5, top: 310, height: 58, title: "Psychology", time: "4:00 PM – 5:15 PM", color: "purple" },
+  { day: 6, top: 44, height: 160, title: "Work shift", time: "9:00 AM – 1:00 PM", color: "orange" },
+  { day: 6, top: 234, height: 48, title: "Office hours", time: "2:00 PM – 3:00 PM", color: "blue" },
+  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30 PM – 4:30 PM", color: "green" },
 ];
 
 const ALL_DAY_TASKS: { title: string; color: EventColor }[] = [
@@ -343,9 +343,17 @@ function AgendaColumnMockup() {
           </div>
         </section>
 
-        {/* Tasks */}
+        {/* Tasks: one "+" for the whole list in the section header; buckets no
+            longer carry their own "+". */}
         <section aria-hidden className="mt-3">
-          <h4 className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
+          <div className="flex items-center justify-between px-1 pb-1">
+            <h4 className="text-[9px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
+            <span className="grid size-4 place-items-center rounded text-[var(--mock-muted)]">
+              <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                <path d="M6 2.5v7M2.5 6h7" />
+              </svg>
+            </span>
+          </div>
           {TASK_BUCKETS.map((bucket) => (
             <div key={bucket.label} className="mt-2 first:mt-0">
               <div className="flex items-center gap-1.5 px-1">
@@ -354,33 +362,34 @@ function AgendaColumnMockup() {
                 </svg>
                 <span className="text-[10px] font-medium text-[var(--mock-text)]/90">{bucket.label}</span>
                 <span className="text-[10px] font-medium tabular-nums text-[var(--mock-muted)]">{bucket.tasks.length}</span>
-                <span className="ml-auto text-[13px] font-light leading-none text-[var(--mock-muted)]">+</span>
               </div>
-              {bucket.tasks.map((task) => (
-                <div key={task.title} className="flex items-center gap-2 rounded-sm px-1 py-0.5">
-                  {task.done ? (
-                    <span className="grid size-[13px] shrink-0 place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
-                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
-                        <path d="m2.5 6 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+              <div className="mt-0.5 flex flex-col gap-1">
+                {bucket.tasks.map((task) => (
+                  <div key={task.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
+                    {task.done ? (
+                      <span className="grid size-[13px] shrink-0 translate-y-[1px] place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
+                        <svg width="8" height="8" viewBox="0 0 12 12" fill="none">
+                          <path d="m2.5 6 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                    ) : (
+                      <span className="size-[13px] shrink-0 translate-y-[1px] rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
+                    )}
+                    {!task.done && (
+                      <span className={`size-1.5 shrink-0 translate-y-[1px] rounded-full ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} />
+                    )}
+                    <span
+                      className={
+                        task.done
+                          ? "min-w-0 flex-1 truncate text-[11px] text-[var(--mock-muted)] line-through"
+                          : "min-w-0 flex-1 truncate text-[11px]"
+                      }
+                    >
+                      {task.title}
                     </span>
-                  ) : (
-                    <span className="size-[13px] shrink-0 rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
-                  )}
-                  {!task.done && (
-                    <span className={`size-1.5 shrink-0 rounded-full ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} />
-                  )}
-                  <span
-                    className={
-                      task.done
-                        ? "min-w-0 flex-1 truncate text-[11px] text-[var(--mock-muted)] line-through"
-                        : "min-w-0 flex-1 truncate text-[11px]"
-                    }
-                  >
-                    {task.title}
-                  </span>
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </section>
