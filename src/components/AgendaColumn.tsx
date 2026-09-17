@@ -110,6 +110,7 @@ export default function AgendaColumn({
               onCreateTask={onCreateTask}
               onToggleTaskComplete={onToggleTaskComplete}
               onDeleteTask={onDeleteTask}
+              precededBySchedule={eventCount > 0}
             />
           </div>
         </div>

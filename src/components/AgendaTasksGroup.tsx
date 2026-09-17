@@ -28,6 +28,10 @@ interface AgendaTasksGroupProps {
   ) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onDeleteTask: (task: CalendarTask) => void;
+  /** Whether a Schedule section renders above this one. When false (no events
+   *  that day), the Tasks list is the only section, so it drops its top divider
+   *  to avoid an empty band under the date header. */
+  precededBySchedule?: boolean;
 }
 
 // ── Collapse persistence ─────────────────────────────────────────────────
@@ -243,6 +247,7 @@ export default function AgendaTasksGroup({
   selectedSpaceId,
   onCreateTask,
   onToggleTaskComplete,
+  precededBySchedule = false,
 }: AgendaTasksGroupProps) {
   const [collapsed, setCollapsed] = useState<Set<TaskBucketKey>>(() => new Set());
   const [composerBucket, setComposerBucket] = useState<TaskBucketKey | null>(null);
@@ -267,7 +272,10 @@ export default function AgendaTasksGroup({
   const buckets = bucketTasks(tasks, new Date());
 
   return (
-    <section aria-label="Tasks" className="border-t border-border pt-3">
+    <section
+      aria-label="Tasks"
+      className={cn(precededBySchedule && "border-t border-border pt-3")}
+    >
       <h3 className="px-1 pb-1 text-[12.5px] font-semibold text-foreground">
         Tasks
       </h3>
