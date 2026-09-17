@@ -257,7 +257,9 @@ export default function AgendaTasksGroup({
   // populated task list only renders after tasks load client-side, so there is
   // no server render to mismatch against). readCollapsed() is SSR-safe.
   const [collapsed, setCollapsed] = useState<Set<TaskBucketKey>>(() => readCollapsed());
-  const [composerBucket, setComposerBucket] = useState<TaskBucketKey | null>(null);
+  // A single composer, opened by the one "+" in the section header. Quick-adds
+  // default to no due date; the composer's own date toggle handles scheduling.
+  const [composerOpen, setComposerOpen] = useState(false);
 
   const toggleCollapse = (key: TaskBucketKey) => {
     setCollapsed((prev) => {
@@ -278,90 +280,65 @@ export default function AgendaTasksGroup({
       aria-label="Tasks"
       className={cn(precededBySchedule && "border-t border-border pt-3")}
     >
-      <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-        Tasks
-      </h3>
+      {/* One "+" for the whole list. When there are no tasks, this is all that
+          renders below the heading; no empty bucket sections are shown. */}
+      <div className="flex items-center justify-between px-1 pb-1">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+          Tasks
+        </h3>
+        <button
+          type="button"
+          onClick={() => setComposerOpen(true)}
+          aria-label="Add a task"
+          className="grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus className="size-3.5" />
+        </button>
+      </div>
+
+      {composerOpen && (
+        <InlineTaskComposer
+          categories={categories}
+          selectedSpaceId={selectedSpaceId}
+          initialDue={null}
+          onCreateTask={onCreateTask}
+          onClose={() => setComposerOpen(false)}
+        />
+      )}
 
       <div className="flex flex-col">
         {buckets.map((bucket) => {
-          // Empty buckets are hidden to keep the list short; Today always shows.
-          if (bucket.tasks.length === 0 && bucket.key !== "today") return null;
+          // Only buckets that actually hold tasks render; the header "+" is the
+          // sole add affordance, so empty buckets have nothing to show.
+          if (bucket.tasks.length === 0) return null;
 
           const isCollapsed = collapsed.has(bucket.key);
-          const composerHere = composerBucket === bucket.key;
 
           return (
-            <div
-              key={bucket.key}
-              className="mt-2 first:mt-0"
-            >
-              <div className="flex items-center gap-1.5 px-1">
-                {bucket.tasks.length === 0 ? (
-                  <span className="flex min-w-0 items-center gap-1.5 py-0.5 text-left">
-                    <span
-                      className={cn(
-                        "text-[11.5px] font-medium",
-                        bucket.danger ? "text-destructive" : "text-foreground/90"
-                      )}
-                    >
-                      {bucket.label}
-                    </span>
-                  </span>
+            <div key={bucket.key} className="mt-2 first:mt-0">
+              <button
+                type="button"
+                onClick={() => toggleCollapse(bucket.key)}
+                aria-expanded={!isCollapsed}
+                className="flex w-full min-w-0 items-center gap-1.5 rounded-sm px-1 py-0.5 text-left transition-colors hover:text-foreground"
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => toggleCollapse(bucket.key)}
-                    aria-expanded={!isCollapsed}
-                    className="flex min-w-0 items-center gap-1.5 rounded-sm py-0.5 text-left transition-colors hover:text-foreground"
-                  >
-                    {isCollapsed ? (
-                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-                    )}
-                    <span
-                      className={cn(
-                        "text-[11.5px] font-medium",
-                        bucket.danger ? "text-destructive" : "text-foreground/90"
-                      )}
-                    >
-                      {bucket.label}
-                    </span>
-                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/60">
-                      {bucket.tasks.length}
-                    </span>
-                  </button>
+                  <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
                 )}
-                {bucket.canAdd && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setComposerBucket(bucket.key);
-                      setCollapsed((prev) => {
-                        if (!prev.has(bucket.key)) return prev;
-                        const next = new Set(prev);
-                        next.delete(bucket.key);
-                        writeCollapsed(next);
-                        return next;
-                      });
-                    }}
-                    aria-label={`Add a task to ${bucket.label}`}
-                    className="ml-auto grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {composerHere && (
-                <InlineTaskComposer
-                  categories={categories}
-                  selectedSpaceId={selectedSpaceId}
-                  initialDue={bucket.defaultDue}
-                  onCreateTask={onCreateTask}
-                  onClose={() => setComposerBucket(null)}
-                />
-              )}
+                <span
+                  className={cn(
+                    "text-[11.5px] font-medium",
+                    bucket.danger ? "text-destructive" : "text-foreground/90"
+                  )}
+                >
+                  {bucket.label}
+                </span>
+                <span className="text-[11px] font-medium tabular-nums text-muted-foreground/60">
+                  {bucket.tasks.length}
+                </span>
+              </button>
 
               {!isCollapsed && (
                 <div className="mt-0.5 flex flex-col gap-1">
