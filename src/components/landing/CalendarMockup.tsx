@@ -1,3 +1,11 @@
+import { EVENT_COLOR_CLASSES, TASK_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
+
+// A dragged event is "picked up": a solid fill with white text instead of the
+// usual soft tint, so it reads as the one you're moving. Uses the -deep token
+// (not -solid) so white text clears WCAG AA. Only Calculus II drags in this
+// mock, so this is a single literal class string Tailwind's scanner can see.
+const DRAG_CLASS = "border-[var(--evt-indigo-deep)] bg-[var(--evt-indigo-deep)] text-white";
+
 const DAYS = [
   { label: "Sun", date: 7, selected: false },
   { label: "Mon", date: 8, selected: true },
@@ -8,13 +16,16 @@ const DAYS = [
   { label: "Sat", date: 13, selected: false },
 ] as const;
 
-const SCHOOL_SPACES = [
-  { label: "Calculus II", color: "#6366f1" },
-  { label: "Physics I", color: "#3b82f6" },
-  { label: "English Literature", color: "#22a95b" },
-  { label: "Psychology", color: "#a855f7" },
-  { label: "Computer Science", color: "#f97316" },
-] as const;
+// Colors are EventColor keys (the app's "sunset warm" palette), rendered via
+// the same EVENT_COLOR_SWATCH_CLASSES the real sidebar uses, so the mock can't
+// drift out of sync with the product's colors again.
+const SCHOOL_SPACES: { label: string; color: EventColor }[] = [
+  { label: "Calculus II", color: "indigo" },
+  { label: "Physics I", color: "blue" },
+  { label: "English Literature", color: "green" },
+  { label: "Psychology", color: "purple" },
+  { label: "Computer Science", color: "orange" },
+];
 
 const MINI_CALENDAR_DAYS = [
   31, 1, 2, 3, 4, 5, 6,
@@ -24,38 +35,38 @@ const MINI_CALENDAR_DAYS = [
   28, 29, 30, 1, 2, 3, 4,
 ] as const;
 
-const EVENTS = [
-  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "border-indigo-300 bg-indigo-50 text-indigo-700" },
-  { day: 1, top: 158, height: 108, title: "Work shift", time: "12:00 – 3:00", color: "border-orange-300 bg-orange-50 text-orange-700" },
-  { day: 1, top: 344, height: 58, title: "English Lit", time: "5:00 – 6:30", color: "border-green-300 bg-green-50 text-green-700" },
-  { day: 2, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10:00 – 11:00", color: "border-orange-300 bg-white text-orange-700" },
-  { day: 2, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 2, top: 272, height: 52, title: "Study group", time: "3:00 – 4:00", color: "border-blue-400 bg-white text-blue-700" },
-  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9:00 – 10:15", color: "border-indigo-400 bg-indigo-500 text-white", dragging: true },
-  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11:00 – 1:00", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 3, top: 234, height: 150, title: "Work shift", time: "2:00 – 6:00", color: "border-orange-300 bg-orange-50 text-orange-700" },
-  { day: 4, top: 82, height: 52, title: "English Lit", time: "10:00 – 11:15", color: "border-green-300 bg-green-100 text-green-700" },
-  { day: 4, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3:00 – 4:30", color: "border-orange-400 bg-white text-orange-700" },
-  { day: 5, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "border-blue-300 bg-blue-100 text-blue-700" },
-  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "border-indigo-300 bg-indigo-50 text-indigo-700" },
-  { day: 5, top: 158, height: 58, title: "English Lit", time: "12:00 – 1:15", color: "border-green-300 bg-green-50 text-green-700" },
-  { day: 5, top: 310, height: 58, title: "Psychology", time: "4:00 – 5:15", color: "border-purple-300 bg-purple-100 text-purple-700" },
-  { day: 6, top: 44, height: 160, title: "Work shift", time: "9:00 – 1:00", color: "border-orange-400 bg-orange-50 text-orange-700" },
-  { day: 6, top: 234, height: 48, title: "Office hours", time: "2:00 – 3:00", color: "border-blue-400 bg-white text-blue-700" },
-  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30 – 4:30", color: "border-green-400 bg-white text-green-700" },
-] as const;
+const EVENTS: { day: number; top: number; height: number; title: string; time: string; color: EventColor; dragging?: boolean }[] = [
+  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "indigo" },
+  { day: 1, top: 158, height: 108, title: "Work shift", time: "12:00 – 3:00", color: "orange" },
+  { day: 1, top: 344, height: 58, title: "English Lit", time: "5:00 – 6:30", color: "green" },
+  { day: 2, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "blue" },
+  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10:00 – 11:00", color: "orange" },
+  { day: 2, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "purple" },
+  { day: 2, top: 272, height: 52, title: "Study group", time: "3:00 – 4:00", color: "blue" },
+  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9:00 – 10:15", color: "indigo", dragging: true },
+  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11:00 – 1:00", color: "blue" },
+  { day: 3, top: 234, height: 150, title: "Work shift", time: "2:00 – 6:00", color: "orange" },
+  { day: 4, top: 82, height: 52, title: "English Lit", time: "10:00 – 11:15", color: "green" },
+  { day: 4, top: 196, height: 50, title: "Psychology", time: "1:00 – 2:15", color: "purple" },
+  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3:00 – 4:30", color: "orange" },
+  { day: 5, top: 6, height: 52, title: "Physics I", time: "8:00 – 9:15", color: "blue" },
+  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10:00 – 11:00", color: "indigo" },
+  { day: 5, top: 158, height: 58, title: "English Lit", time: "12:00 – 1:15", color: "green" },
+  { day: 5, top: 310, height: 58, title: "Psychology", time: "4:00 – 5:15", color: "purple" },
+  { day: 6, top: 44, height: 160, title: "Work shift", time: "9:00 – 1:00", color: "orange" },
+  { day: 6, top: 234, height: 48, title: "Office hours", time: "2:00 – 3:00", color: "blue" },
+  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30 – 4:30", color: "green" },
+];
 
-const ALL_DAY_TASKS = [
-  { title: "Read chapter 4", color: "border-stone-200 bg-stone-50 text-stone-600" },
-  { title: "Problem set 2", color: "border-blue-200 bg-blue-50 text-blue-700" },
-  { title: "Lab report", color: "border-green-200 bg-green-50 text-green-700" },
-  { title: "Essay draft", color: "border-purple-200 bg-purple-50 text-purple-700" },
-  { title: "Study for quiz", color: "border-orange-200 bg-orange-50 text-orange-700" },
-  { title: "Plan next week", color: "border-blue-200 bg-blue-50 text-blue-700" },
-  { title: "Grocery run", color: "border-stone-200 bg-stone-50 text-stone-600" },
-] as const;
+const ALL_DAY_TASKS: { title: string; color: EventColor }[] = [
+  { title: "Read chapter 4", color: "indigo" },
+  { title: "Problem set 2", color: "blue" },
+  { title: "Lab report", color: "green" },
+  { title: "Essay draft", color: "purple" },
+  { title: "Study for quiz", color: "orange" },
+  { title: "Plan next week", color: "blue" },
+  { title: "Grocery run", color: "teal" },
+];
 
 const HOURS = ["8 am", "9 am", "10 am", "11 am", "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm"];
 
@@ -120,7 +131,7 @@ export default function CalendarMockup() {
             {DAYS.map((day) => (
               <div key={day.date} className="flex flex-col items-start justify-center pl-1.5 min-[520px]:pl-2.5 min-[900px]:pl-4">
                 <span className="text-[8px] font-semibold tracking-wide text-[var(--mock-muted)] uppercase min-[520px]:text-[10px]">{day.label}</span>
-                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[#4f46e5] text-xs font-bold text-white" : "mt-1 text-sm font-bold"}>
+                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[var(--kal-accent)] text-xs font-bold text-white" : "mt-1 text-sm font-bold"}>
                   {day.date}
                 </span>
               </div>
@@ -130,7 +141,7 @@ export default function CalendarMockup() {
           <div className="grid h-[44px] shrink-0 grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-[var(--mock-line)]">
             <span className="self-center text-center text-[8px] text-[var(--mock-muted)]">all-day</span>
             {ALL_DAY_TASKS.map((task) => (
-              <div key={task.title} className={`mx-1 my-2 flex min-w-0 items-center justify-start gap-1 overflow-hidden rounded-md border px-1 py-1 text-[7px] font-medium min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px] ${task.color}`}>
+              <div key={task.title} className={`mx-1 my-2 flex min-w-0 items-center justify-start gap-1 overflow-hidden rounded-md border px-1 py-1 text-[7px] font-medium min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px] ${TASK_COLOR_CLASSES[task.color]}`}>
                 <span className="size-3 shrink-0 rounded-[3px] border border-current/50" aria-hidden />
                 <span className="truncate">{task.title}</span>
               </div>
@@ -151,7 +162,7 @@ export default function CalendarMockup() {
               {EVENTS.map((event) => (
                 <div
                   key={`${event.day}-${event.title}`}
-                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${"dragging" in event && event.dragging ? "z-20 overflow-visible shadow-[0_8px_16px_rgba(79,70,229,0.2)]" : "overflow-hidden"} ${event.color}`}
+                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${event.dragging ? `z-20 overflow-visible shadow-[0_8px_16px_rgba(63,82,160,0.28)] ${DRAG_CLASS}` : `overflow-hidden ${EVENT_COLOR_CLASSES[event.color]}`}`}
                   style={{
                     left: `calc((100% / 7) * ${event.day - 1} + 3px)`,
                     width: "calc(100% / 7 - 6px)",
@@ -161,7 +172,7 @@ export default function CalendarMockup() {
                 >
                   <strong className="block truncate">{event.title}</strong>
                   <span className="mt-1 block truncate opacity-70">{event.time}</span>
-                  {"dragging" in event && event.dragging && <DragHand />}
+                  {event.dragging && <DragHand />}
                 </div>
               ))}
             </div>
@@ -205,25 +216,25 @@ function CalendarSidebarMockup() {
 
       <div className="px-5 text-[12px]">
         <div className="flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-indigo-500" aria-hidden />
+          <span className={`size-3 rounded-[4px] ${EVENT_COLOR_SWATCH_CLASSES.indigo}`} aria-hidden />
           <span>Spaces</span>
           <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
         </div>
         <div className="ml-3 border-l border-[var(--mock-line)] pl-4">
           {SCHOOL_SPACES.map((space) => (
             <div key={space.label} className="flex items-center gap-2.5 py-2 text-[var(--mock-muted)]">
-              <span className="size-2.5 rounded-[3px]" style={{ background: space.color }} aria-hidden />
+              <span className={`size-2.5 rounded-[3px] ${EVENT_COLOR_SWATCH_CLASSES[space.color]}`} aria-hidden />
               <span className="truncate">{space.label}</span>
             </div>
           ))}
         </div>
         <div className="mt-2 flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-orange-500" aria-hidden />
+          <span className={`size-3 rounded-[4px] ${EVENT_COLOR_SWATCH_CLASSES.orange}`} aria-hidden />
           <span>Work</span>
           <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
         </div>
         <div className="flex items-center gap-2.5 py-2 font-semibold">
-          <span className="size-3 rounded-[4px] bg-purple-500" aria-hidden />
+          <span className={`size-3 rounded-[4px] ${EVENT_COLOR_SWATCH_CLASSES.purple}`} aria-hidden />
           <span>Personal</span>
           <span className="ml-auto text-[var(--mock-muted)]" aria-hidden>⌄</span>
         </div>
@@ -251,7 +262,7 @@ function CalendarSidebarMockup() {
             return (
               <span
                 key={`${day}-${index}`}
-                className={`mx-auto grid size-6 place-items-center ${selected ? "rounded-full bg-indigo-500 font-semibold text-white shadow-[0_3px_8px_rgba(99,102,241,0.3)]" : muted ? "opacity-40" : ""}`}
+                className={`mx-auto grid size-6 place-items-center ${selected ? "rounded-full bg-[var(--kal-accent)] font-semibold text-white shadow-[0_3px_8px_rgba(249,115,22,0.3)]" : muted ? "opacity-40" : ""}`}
               >
                 {day}
               </span>
