@@ -40,7 +40,7 @@ const SCHEDULE: { time: string; title: string; color: EventColor }[] = [
 
 // Agenda "Tasks" section: the persistent to-do list, grouped into due-date
 // buckets (mirrors AgendaTasksGroup's bucketing). Completed tasks show a filled
-// checkbox + strikethrough; the header count is open tasks only (here: 6).
+// checkbox + strikethrough; the header count is open tasks only (here: 4).
 const TASK_BUCKETS: {
   label: string;
   tasks: { title: string; color: EventColor; done?: boolean }[];
@@ -59,13 +59,6 @@ const TASK_BUCKETS: {
       { title: "Draft the hackathon pitch", color: "orange" },
       { title: "Book a dentist follow-up", color: "green" },
       { title: "Prepare for the algorithms midterm", color: "purple" },
-    ],
-  },
-  {
-    label: "Unscheduled",
-    tasks: [
-      { title: "Read", color: "blue" },
-      { title: "Do chores", color: "green" },
     ],
   },
 ];
@@ -323,7 +316,7 @@ function AgendaColumnMockup() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-[var(--mock-line)] px-3.5 pt-3 pb-2.5">
         <h3 className="text-[13px] font-semibold leading-tight tracking-[-0.02em]">Monday, Sep 8</h3>
-        <p className="mt-0.5 text-[10px] text-[var(--mock-muted)]">3 events · 6 tasks</p>
+        <p className="mt-0.5 text-[10px] text-[var(--mock-muted)]">3 events · 4 tasks</p>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">
