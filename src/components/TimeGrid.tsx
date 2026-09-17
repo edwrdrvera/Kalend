@@ -914,7 +914,7 @@ export default function TimeGrid({
                       {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
-                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium opacity-90">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[10px] font-medium opacity-90">
                       {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (

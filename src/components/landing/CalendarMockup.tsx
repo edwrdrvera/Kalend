@@ -215,7 +215,7 @@ export default function CalendarMockup() {
                     />
                   )}
                   <strong className={`block truncate ${event.dragging ? "" : "pl-1.5"}`}>{event.title}</strong>
-                  <span className={`mt-0.5 block truncate opacity-70 ${event.dragging ? "" : "pl-1.5"}`}>{event.time}</span>
+                  <span className={`mt-0.5 block truncate text-[7px] opacity-70 min-[520px]:text-[9px] ${event.dragging ? "" : "pl-1.5"}`}>{event.time}</span>
                   {event.dragging && <DragHand />}
                 </div>
               ))}
