@@ -22,13 +22,13 @@ import {
   computeDayIndexFromX,
   computeGhostDelta,
   computeMoveStartMinutes,
-  computeResizeEdgeMinutes,
   minutesFromMidnight,
   passedDragThreshold,
   pointerToMinutes,
 } from "@/lib/time-grid-drag-math";
 import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
+import { useResizeDrag } from "@/hooks/useResizeDrag";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
@@ -98,24 +98,6 @@ interface MoveDrag {
 interface LiveDragTarget {
   dayIndex: number;
   startMinutes: number;
-}
-
-/** Tracks an in-progress top/bottom edge drag on one event block. Minutes
- *  are relative to midnight of the day column being dragged in, not full
- *  `Date`s, so the drag math stays simple; the window-level `pointerup`
- *  handler converts back to real dates once the drag ends. `original*`
- *  stay fixed for the whole gesture (the anchor the drag computes deltas
- *  from); `live*` is what gets rendered as the drag moves. */
-interface ResizeDrag {
-  event: CalendarEvent;
-  day: Date;
-  eventId: string;
-  edge: "top" | "bottom";
-  pointerStartY: number;
-  originalStartMinutes: number;
-  originalEndMinutes: number;
-  liveStartMinutes: number;
-  liveEndMinutes: number;
 }
 
 interface TimeGridProps {
@@ -224,19 +206,13 @@ export default function TimeGrid({
   const rafIdRef = useRef<number | null>(null);
   const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
 
-  // ── Resize-drag refs ───────────────────────────────────────────────
-  const [resizeDrag, setResizeDrag] = useState<ResizeDrag | null>(null);
-  const resizeDragRef = useRef<ResizeDrag | null>(null);
-  // rAF throttle for resize, same pattern as move-drag.
-  const resizeRafRef = useRef<number | null>(null);
-  const latestResizeYRef = useRef<number>(0);
-
-  // ── Create-drag (extracted hook) ───────────────────────────────────
+  // ── Resize-drag + create-drag (extracted hooks) ────────────────────
+  const resize = useResizeDrag({ dayHeight, onEventResize });
   const create = useCreateDrag({
     gridRef,
     dayHeight,
     onSlotDragCreate,
-    blocked: moveDrag !== null || resizeDrag !== null,
+    blocked: moveDrag !== null || resize.active,
   });
 
   // ── Prop refs ──────────────────────────────────────────────────────
@@ -244,14 +220,11 @@ export default function TimeGrid({
   // always read the latest values without stale closures.
   const daysRef = useRef(days);
   const onEventMoveRef = useRef(onEventMove);
-  const onEventResizeRef = useRef(onEventResize);
 
   useEffect(() => {
     moveDragRef.current = moveDrag;
-    resizeDragRef.current = resizeDrag;
     daysRef.current = days;
     onEventMoveRef.current = onEventMove;
-    onEventResizeRef.current = onEventResize;
   });
 
   function clientYToMinutes(clientY: number): number {
@@ -266,17 +239,9 @@ export default function TimeGrid({
     }
   }
 
-  function cancelPendingResizeFrame() {
-    if (resizeRafRef.current !== null) {
-      cancelAnimationFrame(resizeRafRef.current);
-      resizeRafRef.current = null;
-    }
-  }
-
   useEffect(() => {
     return () => {
       cancelPendingMoveFrame();
-      cancelPendingResizeFrame();
       if (suppressClearTimeoutRef.current !== null) {
         clearTimeout(suppressClearTimeoutRef.current);
       }
@@ -289,7 +254,7 @@ export default function TimeGrid({
     dayIndex: number,
     day: Date
   ) {
-    if (!onEventMove || resizeDrag) return;
+    if (!onEventMove || resize.active) return;
     e.stopPropagation();
 
     const dayStart = startOfDay(day);
@@ -478,112 +443,6 @@ export default function TimeGrid({
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
-  function handleResizePointerDown(
-    e: ReactPointerEvent<HTMLDivElement>,
-    edge: "top" | "bottom",
-    event: CalendarEvent,
-    day: Date,
-    top: number,
-    height: number
-  ) {
-    e.stopPropagation();
-
-    const originalStartMinutes = (top / 100) * MINUTES_PER_DAY;
-    const originalEndMinutes = ((top + height) / 100) * MINUTES_PER_DAY;
-
-    setResizeDrag({
-      event,
-      day,
-      eventId: event.id,
-      edge,
-      pointerStartY: e.clientY,
-      originalStartMinutes,
-      originalEndMinutes,
-      liveStartMinutes: originalStartMinutes,
-      liveEndMinutes: originalEndMinutes,
-    });
-  }
-
-  // ── Window-level listeners for resize drag ───────────────────────
-  // Same approach as move drag: window listeners via useEffect, plus
-  // rAF throttling so we get at most one state update (and re-render)
-  // per animation frame instead of one per raw pointermove event.
-  const isResizeDragging = resizeDrag !== null;
-  useEffect(() => {
-    if (!isResizeDragging) return;
-
-    function applyResizeMove() {
-      const drag = resizeDragRef.current;
-      if (!drag) return;
-
-      const pointerDeltaY = latestResizeYRef.current - drag.pointerStartY;
-
-      setResizeDrag((prev) => {
-        if (!prev) return prev;
-
-        const next = computeResizeEdgeMinutes({
-          edge: prev.edge,
-          pointerDeltaY,
-          originalStartMinutes: prev.originalStartMinutes,
-          originalEndMinutes: prev.originalEndMinutes,
-          dayHeight,
-        });
-
-        if (prev.edge === "top") {
-          return next === prev.liveStartMinutes ? prev : { ...prev, liveStartMinutes: next };
-        }
-        return next === prev.liveEndMinutes ? prev : { ...prev, liveEndMinutes: next };
-      });
-    }
-
-    function onPointerMove(e: PointerEvent) {
-      latestResizeYRef.current = e.clientY;
-      if (resizeRafRef.current === null) {
-        resizeRafRef.current = requestAnimationFrame(() => {
-          resizeRafRef.current = null;
-          applyResizeMove();
-        });
-      }
-    }
-
-    function onPointerUp() {
-      cancelPendingResizeFrame();
-      const drag = resizeDragRef.current;
-      if (!drag) return;
-
-      const dayStart = startOfDay(drag.day);
-      onEventResizeRef.current?.(
-        drag.event,
-        addMinutes(dayStart, drag.liveStartMinutes),
-        addMinutes(dayStart, drag.liveEndMinutes)
-      );
-      setResizeDrag(null);
-    }
-
-    function onCancel() {
-      cancelPendingResizeFrame();
-      setResizeDrag(null);
-    }
-
-    const previousBodyStyle = lockBodyForDrag("ns-resize");
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("blur", onCancel);
-    window.addEventListener("contextmenu", onCancel);
-
-    return () => {
-      cancelPendingResizeFrame();
-      restoreBodyAfterDrag(previousBodyStyle);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("blur", onCancel);
-      window.removeEventListener("contextmenu", onCancel);
-    };
-  });
-
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
@@ -715,12 +574,12 @@ export default function TimeGrid({
 
               {blocks.map(({ event, top, height, left, width }) => {
                 const isBeingDragged = moveDrag?.moved && moveDrag.event.id === event.id;
-                const isResizing = resizeDrag?.eventId === event.id;
-                const displayTop = isResizing
-                  ? (resizeDrag.liveStartMinutes / MINUTES_PER_DAY) * 100
+                const resizePreview = resize.previewFor(event.id);
+                const displayTop = resizePreview
+                  ? (resizePreview.liveStartMinutes / MINUTES_PER_DAY) * 100
                   : top;
-                const displayHeight = isResizing
-                  ? ((resizeDrag.liveEndMinutes - resizeDrag.liveStartMinutes) / MINUTES_PER_DAY) * 100
+                const displayHeight = resizePreview
+                  ? ((resizePreview.liveEndMinutes - resizePreview.liveStartMinutes) / MINUTES_PER_DAY) * 100
                   : height;
                 // Below this block height there's only room for the title and
                 // time range; the location line would run into the border.
@@ -786,12 +645,12 @@ export default function TimeGrid({
                     {onEventResize && !moveDrag?.moved && (
                       <>
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "top", event, day, top, height)}
+                          onPointerDown={(e) => resize.onEdgePointerDown(e, "top", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 top-0 h-1.5 touch-none cursor-ns-resize"
                         />
                         <div
-                          onPointerDown={(e) => handleResizePointerDown(e, "bottom", event, day, top, height)}
+                          onPointerDown={(e) => resize.onEdgePointerDown(e, "bottom", event, day, top, height)}
                           onClick={(e) => e.stopPropagation()}
                           className="absolute inset-x-0 bottom-0 h-1.5 touch-none cursor-ns-resize"
                         />
