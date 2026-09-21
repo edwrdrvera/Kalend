@@ -16,20 +16,25 @@ import {
   resolveDisplayColor,
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
+import {
+  MINUTES_PER_DAY,
+  clamp,
+  computeCreateRange,
+  computeDayIndexFromX,
+  computeGhostDelta,
+  computeMoveStartMinutes,
+  computeResizeEdgeMinutes,
+  minutesFromMidnight,
+  passedDragThreshold,
+  pointerToMinutes,
+  snapMinutes,
+} from "@/lib/time-grid-drag-math";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
 export const HOUR_HEIGHT_PX = 64;
 /** Day view is zoomed out (shorter rows) so more of the day fits on screen. */
 export const DAY_VIEW_HOUR_HEIGHT_PX = 44;
-const MINUTES_PER_DAY = 24 * 60;
-
-// Drags snap the time to this increment.
-const SNAP_MINUTES = 15;
-const MIN_DURATION_MINUTES = 15;
-// A press on an event block has to travel this many pixels before it counts
-// as a drag rather than a click (which opens the edit modal instead).
-const DRAG_THRESHOLD_PX = 4;
 // A click on an event block within this many ms of that same event's drag
 // ending is treated as the tail end of that drag, not a new click — bounded
 // rather than open-ended so a dropped click can't block future clicks.
@@ -40,18 +45,6 @@ function formatHourLabel(hour: number): string {
   // doesn't crowd the very top of the grid (same as Google Calendar's treatment).
   if (hour === 0) return "";
   return format(new Date(2000, 0, 1, hour), "h a");
-}
-
-function minutesFromMidnight(date: Date): number {
-  return date.getHours() * 60 + date.getMinutes();
-}
-
-function snapMinutes(minutes: number): number {
-  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
 
 /** Body text-select/cursor locking for the duration of a drag gesture.
@@ -306,7 +299,7 @@ export default function TimeGrid({
 
   function clientYToMinutes(clientY: number): number {
     const top = gridRef.current?.getBoundingClientRect().top ?? 0;
-    return ((clientY - top) / dayHeight) * MINUTES_PER_DAY;
+    return pointerToMinutes(clientY, top, dayHeight);
   }
 
   function cancelPendingMoveFrame() {
@@ -377,7 +370,7 @@ export default function TimeGrid({
 
     const deltaX = clientX - drag.pointerStartX;
     const deltaY = clientY - drag.pointerStartY;
-    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD_PX) return;
+    if (!drag.moved && !passedDragThreshold(deltaX, deltaY)) return;
 
     // Flips `moved` exactly once per gesture — this is the only React state
     // update a move-drag causes before it ends (it's what mounts the ghost
@@ -391,45 +384,44 @@ export default function TimeGrid({
     }
 
     // The ghost tracks the pointer 1:1 in pixels via a transform written
-    // straight to its DOM node — not the SNAP_MINUTES-rounded position — so
-    // it never visibly steps or lags behind the cursor. The snapped values
-    // used to actually place the event are computed separately below and
-    // only ever read once, on drop.
+    // straight to its DOM node, not the snapped position, so it never visibly
+    // steps or lags behind the cursor. The snapped values that actually place
+    // the event are computed separately below and read once, on drop.
+    // gridRef is always mounted while a move-drag runs, so rect is non-null;
+    // the ghost update is simply skipped in the impossible null case.
     const rect = gridRef.current?.getBoundingClientRect();
-    const dayColumnWidth = drag.columnWidth;
-    const durationPx = (drag.durationMinutes / MINUTES_PER_DAY) * dayHeight;
-    const originalLeftPx = drag.originColumnLeft;
-    const originalTopPx = (drag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight;
 
-    const clampedDeltaX = rect
-      ? clamp(deltaX, -originalLeftPx, rect.width - dayColumnWidth - originalLeftPx)
-      : deltaX;
-    const clampedDeltaY = clamp(deltaY, -originalTopPx, dayHeight - durationPx - originalTopPx);
-
-    if (ghostRef.current) {
-      ghostRef.current.style.transform = `translate3d(${clampedDeltaX}px, ${clampedDeltaY}px, 0)`;
+    if (rect && ghostRef.current) {
+      const ghost = computeGhostDelta({
+        deltaX,
+        deltaY,
+        gridWidth: rect.width,
+        columnWidth: drag.columnWidth,
+        originColumnLeft: drag.originColumnLeft,
+        originalStartMinutes: drag.originalStartMinutes,
+        durationMinutes: drag.durationMinutes,
+        dayHeight,
+      });
+      ghostRef.current.style.transform = `translate3d(${ghost.x}px, ${ghost.y}px, 0)`;
     }
 
-    // Snaps the absolute time under the pointer (minus the fixed grab
-    // offset), not the raw movement delta — so the block's start always
-    // lands on a clean SNAP_MINUTES mark even when the event's real start
-    // wasn't already on one.
-    const liveStartMinutes = clamp(
-      snapMinutes(clientYToMinutes(clientY) - drag.grabOffsetMinutes),
-      0,
-      MINUTES_PER_DAY - drag.durationMinutes
-    );
+    const liveStartMinutes = computeMoveStartMinutes({
+      clientY,
+      gridTop: rect?.top ?? 0,
+      dayHeight,
+      grabOffsetMinutes: drag.grabOffsetMinutes,
+      durationMinutes: drag.durationMinutes,
+    });
 
-    // Derive the gap between columns from the known column width and grid
-    // width so the day-index calculation stays accurate with CSS grid gaps.
     let liveDayIndex = drag.originalDayIndex;
-    if (rect && dayColumnWidth > 0) {
-      const gapSize = days.length > 1
-        ? (rect.width - days.length * dayColumnWidth) / (days.length - 1)
-        : 0;
-      const stepSize = dayColumnWidth + gapSize;
-      const relX = clientX - rect.left;
-      liveDayIndex = Math.min(days.length - 1, Math.max(0, Math.floor(relX / stepSize)));
+    if (rect && drag.columnWidth > 0) {
+      liveDayIndex = computeDayIndexFromX({
+        clientX,
+        gridLeft: rect.left,
+        gridWidth: rect.width,
+        columnWidth: drag.columnWidth,
+        dayCount: days.length,
+      });
     }
 
     liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
@@ -567,28 +559,22 @@ export default function TimeGrid({
       const drag = resizeDragRef.current;
       if (!drag) return;
 
-      const clientY = latestResizeYRef.current;
-      const deltaMinutes = snapMinutes(
-        ((clientY - drag.pointerStartY) / dayHeight) * MINUTES_PER_DAY
-      );
+      const pointerDeltaY = latestResizeYRef.current - drag.pointerStartY;
 
       setResizeDrag((prev) => {
         if (!prev) return prev;
 
+        const next = computeResizeEdgeMinutes({
+          edge: prev.edge,
+          pointerDeltaY,
+          originalStartMinutes: prev.originalStartMinutes,
+          originalEndMinutes: prev.originalEndMinutes,
+          dayHeight,
+        });
+
         if (prev.edge === "top") {
-          const next = clamp(
-            prev.originalStartMinutes + deltaMinutes,
-            0,
-            prev.originalEndMinutes - MIN_DURATION_MINUTES
-          );
           return next === prev.liveStartMinutes ? prev : { ...prev, liveStartMinutes: next };
         }
-
-        const next = clamp(
-          prev.originalEndMinutes + deltaMinutes,
-          prev.originalStartMinutes + MIN_DURATION_MINUTES,
-          MINUTES_PER_DAY
-        );
         return next === prev.liveEndMinutes ? prev : { ...prev, liveEndMinutes: next };
       });
     }
@@ -667,7 +653,7 @@ export default function TimeGrid({
       const drag = createDragRef.current;
       if (!drag) return;
       const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
-      const moved = drag.moved || Math.abs(e.clientY - drag.pointerStartY) >= DRAG_THRESHOLD_PX;
+      const moved = drag.moved || passedDragThreshold(0, e.clientY - drag.pointerStartY);
       setCreateDrag((prev) =>
         prev && (prev.liveMinutes !== minutes || prev.moved !== moved)
           ? { ...prev, liveMinutes: minutes, moved }
@@ -683,8 +669,7 @@ export default function TimeGrid({
       // A real drag happened: suppress the trailing click's day-select and
       // open the creator for the spanned range (min 15 min).
       suppressSlotClickRef.current = true;
-      const lo = Math.min(drag.anchorMinutes, drag.liveMinutes);
-      const hi = Math.max(lo + MIN_DURATION_MINUTES, Math.max(drag.anchorMinutes, drag.liveMinutes));
+      const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
       const dayStart = startOfDay(drag.day);
       const columnEl = gridRef.current?.children[drag.dayIndex] as HTMLElement | undefined;
       const rect =
@@ -812,11 +797,7 @@ export default function TimeGrid({
               {/* Create-drag preview: the block the pointer is currently
                   sketching out, before the creator opens. */}
               {createDrag?.moved && createDrag.dayIndex === dayIndex && (() => {
-                const lo = Math.min(createDrag.anchorMinutes, createDrag.liveMinutes);
-                const hi = Math.max(
-                  lo + MIN_DURATION_MINUTES,
-                  Math.max(createDrag.anchorMinutes, createDrag.liveMinutes)
-                );
+                const { lo, hi } = computeCreateRange(createDrag.anchorMinutes, createDrag.liveMinutes);
                 return (
                   <div
                     className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
