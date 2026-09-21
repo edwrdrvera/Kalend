@@ -18,7 +18,6 @@ import {
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 import {
   MINUTES_PER_DAY,
-  clamp,
   computeCreateRange,
   computeDayIndexFromX,
   computeGhostDelta,
@@ -27,8 +26,9 @@ import {
   minutesFromMidnight,
   passedDragThreshold,
   pointerToMinutes,
-  snapMinutes,
 } from "@/lib/time-grid-drag-math";
+import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
+import { useCreateDrag } from "@/hooks/useCreateDrag";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
@@ -45,33 +45,6 @@ function formatHourLabel(hour: number): string {
   // doesn't crowd the very top of the grid (same as Google Calendar's treatment).
   if (hour === 0) return "";
   return format(new Date(2000, 0, 1, hour), "h a");
-}
-
-/** Body text-select/cursor locking for the duration of a drag gesture.
- *  Kept at module scope on purpose: the React Compiler (via
- *  eslint-plugin-react-hooks) rejects `document.body.style.* = ...` writes
- *  that sit inside the component body, even within an effect. A plain
- *  module-level function is opaque to that analysis, so the imperative DOM
- *  work lives here instead. Returns the previous values to restore on
- *  cleanup. */
-interface BodyDragStyle {
-  userSelect: string;
-  cursor: string;
-}
-
-function lockBodyForDrag(cursor: string): BodyDragStyle {
-  const previous: BodyDragStyle = {
-    userSelect: document.body.style.userSelect,
-    cursor: document.body.style.cursor,
-  };
-  document.body.style.userSelect = "none";
-  document.body.style.cursor = cursor;
-  return previous;
-}
-
-function restoreBodyAfterDrag(previous: BodyDragStyle): void {
-  document.body.style.userSelect = previous.userSelect;
-  document.body.style.cursor = previous.cursor;
 }
 
 /** Ticks once a minute so the current-time line stays roughly accurate
@@ -143,20 +116,6 @@ interface ResizeDrag {
   originalEndMinutes: number;
   liveStartMinutes: number;
   liveEndMinutes: number;
-}
-
-/** Tracks an in-progress drag across empty slots to create a new event. All
- *  minutes are relative to midnight of the column being dragged in. `anchor`
- *  is where the pointer went down; `live` follows the pointer. `moved` flips
- *  true only once the pointer travels past DRAG_THRESHOLD_PX, so a plain click
- *  (which selects the day) never creates an event. */
-interface CreateDrag {
-  dayIndex: number;
-  day: Date;
-  anchorMinutes: number;
-  liveMinutes: number;
-  pointerStartY: number;
-  moved: boolean;
 }
 
 interface TimeGridProps {
@@ -272,12 +231,13 @@ export default function TimeGrid({
   const resizeRafRef = useRef<number | null>(null);
   const latestResizeYRef = useRef<number>(0);
 
-  // ── Create-drag refs ───────────────────────────────────────────────
-  const [createDrag, setCreateDrag] = useState<CreateDrag | null>(null);
-  const createDragRef = useRef<CreateDrag | null>(null);
-  // Suppresses the click that fires after a create-drag ends, so the drag
-  // doesn't also select the day.
-  const suppressSlotClickRef = useRef(false);
+  // ── Create-drag (extracted hook) ───────────────────────────────────
+  const create = useCreateDrag({
+    gridRef,
+    dayHeight,
+    onSlotDragCreate,
+    blocked: moveDrag !== null || resizeDrag !== null,
+  });
 
   // ── Prop refs ──────────────────────────────────────────────────────
   // Keep refs in sync with state/props so window-level event handlers
@@ -285,16 +245,13 @@ export default function TimeGrid({
   const daysRef = useRef(days);
   const onEventMoveRef = useRef(onEventMove);
   const onEventResizeRef = useRef(onEventResize);
-  const onSlotDragCreateRef = useRef(onSlotDragCreate);
 
   useEffect(() => {
     moveDragRef.current = moveDrag;
     resizeDragRef.current = resizeDrag;
-    createDragRef.current = createDrag;
     daysRef.current = days;
     onEventMoveRef.current = onEventMove;
     onEventResizeRef.current = onEventResize;
-    onSlotDragCreateRef.current = onSlotDragCreate;
   });
 
   function clientYToMinutes(clientY: number): number {
@@ -627,81 +584,6 @@ export default function TimeGrid({
     };
   });
 
-  // ── Create-drag ────────────────────────────────────────────────────
-  function handleSlotPointerDown(
-    e: ReactPointerEvent<HTMLDivElement>,
-    dayIndex: number,
-    day: Date
-  ) {
-    if (!onSlotDragCreate || e.button !== 0 || moveDrag || resizeDrag) return;
-    const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
-    setCreateDrag({
-      dayIndex,
-      day,
-      anchorMinutes: minutes,
-      liveMinutes: minutes,
-      pointerStartY: e.clientY,
-      moved: false,
-    });
-  }
-
-  const isCreateDragging = createDrag !== null;
-  useEffect(() => {
-    if (!isCreateDragging) return;
-
-    function onPointerMove(e: PointerEvent) {
-      const drag = createDragRef.current;
-      if (!drag) return;
-      const minutes = clamp(snapMinutes(clientYToMinutes(e.clientY)), 0, MINUTES_PER_DAY);
-      const moved = drag.moved || passedDragThreshold(0, e.clientY - drag.pointerStartY);
-      setCreateDrag((prev) =>
-        prev && (prev.liveMinutes !== minutes || prev.moved !== moved)
-          ? { ...prev, liveMinutes: minutes, moved }
-          : prev
-      );
-    }
-
-    function onPointerUp() {
-      const drag = createDragRef.current;
-      setCreateDrag(null);
-      if (!drag || !drag.moved) return;
-
-      // A real drag happened: suppress the trailing click's day-select and
-      // open the creator for the spanned range (min 15 min).
-      suppressSlotClickRef.current = true;
-      const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
-      const dayStart = startOfDay(drag.day);
-      const columnEl = gridRef.current?.children[drag.dayIndex] as HTMLElement | undefined;
-      const rect =
-        columnEl?.getBoundingClientRect() ?? gridRef.current?.getBoundingClientRect();
-      if (rect) {
-        onSlotDragCreateRef.current?.(
-          addMinutes(dayStart, lo),
-          addMinutes(dayStart, hi),
-          rect
-        );
-      }
-    }
-
-    function onCancel() {
-      setCreateDrag(null);
-    }
-
-    const previousBodyStyle = lockBodyForDrag("ns-resize");
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("blur", onCancel);
-
-    return () => {
-      restoreBodyAfterDrag(previousBodyStyle);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("blur", onCancel);
-    };
-  });
-
   const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
 
   return (
@@ -758,12 +640,9 @@ export default function TimeGrid({
                   key={hour}
                   role="button"
                   tabIndex={0}
-                  onPointerDown={(e) => handleSlotPointerDown(e, dayIndex, day)}
+                  onPointerDown={(e) => create.onSlotPointerDown(e, dayIndex, day)}
                   onClick={() => {
-                    if (suppressSlotClickRef.current) {
-                      suppressSlotClickRef.current = false;
-                      return;
-                    }
+                    if (create.consumeSlotClickSuppression()) return;
                     onSlotSelect?.(day);
                   }}
                   onDoubleClick={(e) =>
@@ -796,8 +675,8 @@ export default function TimeGrid({
 
               {/* Create-drag preview: the block the pointer is currently
                   sketching out, before the creator opens. */}
-              {createDrag?.moved && createDrag.dayIndex === dayIndex && (() => {
-                const { lo, hi } = computeCreateRange(createDrag.anchorMinutes, createDrag.liveMinutes);
+              {create.preview?.moved && create.preview.dayIndex === dayIndex && (() => {
+                const { lo, hi } = computeCreateRange(create.preview.anchorMinutes, create.preview.liveMinutes);
                 return (
                   <div
                     className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
