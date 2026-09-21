@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent as ReactMouseEvent,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import {
@@ -16,29 +10,17 @@ import {
   resolveDisplayColor,
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
-import {
-  MINUTES_PER_DAY,
-  computeCreateRange,
-  computeDayIndexFromX,
-  computeGhostDelta,
-  computeMoveStartMinutes,
-  minutesFromMidnight,
-  passedDragThreshold,
-  pointerToMinutes,
-} from "@/lib/time-grid-drag-math";
+import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
 import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
+import { useMoveDrag } from "@/hooks/useMoveDrag";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
 export const HOUR_HEIGHT_PX = 64;
 /** Day view is zoomed out (shorter rows) so more of the day fits on screen. */
 export const DAY_VIEW_HOUR_HEIGHT_PX = 44;
-// A click on an event block within this many ms of that same event's drag
-// ending is treated as the tail end of that drag, not a new click — bounded
-// rather than open-ended so a dropped click can't block future clicks.
-const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 function formatHourLabel(hour: number): string {
   // 12-hour format. Midnight is kept empty so the label
@@ -58,46 +40,6 @@ function useCurrentTime(): Date {
   }, []);
 
   return now;
-}
-
-/** Tracks an in-progress drag of a whole event block to a new day/time.
- *  Only the static, once-per-gesture geometry lives here — the fields that
- *  change on every pointer move (the ghost's live day/time) are written
- *  straight to `liveDragRef` and the ghost element's own style instead, so
- *  moving the pointer doesn't re-render TimeGrid (see `applyPointerMove`).
- *  `moved` only flips true once the pointer travels past
- *  `DRAG_THRESHOLD_PX`, so a plain click never fires `onEventMove`; that one
- *  flip is the only state update a move-drag causes before it ends. */
-interface MoveDrag {
-  /** Snapshot of the event taken at pickup, so the ghost preview (and the
-   *  isBeingDragged check below) don't need to re-scan `events` by id on
-   *  every render while the drag is in progress. */
-  event: CalendarEvent;
-  pointerStartX: number;
-  pointerStartY: number;
-  originalDayIndex: number;
-  originalStartMinutes: number;
-  /** The event's real duration, taken from its start/end — not from the
-   *  rendered block's height, which `layoutDayEvents` clamps to a minimum
-   *  for short events and would otherwise inflate them on every move. */
-  durationMinutes: number;
-  /** Minutes between the pointer and the block's real (unclamped) top edge
-   *  at pickup, so the block doesn't jump to be centered under the cursor. */
-  grabOffsetMinutes: number;
-  moved: boolean;
-  /** Pixel offset and width of the origin day column within gridRef,
-   *  captured at pickup so ghost positioning accounts for CSS grid gaps. */
-  originColumnLeft: number;
-  columnWidth: number;
-}
-
-/** The drag's current day/time, snapped to `SNAP_MINUTES` — written on every
- *  pointer move and read once, on drop, to build the `onEventMove` call.
- *  Kept in a ref rather than state since it changes far more often than the
- *  component needs to re-render. */
-interface LiveDragTarget {
-  dayIndex: number;
-  startMinutes: number;
 }
 
 interface TimeGridProps {
@@ -172,270 +114,25 @@ export default function TimeGrid({
 
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // ── Move-drag refs ─────────────────────────────────────────────────
-  const [moveDrag, setMoveDrag] = useState<MoveDrag | null>(null);
-  // Mirrors `moveDrag` so the window-level event handlers (which outlive
-  // any single render) always read the latest drag state.
-  const moveDragRef = useRef<MoveDrag | null>(null);
-  // Where the ghost preview would drop right now, snapped to SNAP_MINUTES.
-  // Written on every pointer move, read once on pointer up — never in
-  // React state, so updating it doesn't trigger a render.
-  const liveDragRef = useRef<LiveDragTarget | null>(null);
-  // True for the rest of the gesture once `applyPointerMove` has fired the
-  // one-time `moved: true` state update, so later frames (which run before
-  // the state update above has actually re-rendered and caught moveDragRef
-  // up) don't fire it again.
-  const hasStartedMoveRef = useRef(false);
-  // The floating ghost block rendered while a move-drag is in progress (see
-  // the JSX below). Its position tracks the raw pointer via a CSS transform
-  // written directly to this node in `applyPointerMove`, bypassing React
-  // state entirely so the ghost never lags a render behind the cursor and
-  // moving it doesn't force every day column to re-render.
-  const ghostRef = useRef<HTMLDivElement>(null);
-  // Holds the id of the event whose drag most recently ended, so the click
-  // that follows a real drag's pointerup can be told apart from an
-  // unrelated click on the same block — cleared automatically after
-  // CLICK_SUPPRESS_WINDOW_MS via suppressClearTimeoutRef below rather than
-  // left for a click to clear, so it can't get stuck if that click never
-  // fires.
-  const lastDraggedEventIdRef = useRef<string | null>(null);
-  const suppressClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Coalesces rapid native pointermove events (which can fire faster than
-  // the display refreshes) into at most one ghost-position update per
-  // animation frame, instead of one per raw event.
-  const rafIdRef = useRef<number | null>(null);
-  const latestPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
-
-  // ── Resize-drag + create-drag (extracted hooks) ────────────────────
+  // ── Drag gestures (extracted hooks) ────────────────────────────────
   const resize = useResizeDrag({ dayHeight, onEventResize });
+  const move = useMoveDrag({
+    gridRef,
+    dayHeight,
+    days,
+    onEventMove,
+    blockedByResize: resize.active,
+  });
   const create = useCreateDrag({
     gridRef,
     dayHeight,
     onSlotDragCreate,
-    blocked: moveDrag !== null || resize.active,
-  });
-
-  // ── Prop refs ──────────────────────────────────────────────────────
-  // Keep refs in sync with state/props so window-level event handlers
-  // always read the latest values without stale closures.
-  const daysRef = useRef(days);
-  const onEventMoveRef = useRef(onEventMove);
-
-  useEffect(() => {
-    moveDragRef.current = moveDrag;
-    daysRef.current = days;
-    onEventMoveRef.current = onEventMove;
-  });
-
-  function clientYToMinutes(clientY: number): number {
-    const top = gridRef.current?.getBoundingClientRect().top ?? 0;
-    return pointerToMinutes(clientY, top, dayHeight);
-  }
-
-  function cancelPendingMoveFrame() {
-    if (rafIdRef.current !== null) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      cancelPendingMoveFrame();
-      if (suppressClearTimeoutRef.current !== null) {
-        clearTimeout(suppressClearTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  function handleMovePointerDown(
-    e: ReactPointerEvent<HTMLButtonElement>,
-    event: CalendarEvent,
-    dayIndex: number,
-    day: Date
-  ) {
-    if (!onEventMove || resize.active) return;
-    e.stopPropagation();
-
-    const dayStart = startOfDay(day);
-    const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
-    const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
-
-    // Capture column pixel metrics at pickup so the ghost and day-index
-    // calculations stay correct even with CSS grid gaps between columns.
-    const gridEl = gridRef.current;
-    const gridRect = gridEl?.getBoundingClientRect();
-    const columnEl = gridEl?.children[dayIndex] as HTMLElement | undefined;
-    const columnRect = columnEl?.getBoundingClientRect();
-    const originColumnLeft = columnRect && gridRect ? columnRect.left - gridRect.left : 0;
-    const columnWidth = columnRect?.width ?? (gridRect ? gridRect.width / days.length : 0);
-
-    hasStartedMoveRef.current = false;
-    liveDragRef.current = { dayIndex, startMinutes: originalStartMinutes };
-    setMoveDrag({
-      event,
-      pointerStartX: e.clientX,
-      pointerStartY: e.clientY,
-      originalDayIndex: dayIndex,
-      originalStartMinutes,
-      durationMinutes: originalEndMinutes - originalStartMinutes,
-      grabOffsetMinutes: clientYToMinutes(e.clientY) - originalStartMinutes,
-      moved: false,
-      originColumnLeft,
-      columnWidth,
-    });
-  }
-
-  function applyPointerMove(clientX: number, clientY: number) {
-    const drag = moveDragRef.current;
-    if (!drag) return;
-
-    const deltaX = clientX - drag.pointerStartX;
-    const deltaY = clientY - drag.pointerStartY;
-    if (!drag.moved && !passedDragThreshold(deltaX, deltaY)) return;
-
-    // Flips `moved` exactly once per gesture — this is the only React state
-    // update a move-drag causes before it ends (it's what mounts the ghost
-    // and dims the origin block). `hasStartedMoveRef` guards it rather than
-    // `drag.moved` itself: `moveDragRef` only catches up to this state
-    // change after the next render, and later frames can fire before that
-    // happens.
-    if (!hasStartedMoveRef.current) {
-      hasStartedMoveRef.current = true;
-      setMoveDrag((prev) => (prev ? { ...prev, moved: true } : prev));
-    }
-
-    // The ghost tracks the pointer 1:1 in pixels via a transform written
-    // straight to its DOM node, not the snapped position, so it never visibly
-    // steps or lags behind the cursor. The snapped values that actually place
-    // the event are computed separately below and read once, on drop.
-    // gridRef is always mounted while a move-drag runs, so rect is non-null;
-    // the ghost update is simply skipped in the impossible null case.
-    const rect = gridRef.current?.getBoundingClientRect();
-
-    if (rect && ghostRef.current) {
-      const ghost = computeGhostDelta({
-        deltaX,
-        deltaY,
-        gridWidth: rect.width,
-        columnWidth: drag.columnWidth,
-        originColumnLeft: drag.originColumnLeft,
-        originalStartMinutes: drag.originalStartMinutes,
-        durationMinutes: drag.durationMinutes,
-        dayHeight,
-      });
-      ghostRef.current.style.transform = `translate3d(${ghost.x}px, ${ghost.y}px, 0)`;
-    }
-
-    const liveStartMinutes = computeMoveStartMinutes({
-      clientY,
-      gridTop: rect?.top ?? 0,
-      dayHeight,
-      grabOffsetMinutes: drag.grabOffsetMinutes,
-      durationMinutes: drag.durationMinutes,
-    });
-
-    let liveDayIndex = drag.originalDayIndex;
-    if (rect && drag.columnWidth > 0) {
-      liveDayIndex = computeDayIndexFromX({
-        clientX,
-        gridLeft: rect.left,
-        gridWidth: rect.width,
-        columnWidth: drag.columnWidth,
-        dayCount: days.length,
-      });
-    }
-
-    liveDragRef.current = { dayIndex: liveDayIndex, startMinutes: liveStartMinutes };
-  }
-
-  // ── Window-level listeners for move drag ─────────────────────────
-  // Attaching pointermove/pointerup to `window` instead of the event
-  // button guarantees the drag ends cleanly even when the pointer leaves
-  // the element, the browser steals focus, or pointer capture would have
-  // been lost.  The effect fires when `moveDrag` becomes non-null and
-  // cleans up when it goes back to null (or on unmount).
-  const isMoveDragging = moveDrag !== null;
-  useEffect(() => {
-    if (!isMoveDragging) return;
-
-    function onPointerMove(e: PointerEvent) {
-      latestPointerRef.current = { clientX: e.clientX, clientY: e.clientY };
-      if (rafIdRef.current === null) {
-        rafIdRef.current = requestAnimationFrame(() => {
-          rafIdRef.current = null;
-          const pointer = latestPointerRef.current;
-          if (pointer) applyPointerMove(pointer.clientX, pointer.clientY);
-        });
-      }
-    }
-
-    function onPointerUp() {
-      cancelPendingMoveFrame();
-      const drag = moveDragRef.current;
-      if (!drag) return;
-
-      if (hasStartedMoveRef.current && liveDragRef.current) {
-        const target = liveDragRef.current;
-
-        lastDraggedEventIdRef.current = drag.event.id;
-        if (suppressClearTimeoutRef.current !== null) {
-          clearTimeout(suppressClearTimeoutRef.current);
-        }
-        suppressClearTimeoutRef.current = setTimeout(() => {
-          lastDraggedEventIdRef.current = null;
-          suppressClearTimeoutRef.current = null;
-        }, CLICK_SUPPRESS_WINDOW_MS);
-
-        const dayStart = startOfDay(daysRef.current[target.dayIndex]);
-        onEventMoveRef.current?.(
-          drag.event,
-          addMinutes(dayStart, target.startMinutes),
-          addMinutes(dayStart, target.startMinutes + drag.durationMinutes)
-        );
-      }
-      setMoveDrag(null);
-      hasStartedMoveRef.current = false;
-      liveDragRef.current = null;
-    }
-
-    function onCancel() {
-      cancelPendingMoveFrame();
-      setMoveDrag(null);
-      hasStartedMoveRef.current = false;
-      liveDragRef.current = null;
-    }
-
-    // Prevent text selection and lock cursor while dragging.
-    const previousBodyStyle = lockBodyForDrag("grabbing");
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("blur", onCancel);
-    window.addEventListener("contextmenu", onCancel);
-
-    return () => {
-      cancelPendingMoveFrame();
-      restoreBodyAfterDrag(previousBodyStyle);
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("blur", onCancel);
-      window.removeEventListener("contextmenu", onCancel);
-    };
+    blocked: move.active || resize.active,
   });
 
   function handleEventClick(e: ReactMouseEvent<HTMLButtonElement>, event: CalendarEvent) {
     e.stopPropagation();
-    if (lastDraggedEventIdRef.current === event.id) {
-      lastDraggedEventIdRef.current = null;
-      if (suppressClearTimeoutRef.current !== null) {
-        clearTimeout(suppressClearTimeoutRef.current);
-        suppressClearTimeoutRef.current = null;
-      }
-      return;
-    }
+    if (move.wasJustDragged(event.id)) return;
     if (e.shiftKey && onEventShiftClick) {
       onEventShiftClick(event);
       return;
@@ -443,7 +140,7 @@ export default function TimeGrid({
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
-  const draggedEvent = moveDrag?.moved ? moveDrag.event : undefined;
+  const ghost = move.ghost;
 
   return (
     <div className="flex select-none">
@@ -573,7 +270,7 @@ export default function TimeGrid({
               })()}
 
               {blocks.map(({ event, top, height, left, width }) => {
-                const isBeingDragged = moveDrag?.moved && moveDrag.event.id === event.id;
+                const isBeingDragged = move.draggingEventId === event.id;
                 const resizePreview = resize.previewFor(event.id);
                 const displayTop = resizePreview
                   ? (resizePreview.liveStartMinutes / MINUTES_PER_DAY) * 100
@@ -604,7 +301,7 @@ export default function TimeGrid({
                     key={event.id}
                     type="button"
                     title={event.location ? `${event.title} (${event.location})` : event.title}
-                    onPointerDown={(e) => handleMovePointerDown(e, event, dayIndex, day)}
+                    onPointerDown={(e) => move.onBlockPointerDown(e, event, dayIndex, day)}
                     onClick={(e) => handleEventClick(e, event)}
                     onContextMenu={(e) => {
                       e.preventDefault();
@@ -642,7 +339,7 @@ export default function TimeGrid({
                       </span>
                     )}
 
-                    {onEventResize && !moveDrag?.moved && (
+                    {onEventResize && !move.moved && (
                       <>
                         <div
                           onPointerDown={(e) => resize.onEdgePointerDown(e, "top", event, day, top, height)}
@@ -663,32 +360,30 @@ export default function TimeGrid({
           );
         })}
 
-        {draggedEvent && moveDrag && (
+        {ghost && (
           <div
-            ref={ghostRef}
+            ref={move.ghostRef}
             // All four dimensions are px, fixed at the block's pre-drag
-            // position — applyPointerMove moves the ghost purely via
-            // `transform`, written directly to this node on every pointer
-            // move so it tracks the cursor without SNAP_MINUTES stepping.
-            //
-            // left/width use the column's pixel metrics captured at pickup
-            // (originColumnLeft/columnWidth), so they stay correct even
-            // with the border-based column separators — percentage-based
-            // positioning would drift once any border width was included.
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(draggedEvent.color, draggedEvent.category_id, draggedEvent.color_overridden, categories))}`}
+            // position. useMoveDrag moves the ghost purely via `transform`,
+            // written directly to this node on every pointer move so it tracks
+            // the cursor without snap stepping. left/width use the column's
+            // pixel metrics captured at pickup, so they stay correct even with
+            // the border-based column separators, which percentage positioning
+            // would drift against.
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
             style={{
-              left: moveDrag.originColumnLeft,
-              width: moveDrag.columnWidth,
-              top: (moveDrag.originalStartMinutes / MINUTES_PER_DAY) * dayHeight,
-              height: (moveDrag.durationMinutes / MINUTES_PER_DAY) * dayHeight,
+              left: ghost.originColumnLeft,
+              width: ghost.columnWidth,
+              top: (ghost.originalStartMinutes / MINUTES_PER_DAY) * dayHeight,
+              height: (ghost.durationMinutes / MINUTES_PER_DAY) * dayHeight,
               transform: "translate3d(0, 0, 0)",
             }}
           >
             {/* Same top-left-pinned title treatment as the real block above,
              *  so the name doesn't drift within the ghost either. */}
             <span className="absolute inset-x-1.5 top-0.5 truncate">
-              {draggedEvent.icon && <span className="mr-1">{draggedEvent.icon}</span>}
-              {draggedEvent.title}
+              {ghost.event.icon && <span className="mr-1">{ghost.event.icon}</span>}
+              {ghost.event.title}
             </span>
           </div>
         )}
