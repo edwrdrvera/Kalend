@@ -80,7 +80,7 @@ The core trade is a handful of new files against a testable, single-sourced geom
 
 1. [x] Extract the pure geometry module with unit tests (commit `9ccb12a`).
 2. [x] Wire TimeGrid to call the pure module, behaviour-preserving (commit `a4b70ca`).
-3. [ ] Extract `useMoveDrag`, `useResizeDrag`, and `useCreateDrag`, one at a time, each keeping the suite green.
-4. [ ] Thin TimeGrid to the view once the three hooks land.
-5. [ ] Run the signed-in drag smoke to close the verification gap.
+3. [x] Pin the drag emit behaviour with a component-level test that drives real pointer events (commit `f49f1a2`), so the extraction has a runnable net.
+4. [x] Extract `useCreateDrag`, `useResizeDrag`, and `useMoveDrag`, one at a time, each keeping the suite green (commits `a440f40`, `c9a4edb`, `279b6c8`). TimeGrid dropped from 979 to 393 lines.
+5. [ ] Run the signed-in drag smoke to close the verification gap (day-column change and the ghost transform are not covered by the happy-dom pin).
 6. [ ] Apply the same feature-hook split to `Calendar.tsx` as a separate effort.
