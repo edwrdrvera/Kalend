@@ -8,7 +8,6 @@ import {
 import { addMinutes, startOfDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
 import {
-  MINUTES_PER_DAY,
   computeDayIndexFromX,
   computeGhostDelta,
   computeMoveStartMinutes,

@@ -11,7 +11,6 @@ import {
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
-import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
 import { useMoveDrag } from "@/hooks/useMoveDrag";
@@ -140,7 +139,7 @@ export default function TimeGrid({
     onEventClick?.(event, e.currentTarget.getBoundingClientRect());
   }
 
-  const ghost = move.ghost;
+  const { ghost, ghostRef } = move;
 
   return (
     <div className="flex select-none">
@@ -362,7 +361,7 @@ export default function TimeGrid({
 
         {ghost && (
           <div
-            ref={move.ghostRef}
+            ref={ghostRef}
             // All four dimensions are px, fixed at the block's pre-drag
             // position. useMoveDrag moves the ghost purely via `transform`,
             // written directly to this node on every pointer move so it tracks
