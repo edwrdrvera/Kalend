@@ -123,6 +123,22 @@ describe("Tasks API Endpoints", () => {
       expect(json.error).toBe("Unauthorized");
     });
 
+    it("returns 400 for malformed JSON without inserting a task", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const response = await POST(new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      }));
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when title is missing", async () => {
       const req = new Request("http://localhost/api/tasks", {
         method: "POST",
@@ -272,6 +288,22 @@ describe("Tasks API Endpoints", () => {
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
       expect(response.status).toBe(401);
+    });
+
+    it("returns 400 for malformed JSON without updating a task", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const response = await PATCH(new Request("http://localhost/api/tasks/task-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: '{"title":',
+      }), { params: Promise.resolve({ id: "task-uuid-1" }) });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: "Request body must be valid JSON",
+      });
+      expect(mockDbState.rows).toEqual(before);
     });
 
     it("returns 400 when no updatable fields are provided", async () => {
