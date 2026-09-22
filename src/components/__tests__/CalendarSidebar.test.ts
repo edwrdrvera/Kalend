@@ -251,7 +251,7 @@ describe("CalendarSidebar inline task composer", () => {
       tasks: [makeTask()],
     });
 
-    const trigger = document.querySelector('[aria-label^="Add a task to"]');
+    const trigger = document.querySelector('[aria-label="Add a task"]');
     expect(trigger).not.toBeNull();
   });
 
@@ -261,8 +261,8 @@ describe("CalendarSidebar inline task composer", () => {
       tasks: [makeTask()],
     });
 
-    // Click a bucket's "+" trigger to expand the composer.
-    const trigger = document.querySelector('[aria-label^="Add a task to"]') as HTMLButtonElement | null;
+    // Click the section's single "+" trigger to expand the composer.
+    const trigger = document.querySelector('[aria-label="Add a task"]') as HTMLButtonElement | null;
     await act(() => trigger?.click());
 
     // Type a task title into the expanded form.
