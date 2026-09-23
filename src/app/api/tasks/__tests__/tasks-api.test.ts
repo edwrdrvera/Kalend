@@ -139,6 +139,36 @@ describe("Tasks API Endpoints", () => {
       expect(mockDbState.rows).toEqual(before);
     });
 
+    it("returns 400, not 500, for wrongly typed fields without inserting a task", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const cases: [string, string][] = [
+        ["null", "Request body must be an object"],
+        [JSON.stringify({ title: 42 }), "title must be a string"],
+        [JSON.stringify({ title: "Read", category_id: "not-a-uuid" }), "Space must be a valid identifier"],
+        [JSON.stringify({ title: "Read", color_overridden: "yes" }), "color_overridden must be a boolean"],
+      ];
+      for (const [body, error] of cases) {
+        const response = await POST(new Request("http://localhost/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }));
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ success: false, error });
+      }
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("stores the title trimmed", async () => {
+      const response = await POST(new Request("http://localhost/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "  Read chapter 4  " }),
+      }));
+      expect(response.status).toBe(201);
+      expect((await response.json()).data.title).toBe("Read chapter 4");
+    });
+
     it("returns 400 when title is missing", async () => {
       const req = new Request("http://localhost/api/tasks", {
         method: "POST",
@@ -278,6 +308,26 @@ describe("Tasks API Endpoints", () => {
   });
 
   describe("PATCH /api/tasks/[id]", () => {
+    it("returns 400, not 500, for wrongly typed fields without updating the task", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const id = mockDbState.rows[0].id;
+      const cases: [string, string][] = [
+        ["null", "Request body must be an object"],
+        [JSON.stringify({ title: 42 }), "title must be a string"],
+        [JSON.stringify({ completed: "true" }), "completed must be a boolean"],
+        [JSON.stringify({ category_id: "not-a-uuid" }), "Space must be a valid identifier"],
+      ];
+      for (const [body, error] of cases) {
+        const response = await PATCH(new Request(`http://localhost/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }), { params: Promise.resolve({ id }) });
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ success: false, error });
+      }
+      expect(mockDbState.rows).toEqual(before);
+    });
     it("returns 401 when user is unauthenticated", async () => {
       mockCurrentUser = null;
       const req = new Request("http://localhost/api/tasks/task-uuid-1", {
