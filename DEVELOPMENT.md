@@ -8,7 +8,7 @@ You need `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` for step 1.
 
 Three scripts build the demo account. Each one builds on the one before it, so run them in this order. All three are safe to run again.
 
-1. Create the demo login, or reset its password.:
+1. Create the demo login, or reset its password:
 
 	```bash
 	DEMO_USER_PASSWORD=<password> bun run db:seed:demo
