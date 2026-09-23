@@ -36,6 +36,7 @@ import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
 import { useEventEditor } from "@/hooks/useEventEditor";
+import { useEventSelection } from "@/hooks/useEventSelection";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
 type PanelMode = "pinned" | "sheet" | "fullscreen";
@@ -111,13 +112,9 @@ export default function Calendar() {
     items: ContextMenuItem[];
   } | null>(null);
   const [taskCreateDay, setTaskCreateDay] = useState<Date | null>(null);
-  // Events selected via shift+click, for a right-click bulk delete.
-  const [selectedEventIds, setSelectedEventIds] = useState<Set<string>>(new Set());
-  // Ids queued for deletion, pending the custom confirm dialog.
-  const [pendingEventDeletion, setPendingEventDeletion] = useState<string[] | null>(null);
-
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
+  const selection = useEventSelection(events);
   const categories = useCategories(
     (detachedEvents, detachedTasks, categoryId) => {
       events.reconcileSpaceRemoval(detachedEvents, categoryId);
@@ -177,7 +174,7 @@ export default function Calendar() {
   const editor = useEventEditor(events, selectedSpaceId, calendarContentRef);
 
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
-    setSelectedEventIds(new Set());
+    selection.clear();
     editor.openEdit(event, anchorRect);
   };
 
@@ -246,18 +243,8 @@ export default function Calendar() {
       ),
     });
 
-  const handleEventShiftClick = (event: CalendarEvent) =>
-    setSelectedEventIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(event.id)) next.delete(event.id);
-      else next.add(event.id);
-      return next;
-    });
-
   const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
-    // Act on the whole selection when the right-clicked event is part of it;
-    // otherwise act on just that event.
-    const ids = selectedEventIds.has(event.id) ? [...selectedEventIds] : [event.id];
+    const ids = selection.idsForContextMenu(event);
     setContextMenu({
       x,
       y,
@@ -266,20 +253,10 @@ export default function Calendar() {
           label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
           destructive: true,
           icon: <Trash2 className="size-3.5" />,
-          onSelect: () => setPendingEventDeletion(ids),
+          onSelect: () => selection.requestDelete(ids),
         },
       ],
     });
-  };
-
-  const confirmDeleteEvents = async () => {
-    if (!pendingEventDeletion) return;
-    const toDelete = events.data.filter((e) => pendingEventDeletion.includes(e.id));
-    setPendingEventDeletion(null);
-    setSelectedEventIds(new Set());
-    for (const event of toDelete) {
-      await events.deleteEvent(event);
-    }
   };
 
   if (!mounted) return null;
@@ -371,9 +348,9 @@ export default function Calendar() {
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onDayContextMenu={handleDayContextMenu}
-                onEventShiftClick={handleEventShiftClick}
+                onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}
-                selectedEventIds={selectedEventIds}
+                selectedEventIds={selection.selectedEventIds}
                 view={view}
                 onViewChange={setView}
               />
@@ -392,9 +369,9 @@ export default function Calendar() {
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
-                onEventShiftClick={handleEventShiftClick}
+                onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}
-                selectedEventIds={selectedEventIds}
+                selectedEventIds={selection.selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 pendingRange={editor.pendingRange}
@@ -416,9 +393,9 @@ export default function Calendar() {
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
-                onEventShiftClick={handleEventShiftClick}
+                onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}
-                selectedEventIds={selectedEventIds}
+                selectedEventIds={selection.selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
                 pendingRange={editor.pendingRange}
@@ -547,13 +524,13 @@ export default function Calendar() {
         />
       )}
 
-      {pendingEventDeletion && (
-        <Dialog open onOpenChange={() => setPendingEventDeletion(null)}>
+      {selection.pendingEventDeletion && (
+        <Dialog open onOpenChange={selection.cancelDelete}>
           <DialogContent className="sm:max-w-xs">
             <DialogHeader>
               <DialogTitle>
-                {pendingEventDeletion.length > 1
-                  ? `Delete ${pendingEventDeletion.length} events?`
+                {selection.pendingEventDeletion.length > 1
+                  ? `Delete ${selection.pendingEventDeletion.length} events?`
                   : "Delete this event?"}
               </DialogTitle>
             </DialogHeader>
@@ -562,11 +539,11 @@ export default function Calendar() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPendingEventDeletion(null)}
+                onClick={selection.cancelDelete}
               >
                 Cancel
               </Button>
-              <Button variant="destructive" size="sm" onClick={confirmDeleteEvents}>
+              <Button variant="destructive" size="sm" onClick={selection.confirmDelete}>
                 <Trash2 />
                 Delete
               </Button>
