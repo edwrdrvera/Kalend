@@ -1,12 +1,12 @@
 import { useState, type RefObject } from "react";
-import type { EventFormValues } from "@/components/EventCreatePopover";
+import type { EventFormValues } from "@/lib/event-form";
 import type { CalendarEvent } from "@/lib/calendar-types";
 import type { UseCalendarEventsReturn } from "@/hooks/useCalendarEvents";
 import { computePopoverSide } from "@/lib/popover-position";
 
 type EventWrites = Pick<UseCalendarEventsReturn, "createEvent" | "updateEvent" | "deleteEvent">;
 
-export interface EventEditorTarget {
+interface EventEditorTarget {
   rect: DOMRect;
   side: "left" | "right";
   event: CalendarEvent | null;
@@ -95,6 +95,7 @@ export function useEventEditor(
     submit,
     remove,
     close,
-    dismiss: () => setTarget(null),
+    // The breadcrumb leaves a drag-created range drawn, unlike close().
+    closeKeepingRange: () => setTarget(null),
   };
 }

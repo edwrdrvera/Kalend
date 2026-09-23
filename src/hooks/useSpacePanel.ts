@@ -9,9 +9,7 @@ import {
   saveBranchPanelState,
 } from "@/lib/branch-panel-state";
 import type { CalendarTask, CalendarCategory } from "@/lib/calendar-types";
-import type { spaceFocusReducer } from "@/lib/space-focus";
-
-type SpaceFocusAction = Parameters<typeof spaceFocusReducer>[1];
+import type { SpaceFocusAction } from "@/lib/space-focus";
 
 type PanelMode = "pinned" | "sheet" | "fullscreen";
 

@@ -6,7 +6,7 @@ export const initialSpaceFocus: SpaceFocus = {
   selectedSpaceId: null,
 };
 
-type SpaceFocusAction =
+export type SpaceFocusAction =
   | { type: "select"; spaceId: string | null }
   | { type: "deleted"; spaceId: string };
 

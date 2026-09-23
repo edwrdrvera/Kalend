@@ -2,16 +2,29 @@ import { describe, expect, it, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
 import { useEventEditor } from "@/hooks/useEventEditor";
 import type { CalendarEvent } from "@/lib/calendar-types";
-import type { EventFormValues } from "@/components/EventCreatePopover";
+import type { EventFormValues } from "@/lib/event-form";
 
-const EVENT = {
+const EVENT: CalendarEvent = {
   id: "e1",
   title: "Lecture",
   start_at: "2026-09-21T10:00:00Z",
   end_at: "2026-09-21T11:00:00Z",
+  color: null,
+  color_overridden: false,
   category_id: "space-1",
-} as CalendarEvent;
-const VALUES = { title: "Lecture" } as EventFormValues;
+  location: null,
+  icon: null,
+};
+const VALUES: EventFormValues = {
+  title: "Lecture",
+  startAt: EVENT.start_at,
+  endAt: EVENT.end_at,
+  color: "blue",
+  colorOverridden: false,
+  categoryId: "space-1",
+  location: null,
+  icon: null,
+};
 const rect = { x: 0, y: 0, width: 10, height: 10 } as DOMRect;
 
 async function setup(writes: Partial<Record<"createEvent" | "updateEvent" | "deleteEvent", ReturnType<typeof mock>>> = {}) {

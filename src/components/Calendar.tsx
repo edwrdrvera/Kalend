@@ -419,7 +419,7 @@ export default function Calendar() {
               label,
               onOpen: () => {
                 panel.openBranch(branch);
-                editor.dismiss();
+                editor.closeKeepingRange();
               },
             };
           })()}
