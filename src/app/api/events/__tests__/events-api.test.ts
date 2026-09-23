@@ -491,6 +491,33 @@ describe("Events API Endpoints", () => {
       expect(mockDbState.rows).toEqual(before);
     });
 
+    it("returns 400 for an empty or whitespace title without updating the event", async () => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+
+      for (const title of ["", "   "]) {
+        const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ success: false, error: "title is required" });
+      }
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it("trims the title on update", async () => {
+      const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "  Renamed  " }),
+      }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).data.title).toBe("Renamed");
+    });
+
     it("returns 400 for non-object JSON without updating an event", async () => {
       const before = mockDbState.rows.map((row) => ({ ...row }));
 
