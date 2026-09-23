@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useReducer } from "react";
+import { useState, useEffect, useRef, useReducer, useSyncExternalStore } from "react";
 import { startOfMonth, setHours, isSameDay } from "date-fns";
 import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
@@ -81,13 +81,16 @@ function LoadingSpinner() {
   );
 }
 
+const noopSubscribe = () => () => {};
+
 export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewDate, setViewDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(() =>
     typeof window !== "undefined" && window.innerWidth < 768 ? "day" : "week"
   );
-  const [mounted, setMounted] = useState(false);
+  // False during server render and hydration, true once on the client.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
   const { selectedSpaceId } = spaceFocus;
 
@@ -123,9 +126,8 @@ export default function Calendar() {
     }
   );
 
+  // Restore remembered open/closed + last-branch-per-Space (never throws).
   useEffect(() => {
-    setMounted(true);
-    // Restore remembered open/closed + last-branch-per-Space (never throws).
     dispatchBranchPanel({ type: "hydrate", state: loadBranchPanelState() });
   }, []);
 
