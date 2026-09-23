@@ -34,6 +34,8 @@ export function parseEventCreate(json: unknown): ParseResult<EventCreate> {
   const result = field.parsePresent(body.value, eventRules);
   if (!result.ok) return result;
   const event = result.value as EventCreate;
+  // Runs after the per-field rules, so a body with a bad field and reversed times reports the field.
+  // Before PR #181 the time order was reported first. Both are 400s; only the message differs.
   if (event.start_at >= event.end_at) return rejected("start_at must be before end_at");
   return parsed(event);
 }
