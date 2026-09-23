@@ -66,7 +66,7 @@ describe("Tasks API Endpoints", () => {
     mockDbState.shouldFail = false;
     mockCategoryRows.length = 0;
     mockCategoryRows.push({
-      id: "category-uuid-1",
+      id: "11111111-1111-4111-8111-111111111111",
       user_id: "user-uuid-123",
       color: "green",
     });
@@ -284,14 +284,14 @@ describe("Tasks API Endpoints", () => {
       const req = new Request("http://localhost/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Submit essay", category_id: "category-uuid-1" }),
+        body: JSON.stringify({ title: "Submit essay", category_id: "11111111-1111-4111-8111-111111111111" }),
       });
 
       const response = await POST(req);
       expect(response.status).toBe(201);
 
       const json = await response.json();
-      expect(json.data.category_id).toBe("category-uuid-1");
+      expect(json.data.category_id).toBe("11111111-1111-4111-8111-111111111111");
     });
 
     it("returns null category_id when none is given", async () => {
@@ -491,14 +491,14 @@ describe("Tasks API Endpoints", () => {
       const req = new Request("http://localhost/api/tasks/task-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category_id: "category-uuid-1" }),
+        body: JSON.stringify({ category_id: "11111111-1111-4111-8111-111111111111" }),
       });
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
-      expect(json.data.category_id).toBe("category-uuid-1");
+      expect(json.data.category_id).toBe("11111111-1111-4111-8111-111111111111");
     });
 
     it("clears category_id when explicitly set to null, falling back to the task's own color", async () => {
@@ -519,12 +519,12 @@ describe("Tasks API Endpoints", () => {
   describe("category ownership validation", () => {
     it("POST returns 400 when category_id belongs to another user", async () => {
       mockCategoryRows.length = 0;
-      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+      mockCategoryRows.push({ id: "11111111-1111-4111-8111-111111111111", user_id: "other-user-456", color: "red" });
 
       const req = new Request("http://localhost/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Stolen category task", category_id: "category-uuid-1" }),
+        body: JSON.stringify({ title: "Stolen category task", category_id: "11111111-1111-4111-8111-111111111111" }),
       });
 
       const response = await POST(req);
@@ -540,7 +540,7 @@ describe("Tasks API Endpoints", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: "Ghost category task",
-          category_id: "category-uuid-nonexistent",
+          category_id: "22222222-2222-4222-8222-222222222222",
         }),
       });
 
@@ -553,12 +553,12 @@ describe("Tasks API Endpoints", () => {
 
     it("PATCH returns 400 when category_id belongs to another user", async () => {
       mockCategoryRows.length = 0;
-      mockCategoryRows.push({ id: "category-uuid-1", user_id: "other-user-456", color: "red" });
+      mockCategoryRows.push({ id: "11111111-1111-4111-8111-111111111111", user_id: "other-user-456", color: "red" });
 
       const req = new Request("http://localhost/api/tasks/task-uuid-1", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category_id: "category-uuid-1" }),
+        body: JSON.stringify({ category_id: "11111111-1111-4111-8111-111111111111" }),
       });
 
       const response = await PATCH(req, { params: Promise.resolve({ id: "task-uuid-1" }) });
