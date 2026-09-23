@@ -7,7 +7,7 @@ import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
-import EventCreatePopover, { type EventFormValues } from "./EventCreatePopover";
+import EventCreatePopover from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
@@ -20,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { computePopoverSide } from "@/lib/popover-position";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent } from "@/lib/calendar-types";
@@ -36,6 +35,7 @@ import {
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
+import { useEventEditor } from "@/hooks/useEventEditor";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
 type PanelMode = "pinned" | "sheet" | "fullscreen";
@@ -174,95 +174,11 @@ export default function Calendar() {
   // popover side computation.
   const calendarContentRef = useRef<HTMLDivElement>(null);
 
-  // The event editor is anchored to whichever calendar element opened it.
-  const [eventPopover, setEventPopover] = useState<{
-    rect: DOMRect;
-    side: "left" | "right";
-    event: CalendarEvent | null;
-    start: Date;
-    end: Date | null;
-    initialSpaceId: string | null;
-  } | null>(null);
-  // The sketched box from a drag-create, kept visible until the popover
-  // closes (any outside click, or a successful create) or it's replaced.
-  const [pendingRange, setPendingRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [popoverSubmitting, setPopoverSubmitting] = useState(false);
-  const [popoverError, setPopoverError] = useState<string | null>(null);
-  const [popoverKey, setPopoverKey] = useState(0);
-
-  const getPopoverSide = (anchorRect: DOMRect) => {
-    const containerRect = calendarContentRef.current?.getBoundingClientRect();
-    return containerRect ? computePopoverSide(anchorRect, containerRect) : "right";
-  };
-
-  const handleCreateEvent = (day: Date, anchorRect: DOMRect) => {
-    setEventPopover({
-      rect: anchorRect,
-      side: getPopoverSide(anchorRect),
-      event: null,
-      start: day,
-      end: null,
-      initialSpaceId: selectedSpaceId,
-    });
-    setPopoverError(null);
-    setPopoverKey((key) => key + 1);
-  };
-
-  // Drag-to-create on the time grid: opens the creator prefilled with the
-  // dragged start/end range.
-  const handleCreateEventRange = (start: Date, end: Date, anchorRect: DOMRect) => {
-    setEventPopover({
-      rect: anchorRect,
-      side: getPopoverSide(anchorRect),
-      event: null,
-      start,
-      end,
-      initialSpaceId: selectedSpaceId,
-    });
-    setPendingRange({ start, end });
-    setPopoverError(null);
-    setPopoverKey((key) => key + 1);
-  };
+  const editor = useEventEditor(events, selectedSpaceId, calendarContentRef);
 
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
     setSelectedEventIds(new Set());
-    setEventPopover({
-      rect: anchorRect,
-      side: getPopoverSide(anchorRect),
-      event,
-      start: new Date(event.start_at),
-      end: new Date(event.end_at),
-      initialSpaceId: event.category_id,
-    });
-    setPopoverError(null);
-    setPopoverKey((key) => key + 1);
-  };
-
-  const handlePopoverSubmit = async (values: EventFormValues) => {
-    if (!eventPopover) return;
-
-    setPopoverSubmitting(true);
-    setPopoverError(null);
-    try {
-      if (eventPopover.event) {
-        await events.updateEvent(eventPopover.event.id, values);
-      } else {
-        await events.createEvent(values);
-      }
-      setEventPopover(null);
-      setPendingRange(null);
-    } catch (err) {
-      setPopoverError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setPopoverSubmitting(false);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!eventPopover?.event) return;
-    const event = eventPopover.event;
-    setEventPopover(null);
-    await events.deleteEvent(event);
+    editor.openEdit(event, anchorRect);
   };
 
   // Opening a branch focuses its Space and slides the panel in (one action,
@@ -318,7 +234,7 @@ export default function Calendar() {
     setContextMenu({
       x,
       y,
-      items: calendarMenuItems(day, () => handleCreateEvent(day, cursorRect(x, y))),
+      items: calendarMenuItems(day, () => editor.openCreate(day, cursorRect(x, y))),
     });
 
   const handleSlotContextMenu = (day: Date, hour: number, x: number, y: number) =>
@@ -326,7 +242,7 @@ export default function Calendar() {
       x,
       y,
       items: calendarMenuItems(day, () =>
-        handleCreateEvent(setHours(day, hour), cursorRect(x, y))
+        editor.openCreate(setHours(day, hour), cursorRect(x, y))
       ),
     });
 
@@ -451,7 +367,7 @@ export default function Calendar() {
                 categories={categories.data}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
-                onCreateEvent={handleCreateEvent}
+                onCreateEvent={editor.openCreate}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onDayContextMenu={handleDayContextMenu}
@@ -471,8 +387,8 @@ export default function Calendar() {
                 categories={categories.data}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
-                onCreateEvent={handleCreateEvent}
-                onCreateEventRange={handleCreateEventRange}
+                onCreateEvent={editor.openCreate}
+                onCreateEventRange={editor.openCreateRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
@@ -481,7 +397,7 @@ export default function Calendar() {
                 selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
-                pendingRange={pendingRange}
+                pendingRange={editor.pendingRange}
                 view={view}
                 onViewChange={setView}
               />
@@ -495,8 +411,8 @@ export default function Calendar() {
                 categories={categories.data}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
-                onCreateEvent={handleCreateEvent}
-                onCreateEventRange={handleCreateEventRange}
+                onCreateEvent={editor.openCreate}
+                onCreateEventRange={editor.openCreateRange}
                 onEventClick={handleEventClick}
                 onTaskClick={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
@@ -505,7 +421,7 @@ export default function Calendar() {
                 selectedEventIds={selectedEventIds}
                 onEventMove={events.changeEventTime}
                 onEventResize={events.changeEventTime}
-                pendingRange={pendingRange}
+                pendingRange={editor.pendingRange}
                 view={view}
                 onViewChange={setView}
               />
@@ -567,18 +483,18 @@ export default function Calendar() {
             </>
           )
         )}
-      {eventPopover && (
+      {editor.target && (
         <EventCreatePopover
-          key={popoverKey}
-          anchorRect={eventPopover.rect}
-          side={eventPopover.side}
-          event={eventPopover.event}
-          initialStart={eventPopover.start}
-          initialEnd={eventPopover.end ?? undefined}
-          initialSpaceId={eventPopover.initialSpaceId}
+          key={editor.key}
+          anchorRect={editor.target.rect}
+          side={editor.target.side}
+          event={editor.target.event}
+          initialStart={editor.target.start}
+          initialEnd={editor.target.end ?? undefined}
+          initialSpaceId={editor.target.initialSpaceId}
           categories={categories.data}
           breadcrumb={(() => {
-            const spaceId = eventPopover.event?.category_id;
+            const spaceId = editor.target.event?.category_id;
             if (!spaceId) return null;
             const branch = branches.find((b) => b.spaceId === spaceId);
             if (!branch) return null;
@@ -590,18 +506,15 @@ export default function Calendar() {
               label,
               onOpen: () => {
                 handleOpenBranch(branch);
-                setEventPopover(null);
+                editor.dismiss();
               },
             };
           })()}
-          onSubmit={handlePopoverSubmit}
-          onDelete={eventPopover.event ? handleDeleteEvent : undefined}
-          onClose={() => {
-            setEventPopover(null);
-            setPendingRange(null);
-          }}
-          submitting={popoverSubmitting}
-          error={popoverError}
+          onSubmit={editor.submit}
+          onDelete={editor.target.event ? editor.remove : undefined}
+          onClose={editor.close}
+          submitting={editor.submitting}
+          error={editor.error}
         />
       )}
 
