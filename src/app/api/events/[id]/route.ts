@@ -14,8 +14,6 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const parsed = parseEventPatch(await request.json());
   if (!parsed.ok) return badRequest(parsed.error);
   const body = parsed.value;
-  const startAt = body.start_at;
-  const endAt = body.end_at;
 
   const result = await retryTransaction(() => db.transaction(async (tx) => {
     const [existing] = await tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for("update");
@@ -31,17 +29,10 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
       const [oldCategory] = await tx.select().from(categories).where(and(eq(categories.id, existing.category_id), eq(categories.user_id, user.id)));
       if (oldCategory) visibleColor = oldCategory.color ?? existing.color;
     }
-    const updates: Partial<typeof events.$inferInsert> = {};
-    if (body.title !== undefined) updates.title = body.title;
-    if (startAt) updates.start_at = startAt;
-    if (endAt) updates.end_at = endAt;
-    if (body.category_id !== undefined) updates.category_id = body.category_id;
-    if (body.location !== undefined) updates.location = body.location;
-    if (body.icon !== undefined) updates.icon = body.icon;
-    if (body.color_overridden !== undefined) updates.color_overridden = body.color_overridden;
-    if (body.color !== undefined) updates.color = body.color;
-    else if (body.category_id === null || (body.color_overridden === false && !targetCategory)) updates.color = visibleColor;
-    if ((startAt ?? existing.start_at) >= (endAt ?? existing.end_at)) return { timeError: true } as const;
+    // The parsed body holds only the fields that were sent, keyed by column.
+    const updates: Partial<typeof events.$inferInsert> = { ...body };
+    if (body.color === undefined && (body.category_id === null || (body.color_overridden === false && !targetCategory))) updates.color = visibleColor;
+    if ((body.start_at ?? existing.start_at) >= (body.end_at ?? existing.end_at)) return { timeError: true } as const;
     const [updated] = await tx.update(events).set(updates).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning();
     return { updated } as const;
   }));

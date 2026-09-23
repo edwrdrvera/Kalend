@@ -27,6 +27,7 @@ export function parseEventCreate(json: unknown): ParseResult<EventCreate> {
   if (typeof title !== "string" || !title.trim() || typeof start_at !== "string" || typeof end_at !== "string") {
     return rejected("title, start_at, and end_at are required");
   }
+  // POST's combined date message predates the per-field rules and is part of the API contract.
   if (!field.date(start_at, "start_at").ok || !field.date(end_at, "end_at").ok) {
     return rejected("start_at and end_at must be valid dates");
   }
