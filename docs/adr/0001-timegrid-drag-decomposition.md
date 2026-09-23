@@ -22,7 +22,7 @@ First, lift the drag arithmetic into a pure, DOM-free module, `src/lib/time-grid
 
 Second, extract each gesture into its own hook (`useMoveDrag`, `useResizeDrag`, `useCreateDrag`). Each hook owns the imperative shell for one gesture, meaning its refs, its rAF throttle, its window listeners, and the body cursor lock, and calls the pure math for the decisions. Each hook presents a small interface: the pointer-down handler to wire plus the live preview to render. TimeGrid then shrinks to the view, wiring the three hooks' handlers onto the grid, and the coordination that genuinely spans gestures (which gesture currently owns the pointer) stays in the component.
 
-Calendar follows the same idea with three feature hooks (`useEventEditor`, `useEventSelection`, `useSpacePanel`), leaving Calendar as a composition root. That half is designed, not yet built.
+Calendar follows the same idea with three feature hooks (`useEventEditor`, `useEventSelection`, `useSpacePanel`), leaving Calendar as a composition root. That half is now built too (action item 6).
 
 ## Options Considered
 
@@ -82,5 +82,5 @@ The core trade is a handful of new files against a testable, single-sourced geom
 2. [x] Wire TimeGrid to call the pure module, behaviour-preserving (commit `a4b70ca`).
 3. [x] Pin the drag emit behaviour with a component-level test that drives real pointer events (commit `f49f1a2`), so the extraction has a runnable net.
 4. [x] Extract `useCreateDrag`, `useResizeDrag`, and `useMoveDrag`, one at a time, each keeping the suite green (commits `a440f40`, `c9a4edb`, `279b6c8`). TimeGrid dropped from 979 to 393 lines.
-5. [ ] Run the signed-in drag smoke to close the verification gap (day-column change and the ghost transform are not covered by the happy-dom pin).
-6. [ ] Apply the same feature-hook split to `Calendar.tsx` as a separate effort.
+5. [x] Run the signed-in drag smoke to close the verification gap. Done 2026-09-23: move across days, resize, and drag-create all work in the real app.
+6. [x] Apply the same feature-hook split to `Calendar.tsx` as a separate effort. Done on `refactor/calendar-hooks`: a behavior pin test first, then `useEventEditor`, `useEventSelection`, and `useSpacePanel`, one commit each. Calendar dropped from 664 to 492 lines.
