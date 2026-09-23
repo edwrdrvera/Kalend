@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useReducer, useSyncExternalStore } from "react";
+import { useState, useRef, useReducer, useSyncExternalStore } from "react";
 import { startOfMonth, setHours, isSameDay } from "date-fns";
 import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
@@ -23,23 +23,14 @@ import {
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent } from "@/lib/calendar-types";
-import type { Branch } from "@/lib/branch-types";
-import { resolveBranchTasks } from "@/lib/branch-types";
-import { branchesForSpaces, findBranch } from "@/lib/branch-stub";
-import {
-  branchPanelReducer,
-  initialBranchPanelState,
-  loadBranchPanelState,
-  saveBranchPanelState,
-} from "@/lib/branch-panel-state";
+import { branchesForSpaces } from "@/lib/branch-stub";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
 import { useEventEditor } from "@/hooks/useEventEditor";
 import { useEventSelection } from "@/hooks/useEventSelection";
+import { useSpacePanel } from "@/hooks/useSpacePanel";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
-
-type PanelMode = "pinned" | "sheet" | "fullscreen";
 
 function ErrorToast({
   message,
@@ -95,14 +86,6 @@ export default function Calendar() {
   const [spaceFocus, dispatchSpaceFocus] = useReducer(spaceFocusReducer, initialSpaceFocus);
   const { selectedSpaceId } = spaceFocus;
 
-  // Space Panel: which branch is open, remembered per Space + globally (see
-  // branch-panel-state.ts). Bound to a branch, not the date.
-  const [branchPanel, dispatchBranchPanel] = useReducer(
-    branchPanelReducer,
-    initialBranchPanelState
-  );
-  const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
-
   // Space create/edit dialog: null when closed, else the open target.
   const [spaceEditor, setSpaceEditor] = useState<SpaceEditorTarget | null>(null);
   // Right-click context menu (day/slot/event), and quick task creation.
@@ -122,28 +105,7 @@ export default function Calendar() {
       dispatchSpaceFocus({ type: "deleted", spaceId: categoryId });
     }
   );
-
-  // Restore remembered open/closed + last-branch-per-Space (never throws).
-  useEffect(() => {
-    dispatchBranchPanel({ type: "hydrate", state: loadBranchPanelState() });
-  }, []);
-
-  // Persist panel preferences whenever they change.
-  useEffect(() => {
-    saveBranchPanelState(branchPanel);
-  }, [branchPanel]);
-
-  // Track the responsive mode: pinned (>=1200) narrows the canvas; below that
-  // the panel is an overlay sheet (>=900) or a full-screen sheet (<900).
-  useEffect(() => {
-    const compute = () => {
-      const w = window.innerWidth;
-      setPanelMode(w >= 1200 ? "pinned" : w >= 900 ? "sheet" : "fullscreen");
-    };
-    compute();
-    window.addEventListener("resize", compute);
-    return () => window.removeEventListener("resize", compute);
-  }, []);
+  const panel = useSpacePanel(categories.data, tasks.data, dispatchSpaceFocus);
 
   const handleRetry = () => {
     events.retry();
@@ -176,26 +138,6 @@ export default function Calendar() {
   const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
     selection.clear();
     editor.openEdit(event, anchorRect);
-  };
-
-  // Opening a branch focuses its Space and slides the panel in (one action,
-  // per the brief's rail-flyout and breadcrumb entry points).
-  const handleOpenBranch = (branch: Branch) => {
-    dispatchSpaceFocus({ type: "select", spaceId: branch.spaceId });
-    dispatchBranchPanel({
-      type: "openBranch",
-      branchId: branch.id,
-      spaceId: branch.spaceId,
-    });
-  };
-
-  const handleClosePanel = () => dispatchBranchPanel({ type: "close" });
-
-  // Changing the active Space in the rail closes the panel (FR7): the open
-  // branch no longer applies.
-  const handleSelectSpace = (spaceId: string | null) => {
-    dispatchSpaceFocus({ type: "select", spaceId });
-    dispatchBranchPanel({ type: "spaceChanged", spaceId });
   };
 
   // Open the Space editor in edit mode for a given Space id (used by the panel
@@ -264,15 +206,9 @@ export default function Calendar() {
   const visibleEvents = filterBySpace(events.data, spaceFocus);
   const visibleTasks = filterBySpace(tasks.data, spaceFocus);
 
-  // All branches (for the agenda list) and the active branch.
+  // All branches, for the agenda list.
   const branches = branchesForSpaces(categories.data);
-  const activeBranch =
-    branchPanel.open && branchPanel.activeBranchId
-      ? findBranch(categories.data, branchPanel.activeBranchId)
-      : null;
-  const panelTasks = activeBranch
-    ? resolveBranchTasks(activeBranch, tasks.data)
-    : [];
+  const { activeBranch } = panel;
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
@@ -297,12 +233,12 @@ export default function Calendar() {
           onEventClick={handleEventClick}
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
-          onSelectSpace={handleSelectSpace}
+          onSelectSpace={panel.selectSpace}
           onCreateSpace={() => setSpaceEditor({ mode: "create" })}
           onEditSpace={(category) => setSpaceEditor({ mode: "edit", category })}
           branches={branches}
-          activeBranchId={branchPanel.activeBranchId}
-          onOpenBranch={handleOpenBranch}
+          activeBranchId={panel.activeBranchId}
+          onOpenBranch={panel.openBranch}
           accountMenu={
             <SettingsMenu
               triggerLabel="Account"
@@ -411,7 +347,7 @@ export default function Calendar() {
             animates 0<->330 so the canvas reflows in the same transition.
             Below 1200px: an overlay sheet with a scrim; below 900px: full
             screen. Both overlay modes are modal dialogs (see SpacePanel). */}
-        {panelMode === "pinned" ? (
+        {panel.panelMode === "pinned" ? (
           <div
             className={cn(
               "relative h-full shrink-0 overflow-hidden transition-[width] duration-[180ms] ease-out motion-reduce:transition-none",
@@ -422,9 +358,9 @@ export default function Calendar() {
               {activeBranch && (
                 <SpacePanel
                   branch={activeBranch}
-                  tasks={panelTasks}
+                  tasks={panel.panelTasks}
                   modal={false}
-                  onClose={handleClosePanel}
+                  onClose={panel.close}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
                   onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
@@ -438,20 +374,20 @@ export default function Calendar() {
               <button
                 type="button"
                 aria-label="Close panel"
-                onClick={handleClosePanel}
+                onClick={panel.close}
                 className="absolute inset-0 z-40 bg-foreground/20 motion-safe:animate-[fadeIn_180ms_ease-out]"
               />
               <div
                 className={cn(
                   "absolute inset-y-0 right-0 z-50 motion-safe:animate-[fadeIn_180ms_ease-out]",
-                  panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[330px]"
+                  panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[330px]"
                 )}
               >
                 <SpacePanel
                   branch={activeBranch}
-                  tasks={panelTasks}
+                  tasks={panel.panelTasks}
                   modal
-                  onClose={handleClosePanel}
+                  onClose={panel.close}
                   onToggleComplete={tasks.toggleComplete}
                   onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
                   onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
@@ -482,7 +418,7 @@ export default function Calendar() {
             return {
               label,
               onOpen: () => {
-                handleOpenBranch(branch);
+                panel.openBranch(branch);
                 editor.dismiss();
               },
             };
