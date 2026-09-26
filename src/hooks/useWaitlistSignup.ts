@@ -7,15 +7,17 @@ interface WaitlistResponse {
   error?: string;
 }
 
-export type WaitlistStatus = "idle" | "loading" | "done" | "error";
+type SignupState =
+  | { status: "idle" | "loading" | "done" }
+  | { status: "error"; message: string };
+
+const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 export function useWaitlistSignup() {
-  const [status, setStatus] = useState<WaitlistStatus>("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [state, setState] = useState<SignupState>({ status: "idle" });
 
   async function join(email: string, website: string): Promise<void> {
-    setError(null);
-    setStatus("loading");
+    setState({ status: "loading" });
 
     try {
       const response = await fetch("/api/waitlist", {
@@ -26,23 +28,20 @@ export function useWaitlistSignup() {
       const json = (await response.json().catch(() => null)) as WaitlistResponse | null;
 
       if (response.status === 429) {
-        setError("Too many attempts. Please wait 10 minutes and try again.");
-        setStatus("error");
-        return;
+        setState({ status: "error", message: "Too many attempts. Please wait 10 minutes and try again." });
+      } else if (!response.ok || !json?.success) {
+        setState({ status: "error", message: json?.error ?? GENERIC_ERROR });
+      } else {
+        setState({ status: "done" });
       }
-
-      if (!response.ok || !json?.success) {
-        setError(json?.error ?? "Something went wrong. Please try again.");
-        setStatus("error");
-        return;
-      }
-
-      setStatus("done");
     } catch {
-      setError("Something went wrong. Please try again.");
-      setStatus("error");
+      setState({ status: "error", message: GENERIC_ERROR });
     }
   }
 
-  return { status, error, join };
+  return {
+    status: state.status,
+    error: state.status === "error" ? state.message : null,
+    join,
+  };
 }
