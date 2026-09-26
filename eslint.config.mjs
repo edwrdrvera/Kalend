@@ -27,6 +27,7 @@ const eslintConfig = defineConfig([
           group: [
             "@/db", "@/db/*", "drizzle-orm", "drizzle-orm/*", "postgres",
             "@/lib/supabase/server", "@/lib/supabase/auth-user", "@/lib/api/route-handler",
+            "**/db", "**/db/*", "**/supabase/server", "**/supabase/auth-user", "**/api/route-handler",
           ],
           message: "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.",
         }],
@@ -41,6 +42,13 @@ const eslintConfig = defineConfig([
         name: "fetch",
         message: "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).",
       }],
+      "no-restricted-properties": ["error",
+        ...["window", "globalThis", "self"].map((object) => ({
+          object,
+          property: "fetch",
+          message: "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).",
+        })),
+      ],
     },
   },
   {

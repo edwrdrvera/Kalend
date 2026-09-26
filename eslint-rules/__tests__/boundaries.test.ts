@@ -30,6 +30,17 @@ describe("only hooks and the shared request helper call fetch", () => {
     });
   }
 
+  for (const call of ["window.fetch", "globalThis.fetch"]) {
+    it(`reports ${call} in a component`, async () => {
+      const errors = await ruleErrors(
+        "no-restricted-properties",
+        "src/components/Example.tsx",
+        `export const load = () => ${call}("/api/tasks");\n`
+      );
+      expect(errors).toEqual([expect.stringContaining("Network calls live in a hook")]);
+    });
+  }
+
   for (const filePath of ["src/hooks/useTasks.ts", "src/lib/api.ts", "src/app/api/tasks/route.ts"]) {
     it(`allows fetch in ${filePath}`, async () => {
       expect(await ruleErrors("no-restricted-globals", filePath, code)).toEqual([]);
@@ -45,6 +56,8 @@ describe("browser code cannot import server-only modules", () => {
     ["src/hooks/useExample.ts", "@/lib/supabase/auth-user"],
     ["src/app/(app)/app/page.tsx", "drizzle-orm"],
     ["src/app/(marketing)/page.tsx", "@/lib/api/route-handler"],
+    ["src/components/Example.tsx", "../db"],
+    ["src/components/landing/Example.tsx", "../../lib/supabase/server"],
   ];
 
   for (const [filePath, source] of cases) {
