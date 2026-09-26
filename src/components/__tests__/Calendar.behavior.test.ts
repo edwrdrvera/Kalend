@@ -193,7 +193,6 @@ describe("Calendar behavior", () => {
     expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
       active: { branchId: "space-1:default", spaceId: "space-1" },
-      lastBranchBySpace: { "space-1": "space-1:default" },
     });
   });
 
@@ -218,7 +217,6 @@ describe("Calendar behavior", () => {
     expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
       active: { branchId: "space-1:default", spaceId: "space-1" },
-      lastBranchBySpace: { "space-1": "space-1:default" },
     });
   });
 
