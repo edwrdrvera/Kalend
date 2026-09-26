@@ -31,7 +31,7 @@ Spawn one `general-purpose` subagent per lane below. Give each one only:
 
 Tell each subagent not to edit, commit, or push. It returns findings, and any test it wrote as a file path, and you apply them in step 4.
 
-Tell it to read `CLAUDE.md`, the `CLAUDE.md` in each directory the diff touches, and `docs/agent-rules.md` before it starts.
+Tell it to read `CLAUDE.md`, the `CLAUDE.md` in each directory the diff touches, and `guides/agent-rules.md` before it starts.
 
 | Tier | Lanes |
 | --- | --- |

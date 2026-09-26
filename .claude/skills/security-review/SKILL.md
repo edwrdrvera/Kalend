@@ -15,7 +15,7 @@ Collect the same inputs as the `code-review` skill, step 1: the tier, the diff, 
 
 ## 2. Run it in a fresh subagent
 
-Spawn one `general-purpose` subagent. Give it the inputs above, this file's steps 3 to 5 copied in full, and the repo path. Tell it not to edit, commit, or push anything. Tell it to read `src/app/api/CLAUDE.md`, `src/db/CLAUDE.md`, `src/lib/CLAUDE.md`, and `docs/agent-rules.md` rules 14 to 17 first.
+Spawn one `general-purpose` subagent. Give it the inputs above, this file's steps 3 to 5 copied in full, and the repo path. Tell it not to edit, commit, or push anything. Tell it to read `src/app/api/CLAUDE.md`, `src/db/CLAUDE.md`, `src/lib/CLAUDE.md`, and `guides/agent-rules.md` rules 14 to 17 first.
 
 ## 3. Check each boundary the diff touches
 
@@ -67,7 +67,7 @@ For each confirmed hole, state:
 
 - **Who can exploit it:** any visitor, any signed-in user, or only the owner.
 - **What they reach:** one row, all of one user's data, or every user's data.
-- **How to close it:** the fix, and whether a lint rule or test can stop the pattern from coming back. Prefer adding the check (`docs/agent-rules.md` rule 7).
+- **How to close it:** the fix, and whether a lint rule or test can stop the pattern from coming back. Prefer adding the check (`guides/agent-rules.md` rule 7).
 
 ## 6. Merge and act
 
