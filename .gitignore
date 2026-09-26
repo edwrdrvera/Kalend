@@ -41,8 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local coding-agent state and overrides
-.claude/
+# Local coding-agent state and overrides (the verify skill is shared)
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/verify/
 .codex/
 .agents/
 AGENTS.md

@@ -1,0 +1,77 @@
+---
+name: verify
+description: Drive the Kalend web app (Next.js calendar + task manager) in the built-in browser pane, signed in as the demo account, and capture proof that a user-visible change works. Use after any change to pages, components, hooks, or API routes, before calling the task done.
+---
+
+# Verify Kalend
+
+Kalend's user surface is a web UI: `/` (landing + waitlist), `/login`, `/app` (calendar, agenda, tasks, Spaces). The JSON API under `/api/*` is secondary; check it for side effects, never as a substitute for the UI path.
+
+Harness: the desktop app's built-in browser tools (`mcp__Claude_Browser__*`). There are no Playwright/Cypress specs in this repo.
+
+## Launch
+
+0. If `lsof -tiTCP:3000 -sTCP:LISTEN` shows a server and the doctor passes for it, drive that one and skip teardown (you didn't start it). Unattended runs (scheduled tasks) can't call `preview_start` at all, so they depend on this.
+1. `preview_start {name: "dev"}` (config in `.claude/launch.json`: `bun run dev`, port 3000, `autoPort: true`, so the real port may differ; read it from the result). Keep the returned `serverId` and `tabId`.
+2. Ready when `preview_logs {serverId, search: "Ready"}` shows Next's `Ready in …` line, and `curl -s localhost:<port>/api/ping` returns `{"message":"pong"}`.
+3. Teardown: `preview_stop {serverId}`. Only stop the server you started.
+
+Never start the server with Bash. Never run a second `bun run dev` from the same checkout: Next locks `.next/`. A worktree is a separate checkout and may run its own instance on another port.
+
+## Doctor
+
+```bash
+.claude/skills/verify/scripts/doctor.sh <port>
+```
+
+Read-only. Checks `.env.local` has the five required vars, that the port's listener runs from *this* checkout (not another worktree), `/api/ping` answers, and an unauthenticated `/api/tasks` is redirected (307 to `/login` by the middleware; a 503 means Supabase config is broken). Ends with `DOCTOR: OK` or `DOCTOR: PROBLEMS`. Run it first, and again whenever something looks off.
+
+## Sign in (needed for everything under `/app`)
+
+The agent must not type the password itself. Sign-in is a user step:
+
+1. `navigate` to `http://localhost:<port>/app`. If you land on `/app` and `find "Main navigation"` hits the icon rail (right after `navigate` it can miss while the page hydrates; retry once), the pane already has a session (cookies persist across runs); skip ahead.
+2. Otherwise you are on `/login` ("Sign in | Kalend"). Ask the user to sign in with the demo account (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env.local`) in the browser pane, and wait for them. Never read, echo, or paste those values anywhere: chat, screenshots, commits, PRs, evidence files.
+3. After they confirm, re-check step 1. Meanwhile, anything that doesn't need a session (landing page, route guard, `/api/ping`) can be verified.
+
+Failure modes: an inline error on the card (wrong password → run `bun run db:seed:demo` only if the user OKs it); protected APIs return 503 when Supabase is unreachable.
+
+## Drive
+
+Prefer handles in this order: `aria-label`, visible text, placeholder. Every one below exists in `src/components/`. Per-feature recipes live in `features/` (index: `features/README.md`). Read the feature file for what you are verifying and cover every entry point it lists.
+
+Reading state after an action: `find`/`read_page` for the UI, then for side effects run in the page (the session cookie rides along):
+
+```js
+await fetch('/api/tasks').then(r => r.json())   // also /api/events, /api/categories
+```
+
+This is a GET through the real auth path, so it counts as proof of persistence. Task, event, and Space mutations update the UI optimistically and the dev server can take a few seconds to write, so wait ~3s before the GET. Screenshots can also lag an action by one frame; re-take before judging the UI. Do not create or change data via `fetch` POST/PATCH as the "action" under test; do the action in the UI.
+
+## Data safety
+
+There is one shared Supabase database and one demo account, and there is no isolated test DB. Everything you create is real and visible to the user.
+
+- Name anything you create with the prefix `verify-` plus a timestamp, e.g. `verify-task-1727000000`.
+- Delete what you created before finishing, through the UI when the feature has a delete path, otherwise `fetch('/api/tasks/<id>', {method:'DELETE'})` on the ids you created. Never delete rows you didn't create.
+- Don't run the seed scripts without asking: `db:seed` reloads events for the user.
+
+## Evidence
+
+Proof = the action, the resulting UI state, and the persisted side effect.
+
+- Screenshot (`computer {action:"screenshot"}`) before and after the action; it's returned into the conversation and is what you show the user.
+- Save text evidence to `output/verify/<YYYYMMDD-HHMMSS>-<feature>/` (repo root; `output/` is untracked and cleanup never touches it): `api-after.json` (the GET result, filtered to your `verify-` rows), `notes.md` (steps taken, port, branch, commit). Write them with the Write tool.
+- Check `read_console_messages {onlyErrors: true}` and `preview_logs {level: "error"}`; include any errors in `notes.md`.
+- Standards: drive the real user path (clicks, typing, Enter), not internal setters or test-only endpoints. Mocks are not acceptable here; the app has none at runtime.
+
+## Cleanup
+
+1. Delete your `verify-` data (see Data safety). Confirm with a GET that none remain.
+2. `preview_stop {serverId}` for the server you started; don't kill by process name.
+3. Reset any viewport change: `resize_window {preset: "desktop"}`.
+4. Leave `output/verify/…` in place. Confirm it still exists after teardown.
+
+## Helpers
+
+- `scripts/doctor.sh [port]`: the read-only health check above. Exit 0 = OK.
