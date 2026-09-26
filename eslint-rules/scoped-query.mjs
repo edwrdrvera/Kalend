@@ -16,7 +16,9 @@
  * of the same chain, directly or nested in `and(...)`. Under `or(...)` or
  * `not(...)` it would no longer restrict the rows, so it does not count.
  * `db.query.<table>` and `db.execute(...)` are reported outright because the
- * filter inside them cannot be checked. A filter hoisted into a variable or built
+ * filter inside them cannot be checked. So is a select, update, delete, or
+ * insert whose table the rule can't identify, such as a conditional, a
+ * parameter, or a property of a runtime object: it fails closed. A filter hoisted into a variable or built
  * in an array is invisible to pure AST matching, so those legitimately-scoped
  * queries would report. That is the correct failure direction: it never stays
  * silent on a query it cannot prove is scoped. Inline the filter to satisfy it.
@@ -29,6 +31,9 @@ const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
 
+const unknownTableHint = (method) =>
+  `This rule can't tell which table this .${method}(...) call uses, so it can't check the owner filter. Pass the table itself (tasks, schema.tasks, or an imported alias), not a variable, parameter, or expression that picks one. If this isn't a database call, rename it or move it out of the folders this rule checks.`;
+
 const ownerFilterHint = (table) =>
   `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
 
@@ -40,37 +45,66 @@ function findVariable(scope, name) {
   return null;
 }
 
-// Resolves a table reference to its schema name through the forms an agent
-// is likely to write: tasks, schema.tasks, an aliased import, a local alias,
-// alias(tasks, "t"), and a type cast.
-function tableName(node, scope, seen = new Set()) {
-  if (!node || seen.has(node)) return null;
-  seen.add(node);
-  if (node.type === "TSAsExpression" || node.type === "TSNonNullExpression" || node.type === "TSSatisfiesExpression") {
-    return tableName(node.expression, scope, seen);
-  }
-  if (node.type === "MemberExpression" && node.property.type === "Identifier") {
-    return TARGET_TABLES.has(node.property.name) ? node.property.name : null;
-  }
-  if (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "alias") {
-    return tableName(node.arguments[0], scope, seen);
-  }
-  if (node.type !== "Identifier") return null;
-  if (TARGET_TABLES.has(node.name)) return node.name;
-  const def = findVariable(scope, node.name)?.defs[0];
-  if (def?.type === "ImportBinding" && def.node.type === "ImportSpecifier") {
-    const imported = def.node.imported.name ?? def.node.imported.value;
-    return TARGET_TABLES.has(imported) ? imported : null;
-  }
-  if (def?.type === "Variable" && def.node.init) return tableName(def.node.init, scope, seen);
+const SAFE = Symbol("safe");
+const UNKNOWN = Symbol("unknown");
+
+const isSchemaNamespace = (node, scope) =>
+  node.type === "Identifier" && findVariable(scope, node.name)?.defs[0]?.node.type === "ImportNamespaceSpecifier";
+
+function staticKey(member) {
+  if (!member.computed) return member.property.type === "Identifier" ? member.property.name : null;
+  const key = member.property;
+  if (key.type === "Literal" && typeof key.value === "string") return key.value;
+  if (key.type === "TemplateLiteral" && key.expressions.length === 0) return key.quasis[0].value.cooked;
   return null;
 }
 
-// The table a query starts from: db.select().from(X), db.update(X), db.delete(X).
-function queryRootTable(call, scope) {
+// Resolves a table reference to one of the owned table names, SAFE when it
+// provably names some other table, or UNKNOWN. It follows the forms an agent
+// is likely to write: tasks, schema.tasks, schema["tasks"], an aliased import,
+// a local alias, alias(tasks, "t"), and a type cast. Anything else, such as a
+// conditional, a parameter, a call, or a property of a runtime object, is
+// UNKNOWN, and the rule reports it rather than guessing.
+function resolveTable(node, scope, seen = new Set()) {
+  if (!node || seen.has(node)) return UNKNOWN;
+  seen.add(node);
+  if (node.type === "TSAsExpression" || node.type === "TSNonNullExpression" || node.type === "TSSatisfiesExpression") {
+    return resolveTable(node.expression, scope, seen);
+  }
+  if (node.type === "MemberExpression") {
+    const key = staticKey(node);
+    if (key !== null && TARGET_TABLES.has(key)) return key;
+    return key !== null && isSchemaNamespace(node.object, scope) ? SAFE : UNKNOWN;
+  }
+  if (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "alias") {
+    return resolveTable(node.arguments[0], scope, seen);
+  }
+  if (node.type !== "Identifier") return UNKNOWN;
+  if (TARGET_TABLES.has(node.name)) return node.name;
+  const variable = findVariable(scope, node.name);
+  if (!variable) return SAFE;
+  const def = variable.defs[0];
+  if (def?.type === "ImportBinding" && def.node.type === "ImportSpecifier") {
+    const imported = def.node.imported.name ?? def.node.imported.value;
+    return TARGET_TABLES.has(imported) ? imported : SAFE;
+  }
+  if (def?.type === "Variable" && def.node.id.type === "Identifier" && def.node.init) {
+    return resolveTable(def.node.init, scope, seen);
+  }
+  return UNKNOWN;
+}
+
+const tableName = (node, scope) => {
+  const table = resolveTable(node, scope);
+  return typeof table === "string" ? table : null;
+};
+
+// Where a query starts: db.select().from(X), db.update(X), db.delete(X), or
+// db.insert(X). Returns the method and the resolved table, or null when the
+// call is not a query root.
+function queryRoot(call, scope) {
   if (call.callee.type !== "MemberExpression" || call.callee.property.type !== "Identifier") return null;
-  const table = tableName(call.arguments[0], scope);
-  if (table === null) return null;
+  if (call.arguments.length === 0) return null;
   const method = call.callee.property.name;
   const receiver = call.callee.object;
   if (method === "from") {
@@ -79,15 +113,11 @@ function queryRootTable(call, scope) {
       receiver.callee.type === "MemberExpression" &&
       receiver.callee.property.type === "Identifier" &&
       receiver.callee.property.name.startsWith("select");
-    return isSelect ? table : null;
+    if (!isSelect) return null;
+  } else if (method !== "update" && method !== "delete" && method !== "insert") {
+    return null;
   }
-  return method === "update" || method === "delete" ? table : null;
-}
-
-// The table an insert writes to: db.insert(X).
-function insertTable(call, scope) {
-  if (!isMember(call.callee, "insert")) return null;
-  return tableName(call.arguments[0], scope);
+  return { method, table: resolveTable(call.arguments[0], scope) };
 }
 
 // Climb the method chain above the query root and return its .<method>(...) call.
@@ -174,21 +204,25 @@ const scopedQuery = {
     return {
       CallExpression(node) {
         const scope = context.sourceCode.getScope(node);
-        const table = queryRootTable(node, scope);
-        if (table !== null) {
-          const where = chainedCall(node, "where");
-          if (!where || !isScoped(where.arguments[0], table, scope)) {
-            context.report({ node, message: ownerFilterHint(table) });
-          }
-          return;
-        }
-        const inserted = insertTable(node, scope);
-        if (inserted !== null) {
-          if (
-            !valuesHaveOwner(chainedCall(node, "values")) ||
-            !conflictKeepsOwner(chainedCall(node, "onConflictDoUpdate"))
-          ) {
-            context.report({ node, message: ownerValueHint(inserted) });
+        const root = queryRoot(node, scope);
+        if (root !== null) {
+          const { method, table } = root;
+          if (table === UNKNOWN) {
+            context.report({ node, message: unknownTableHint(method) });
+          } else if (table === SAFE) {
+            return;
+          } else if (method === "insert") {
+            if (
+              !valuesHaveOwner(chainedCall(node, "values")) ||
+              !conflictKeepsOwner(chainedCall(node, "onConflictDoUpdate"))
+            ) {
+              context.report({ node, message: ownerValueHint(table) });
+            }
+          } else {
+            const where = chainedCall(node, "where");
+            if (!where || !isScoped(where.arguments[0], table, scope)) {
+              context.report({ node, message: ownerFilterHint(table) });
+            }
           }
           return;
         }

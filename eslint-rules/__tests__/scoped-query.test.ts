@@ -38,6 +38,9 @@ ruleTester.run("scoped-query", rule, {
     "db.insert(tasks).values({ title, user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title, user_id: user.id } })",
     // A table outside the scoped set can insert anything.
     "db.insert(waitlist).values({ email })",
+    // A table the rule can prove is not user-owned: a named import or a schema namespace member.
+    "import { waitlist } from '@/db/schema/waitlist'; db.insert(waitlist).values({ email })",
+    "import * as schema from '@/db/schema'; db.select().from(schema.waitlist)",
     // An aliased import is still checked, and passes when scoped.
     "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
   ],
@@ -90,6 +93,18 @@ ruleTester.run("scoped-query", rule, {
     { code: "const t = tasks; tx.insert(t).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     // With duplicate set keys, the last one wins at runtime.
     { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title }, set: { user_id: body.u } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // A string key on the schema still names the table.
+    { code: "import * as schema from '@/db/schema'; db.insert(schema['tasks']).values({ user_id: body.u })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "import * as schema from '@/db/schema'; db.select().from(schema['tasks'])", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A table the rule can't identify fails closed.
+    { code: "db.insert(cond ? tasks : events).values({ user_id: user.id })", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.update(pickTable(kind)).set({ title })", errors: [{ message: /can't tell which table/ }] },
+    { code: "function remove(table, id) { return db.delete(table).where(eq(table.id, id)) }", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.select().from(tables[kind])", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.delete(ctx.table)", errors: [{ message: /can't tell which table/ }] },
+    { code: "import * as schema from '@/db/schema'; const { tasks: t } = schema; db.delete(t)", errors: [{ message: /can't tell which table/ }] },
+    // The cost of failing closed: a non-database delete in a checked folder is reported too.
+    { code: "function evict(id) { cache.delete(id) }", errors: [{ message: /can't tell which table/ }] },
     { code: "db.query.tasks.findMany()", errors: [{ message: /db\.query\.tasks hides its filter/ }] },
     { code: "db.execute(sql`select * from tasks`)", errors: [{ message: /Raw SQL cannot be checked/ }] },
     {
