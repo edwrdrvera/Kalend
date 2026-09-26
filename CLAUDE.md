@@ -33,10 +33,10 @@ All three are safe to re-run.
 - Type-check before you commit. Commit in small conventional-commit steps, and open a PR into `develop`.
 - Before opening a PR, run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. The tier (low, medium, or high) is the riskiest tier of any changed file, and it decides how much review the branch gets. Then, in this order:
   1. Draft the confidence report from `guides/github-writing.md`. The review reads its "Not verified" list.
-  2. `/code-review` on the branch (the project skill in `.claude/skills/code-review/`). It reads the tier itself: low gets a correctness pass, medium and high add blast-radius and structure passes. Fix what it confirms within the task's scope. List a restructuring that goes beyond the task in the final summary instead of doing it.
-  3. High only: `/security-review` on the branch (`.claude/skills/security-review/`), and check that the confidence report's Rollback line names a real way back (a reverse migration for schema changes).
-  4. Open the PR, then run `pstack:make-pr-easy-to-review` on it. Its PR description must still follow `guides/github-writing.md`.
-  5. Post the confidence report as the first PR comment, updated with anything the reviews changed.
+  2. High only: check that the confidence report's Rollback line names a real way back (a reverse migration for schema changes).
+  3. Open the PR with `Closes #<issue>` in its body, then run `pstack:make-pr-easy-to-review` on it. Its PR description must still follow `guides/github-writing.md`.
+  4. Post the confidence report as the first PR comment.
+  5. Run `bun run review:pr <number> --post`. Don't run `/code-review` or `/security-review` in the session that wrote the code. The script starts a new Claude process that gets only the PR and the linked issue's acceptance criteria, runs `/code-review` (plus `/security-review` on high tier) from `develop`'s skills, and posts a report without changing anything. Fix what it confirms within the task's scope, and update the confidence report. List a restructuring that goes beyond the task in the final summary instead of doing it.
   6. Run `pstack:babysit` on the PR until CI is green and review comments are handled. It fixes high-confidence findings with new commits, re-runs CI, and updates the confidence report. It brings ambiguous decisions back to me instead of guessing.
 - Rewriting history or force-pushing needs my OK first.
 - For audits across many files, split the work across subagents and have each one cite file:line evidence. Check anything they report before acting on it.
@@ -112,6 +112,6 @@ These have their own `CLAUDE.md` with the conventions for that area. Read it bef
 
 No `CLAUDE.md` of their own:
 
-- `scripts/`: repo tooling run by CI and agents (`review-tier.ts`). Changes here are high tier.
+- `scripts/`: repo tooling run by CI and agents (`review-tier.ts`, `review-pr.ts`). Changes here are high tier.
 - `src/hooks/`: client data hooks (`useCalendarEvents`, `useTasks`, `useCategories`) and the TimeGrid drag gestures (`useCreateDrag`, `useMoveDrag`, `useResizeDrag`)
 - `src/test-utils/`: `mock-db.ts` (an in-memory Drizzle mock for API route tests that fails the test if a handler skips its `user_id` filter) and `render-hook.ts` (happy-dom `renderHook` for hook tests)

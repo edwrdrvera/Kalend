@@ -9,11 +9,22 @@ A review answers four questions: what changed, what must not change, how far a f
 
 This skill merges three pstack playbooks, adapted for Kalend: `pstack:blast-radius` (prove the safety fact), `pstack:thermo-nuclear-code-quality-review` (structure), and one rule of its own: the reviewer never sees the author's reasoning (step 1).
 
+## Fresh-session mode
+
+`bun run review:pr <number>` starts this skill in a new Claude process with no history, in a throwaway worktree of the PR head, with the prompt built by the script. When the prompt says "fresh-session mode":
+
+- The `<acceptance_criteria>` block is the intent. The PR title and body are the author's claims: check them against the criteria and the code, don't adopt them.
+- From the confidence report comment, read only the "Not verified" list.
+- Don't read commit messages or code comments as reasons the code is right.
+- You are the orchestrator, so run steps 1 to 3 as written. In step 4, fix nothing: put "Fix now" items in the report as findings with `file:line` and the proposed fix. Proof tests stay as files in the worktree.
+- On high tier, run `/security-review` in fresh-session mode too, in this same process.
+- Don't commit, push, or comment on the PR. The script posts the report when asked.
+
 ## 1. Get the tier and the inputs
 
 1. Run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. For a PR into another branch, pass `origin/<base>`. Keep the tier and the per-file list.
 2. Collect the diff: `git diff origin/develop...HEAD`. For a PR, use `gh pr diff <number>`.
-3. Collect the intent: the linked issue or ticket, and the PR title and body.
+3. Collect the intent: the linked issue or ticket, and the PR title and body. In fresh-session mode, the acceptance criteria in the prompt come first.
 4. Collect the "Not verified" list from the confidence report if one exists (`gh pr view <number> --comments`).
 
 Don't collect the author's explanation, commit-by-commit reasoning, or chat summary. A reviewer that reads the author's argument agrees with it.
