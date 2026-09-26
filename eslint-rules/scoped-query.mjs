@@ -27,7 +27,7 @@
 const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
 
 const ownerValueHint = (table) =>
-  `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread after it. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
+  `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
 
 const ownerFilterHint = (table) =>
   `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
@@ -109,6 +109,9 @@ function chainedCall(root, method) {
 const isMember = (node, property) =>
   node?.type === "MemberExpression" && node.property.type === "Identifier" && node.property.name === property;
 
+const isUserId = (node) =>
+  isMember(node, "id") && node.object.type === "Identifier" && node.object.name === "user";
+
 // eq(<table>.user_id, user.id): the column on the queried table, compared to
 // the authenticated user from withUser, never a value taken from the request.
 function isOwnerEq(node, table, scope) {
@@ -120,30 +123,38 @@ function isOwnerEq(node, table, scope) {
   );
 }
 
-const isUserId = (node) =>
-  isMember(node, "id") && node.object.type === "Identifier" && node.object.name === "user";
+const isUserIdKey = (prop) =>
+  prop.type === "Property" && !prop.computed && (prop.key.name === "user_id" || prop.key.value === "user_id");
 
-// One row of .values(...): an object literal holding user_id: user.id, with no
-// spread after it that could replace the value.
-function rowHasOwner(row) {
-  if (row?.type !== "ObjectExpression") return false;
-  const ownerIndex = row.properties.findLastIndex(
-    (prop) =>
-      prop.type === "Property" &&
-      !prop.computed &&
-      ((prop.key.type === "Identifier" && prop.key.name === "user_id") || prop.key.value === "user_id") &&
-      isUserId(prop.value)
-  );
-  if (ownerIndex === -1) return false;
-  return row.properties.slice(ownerIndex + 1).every(
-    (prop) => prop.type === "Property" && !(prop.key.type === "Identifier" && prop.key.name === "user_id") && prop.key.value !== "user_id"
-  );
+// A property that could write user_id: the key itself, a spread, or a computed
+// key whose runtime value can't be read here.
+const canSetOwner = (prop) => prop.type === "SpreadElement" || prop.computed || isUserIdKey(prop);
+
+// The last property that can write user_id decides the owner, so it must be
+// user_id: user.id. With `required`, the object must hold one.
+function ownerIsUser(object, required) {
+  if (object?.type !== "ObjectExpression") return false;
+  const decider = object.properties.findLast(canSetOwner);
+  if (decider === undefined) return !required;
+  return isUserIdKey(decider) && isUserId(decider.value);
 }
 
 function valuesHaveOwner(values) {
   const rows = values?.arguments[0];
-  if (rows?.type === "ArrayExpression") return rows.elements.length > 0 && rows.elements.every(rowHasOwner);
-  return rowHasOwner(rows);
+  if (rows?.type === "ArrayExpression") {
+    return rows.elements.length > 0 && rows.elements.every((row) => ownerIsUser(row, true));
+  }
+  return ownerIsUser(rows, true);
+}
+
+// .onConflictDoUpdate({ set }) rewrites an existing row, so its set may leave
+// user_id alone or set it to user.id, and nothing else.
+function conflictKeepsOwner(conflict) {
+  if (!conflict) return true;
+  const config = conflict.arguments[0];
+  if (config?.type !== "ObjectExpression" || config.properties.some((prop) => prop.type === "SpreadElement")) return false;
+  const set = config.properties.find((prop) => !prop.computed && prop.key.name === "set");
+  return ownerIsUser(set?.value, false);
 }
 
 function isScoped(node, table, scope) {
@@ -173,7 +184,10 @@ const scopedQuery = {
         }
         const inserted = insertTable(node, scope);
         if (inserted !== null) {
-          if (!valuesHaveOwner(chainedCall(node, "values"))) {
+          if (
+            !valuesHaveOwner(chainedCall(node, "values")) ||
+            !conflictKeepsOwner(chainedCall(node, "onConflictDoUpdate"))
+          ) {
             context.report({ node, message: ownerValueHint(inserted) });
           }
           return;
