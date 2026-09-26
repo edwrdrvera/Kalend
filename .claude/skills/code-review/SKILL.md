@@ -7,18 +7,18 @@ description: Review a Kalend branch or PR for bugs, blast radius, and code quali
 
 A review answers four questions: what changed, what must not change, how far a failure can travel, and whether the change can be gated or rolled back. How deep it digs depends on the tier.
 
-This skill merges three pstack playbooks, adapted for Kalend: `pstack:blast-radius` (prove the safety fact), `pstack:thermo-nuclear-code-quality-review` (structure), and the fresh-context reviewer rule from `docs/agent-rules.md`.
+This skill merges three pstack playbooks, adapted for Kalend: `pstack:blast-radius` (prove the safety fact), `pstack:thermo-nuclear-code-quality-review` (structure), and one rule of its own: the reviewer never sees the author's reasoning (step 1).
 
 ## 1. Get the tier and the inputs
 
-1. Run `bun run review:tier develop`, or pass the PR's base branch instead of `develop`. Keep the tier and the per-file list.
-2. Collect the diff: `git diff develop...HEAD`. For a PR, use `gh pr diff <number>`.
+1. Run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. For a PR into another branch, pass `origin/<base>`. Keep the tier and the per-file list.
+2. Collect the diff: `git diff origin/develop...HEAD`. For a PR, use `gh pr diff <number>`.
 3. Collect the intent: the linked issue or ticket, and the PR title and body.
 4. Collect the "Not verified" list from the confidence report if one exists (`gh pr view <number> --comments`).
 
 Don't collect the author's explanation, commit-by-commit reasoning, or chat summary. A reviewer that reads the author's argument agrees with it.
 
-## 2. Run the review in a fresh subagent
+## 2. Run each lane in a fresh subagent
 
 Spawn one `general-purpose` subagent per lane below. Give each one only:
 
@@ -28,6 +28,8 @@ Spawn one `general-purpose` subagent per lane below. Give each one only:
 - the "Not verified" list,
 - the lane's instructions from this file, copied in full,
 - the path to the repo so it can read any file it needs.
+
+Tell each subagent not to edit, commit, or push. It returns findings, and any test it wrote as a file path, and you apply them in step 4.
 
 Tell it to read `CLAUDE.md`, the `CLAUDE.md` in each directory the diff touches, and `docs/agent-rules.md` before it starts.
 
@@ -70,7 +72,7 @@ Find what the change breaks outside the diff. Listing callers is not the job. Fi
    3. You walked the failure step by step and showed it can't happen.
    4. You ran a script or test against the real code and it failed loud when wrong.
    5. You reproduced it in the running app.
-5. Get the safety fact to step 4 when it's cheap. Usually that's one `bun test` case using `src/test-utils/mock-db.ts`, or a script that imports the real module. Paste the command and its output. If you can't reach step 4, write "unproven".
+5. Get the safety fact to step 4 when one test or script can do it. That is often one `bun test` case using `src/test-utils/mock-db.ts`, or a script that imports the real module. Paste the command and its output. If you can't reach step 4, write "unproven".
 
 ### Structure
 

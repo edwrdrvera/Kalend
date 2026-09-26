@@ -15,7 +15,7 @@ Collect the same inputs as the `code-review` skill, step 1: the tier, the diff, 
 
 ## 2. Run it in a fresh subagent
 
-Spawn one `general-purpose` subagent. Give it the inputs above, this file's steps 3 to 5 copied in full, and the repo path. Tell it to read `src/app/api/CLAUDE.md`, `src/db/CLAUDE.md`, `src/lib/CLAUDE.md`, and `docs/agent-rules.md` rules 14 to 17 first.
+Spawn one `general-purpose` subagent. Give it the inputs above, this file's steps 3 to 5 copied in full, and the repo path. Tell it not to edit, commit, or push anything. Tell it to read `src/app/api/CLAUDE.md`, `src/db/CLAUDE.md`, `src/lib/CLAUDE.md`, and `docs/agent-rules.md` rules 14 to 17 first.
 
 ## 3. Check each boundary the diff touches
 
@@ -57,9 +57,9 @@ Prove it with a test in the route's `__tests__/` folder that uses `src/test-util
 2. Call the handler as user B.
 3. Expect a 404, and expect user A's row to stay unchanged.
 
-Run it and paste the command and output. Commit the test if it's new, so the proof keeps running in CI. If you can't write it, mark the fact "unproven" and say why.
+Run it and paste the command and output. Return the test as a file path if it's new. The parent session commits it in step 6, so the proof keeps running in CI. If you can't write it, mark the fact "unproven" and say why.
 
-Rate each other safety claim on the same ladder as `code-review`: said, cited, walked, ran, reproduced in the app. Say where each one stopped.
+Rate each other safety claim on the `code-review` ladder (steps 1 to 5) and give the step number.
 
 ## 5. Trace the reach
 
