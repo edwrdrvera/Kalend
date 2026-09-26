@@ -24,7 +24,7 @@ Never start the server with Bash. Never run a second `bun run dev` from the same
 .claude/skills/verify/scripts/doctor.sh <port>
 ```
 
-Read-only. Checks `.env.local` has the five required vars, that the port's listener runs from *this* checkout (not another worktree), `/api/ping` answers, and an unauthenticated `/api/tasks` is redirected (307 to `/login` by the middleware; a 503 means Supabase config is broken). Ends with `DOCTOR: OK` or `DOCTOR: PROBLEMS`. Run it first, and again whenever something looks off.
+Read-only. Checks `.env.local` has the three vars the server needs (`DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; a new worktree has no `.env.local` until you copy one in), that the port's listener runs from *this* checkout (not another worktree), `/api/ping` answers, and an unauthenticated `/api/tasks` is redirected (307 to `/login` by the middleware; a 503 means Supabase config is broken). Ends with `DOCTOR: OK` or `DOCTOR: PROBLEMS`. Run it first, and again whenever something looks off.
 
 ## Sign in (needed for everything under `/app`)
 
@@ -61,7 +61,7 @@ There is one shared Supabase database and one demo account, and there is no isol
 Proof = the action, the resulting UI state, and the persisted side effect.
 
 - Screenshot (`computer {action:"screenshot"}`) before and after the action; it's returned into the conversation and is what you show the user.
-- Save text evidence to `output/verify/<YYYYMMDD-HHMMSS>-<feature>/` (repo root; `output/` is untracked and cleanup never touches it): `api-after.json` (the GET result, filtered to your `verify-` rows), `notes.md` (steps taken, port, branch, commit). Write them with the Write tool.
+- Save text evidence to `output/verify/<YYYYMMDD-HHMMSS>-<feature>/` (repo root; `output/` is gitignored and cleanup never touches it): `api-after.json` (the GET result, filtered to your `verify-` rows), `notes.md` (steps taken, port, branch, commit). Write them with the Write tool.
 - Check `read_console_messages {onlyErrors: true}` and `preview_logs {level: "error"}`; include any errors in `notes.md`.
 - Standards: drive the real user path (clicks, typing, Enter), not internal setters or test-only endpoints. Mocks are not acceptable here; the app has none at runtime.
 

@@ -5,7 +5,7 @@ set -u
 PORT="${1:-3000}"
 cd "$(dirname "$0")/../../../.." || exit 1
 ok=1
-for v in DATABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY DEMO_USER_EMAIL DEMO_USER_PASSWORD; do
+for v in DATABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
   grep -q "^$v=." .env.local 2>/dev/null || { echo "MISSING env: $v in .env.local"; ok=0; }
 done
 pid=$(lsof -tiTCP:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)

@@ -6,7 +6,7 @@ Persistent to-do list, shown in the agenda column and in a Space's panel. API: `
 - Create from the agenda "Tasks" section.
 - Create from a Space panel ("Open tasks" section).
 - Create from the task dialog (`TaskCreateDialog`, `Task title` field), opened by right-clicking an empty calendar slot → `Create task`.
-- Due date: the composer's `+ due date` button opens a date picker; after a pick it becomes a button named `Due date, <Month D, YYYY>`.
+- Due date: the composer's `+ due date` button swaps in a date field; click that field to open the picker. After a pick the field is a button named `Due date, <Month D, YYYY>`.
 - Toggle done / not done, from the agenda row or the Space panel row (`Mark as done` / `Mark as not done`).
 - Dated tasks also render as chips on the Month grid and in the Week/Day all-day row (`TaskChip`). Clicking a chip toggles the same state; its label carries the title: `Mark as done: <title>` / `Mark as not done: <title>`.
 - Bucketing by due date relative to the real current day: Overdue, Today, This week, This month, Unscheduled (`src/lib/task-buckets.ts`).

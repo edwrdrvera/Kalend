@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Verify-run evidence
+/output/
+
 # Local coding-agent state and overrides (the verify skill is shared)
 .claude/*
 !.claude/launch.json
