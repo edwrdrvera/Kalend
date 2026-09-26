@@ -27,3 +27,6 @@ jobs:
 
       - name: Typecheck
         run: bunx tsc --noEmit
+
+      - name: Test
+        run: bun test
