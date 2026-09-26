@@ -5,7 +5,8 @@
 // (`seed.ts`) only loads events, all with a null `category_id`, so out of the
 // box nothing is grouped under a Space. This script fixes that for one user:
 //
-//   1. creates a small set of Spaces (School / Work / Personal / Hackathon),
+//   1. creates a small set of Spaces (School / Work / Personal / Hackathon /
+//      Fitness / Social),
 //   2. assigns every one of that user's events to a Space by title,
 //   3. assigns their tasks to a Space and adds a few per-Space backlog tasks,
 //
@@ -26,12 +27,13 @@ import { db } from "./index";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";
+import type { EventColor } from "../lib/event-colors";
 
 // Each Space: a display name, a palette color (from EVENT_COLORS), the event
 // titles that belong to it, and a few backlog tasks to seed under it.
 interface SpaceSpec {
   name: string;
-  color: string;
+  color: EventColor;
   eventTitles: string[];
   tasks: { title: string; dueInDays?: number }[];
 }
@@ -75,6 +77,8 @@ const SPACES: SpaceSpec[] = [
       "Project Kickoff",
       "Project Brainstorm",
       "Monthly Retrospective",
+      "1:1 with Manager",
+      "Client Call",
     ],
     tasks: [
       { title: "Write sprint retro notes", dueInDays: 1 },
@@ -85,21 +89,52 @@ const SPACES: SpaceSpec[] = [
     name: "Personal",
     color: "green",
     eventTitles: [
-      "Gym Session",
       "Dentist Appointment",
-      "Lunch with Edward",
-      "Coffee with Priya",
+      "Grocery Run",
+      "Laundry Day",
+      "Call Home",
+      "Farmers Market",
     ],
     tasks: [{ title: "Book a dentist follow-up", dueInDays: 5 }],
   },
   {
     name: "Hackathon",
     color: "orange",
-    eventTitles: ["Hackathon Weekend", "Hackathon Planning"],
+    eventTitles: [
+      "Hackathon Weekend",
+      "Hackathon Planning",
+      "Team Standup",
+      "Demo Prep",
+    ],
     tasks: [
       { title: "Draft the hackathon pitch", dueInDays: 4 },
       { title: "Line up a hackathon team", dueInDays: 2 },
     ],
+  },
+  {
+    name: "Fitness",
+    color: "teal",
+    eventTitles: [
+      "Gym Session",
+      "Morning Run",
+      "Yoga Class",
+      "Basketball Pickup",
+      "Rock Climbing",
+    ],
+    tasks: [{ title: "Sign up for the spring 5K", dueInDays: 4 }],
+  },
+  {
+    name: "Social",
+    color: "pink",
+    eventTitles: [
+      "Lunch with Edward",
+      "Coffee with Priya",
+      "Dinner with Roommates",
+      "Movie Night",
+      "Birthday Party",
+      "Book Club",
+    ],
+    tasks: [{ title: "Plan the weekend trip", dueInDays: 6 }],
   },
 ];
 
@@ -131,7 +166,7 @@ async function resolveUserId(): Promise<string> {
 }
 
 /** Insert the Space if the user doesn't have one by that name; return its id. */
-async function ensureSpace(userId: string, name: string, color: string): Promise<string> {
+async function ensureSpace(userId: string, name: string, color: EventColor): Promise<string> {
   const existing = await db
     .select({ id: categories.id })
     .from(categories)

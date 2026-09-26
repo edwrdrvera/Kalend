@@ -1,5 +1,6 @@
 // Loads src/db/data/data.csv into the `events` table for local dev.
-// Run with `bun run db:seed`.
+// Run with `bun run db:seed`. Events carry no color of their own. The Spaces
+// seed links each one to a Space, and that Space's color is what shows.
 //
 // The CSV's user_id column is a placeholder (all zeros) left over from
 // before any real account existed to attach sample data to — it's not
@@ -24,7 +25,6 @@ interface SeedRow {
   title: string;
   start_at: string;
   end_at: string;
-  color: string;
 }
 
 /** Minimal CSV parser: handles quoted fields (embedded commas, escaped
@@ -80,13 +80,11 @@ function toSeedRows(csvRows: string[][]): SeedRow[] {
   const titleIdx = header.indexOf("title");
   const startIdx = header.indexOf("start_at");
   const endIdx = header.indexOf("end_at");
-  const colorIdx = header.indexOf("color");
 
   return dataRows.map((r) => ({
     title: r[titleIdx],
     start_at: r[startIdx],
     end_at: r[endIdx],
-    color: r[colorIdx],
   }));
 }
 
@@ -132,7 +130,6 @@ async function main() {
       title: row.title,
       start_at: startAt,
       end_at: endAt,
-      color: row.color,
       user_id: userId,
     });
     inserted++;
