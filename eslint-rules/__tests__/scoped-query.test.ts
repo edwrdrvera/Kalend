@@ -27,8 +27,14 @@ ruleTester.run("scoped-query", rule, {
     "db.select().from(tasks).where(and(eq(tasks.user_id, user.id), ...conds))",
     // Array.from over a variable that happens to share a table name is not a query.
     "Array.from(tasks)",
-    // Inserts carry user_id in their values, not a where.
+    // Inserts carry the signed-in user's id in their values, not a where.
     "db.insert(tasks).values({ title, user_id: user.id })",
+    "db.insert(events).values({ title, user_id: user.id }).returning()",
+    // A spread before user_id can't override it.
+    "db.insert(tasks).values({ ...(due ? { due_at: due } : {}), user_id: user.id })",
+    "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b, user_id: user.id }])",
+    // A table outside the scoped set can insert anything.
+    "db.insert(waitlist).values({ email })",
     // An aliased import is still checked, and passes when scoped.
     "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
   ],
@@ -60,6 +66,18 @@ ruleTester.run("scoped-query", rule, {
     { code: "db.select().from(tasks).where(or(eq(tasks.user_id, user.id), eq(tasks.id, id)))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // not() selects everyone else's rows.
     { code: "db.select().from(tasks).where(not(eq(tasks.user_id, user.id)))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // An insert with no user_id, or one taken from somewhere other than the signed-in user.
+    { code: "db.insert(tasks).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(tasks).values({ title, user_id: body.user_id })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values(body)", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values({ ...body })", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    // A spread after user_id can overwrite it.
+    { code: "db.insert(tasks).values({ user_id: user.id, ...body })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // One row in a batch without the owner is enough to leak.
+    { code: "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b }])", errors: [{ message: /Insert into "categories" must set user_id: user\.id/ }] },
+    // An insert whose values never appear in the chain.
+    { code: "db.insert(tasks)", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "const t = tasks; tx.insert(t).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     { code: "db.query.tasks.findMany()", errors: [{ message: /db\.query\.tasks hides its filter/ }] },
     { code: "db.execute(sql`select * from tasks`)", errors: [{ message: /Raw SQL cannot be checked/ }] },
     {

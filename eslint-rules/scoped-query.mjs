@@ -6,8 +6,10 @@
  * user.id)` filter hand-written into every query. A query over `events`,
  * `tasks`, or `categories` that does not reach a `.where(...)` holding that
  * filter is a potential cross-tenant leak, and that includes a query with no
- * `.where` at all. This rule flags it at lint time so a forgotten
- * filter fails CI instead of shipping.
+ * `.where` at all. An insert into those tables must chain `.values(...)` with
+ * `user_id: user.id` written inline in every row, so a row can't be written
+ * into another user's account. This rule flags both at lint time so a
+ * forgotten owner fails CI instead of shipping.
  *
  * It is deliberately safe-and-noisy rather than quiet-and-dangerous. It matches
  * the owner filter only when it is written inline inside the `.where(...)` call
@@ -23,6 +25,9 @@
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
+
+const ownerValueHint = (table) =>
+  `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread after it. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
 
 const ownerFilterHint = (table) =>
   `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
@@ -79,8 +84,14 @@ function queryRootTable(call, scope) {
   return method === "update" || method === "delete" ? table : null;
 }
 
-// Climb the method chain above the query root and return its .where(...) call.
-function chainedWhere(root) {
+// The table an insert writes to: db.insert(X).
+function insertTable(call, scope) {
+  if (!isMember(call.callee, "insert")) return null;
+  return tableName(call.arguments[0], scope);
+}
+
+// Climb the method chain above the query root and return its .<method>(...) call.
+function chainedCall(root, method) {
   let node = root;
   while (
     node.parent?.type === "MemberExpression" &&
@@ -89,7 +100,7 @@ function chainedWhere(root) {
     node.parent.parent.callee === node.parent
   ) {
     const call = node.parent.parent;
-    if (node.parent.property.type === "Identifier" && node.parent.property.name === "where") return call;
+    if (node.parent.property.type === "Identifier" && node.parent.property.name === method) return call;
     node = call;
   }
   return null;
@@ -105,10 +116,34 @@ function isOwnerEq(node, table, scope) {
   return (
     isMember(column, "user_id") &&
     tableName(column.object, scope) === table &&
-    isMember(value, "id") &&
-    value.object.type === "Identifier" &&
-    value.object.name === "user"
+    isUserId(value)
   );
+}
+
+const isUserId = (node) =>
+  isMember(node, "id") && node.object.type === "Identifier" && node.object.name === "user";
+
+// One row of .values(...): an object literal holding user_id: user.id, with no
+// spread after it that could replace the value.
+function rowHasOwner(row) {
+  if (row?.type !== "ObjectExpression") return false;
+  const ownerIndex = row.properties.findLastIndex(
+    (prop) =>
+      prop.type === "Property" &&
+      !prop.computed &&
+      ((prop.key.type === "Identifier" && prop.key.name === "user_id") || prop.key.value === "user_id") &&
+      isUserId(prop.value)
+  );
+  if (ownerIndex === -1) return false;
+  return row.properties.slice(ownerIndex + 1).every(
+    (prop) => prop.type === "Property" && !(prop.key.type === "Identifier" && prop.key.name === "user_id") && prop.key.value !== "user_id"
+  );
+}
+
+function valuesHaveOwner(values) {
+  const rows = values?.arguments[0];
+  if (rows?.type === "ArrayExpression") return rows.elements.length > 0 && rows.elements.every(rowHasOwner);
+  return rowHasOwner(rows);
 }
 
 function isScoped(node, table, scope) {
@@ -130,17 +165,20 @@ const scopedQuery = {
         const scope = context.sourceCode.getScope(node);
         const table = queryRootTable(node, scope);
         if (table !== null) {
-          const where = chainedWhere(node);
+          const where = chainedCall(node, "where");
           if (!where || !isScoped(where.arguments[0], table, scope)) {
             context.report({ node, message: ownerFilterHint(table) });
           }
           return;
         }
-        if (
-          node.callee.type === "MemberExpression" &&
-          node.callee.property.type === "Identifier" &&
-          node.callee.property.name === "execute"
-        ) {
+        const inserted = insertTable(node, scope);
+        if (inserted !== null) {
+          if (!valuesHaveOwner(chainedCall(node, "values"))) {
+            context.report({ node, message: ownerValueHint(inserted) });
+          }
+          return;
+        }
+        if (isMember(node.callee, "execute")) {
           context.report({
             node,
             message: "Raw SQL cannot be checked for an owner filter. Use db.select()/update()/delete() with .where(eq(<table>.user_id, user.id)).",
