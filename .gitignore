@@ -55,7 +55,6 @@ next-env.d.ts
 !.claude/skills/verify/
 .codex/
 .agents/
-AGENTS.md
 
 # Local coding-agent hand-off notes
 /CONTEXT.md
