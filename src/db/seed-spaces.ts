@@ -5,7 +5,8 @@
 // (`seed.ts`) only loads events, all with a null `category_id`, so out of the
 // box nothing is grouped under a Space. This script fixes that for one user:
 //
-//   1. creates a small set of Spaces (School / Work / Personal / Hackathon),
+//   1. creates a small set of Spaces (School / Work / Personal / Hackathon /
+//      Fitness / Social),
 //   2. assigns every one of that user's events to a Space by title,
 //   3. assigns their tasks to a Space and adds a few per-Space backlog tasks,
 //
@@ -26,12 +27,13 @@ import { db } from "./index";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";
+import type { EventColor } from "../lib/event-colors";
 
 // Each Space: a display name, a palette color (from EVENT_COLORS), the event
 // titles that belong to it, and a few backlog tasks to seed under it.
 interface SpaceSpec {
   name: string;
-  color: string;
+  color: EventColor;
   eventTitles: string[];
   tasks: { title: string; dueInDays?: number }[];
 }
@@ -164,7 +166,7 @@ async function resolveUserId(): Promise<string> {
 }
 
 /** Insert the Space if the user doesn't have one by that name; return its id. */
-async function ensureSpace(userId: string, name: string, color: string): Promise<string> {
+async function ensureSpace(userId: string, name: string, color: EventColor): Promise<string> {
   const existing = await db
     .select({ id: categories.id })
     .from(categories)
