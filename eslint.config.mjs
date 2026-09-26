@@ -21,7 +21,7 @@ const networkFiles = ["src/hooks/**", "src/lib/api.ts"];
 const serverOnly =
   "^(drizzle-orm|postgres|next[/]headers)([/]|$)|(^|[/])(db|supabase[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
 const serverOnlyMessage =
-  "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.";
+  "Server-only module. Browser code reads and changes data through a hook in src/hooks that calls an /api route; server code belongs under src/app/api.";
 const networkMessage =
   "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).";
 
@@ -38,7 +38,7 @@ const eslintConfig = defineConfig([
   // bypasses RLS, so every query over a user-owned table must carry its
   // owner filter; this rule fails the build when one is missing.
   {
-    files: ["src/app/api/**/*.ts"],
+    files: ["src/app/api/**/*.ts", "src/lib/api/**/*.ts"],
     plugins: { "access-control": accessControl },
     rules: { "access-control/scoped-query": "error" },
   },
@@ -48,7 +48,9 @@ const eslintConfig = defineConfig([
   {
     files: networkFiles,
     rules: {
-      "no-restricted-imports": ["error", { patterns: [{ regex: serverOnly, message: serverOnlyMessage }] }],
+      "no-restricted-imports": ["error", {
+        patterns: [{ regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true }],
+      }],
       "no-restricted-syntax": ["error", ...serverImportSyntax],
     },
   },
@@ -58,8 +60,9 @@ const eslintConfig = defineConfig([
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [
-          { regex: serverOnly, message: serverOnlyMessage },
-          { regex: "(^|[/])api(\\.ts)?$", message: networkMessage },
+          { regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true },
+          { regex: "(^|[/])api(\\.ts)?$", message: networkMessage, allowTypeImports: true },
+          { regex: "^(axios|ky|ofetch|got|superagent|node-fetch|cross-fetch)([/]|$)", message: networkMessage },
         ],
       }],
       "no-restricted-syntax": ["error",
@@ -68,9 +71,16 @@ const eslintConfig = defineConfig([
           selector: "VariableDeclarator[init.type='Identifier'][init.name=/^(window|globalThis|self)$/]",
           message: networkMessage,
         },
+        // The browser Supabase client is for sign-in only; table reads and
+        // writes from it skip the /api parsers and Space ownership checks.
+        {
+          selector: "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/][callee.object.name!=/^(Array|Buffer|Object|Uint8Array)$/]",
+          message: networkMessage,
+        },
+        { selector: "MemberExpression[property.name='storage']", message: networkMessage },
       ],
       "no-restricted-globals": ["error",
-        ...["fetch", "XMLHttpRequest", "EventSource"].map((name) => ({ name, message: networkMessage })),
+        ...["fetch", "XMLHttpRequest", "EventSource", "WebSocket"].map((name) => ({ name, message: networkMessage })),
       ],
       "no-restricted-properties": ["error",
         ...["window", "globalThis", "self"].map((object) => ({ object, property: "fetch", message: networkMessage })),
@@ -84,7 +94,7 @@ const eslintConfig = defineConfig([
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
-          regex: "^react(-dom)?([/]|$)|(^|[/])(components|hooks)([/]|$)",
+          regex: "^react(-dom)?([/]|$)|^(@|[.]{1,2})[/](.*[/])?(components|hooks)([/]|$)",
           message: "Server code returns JSON. Put shared logic in src/lib and keep React out of it.",
         }],
       }],

@@ -12,6 +12,7 @@ const BOUNDARY_RULES = new Set([
   "no-restricted-properties",
   "@eslint-community/eslint-comments/no-restricted-disable",
   "@eslint-community/eslint-comments/no-use",
+  "access-control/scoped-query",
 ]);
 
 async function boundaryErrors(filePath: string, code: string): Promise<string[]> {
@@ -59,6 +60,13 @@ const blocked: [string, string, string][] = [
   ["route imports the hooks folder", "src/app/api/tasks/route.ts", importOf("@/hooks")],
   ["route imports a component by relative path", "src/app/api/tasks/route.ts", importOf("../../../components/Calendar")],
   ["server helper imports React", "src/lib/api/task-body.ts", importOf("react")],
+  ["component reads a table with the browser supabase client", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const load = () => createClient().from("tasks").select("*");\n`],
+  ["shared lib file writes a table through a supabase variable", "src/lib/example.ts", `import { createClient } from "@/lib/supabase/client";\nconst supabase = createClient();\nexport const drop = () => supabase.from("tasks").delete();\n`],
+  ["component calls a database function", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const run = () => createClient().rpc("reset");\n`],
+  ["component uses supabase storage", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const files = () => createClient().storage;\n`],
+  ["component opens a WebSocket", "src/components/Example.tsx", `export const ws = () => new WebSocket("wss://example.com");\n`],
+  ["component imports an HTTP library", "src/components/Example.tsx", importOf("axios")],
+  ["server helper runs an unscoped task query", "src/lib/api/helper.ts", `import { db } from "@/db";\nimport { tasks } from "@/db/schema/tasks";\nimport { eq } from "drizzle-orm";\nexport const one = (id: string) => db.select().from(tasks).where(eq(tasks.id, id));\n`],
 ];
 
 const allowed: [string, string, string][] = [
@@ -72,6 +80,11 @@ const allowed: [string, string, string][] = [
   ["route imports the db", "src/app/api/tasks/route.ts", importOf("@/db")],
   ["route calls fetch", "src/app/api/tasks/route.ts", `export const load = () => fetch("https://example.com");\n`],
   ["server helper calls fetch", "src/lib/api/event-body.ts", `export const load = () => fetch("https://example.com");\n`],
+  ["component signs out with the browser supabase client", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const out = () => createClient().auth.signOut();\n`],
+  ["component uses Array.from", "src/components/Example.tsx", `export const list = (s: Set<string>) => Array.from(s);\n`],
+  ["component imports a type from a server module", "src/components/Example.tsx", `import type { TaskPatch } from "@/lib/api/task-body";\nexport type P = TaskPatch;\n`],
+  ["component imports a type from the request helper", "src/components/Example.tsx", `import type { MutationResponse } from "@/lib/api";\nexport type R = MutationResponse<string>;\n`],
+  ["route imports a third-party package named components", "src/app/api/tasks/route.ts", importOf("@react-email/components")],
 ];
 
 describe("boundary rules report each shortcut", () => {
@@ -88,4 +101,20 @@ describe("boundary rules allow the paved path", () => {
       expect(await boundaryErrors(filePath, code)).toEqual([]);
     });
   }
+});
+
+// A same-line disable that names both a boundary rule and the comment guard
+// silences both, and no lint setting can see it, so scan the real tree instead.
+describe("no inline comment switches off a boundary rule", () => {
+  it("src has no disable comment naming a boundary rule or the comment guard", async () => {
+    const pattern = /eslint-(disable|enable)[^\n]*(no-restricted-(imports|syntax|globals|properties)|eslint-comments\/)/;
+    const offenders: string[] = [];
+    for await (const path of new Bun.Glob("src/**/*.{ts,tsx,js,jsx,mjs,cjs}").scan(".")) {
+      const lines = (await Bun.file(path).text()).split("\n");
+      lines.forEach((line, i) => {
+        if (pattern.test(line)) offenders.push(`${path}:${i + 1}`);
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
 });
