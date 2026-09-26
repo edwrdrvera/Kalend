@@ -1,18 +1,15 @@
-// Reducer + localStorage persistence for the Space Panel's open/closed state
-// and which branch is active. Sibling of space-focus.ts (Space selection);
-// mirrors its structure and style.
+// Reducer + localStorage persistence for which Space Panel branch is open.
+// Sibling of space-focus.ts (Space selection); mirrors its structure and style.
 
 export interface BranchPanelState {
-  /** Is a branch panel currently shown. */
-  open: boolean;
-  activeBranchId: string | null;
+  /** The branch shown in the panel, or null when the panel is closed. */
+  active: { branchId: string; spaceId: string } | null;
   /** spaceId -> last opened branchId, remembered across sessions. */
   lastBranchBySpace: Record<string, string>;
 }
 
 export const initialBranchPanelState: BranchPanelState = {
-  open: false,
-  activeBranchId: null,
+  active: null,
   lastBranchBySpace: {},
 };
 
@@ -28,19 +25,18 @@ export function branchPanelReducer(
   switch (action.type) {
     case "openBranch":
       return {
-        open: true,
-        activeBranchId: action.branchId,
+        active: { branchId: action.branchId, spaceId: action.spaceId },
         lastBranchBySpace: {
           ...state.lastBranchBySpace,
           [action.spaceId]: action.branchId,
         },
       };
     case "close":
-      return { ...state, open: false, activeBranchId: null };
+      return { ...state, active: null };
     case "spaceChanged":
       // FR7: changing the active Space closes the panel. Does NOT auto-open
       // the new Space's branch, even if one was previously remembered.
-      return { ...state, open: false, activeBranchId: null };
+      return { ...state, active: null };
     default:
       return state;
   }
@@ -52,28 +48,28 @@ export function branchPanelReducer(
 
 const STORAGE_KEY = "kalend.branchPanel";
 
-/** Subset of BranchPanelState that gets persisted to localStorage. */
-type PersistedBranchPanelState = Pick<BranchPanelState, "open" | "lastBranchBySpace">;
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isValidPersistedState(value: unknown): value is PersistedBranchPanelState {
+function isValidActive(value: unknown): value is BranchPanelState["active"] {
+  if (value === null) return true;
+  return (
+    isPlainObject(value) && typeof value.branchId === "string" && typeof value.spaceId === "string"
+  );
+}
+
+function isValidPersistedState(value: unknown): value is BranchPanelState {
   if (!isPlainObject(value)) return false;
-  if (typeof value.open !== "boolean") return false;
+  if (!isValidActive(value.active)) return false;
   if (!isPlainObject(value.lastBranchBySpace)) return false;
   return Object.values(value.lastBranchBySpace).every((v) => typeof v === "string");
 }
 
 /**
- * Only `open` and `lastBranchBySpace` are persisted ("remember open/closed
- * globally" + "remember last branch per Space"). `activeBranchId` always
- * comes back as null: a fresh session opens no specific branch until the
- * user acts. We could restore the last-opened branch for the last-active
- * Space, but there's no persisted "last active Space" to anchor that to
- * (Space selection lives in its own reducer/storage), so defaulting to null
- * keeps this module simple and self-contained.
+ * The stored branch may no longer exist (its Space was deleted since the
+ * save). useSpacePanel resolves it against the loaded categories and shows
+ * no panel when it doesn't resolve, so no check is needed here.
  */
 export function loadBranchPanelState(): BranchPanelState {
   try {
@@ -82,8 +78,7 @@ export function loadBranchPanelState(): BranchPanelState {
     const parsed: unknown = JSON.parse(raw);
     if (!isValidPersistedState(parsed)) return initialBranchPanelState;
     return {
-      open: parsed.open,
-      activeBranchId: null,
+      active: parsed.active && { branchId: parsed.active.branchId, spaceId: parsed.active.spaceId },
       lastBranchBySpace: { ...parsed.lastBranchBySpace },
     };
   } catch {
@@ -93,8 +88,8 @@ export function loadBranchPanelState(): BranchPanelState {
 
 export function saveBranchPanelState(state: BranchPanelState): void {
   try {
-    const persisted: PersistedBranchPanelState = {
-      open: state.open,
+    const persisted: BranchPanelState = {
+      active: state.active,
       lastBranchBySpace: state.lastBranchBySpace,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));

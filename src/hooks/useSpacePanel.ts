@@ -36,15 +36,21 @@ export function useSpacePanel(
     return () => window.removeEventListener("resize", compute);
   }, []);
 
-  const activeBranch =
-    branchPanel.open && branchPanel.activeBranchId
-      ? findBranch(categories, branchPanel.activeBranchId)
-      : null;
+  const activeBranch = branchPanel.active
+    ? findBranch(categories, branchPanel.active.branchId)
+    : null;
+  const activeSpaceId = activeBranch?.spaceId ?? null;
+
+  // An open panel's Space is the selected Space. openBranch selects it
+  // directly; after a reload this re-selects it once categories resolve it.
+  useEffect(() => {
+    if (activeSpaceId !== null) dispatchSpaceFocus({ type: "select", spaceId: activeSpaceId });
+  }, [activeSpaceId, dispatchSpaceFocus]);
 
   return {
     panelMode,
     activeBranch,
-    activeBranchId: branchPanel.activeBranchId,
+    activeBranchId: branchPanel.active?.branchId ?? null,
     panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
     openBranch: (branch: Branch) => {
       dispatchSpaceFocus({ type: "select", spaceId: branch.spaceId });
