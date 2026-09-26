@@ -140,7 +140,7 @@ The codebase is the strongest lever, because agents copy existing patterns. Ever
 
 - **Lesson:** Agent-friendly means that a correct edit to the file you have open preserves the invariants of the whole app.
 - **Here:** An agent editing one route shouldn't need to remember a rule stated somewhere else. The most important invariant is that every query over events, tasks, or categories is limited to the signed-in user.
-- **Enforced by:** `access-control/scoped-query`. Every select, update, or delete on those tables must reach a `.where` with `eq(<table>.user_id, user.id)` at the top level or inside `and(...)`. It resolves renamed tables, rejects a user id taken from the request, and reports `db.query.<table>` and `.execute`. No comment can disable it.
+- **Enforced by:** `access-control/scoped-query`. Every select, update, or delete on those tables must reach a `.where` with `eq(<table>.user_id, user.id)` at the top level or inside `and(...)`. Every insert into them must set `user_id: user.id` inline in `.values({...})`. It resolves renamed tables, rejects a user id taken from the request, and reports `db.query.<table>` and `.execute`. No comment can disable it.
 
 ## Part 5. Delivery
 
