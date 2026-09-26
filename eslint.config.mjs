@@ -15,6 +15,36 @@ const eslintConfig = defineConfig([
     plugins: { "access-control": accessControl },
     rules: { "access-control/scoped-query": "error" },
   },
+  // Browser code reaches data only through the hooks in src/hooks, which
+  // call /api. The route handlers own the database and auth, so a component
+  // that imports them skips the user_id scoping those handlers guarantee.
+  {
+    files: ["src/components/**", "src/hooks/**", "src/app/(app)/**", "src/app/(marketing)/**"],
+    ignores: ["**/__tests__/**"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: [
+            "@/db", "@/db/*", "drizzle-orm", "drizzle-orm/*", "postgres",
+            "@/lib/supabase/server", "@/lib/supabase/auth-user", "@/lib/api/route-handler",
+          ],
+          message: "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.",
+        }],
+      }],
+    },
+  },
+  {
+    files: ["src/app/api/**"],
+    ignores: ["**/__tests__/**"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["react", "react-dom", "react/*", "react-dom/*", "@/components/*", "@/hooks/*"],
+          message: "Route handlers return JSON. Put shared logic in src/lib and keep React out of src/app/api.",
+        }],
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
