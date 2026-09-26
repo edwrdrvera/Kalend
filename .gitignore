@@ -59,6 +59,8 @@ next-env.d.ts
 # Local coding-agent hand-off notes
 /CONTEXT.md
 /HANDOFF*.md
+/TASKS.md
+/RESUME_NOTES.md
 # /docs is local-only (plans, hand-off notes, ADRs). Nothing in it is tracked.
 /docs/
 

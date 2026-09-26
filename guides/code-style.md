@@ -6,7 +6,7 @@
 
 ## TypeScript
 
-- Verify changes with `bunx tsc --noEmit` before committing. Reserve `bun run build` for the final check before opening a PR.
+- Verify changes with `bunx tsc --noEmit` before committing. Reserve `bun run build` for the final check before merging a PR.
 - No `any`. If a value's shape is genuinely unknown (parsed JSON, test mocks), use `unknown` and narrow it.
 - Types that describe an API response as it arrives over the wire live in `src/lib/calendar-types.ts`, not in the Drizzle schema. Dates arrive as ISO strings over JSON, so a wire type is not the same as the `$inferSelect` type.
 
