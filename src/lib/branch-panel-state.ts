@@ -88,11 +88,7 @@ export function loadBranchPanelState(): BranchPanelState {
 
 export function saveBranchPanelState(state: BranchPanelState): void {
   try {
-    const persisted: BranchPanelState = {
-      active: state.active,
-      lastBranchBySpace: state.lastBranchBySpace,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Storage blocked (private mode, quota, disabled) — persistence is
     // best-effort, never fatal.
