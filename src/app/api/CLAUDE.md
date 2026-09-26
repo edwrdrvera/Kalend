@@ -33,4 +33,4 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
 ## Tests
 
-`__tests__/<name>-api.test.ts` per endpoint group, `bun:test` with `src/test-utils/mock-db.ts` for the database (it fails the test when a query skips the `user_id` filter) and `mock()` over the auth helper. Run with `bun test`.
+`<route>/__tests__/<name>-api.test.ts` per endpoint group (e.g. `events/__tests__/events-api.test.ts`), `bun:test` with `setupMockDb` from `src/test-utils/mock-db.ts`. It mocks both the database and the signed-in user, and fails the test when a query skips the `user_id` filter. Don't mock the auth helper separately. Run with `bun test`.

@@ -33,7 +33,7 @@ When implementing a feature branch like `feature/render-events-on-grid`:
 
 ## Resume Logging
 
-When completing a major feature or branch, append a brief entry to `RESUME_NOTES.md` summarizing:
+When completing a major feature or branch, append a brief entry to `RESUME_NOTES.md` (local-only and gitignored; skip this step if the file isn't in your checkout) summarizing:
 
 1. Technical implementation details
 2. Architectural or state-management challenges overcome
