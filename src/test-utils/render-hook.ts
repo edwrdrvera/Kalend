@@ -6,12 +6,12 @@
  * value. `act()` flushes React batches via microtask settling.
  */
 import { Window } from "happy-dom";
-import { createElement } from "react";
+import { createElement, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 // Register DOM globals once.
 let registered = false;
-function ensureDOM() {
+export function ensureDOM() {
   if (registered) return;
 
   const window = new Window({ url: "http://localhost" });
@@ -35,6 +35,7 @@ function ensureDOM() {
     "cancelAnimationFrame",
     "Event",
     "CustomEvent",
+    "localStorage",
   ] as const;
 
   for (const key of globals) {
@@ -74,7 +75,10 @@ interface RenderHookResult<T> {
  * expect(result.current.loading).toBe(false);
  * ```
  */
-export function renderHook<T>(hookFn: () => T): RenderHookResult<T> {
+export function renderHook<T>(
+  hookFn: () => T,
+  { strict = false }: { strict?: boolean } = {}
+): RenderHookResult<T> {
   ensureDOM();
 
   const resultRef = { current: undefined as unknown as T };
@@ -88,7 +92,8 @@ export function renderHook<T>(hookFn: () => T): RenderHookResult<T> {
   document.body.appendChild(container);
 
   const root = createRoot(container);
-  root.render(createElement(TestComponent));
+  const element = createElement(TestComponent);
+  root.render(strict ? createElement(StrictMode, null, element) : element);
 
   async function act(fn: () => void | Promise<void>) {
     await fn();

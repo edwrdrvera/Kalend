@@ -20,8 +20,7 @@ type BranchPanelAction =
   | { type: "openBranch"; branchId: string; spaceId: string }
   | { type: "close" }
   | { type: "spaceChanged"; spaceId: string | null }
-  | { type: "cleared" }
-  | { type: "hydrate"; state: BranchPanelState };
+  | { type: "cleared" };
 
 export function branchPanelReducer(
   state: BranchPanelState,
@@ -45,8 +44,6 @@ export function branchPanelReducer(
       return { ...state, open: false, activeBranchId: null };
     case "cleared":
       return { ...state, open: false, activeBranchId: null };
-    case "hydrate":
-      return action.state;
     default:
       return state;
   }
