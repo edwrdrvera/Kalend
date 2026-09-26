@@ -44,11 +44,14 @@ next-env.d.ts
 # Verify-run evidence
 /output/
 
-# Local coding-agent state and overrides (the verify skill is shared)
+# Local coding-agent state and overrides (project skills are shared; installed skills come from skills-lock.json)
 .claude/*
 !.claude/launch.json
 !.claude/skills/
 .claude/skills/*
+!.claude/skills/code-review/
+!.claude/skills/db-migrate/
+!.claude/skills/security-review/
 !.claude/skills/verify/
 .codex/
 .agents/
