@@ -3,49 +3,17 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useWaitlistSignup } from "@/hooks/useWaitlistSignup";
 import { landingButtonVariants } from "./landing-button-variants";
-
-interface WaitlistResponse {
-  success?: boolean;
-  error?: string;
-}
 
 export default function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const { status, error, join } = useWaitlistSignup();
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setStatus("loading");
-
-    try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, website }),
-      });
-      const json = (await response.json().catch(() => null)) as WaitlistResponse | null;
-
-      if (response.status === 429) {
-        setError("Too many attempts. Please wait 10 minutes and try again.");
-        setStatus("error");
-        return;
-      }
-
-      if (!response.ok || !json?.success) {
-        setError(json?.error ?? "Something went wrong. Please try again.");
-        setStatus("error");
-        return;
-      }
-
-      setStatus("done");
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setStatus("error");
-    }
+    void join(email, website);
   }
 
   if (status === "done") {

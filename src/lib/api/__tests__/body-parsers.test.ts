@@ -89,3 +89,14 @@ describe("parseTaskPatch", () => {
     expect(parseTaskPatch(body)).toEqual({ ok: false, error });
   });
 });
+
+describe("unknown fields", () => {
+  it.each([
+    ["task create", () => parseTaskCreate({ title: "Essay", dueAt: "2026-08-10T10:00:00Z" }), "dueAt"],
+    ["task patch", () => parseTaskPatch({ completed: true, user_id: SPACE_ID }), "user_id"],
+    ["event create", () => parseEventCreate({ ...validEvent, start: "2026-08-10T10:00:00Z" }), "start"],
+    ["event patch", () => parseEventPatch({ title: "Lab", notes: "bring laptop" }), "notes"],
+  ])("%s rejects the unknown key", (_label, parse, key) => {
+    expect(parse()).toEqual({ ok: false, error: `Unknown field: ${key}` });
+  });
+});

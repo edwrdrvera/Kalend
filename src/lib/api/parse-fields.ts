@@ -67,9 +67,12 @@ export type Parsed<R extends Rules> = {
 /**
  * Runs each rule over the fields present in `body` (absent or `undefined`
  * keys are skipped, meaning "leave untouched") and collects the cleaned
- * values. The first failing field's error wins, in rule order.
+ * values. The first failing field's error wins, in rule order. A key with no
+ * rule is rejected, so a misspelled field fails loudly instead of being dropped.
  */
 export function parsePresent<R extends Rules>(body: Record<string, unknown>, rules: R): ParseResult<Parsed<R>> {
+  const unknownField = Object.keys(body).find((key) => !Object.hasOwn(rules, key));
+  if (unknownField) return rejected(`Unknown field: ${unknownField}`);
   const values: Record<string, unknown> = {};
   for (const [field, rule] of Object.entries(rules)) {
     if (body[field] === undefined) continue;
