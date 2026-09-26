@@ -1,5 +1,6 @@
 import * as field from "@/lib/api/parse-fields";
 import { parsed, rejected, type ParseResult } from "@/lib/api/parse-fields";
+import type { TaskPatchRequest } from "@/lib/calendar-types";
 
 const taskRules = {
   title: field.title,
@@ -9,7 +10,7 @@ const taskRules = {
   color: field.color,
   color_overridden: (value: unknown) => field.boolean(value, "color_overridden"),
   category_id: field.categoryId,
-};
+} satisfies Record<keyof TaskPatchRequest, (value: unknown) => ParseResult<unknown>>;
 
 /** The fields an update sets. An absent key means "leave untouched". */
 export type TaskPatch = field.Parsed<typeof taskRules>;
