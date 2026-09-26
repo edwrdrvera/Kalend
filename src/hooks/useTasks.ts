@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { CalendarTask, TasksApiResponse } from "@/lib/calendar-types";
+import type {
+  CalendarTask,
+  TaskCreateRequest,
+  TaskPatchRequest,
+  TasksApiResponse,
+} from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
 import { reconcileDetachedTasks } from "@/lib/task-color-state";
 
@@ -93,7 +98,7 @@ export function useTasks(): UseTasksReturn {
       const json = await mutateResource<CalendarTask>(
         "/api/tasks",
         "POST",
-        { title, due_at: dueAt, category_id: categoryId },
+        { title, due_at: dueAt, category_id: categoryId } satisfies TaskCreateRequest,
         "Failed to create task"
       );
 
@@ -125,7 +130,7 @@ export function useTasks(): UseTasksReturn {
       const json = await mutateResource<CalendarTask>(
         `/api/tasks/${task.id}`,
         "PATCH",
-        { completed: optimisticTask.completed },
+        { completed: optimisticTask.completed } satisfies TaskPatchRequest,
         "Failed to update task"
       );
 
