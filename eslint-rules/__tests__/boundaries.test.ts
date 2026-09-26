@@ -5,12 +5,37 @@ import { ESLint } from "eslint";
 // fail if a file glob stops matching (the route-group folders have parens).
 const eslint = new ESLint();
 
-async function boundaryErrors(filePath: string, code: string): Promise<string[]> {
+async function ruleErrors(ruleId: string, filePath: string, code: string): Promise<string[]> {
   const [result] = await eslint.lintText(code, { filePath });
-  return result.messages
-    .filter((m) => m.ruleId === "no-restricted-imports")
-    .map((m) => m.message);
+  return result.messages.filter((m) => m.ruleId === ruleId).map((m) => m.message);
 }
+
+const boundaryErrors = (filePath: string, code: string) =>
+  ruleErrors("no-restricted-imports", filePath, code);
+
+describe("only hooks and the shared request helper call fetch", () => {
+  const code = `export const load = () => fetch("/api/tasks");\n`;
+
+  for (const filePath of [
+    "src/components/Example.tsx",
+    "src/components/landing/WaitlistForm.tsx",
+    "src/app/(app)/app/page.tsx",
+    "src/app/(marketing)/page.tsx",
+    "src/lib/example.ts",
+  ]) {
+    it(`reports fetch in ${filePath}`, async () => {
+      expect(await ruleErrors("no-restricted-globals", filePath, code)).toEqual([
+        expect.stringContaining("Network calls live in a hook"),
+      ]);
+    });
+  }
+
+  for (const filePath of ["src/hooks/useTasks.ts", "src/lib/api.ts", "src/app/api/tasks/route.ts"]) {
+    it(`allows fetch in ${filePath}`, async () => {
+      expect(await ruleErrors("no-restricted-globals", filePath, code)).toEqual([]);
+    });
+  }
+});
 
 describe("browser code cannot import server-only modules", () => {
   const cases: [string, string][] = [

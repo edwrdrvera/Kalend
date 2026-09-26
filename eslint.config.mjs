@@ -34,6 +34,16 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    files: ["src/components/**", "src/app/(app)/**", "src/app/(marketing)/**", "src/lib/**"],
+    ignores: ["**/__tests__/**", "src/lib/api.ts"],
+    rules: {
+      "no-restricted-globals": ["error", {
+        name: "fetch",
+        message: "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).",
+      }],
+    },
+  },
+  {
     files: ["src/app/api/**"],
     ignores: ["**/__tests__/**"],
     rules: {
