@@ -33,7 +33,7 @@ Multi-context repo (presence of `CONTEXT-MAP.md` at the root):
 └── src/
     ├── ordering/
     │   ├── CONTEXT.md
-    │   └── adr/                         ← context-specific decisions
+    │   └── adr/                       ← context-specific decisions
     └── billing/
         ├── CONTEXT.md
         └── adr/
