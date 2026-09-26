@@ -192,21 +192,32 @@ describe("Calendar behavior", () => {
     expect(editor()).toBeNull();
     expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      open: true,
+      active: { branchId: "space-1:default", spaceId: "space-1" },
       lastBranchBySpace: { "space-1": "space-1:default" },
     });
   });
 
-  it("after a remount the panel starts closed and the saved preferences survive", async () => {
+  it("a panel closed before a remount stays closed", async () => {
+    await mount();
+    await click(eventBlock("Lecture"));
+    await click(editor()!.querySelector("form button")!);
+    await click(document.querySelector("[aria-label='Close panel']")!);
+    expect(panelOpen()).toBe(false);
+
+    await remount();
+    expect(panelOpen()).toBe(false);
+  });
+
+  it("after a remount the panel reopens on the branch that was open", async () => {
     await mount();
     await click(eventBlock("Lecture"));
     await click(editor()!.querySelector("form button")!);
     expect(panelOpen()).toBe(true);
 
     await remount();
-    expect(panelOpen()).toBe(false);
+    expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      open: true,
+      active: { branchId: "space-1:default", spaceId: "space-1" },
       lastBranchBySpace: { "space-1": "space-1:default" },
     });
   });
