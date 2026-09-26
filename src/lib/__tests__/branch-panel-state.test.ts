@@ -95,19 +95,6 @@ describe("branchPanelReducer", () => {
     });
   });
 
-  it("hydrate replaces the whole state with a persisted snapshot", () => {
-    const snapshot: BranchPanelState = {
-      open: true,
-      activeBranchId: "should-not-survive",
-      lastBranchBySpace: { "cat-x": "cat-x:default" },
-    };
-    const hydrated = branchPanelReducer(initialBranchPanelState, {
-      type: "hydrate",
-      state: snapshot,
-    });
-    expect(hydrated).toEqual(snapshot);
-  });
-
   it("an unknown action returns the same state unchanged", () => {
     const state: BranchPanelState = {
       open: true,

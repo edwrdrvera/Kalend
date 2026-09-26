@@ -4,7 +4,6 @@ import { resolveBranchTasks } from "@/lib/branch-types";
 import { findBranch } from "@/lib/branch-stub";
 import {
   branchPanelReducer,
-  initialBranchPanelState,
   loadBranchPanelState,
   saveBranchPanelState,
 } from "@/lib/branch-panel-state";
@@ -18,14 +17,10 @@ export function useSpacePanel(
   tasks: CalendarTask[],
   dispatchSpaceFocus: Dispatch<SpaceFocusAction>
 ) {
-  const [branchPanel, dispatch] = useReducer(branchPanelReducer, initialBranchPanelState);
+  // Read storage in the initializer, not a mount effect: StrictMode's second
+  // effect run would restore what the first save had already overwritten.
+  const [branchPanel, dispatch] = useReducer(branchPanelReducer, undefined, loadBranchPanelState);
   const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
-
-  // Must stay above the save effect: loadBranchPanelState() reads storage
-  // before the first save writes the initial state over it.
-  useEffect(() => {
-    dispatch({ type: "hydrate", state: loadBranchPanelState() });
-  }, []);
 
   useEffect(() => {
     saveBranchPanelState(branchPanel);
