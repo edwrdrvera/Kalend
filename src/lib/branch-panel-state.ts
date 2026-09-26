@@ -1,11 +1,9 @@
 export interface BranchPanelState {
   active: { branchId: string; spaceId: string } | null;
-  lastBranchBySpace: Record<string, string>;
 }
 
 export const initialBranchPanelState: BranchPanelState = {
   active: null,
-  lastBranchBySpace: {},
 };
 
 type BranchPanelAction =
@@ -14,21 +12,15 @@ type BranchPanelAction =
   | { type: "spaceChanged"; spaceId: string | null };
 
 export function branchPanelReducer(
-  state: BranchPanelState,
+  _state: BranchPanelState,
   action: BranchPanelAction
 ): BranchPanelState {
   switch (action.type) {
     case "openBranch":
-      return {
-        active: { branchId: action.branchId, spaceId: action.spaceId },
-        lastBranchBySpace: {
-          ...state.lastBranchBySpace,
-          [action.spaceId]: action.branchId,
-        },
-      };
+      return { active: { branchId: action.branchId, spaceId: action.spaceId } };
     case "close":
     case "spaceChanged":
-      return { ...state, active: null };
+      return { active: null };
   }
 }
 
@@ -50,10 +42,7 @@ function isValidActive(value: unknown): value is BranchPanelState["active"] {
 }
 
 function isValidPersistedState(value: unknown): value is BranchPanelState {
-  if (!isPlainObject(value)) return false;
-  if (!isValidActive(value.active)) return false;
-  if (!isPlainObject(value.lastBranchBySpace)) return false;
-  return Object.values(value.lastBranchBySpace).every((v) => typeof v === "string");
+  return isPlainObject(value) && isValidActive(value.active);
 }
 
 export function loadBranchPanelState(): BranchPanelState {
@@ -62,10 +51,7 @@ export function loadBranchPanelState(): BranchPanelState {
     if (!raw) return initialBranchPanelState;
     const parsed: unknown = JSON.parse(raw);
     if (!isValidPersistedState(parsed)) return initialBranchPanelState;
-    return {
-      active: parsed.active,
-      lastBranchBySpace: { ...parsed.lastBranchBySpace },
-    };
+    return { active: parsed.active };
   } catch {
     return initialBranchPanelState;
   }

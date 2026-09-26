@@ -11,7 +11,6 @@ const STORAGE_KEY = "kalend.branchPanel";
 const SCHOOL: CalendarCategory = { id: "space-1", name: "School", color: "blue" };
 const SAVED = {
   active: { branchId: "space-1:default", spaceId: "space-1" },
-  lastBranchBySpace: { "space-1": "space-1:default" },
 };
 
 describe("useSpacePanel", () => {
