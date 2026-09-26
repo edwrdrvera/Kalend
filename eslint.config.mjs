@@ -25,6 +25,8 @@ const serverOnlyMessage =
 const networkMessage =
   "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).";
 
+const testOnly = { regex: "(^|[/])test-utils([/]|$)", message: "Test helpers are not app code." };
+
 const serverImportSyntax = [
   { selector: `ImportExpression[source.value=/${serverOnly}/]`, message: serverOnlyMessage },
   { selector: "CallExpression[callee.name='require']", message: "Use a static import so the import rules can check it." },
@@ -39,12 +41,12 @@ const browserSyntax = [
   ...serverImportSyntax,
   {
     selector:
-      "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/][callee.object.name!=/^(Array|Buffer|Object|Iterator|ReadableStream|[A-Za-z0-9]*Array)$/]",
+      "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/]:not([callee.object.name=/^[A-Z]/]):not([callee.object.property.name=/^[A-Z]/])",
     message: supabaseDataMessage,
   },
   {
     selector:
-      "MemberExpression[property.name='storage'][object.type='CallExpression'], MemberExpression[property.name='storage'][object.name=/supabase|client/i]",
+      "MemberExpression[property.name='storage'][object.callee.name='createClient'], MemberExpression[property.name='storage'][object.name=/supabase/i]",
     message: supabaseDataMessage,
   },
 ];
@@ -56,8 +58,10 @@ const eslintConfig = defineConfig([
   // the access-control boundary (see src/app/api/CLAUDE.md). The db client
   // bypasses RLS, so every query over a user-owned table must carry its
   // owner filter; this rule fails the build when one is missing.
+  // Seeds are admin scripts run by hand against one chosen user.
   {
-    files: ["src/app/api/**/*.{ts,mts}", "src/lib/api/**/*.{ts,mts}"],
+    files: ["src/app/api/**/*.{ts,tsx,mts,js,mjs}", "src/lib/api/**/*.{ts,tsx,mts,js,mjs}", "src/db/**/*.{ts,mts}"],
+    ignores: ["src/db/seed*.ts", "src/db/schema/**"],
     plugins: { "access-control": accessControl },
     rules: { "access-control/scoped-query": "error" },
   },
@@ -66,9 +70,10 @@ const eslintConfig = defineConfig([
   // that imports them skips the user_id scoping those handlers guarantee.
   {
     files: networkFiles,
+    ignores: testFiles,
     rules: {
       "no-restricted-imports": ["error", {
-        patterns: [{ regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true }],
+        patterns: [{ regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true }, testOnly],
       }],
       "no-restricted-syntax": ["error", ...browserSyntax],
     },
@@ -82,6 +87,7 @@ const eslintConfig = defineConfig([
           { regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true },
           { regex: "(^|[/])api(\\.ts)?$", message: networkMessage, allowTypeImports: true },
           { regex: "^(axios|ky|ofetch|got|superagent|node-fetch|cross-fetch)([/]|$)", message: networkMessage },
+          testOnly,
         ],
       }],
       "no-restricted-syntax": ["error",

@@ -4,13 +4,17 @@
  * The app's db client bypasses RLS (see `src/db/CLAUDE.md`), so the only thing
  * keeping one user's rows away from another is the `eq(<table>.user_id,
  * user.id)` filter hand-written into every query. A query over `events`,
- * `tasks`, or `categories` whose `.where(...)` does not contain that filter is
- * a potential cross-tenant leak. This rule flags it at lint time so a forgotten
+ * `tasks`, or `categories` that does not reach a `.where(...)` holding that
+ * filter is a potential cross-tenant leak, and that includes a query with no
+ * `.where` at all. This rule flags it at lint time so a forgotten
  * filter fails CI instead of shipping.
  *
  * It is deliberately safe-and-noisy rather than quiet-and-dangerous. It matches
  * the owner filter only when it is written inline inside the `.where(...)` call
- * (directly or nested in `and(...)`). A filter hoisted into a variable or built
+ * of the same chain, directly or nested in `and(...)`. Under `or(...)` or
+ * `not(...)` it would no longer restrict the rows, so it does not count.
+ * `db.query.<table>` and `db.execute(...)` are reported outright because the
+ * filter inside them cannot be checked. A filter hoisted into a variable or built
  * in an array is invisible to pure AST matching, so those legitimately-scoped
  * queries would report. That is the correct failure direction: it never stays
  * silent on a query it cannot prove is scoped. Inline the filter to satisfy it.
@@ -20,61 +24,61 @@
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
 
-// Walk down the method chain from a `.where(...)` call to the queried table:
-// `.from(X)` for selects, `.update(X)` / `.delete(X)` for writes. Returns the
-// table identifier name, or null when it cannot be resolved statically.
-function findQueryTable(whereCall) {
-  let cur = whereCall.callee.object;
-  while (cur) {
-    if (cur.type === "CallExpression" && cur.callee.type === "MemberExpression") {
-      const prop = cur.callee.property;
-      const name = prop.type === "Identifier" ? prop.name : null;
-      if ((name === "from" || name === "update" || name === "delete") && cur.arguments.length > 0) {
-        const arg = cur.arguments[0];
-        return arg.type === "Identifier" ? arg.name : null;
-      }
-      cur = cur.callee.object;
-    } else if (cur.type === "MemberExpression") {
-      cur = cur.object;
-    } else {
-      return null;
-    }
+const ownerFilterHint = (table) =>
+  `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
+
+// The table a query starts from: db.select().from(X), db.update(X), db.delete(X).
+function queryRootTable(call) {
+  if (call.callee.type !== "MemberExpression" || call.callee.property.type !== "Identifier") return null;
+  const arg = call.arguments[0];
+  if (!arg || arg.type !== "Identifier" || !TARGET_TABLES.has(arg.name)) return null;
+  const method = call.callee.property.name;
+  const receiver = call.callee.object;
+  if (method === "from") {
+    const isSelect =
+      receiver.type === "CallExpression" &&
+      receiver.callee.type === "MemberExpression" &&
+      receiver.callee.property.type === "Identifier" &&
+      receiver.callee.property.name.startsWith("select");
+    return isSelect ? arg.name : null;
+  }
+  if (method === "update" || method === "delete") {
+    return receiver.type === "Identifier" || receiver.type === "MemberExpression" ? arg.name : null;
   }
   return null;
 }
 
-// Does the where-argument subtree contain eq(<table>.user_id, ...) anywhere?
-// Recurses so it sees the filter through `and(...)` nesting.
-function containsUserIdEq(node, table) {
-  if (!node || typeof node !== "object") return false;
-  if (
-    node.type === "CallExpression" &&
-    node.callee.type === "Identifier" &&
-    node.callee.name === "eq"
+// Climb the method chain above the query root and return its .where(...) call.
+function chainedWhere(root) {
+  let node = root;
+  while (
+    node.parent?.type === "MemberExpression" &&
+    node.parent.object === node &&
+    node.parent.parent?.type === "CallExpression" &&
+    node.parent.parent.callee === node.parent
   ) {
-    const first = node.arguments[0];
-    if (
-      first &&
-      first.type === "MemberExpression" &&
-      first.object.type === "Identifier" &&
-      first.object.name === table &&
-      first.property.type === "Identifier" &&
-      first.property.name === "user_id"
-    ) {
-      return true;
-    }
+    const call = node.parent.parent;
+    if (node.parent.property.type === "Identifier" && node.parent.property.name === "where") return call;
+    node = call;
   }
-  for (const key of Object.keys(node)) {
-    if (key === "parent") continue;
-    const child = node[key];
-    if (Array.isArray(child)) {
-      for (const c of child) {
-        if (c && typeof c === "object" && c.type && containsUserIdEq(c, table)) return true;
-      }
-    } else if (child && typeof child === "object" && child.type) {
-      if (containsUserIdEq(child, table)) return true;
-    }
-  }
+  return null;
+}
+
+function isOwnerEq(node, table) {
+  const first = node.arguments[0];
+  return (
+    first?.type === "MemberExpression" &&
+    first.object.type === "Identifier" &&
+    first.object.name === table &&
+    first.property.type === "Identifier" &&
+    first.property.name === "user_id"
+  );
+}
+
+function isScoped(node, table) {
+  if (node?.type !== "CallExpression" || node.callee.type !== "Identifier") return false;
+  if (node.callee.name === "eq") return isOwnerEq(node, table);
+  if (node.callee.name === "and") return node.arguments.some((arg) => isScoped(arg, table));
   return false;
 }
 
@@ -87,20 +91,36 @@ const scopedQuery = {
   create(context) {
     return {
       CallExpression(node) {
-        if (node.callee.type !== "MemberExpression") return;
-        const prop = node.callee.property;
-        if (!(prop.type === "Identifier" && prop.name === "where")) return;
-
-        const table = findQueryTable(node);
-        if (table === null || !TARGET_TABLES.has(table)) return;
-
-        const whereArg = node.arguments[0];
-        if (!whereArg) return;
-
-        if (!containsUserIdEq(whereArg, table)) {
+        const table = queryRootTable(node);
+        if (table !== null) {
+          const where = chainedWhere(node);
+          if (!where || !isScoped(where.arguments[0], table)) {
+            context.report({ node, message: ownerFilterHint(table) });
+          }
+          return;
+        }
+        if (
+          node.callee.type === "MemberExpression" &&
+          node.callee.property.type === "Identifier" &&
+          node.callee.property.name === "execute"
+        ) {
           context.report({
             node,
-            message: `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...). This client bypasses RLS, so an unscoped query can leak another user's rows. Add the filter inline, or disable this rule on the line with a comment explaining why the query is safe.`,
+            message: "Raw SQL cannot be checked for an owner filter. Use db.select()/update()/delete() with .where(eq(<table>.user_id, user.id)).",
+          });
+        }
+      },
+      MemberExpression(node) {
+        if (
+          node.property.type === "Identifier" &&
+          TARGET_TABLES.has(node.property.name) &&
+          node.object.type === "MemberExpression" &&
+          node.object.property.type === "Identifier" &&
+          node.object.property.name === "query"
+        ) {
+          context.report({
+            node,
+            message: `db.query.${node.property.name} hides its filter from this check. Use db.select().from(${node.property.name}).where(eq(${node.property.name}.user_id, user.id)).`,
           });
         }
       },
