@@ -43,16 +43,7 @@ All three are safe to re-run.
 
 ## Codebase health (agent rules)
 
-Rules adapted from Lauren Tan's talk and notes on trusting agents. Full list, with what enforces each: `guides/agent-rules.md`.
-
-- Verify on the real app, not just tests. Use the `verify` skill and keep its feature map (`.claude/skills/verify/features/`) current when a feature changes.
-- Don't guess a cause. Read the code you're blaming and reproduce the problem first.
-- The codebase is the memory. When you fix the same mistake twice, or a review asks for the same thing twice, add a lint rule, type, or test that makes it fail, and delete the note it replaces.
-- One paved path per job. Data flows component, then hook, then `/api` route, then database. A second way to do something is debt: migrate its callers and delete it in the same change.
-- Folders decide what may be imported. `eslint.config.mjs` lists the server-only files. Everything else is browser code. Don't work around a boundary rule. It can't be disabled inline, so fix the code or change the rule in a reviewed PR.
-- Every query over events, tasks, or categories needs `eq(<table>.user_id, user.id)` in its `.where`.
-- No comments that record history, quote a reviewer, or excuse a problem (TODO, hack, "can't because"). Git and the PR hold that.
-- Leave code you'd be happy for the next agent to copy.
+Rules adapted from Lauren Tan's talk and notes on trusting agents live in `guides/agent-rules.md`, with what enforces each. Read it before your first change in a session. Rules 1 to 3 (verify, don't guess), 7 (turn repeats into checks), 11 and 12 (comments, one paved path), 14 (folder boundaries), and 17 (user scoping) apply to almost every task.
 
 ## When to keep going vs. ask
 
