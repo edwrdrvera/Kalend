@@ -50,11 +50,8 @@ AGENTS.md
 # Local coding-agent hand-off notes
 /CONTEXT.md
 /HANDOFF*.md
-# Ignore /docs entirely: keeps local plans and hand-off notes out of the
-# repo. Already-tracked docs files (see git ls-files docs/) stay tracked
-# because .gitignore does not affect files already in the index.
-# Architecture Decision Records in /docs/adr are local too.
-/docs/*
+# /docs is local-only (plans, hand-off notes, ADRs). Nothing in it is tracked.
+/docs/
 
 # Design canvas files
 /DirectionB.dc.html
