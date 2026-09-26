@@ -16,6 +16,9 @@ describe("tierOf", () => {
     "bun.lock",
     "next.config.ts",
     "scripts/review-tier.ts",
+    ".claude/skills/code-review/SKILL.md",
+    "CLAUDE.md",
+    "src/app/api/CLAUDE.md",
   ])("%s is high", (file) => {
     expect(tierOf(file)).toBe("high");
   });

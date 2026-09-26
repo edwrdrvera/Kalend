@@ -15,6 +15,8 @@ const highPatterns = [
   /^eslint-rules\//,
   /^\.github\//,
   /^scripts\//,
+  /^\.claude\//,
+  /(^|\/)CLAUDE\.md$/,
   /^(package\.json|bun\.lock|tsconfig\.json|next\.config\.ts|drizzle\.config\.ts)$/,
 ];
 

@@ -35,4 +35,9 @@ jobs:
 
       - name: Review tier
         if: github.event_name == 'pull_request'
-        run: bun run review:tier origin/${{ github.base_ref }} >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          {
+            echo '```'
+            bun run review:tier origin/${{ github.base_ref }}
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
