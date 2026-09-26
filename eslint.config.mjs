@@ -30,6 +30,25 @@ const serverImportSyntax = [
   { selector: "CallExpression[callee.name='require']", message: "Use a static import so the import rules can check it." },
 ];
 
+// The browser Supabase client is for sign-in only; table reads and writes from
+// it skip the /api parsers and Space ownership checks. Hooks run in the browser
+// too, so this applies to them as well.
+const supabaseDataMessage =
+  "The browser Supabase client is for sign-in only. Read and change data through an /api route (mutateResource from @/lib/api).";
+const browserSyntax = [
+  ...serverImportSyntax,
+  {
+    selector:
+      "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/][callee.object.name!=/^(Array|Buffer|Object|Iterator|ReadableStream|[A-Za-z0-9]*Array)$/]",
+    message: supabaseDataMessage,
+  },
+  {
+    selector:
+      "MemberExpression[property.name='storage'][object.type='CallExpression'], MemberExpression[property.name='storage'][object.name=/supabase|client/i]",
+    message: supabaseDataMessage,
+  },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -38,7 +57,7 @@ const eslintConfig = defineConfig([
   // bypasses RLS, so every query over a user-owned table must carry its
   // owner filter; this rule fails the build when one is missing.
   {
-    files: ["src/app/api/**/*.ts", "src/lib/api/**/*.ts"],
+    files: ["src/app/api/**/*.{ts,mts}", "src/lib/api/**/*.{ts,mts}"],
     plugins: { "access-control": accessControl },
     rules: { "access-control/scoped-query": "error" },
   },
@@ -51,7 +70,7 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": ["error", {
         patterns: [{ regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true }],
       }],
-      "no-restricted-syntax": ["error", ...serverImportSyntax],
+      "no-restricted-syntax": ["error", ...browserSyntax],
     },
   },
   {
@@ -66,18 +85,11 @@ const eslintConfig = defineConfig([
         ],
       }],
       "no-restricted-syntax": ["error",
-        ...serverImportSyntax,
+        ...browserSyntax,
         {
           selector: "VariableDeclarator[init.type='Identifier'][init.name=/^(window|globalThis|self)$/]",
           message: networkMessage,
         },
-        // The browser Supabase client is for sign-in only; table reads and
-        // writes from it skip the /api parsers and Space ownership checks.
-        {
-          selector: "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/][callee.object.name!=/^(Array|Buffer|Object|Uint8Array)$/]",
-          message: networkMessage,
-        },
-        { selector: "MemberExpression[property.name='storage']", message: networkMessage },
       ],
       "no-restricted-globals": ["error",
         ...["fetch", "XMLHttpRequest", "EventSource", "WebSocket"].map((name) => ({ name, message: networkMessage })),
@@ -107,6 +119,7 @@ const eslintConfig = defineConfig([
     rules: {
       "@eslint-community/eslint-comments/no-restricted-disable": ["error",
         "no-restricted-imports", "no-restricted-syntax", "no-restricted-globals", "no-restricted-properties",
+        "access-control/scoped-query",
       ],
       "@eslint-community/eslint-comments/no-use": ["error", { allow: ["eslint-disable-line", "eslint-disable-next-line"] }],
     },

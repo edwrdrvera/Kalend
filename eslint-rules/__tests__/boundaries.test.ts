@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { ESLint } from "eslint";
+import { join } from "node:path";
 
 // Lints source strings through the real eslint.config.mjs, so a case fails if
 // a file pattern stops matching or a rule stops seeing a form of the shortcut.
-const eslint = new ESLint();
+const repoRoot = join(import.meta.dir, "..", "..");
+const eslint = new ESLint({ cwd: repoRoot });
 
 const BOUNDARY_RULES = new Set([
   "no-restricted-imports",
@@ -64,6 +66,9 @@ const blocked: [string, string, string][] = [
   ["shared lib file writes a table through a supabase variable", "src/lib/example.ts", `import { createClient } from "@/lib/supabase/client";\nconst supabase = createClient();\nexport const drop = () => supabase.from("tasks").delete();\n`],
   ["component calls a database function", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const run = () => createClient().rpc("reset");\n`],
   ["component uses supabase storage", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const files = () => createClient().storage;\n`],
+  ["hook reads a table with the browser supabase client", "src/hooks/useExample.ts", `import { createClient } from "@/lib/supabase/client";\nexport const load = () => createClient().from("tasks").select("*");\n`],
+  ["request helper uses supabase storage", "src/lib/api.ts", `import { createClient } from "@/lib/supabase/client";\nconst supabase = createClient();\nexport const files = () => supabase.storage;\n`],
+  ["disable comment on the user-scoping rule", "src/app/api/tasks/route.ts", `import { db } from "@/db";\nimport { tasks } from "@/db/schema/tasks";\nimport { eq } from "drizzle-orm";\n// eslint-disable-next-line access-control/scoped-query\nexport const one = (id: string) => db.select().from(tasks).where(eq(tasks.id, id));\n`],
   ["component opens a WebSocket", "src/components/Example.tsx", `export const ws = () => new WebSocket("wss://example.com");\n`],
   ["component imports an HTTP library", "src/components/Example.tsx", importOf("axios")],
   ["server helper runs an unscoped task query", "src/lib/api/helper.ts", `import { db } from "@/db";\nimport { tasks } from "@/db/schema/tasks";\nimport { eq } from "drizzle-orm";\nexport const one = (id: string) => db.select().from(tasks).where(eq(tasks.id, id));\n`],
@@ -81,6 +86,8 @@ const allowed: [string, string, string][] = [
   ["route calls fetch", "src/app/api/tasks/route.ts", `export const load = () => fetch("https://example.com");\n`],
   ["server helper calls fetch", "src/lib/api/event-body.ts", `export const load = () => fetch("https://example.com");\n`],
   ["component signs out with the browser supabase client", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const out = () => createClient().auth.signOut();\n`],
+  ["component uses typed-array and stream from", "src/components/Example.tsx", `export const a = (x: number[]) => [Int32Array.from(x), Float64Array.from(x), Uint8ClampedArray.from(x)];\n`],
+  ["component reads a storage property that is not supabase", "src/components/Example.tsx", `export const q = (settings: { storage: string }) => [settings.storage, navigator.storage];\n`],
   ["component uses Array.from", "src/components/Example.tsx", `export const list = (s: Set<string>) => Array.from(s);\n`],
   ["component imports a type from a server module", "src/components/Example.tsx", `import type { TaskPatch } from "@/lib/api/task-body";\nexport type P = TaskPatch;\n`],
   ["component imports a type from the request helper", "src/components/Example.tsx", `import type { MutationResponse } from "@/lib/api";\nexport type R = MutationResponse<string>;\n`],
@@ -107,10 +114,10 @@ describe("boundary rules allow the paved path", () => {
 // silences both, and no lint setting can see it, so scan the real tree instead.
 describe("no inline comment switches off a boundary rule", () => {
   it("src has no disable comment naming a boundary rule or the comment guard", async () => {
-    const pattern = /eslint-(disable|enable)[^\n]*(no-restricted-(imports|syntax|globals|properties)|eslint-comments\/)/;
+    const pattern = /eslint-(disable|enable)[^\n]*(no-restricted-(imports|syntax|globals|properties)|eslint-comments\/|access-control\/)/;
     const offenders: string[] = [];
-    for await (const path of new Bun.Glob("src/**/*.{ts,tsx,js,jsx,mjs,cjs}").scan(".")) {
-      const lines = (await Bun.file(path).text()).split("\n");
+    for await (const path of new Bun.Glob("src/**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}").scan(repoRoot)) {
+      const lines = (await Bun.file(join(repoRoot, path)).text()).split("\n");
       lines.forEach((line, i) => {
         if (pattern.test(line)) offenders.push(`${path}:${i + 1}`);
       });

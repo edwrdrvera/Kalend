@@ -13,9 +13,9 @@
  * (directly or nested in `and(...)`). A filter hoisted into a variable or built
  * in an array is invisible to pure AST matching, so those legitimately-scoped
  * queries would report. That is the correct failure direction: it never stays
- * silent on a query it cannot prove is scoped. For the rare justified case,
- * inline the filter, or add `// eslint-disable-next-line
- * access-control/scoped-query` with a comment explaining why the query is safe.
+ * silent on a query it cannot prove is scoped. Inline the filter to satisfy it.
+ * The rule cannot be disabled inline (see eslint.config.mjs); a genuine
+ * exception means changing this rule, where the change gets reviewed.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
