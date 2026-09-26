@@ -8,7 +8,8 @@
     "start": "bun --bun next start",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:demo": "bun run src/db/seed-demo-user.ts",
-    "db:seed:spaces": "bun run src/db/seed-spaces.ts"
+    "db:seed:spaces": "bun run src/db/seed-spaces.ts",
+    "review:tier": "bun run scripts/review-tier.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
