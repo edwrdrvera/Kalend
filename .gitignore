@@ -50,14 +50,8 @@ AGENTS.md
 # Local coding-agent hand-off notes
 /CONTEXT.md
 /HANDOFF*.md
-# Ignore /docs entirely: keeps local plans and hand-off notes out of the
-# repo. Already-tracked docs files (see git ls-files docs/) stay tracked
-# because .gitignore does not affect files already in the index.
-# Exception: /docs/adr holds Architecture Decision Records, which are a
-# shared decision log and are tracked. Glob the children (not /docs itself)
-# so the negation can re-include the adr subdirectory.
-/docs/*
-!/docs/adr/
+# /docs is local-only (plans, hand-off notes, ADRs). Nothing in it is tracked.
+/docs/
 
 # Design canvas files
 /DirectionB.dc.html

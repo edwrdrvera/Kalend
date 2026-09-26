@@ -64,4 +64,17 @@ To browse the database in a local UI, run `bunx drizzle-kit studio`.
 
 Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the **Production** and **Preview** environments, then redeploy. A build that already exists keeps the old values.
 
-Before you open the public waitlist, add its Vercel Firewall rule. See [the Vercel deployment guide](docs/vercel-deployment.md).
+Before you open the public waitlist, create and publish this Vercel Firewall rate-limit rule. The waitlist form's honeypot stops simple bots but does not limit request rate.
+
+| Setting | Value |
+| --- | --- |
+| Environments | Production and Preview |
+| Request method | `POST` |
+| Request path | Equals `/api/waitlist` |
+| Counting key | IP address |
+| Algorithm | Fixed window |
+| Window | 10 minutes |
+| Request limit | 10 |
+| Exceeded action | Rate limit with HTTP `429` |
+
+Verify the rule against one Production URL and one Preview URL. The 11th request from one IP inside a window should get a `429`, and the form keeps the entered email and asks the visitor to wait. Local development does not emulate the Vercel Firewall.

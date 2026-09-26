@@ -67,7 +67,6 @@ This map lists folders, not files. Open a folder to see what it holds.
 | `src/lib/` | Code that runs without React: Supabase clients, API helpers, request checks, and calendar math. |
 | `src/db/` | The Drizzle client, the table schemas in `schema/`, and the seed scripts. |
 | `drizzle/` | Generated SQL migrations. |
-| `docs/adr/` | Architecture decision records. |
 
 ## Get started
 
