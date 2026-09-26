@@ -3,6 +3,10 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import accessControl from "./eslint-rules/scoped-query.mjs";
 
+const uiFiles = ["src/components/**", "src/app/(app)/**", "src/app/(marketing)/**"];
+const fetchMessage =
+  "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).";
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -19,14 +23,13 @@ const eslintConfig = defineConfig([
   // call /api. The route handlers own the database and auth, so a component
   // that imports them skips the user_id scoping those handlers guarantee.
   {
-    files: ["src/components/**", "src/hooks/**", "src/app/(app)/**", "src/app/(marketing)/**"],
+    files: [...uiFiles, "src/hooks/**"],
     ignores: ["**/__tests__/**"],
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
           group: [
-            "@/db", "@/db/*", "drizzle-orm", "drizzle-orm/*", "postgres",
-            "@/lib/supabase/server", "@/lib/supabase/auth-user", "@/lib/api/route-handler",
+            "drizzle-orm", "drizzle-orm/*", "postgres",
             "**/db", "**/db/*", "**/supabase/server", "**/supabase/auth-user", "**/api/route-handler",
           ],
           message: "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.",
@@ -35,18 +38,18 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["src/components/**", "src/app/(app)/**", "src/app/(marketing)/**", "src/lib/**"],
+    files: [...uiFiles, "src/lib/**"],
     ignores: ["**/__tests__/**", "src/lib/api.ts"],
     rules: {
       "no-restricted-globals": ["error", {
         name: "fetch",
-        message: "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).",
+        message: fetchMessage,
       }],
       "no-restricted-properties": ["error",
         ...["window", "globalThis", "self"].map((object) => ({
           object,
           property: "fetch",
-          message: "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).",
+          message: fetchMessage,
         })),
       ],
     },
