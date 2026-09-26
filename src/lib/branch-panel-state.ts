@@ -78,7 +78,7 @@ export function loadBranchPanelState(): BranchPanelState {
     const parsed: unknown = JSON.parse(raw);
     if (!isValidPersistedState(parsed)) return initialBranchPanelState;
     return {
-      active: parsed.active && { branchId: parsed.active.branchId, spaceId: parsed.active.spaceId },
+      active: parsed.active,
       lastBranchBySpace: { ...parsed.lastBranchBySpace },
     };
   } catch {

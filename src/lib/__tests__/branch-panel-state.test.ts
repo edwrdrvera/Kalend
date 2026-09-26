@@ -13,8 +13,12 @@ import {
 const SCHOOL = { branchId: "cat-school:default", spaceId: "cat-school" };
 
 describe("branchPanelReducer", () => {
-  it("openBranch sets the active branch and records it as the Space's last branch", () => {
-    const next = branchPanelReducer(initialBranchPanelState, { type: "openBranch", ...SCHOOL });
+  it("openBranch opens the panel, sets the active branch, and records it as the Space's last branch", () => {
+    const next = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
     expect(next).toEqual({
       active: SCHOOL,
       lastBranchBySpace: { "cat-school": "cat-school:default" },
@@ -22,7 +26,11 @@ describe("branchPanelReducer", () => {
   });
 
   it("openBranch for a second Space preserves the first Space's remembered branch", () => {
-    const first = branchPanelReducer(initialBranchPanelState, { type: "openBranch", ...SCHOOL });
+    const first = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
     const second = branchPanelReducer(first, {
       type: "openBranch",
       branchId: "cat-work:default",
@@ -35,8 +43,12 @@ describe("branchPanelReducer", () => {
     expect(second.active).toEqual({ branchId: "cat-work:default", spaceId: "cat-work" });
   });
 
-  it("close clears the active branch but keeps lastBranchBySpace", () => {
-    const open = branchPanelReducer(initialBranchPanelState, { type: "openBranch", ...SCHOOL });
+  it("close clears the active branch and closes the panel, but keeps lastBranchBySpace", () => {
+    const open = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
     const closed = branchPanelReducer(open, { type: "close" });
     expect(closed).toEqual({
       active: null,
@@ -45,7 +57,11 @@ describe("branchPanelReducer", () => {
   });
 
   it("spaceChanged closes the panel and does not auto-open the new Space's remembered branch (FR7)", () => {
-    const open = branchPanelReducer(initialBranchPanelState, { type: "openBranch", ...SCHOOL });
+    const open = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
     const changed = branchPanelReducer(open, { type: "spaceChanged", spaceId: "cat-work" });
     expect(changed).toEqual({
       active: null,
@@ -54,7 +70,11 @@ describe("branchPanelReducer", () => {
   });
 
   it("spaceChanged to null (All Spaces) also closes the panel", () => {
-    const open = branchPanelReducer(initialBranchPanelState, { type: "openBranch", ...SCHOOL });
+    const open = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
     const changed = branchPanelReducer(open, { type: "spaceChanged", spaceId: null });
     expect(changed.active).toBeNull();
   });
