@@ -1,11 +1,34 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import accessControl from "./eslint-rules/scoped-query.mjs";
 
-const uiFiles = ["src/components/**", "src/app/(app)/**", "src/app/(marketing)/**"];
-const fetchMessage =
+// Files that only ever run on the server. Everything else under src/ can end
+// up in a browser bundle, so a new folder is covered without editing this file.
+const serverFiles = [
+  "src/app/api/**",
+  "src/lib/api/**",
+  "src/lib/supabase/{server,auth-user,middleware}.ts",
+  "src/db/**",
+  "src/proxy.ts",
+];
+const testFiles = ["**/__tests__/**", "src/test-utils/**"];
+const networkFiles = ["src/hooks/**", "src/lib/api.ts"];
+
+// Written with [/] instead of an escaped slash so the same source works inside
+// an esquery selector for dynamic import().
+const serverOnly =
+  "^(drizzle-orm|postgres|next[/]headers)([/]|$)|(^|[/])(db|supabase[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
+const serverOnlyMessage =
+  "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.";
+const networkMessage =
   "Network calls live in a hook in src/hooks (use mutateResource from @/lib/api for writes).";
+
+const serverImportSyntax = [
+  { selector: `ImportExpression[source.value=/${serverOnly}/]`, message: serverOnlyMessage },
+  { selector: "CallExpression[callee.name='require']", message: "Use a static import so the import rules can check it." },
+];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -20,50 +43,62 @@ const eslintConfig = defineConfig([
     rules: { "access-control/scoped-query": "error" },
   },
   // Browser code reaches data only through the hooks in src/hooks, which
-  // call /api. The route handlers own the database and auth, so a component
+  // call /api. The route handlers own the database and auth, so browser code
   // that imports them skips the user_id scoping those handlers guarantee.
   {
-    files: [...uiFiles, "src/hooks/**"],
-    ignores: ["**/__tests__/**"],
+    files: networkFiles,
     rules: {
-      "no-restricted-imports": ["error", {
-        patterns: [{
-          group: [
-            "drizzle-orm", "drizzle-orm/*", "postgres",
-            "**/db", "**/db/*", "**/supabase/server", "**/supabase/auth-user", "**/api/route-handler",
-          ],
-          message: "Server-only module. Read or change data through a hook in src/hooks that calls an /api route.",
-        }],
-      }],
+      "no-restricted-imports": ["error", { patterns: [{ regex: serverOnly, message: serverOnlyMessage }] }],
+      "no-restricted-syntax": ["error", ...serverImportSyntax],
     },
   },
   {
-    files: [...uiFiles, "src/lib/**"],
-    ignores: ["**/__tests__/**", "src/lib/api.ts"],
+    files: ["src/**"],
+    ignores: [...serverFiles, ...testFiles, ...networkFiles],
     rules: {
-      "no-restricted-globals": ["error", {
-        name: "fetch",
-        message: fetchMessage,
+      "no-restricted-imports": ["error", {
+        patterns: [
+          { regex: serverOnly, message: serverOnlyMessage },
+          { regex: "(^|[/])api(\\.ts)?$", message: networkMessage },
+        ],
       }],
+      "no-restricted-syntax": ["error",
+        ...serverImportSyntax,
+        {
+          selector: "VariableDeclarator[init.type='Identifier'][init.name=/^(window|globalThis|self)$/]",
+          message: networkMessage,
+        },
+      ],
+      "no-restricted-globals": ["error",
+        ...["fetch", "XMLHttpRequest", "EventSource"].map((name) => ({ name, message: networkMessage })),
+      ],
       "no-restricted-properties": ["error",
-        ...["window", "globalThis", "self"].map((object) => ({
-          object,
-          property: "fetch",
-          message: fetchMessage,
-        })),
+        ...["window", "globalThis", "self"].map((object) => ({ object, property: "fetch", message: networkMessage })),
+        { object: "navigator", property: "sendBeacon", message: networkMessage },
       ],
     },
   },
   {
-    files: ["src/app/api/**"],
-    ignores: ["**/__tests__/**"],
+    files: serverFiles,
+    ignores: testFiles,
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [{
-          group: ["react", "react-dom", "react/*", "react-dom/*", "@/components/*", "@/hooks/*"],
-          message: "Route handlers return JSON. Put shared logic in src/lib and keep React out of src/app/api.",
+          regex: "^react(-dom)?([/]|$)|(^|[/])(components|hooks)([/]|$)",
+          message: "Server code returns JSON. Put shared logic in src/lib and keep React out of it.",
         }],
       }],
+    },
+  },
+  // The boundary rules above only hold if they cannot be switched off inline.
+  {
+    files: ["src/**"],
+    plugins: { "@eslint-community/eslint-comments": eslintComments },
+    rules: {
+      "@eslint-community/eslint-comments/no-restricted-disable": ["error",
+        "no-restricted-imports", "no-restricted-syntax", "no-restricted-globals", "no-restricted-properties",
+      ],
+      "@eslint-community/eslint-comments/no-use": ["error", { allow: ["eslint-disable-line", "eslint-disable-next-line"] }],
     },
   },
   // Override default ignores of eslint-config-next.
