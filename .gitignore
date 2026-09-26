@@ -53,8 +53,7 @@ AGENTS.md
 # Ignore /docs entirely: keeps local plans and hand-off notes out of the
 # repo. Already-tracked docs files (see git ls-files docs/) stay tracked
 # because .gitignore does not affect files already in the index.
-/docs/*
-!/docs/agents/
+/docs/
 
 # Design canvas files
 /DirectionB.dc.html
