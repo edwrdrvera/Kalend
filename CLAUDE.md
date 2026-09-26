@@ -6,7 +6,7 @@ Keep it short. Detail belongs in the linked docs and in the per-directory `CLAUD
 
 ## Project
 
-Kalend is a student productivity web app centered on an integrated calendar and task manager. Next.js App Router, Drizzle ORM over Supabase Postgres, Tailwind, shadcn, and daisyUI. Full product plan: `docs/project_overview.md`.
+Kalend is a student productivity web app centered on an integrated calendar and task manager. Next.js App Router, Drizzle ORM over Supabase Postgres, Tailwind, shadcn, and daisyUI. Full product plan: `docs/project_overview.md` (local-only, may be missing).
 
 ## Commands
 

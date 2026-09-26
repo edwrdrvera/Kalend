@@ -5,7 +5,7 @@ Drizzle ORM over Supabase Postgres. Migration workflow (schema edit → `drizzle
 ## Client (`index.ts`)
 
 - `prepare: false` on the Postgres client is required for Supabase's connection pooler (transaction mode / PgBouncer). Don't remove it.
-- This client connects as the `postgres` role, which has `BYPASSRLS`, so **RLS policies do not protect these queries**. Access control is the `eq(<table>.user_id, user.id)` filter written into every API route, enforced by the `access-control/scoped-query` lint rule over `src/app/api` (see `src/app/api/CLAUDE.md`). Read the comment at the top of `index.ts` before reasoning about security here.
+- This client connects as the `postgres` role, which has `BYPASSRLS`, so **RLS policies do not protect these queries**. Access control is the `eq(<table>.user_id, user.id)` filter written into every API route, enforced by the `access-control/scoped-query` lint rule over `src/app/api`, `src/lib/api`, and `src/db` (see `src/app/api/CLAUDE.md`). Read the comment at the top of `index.ts` before reasoning about security here.
 
 ## Schema conventions (`schema/`)
 

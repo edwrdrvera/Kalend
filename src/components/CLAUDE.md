@@ -1,11 +1,11 @@
 # src/components
 
-Flat directory of app components, plus `ui/` for shadcn primitives (`button`, `dialog`, `input`, `label`, `popover`) and `landing/` for the public marketing page (`src/app/(marketing)/page.tsx`). Add `ui/` primitives via the shadcn CLI rather than hand-writing them; `components.json` maps the aliases.
+Flat directory of app components, plus `ui/` for shadcn primitives (`button`, `dialog`, `popover`) and `landing/` for the public marketing page (`src/app/(marketing)/page.tsx`). Add `ui/` primitives via the shadcn CLI rather than hand-writing them; `components.json` maps the aliases.
 
 `landing/` components use their own `--kal-*` color tokens (`globals.css`) instead of the app's theme tokens — the marketing page is a deliberately separate design system, not themed like the rest of the app.
 
 - **React Compiler is on.** Write plain component code. Don't add `useMemo`/`useCallback` micro-optimizations that fight the compiler.
-- Interactive components start with `"use client"`. `src/app/page.tsx` is the server entry.
+- Interactive components start with `"use client"`. The app's server entry is `src/app/(app)/app/page.tsx`.
 - Styling is Tailwind v4 with the daisyUI `business` theme, composed via `cn()` from `@/lib/utils`.
 
 ## Data flow

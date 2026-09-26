@@ -15,7 +15,7 @@ This is a pre-launch MVP: there's no self-serve signup, password reset, or email
 
 ## Auth & routing
 
-`src/middleware.ts` delegates to `updateSession()` in `@/lib/supabase/middleware`, which refreshes the Supabase session and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). Its matcher excludes static assets, `api/ping`, and `api/waitlist` (public, unauthenticated). A new public route has to be added to the public-route allowance in `updateSession`, not just to the matcher.
+`src/proxy.ts` delegates to `updateSession()` in `@/lib/supabase/middleware`, which refreshes the Supabase session and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). Its matcher excludes static assets, `api/ping`, and `api/waitlist` (public, unauthenticated). A new public route has to be added to the public-route allowance in `updateSession`, not just to the matcher.
 
 ## Styling (`globals.css`)
 
