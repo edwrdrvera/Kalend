@@ -41,8 +41,18 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local coding-agent state and overrides
-.claude/
+# Verify-run evidence
+/output/
+
+# Local coding-agent state and overrides (project skills are shared; installed skills come from skills-lock.json)
+.claude/*
+!.claude/launch.json
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/code-review/
+!.claude/skills/db-migrate/
+!.claude/skills/security-review/
+!.claude/skills/verify/
 .codex/
 .agents/
 AGENTS.md
