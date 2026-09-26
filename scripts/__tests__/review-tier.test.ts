@@ -19,6 +19,9 @@ describe("tierOf", () => {
     ".claude/skills/code-review/SKILL.md",
     "CLAUDE.md",
     "src/app/api/CLAUDE.md",
+    "AGENTS.md",
+    "guides/agent-rules.md",
+    "guides/agents/domain.md",
   ])("%s is high", (file) => {
     expect(tierOf(file)).toBe("high");
   });
