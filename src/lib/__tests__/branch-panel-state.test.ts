@@ -81,20 +81,6 @@ describe("branchPanelReducer", () => {
     expect(changed.activeBranchId).toBeNull();
   });
 
-  it("cleared closes the panel like close, keeping lastBranchBySpace", () => {
-    const open = branchPanelReducer(initialBranchPanelState, {
-      type: "openBranch",
-      branchId: "cat-school:default",
-      spaceId: "cat-school",
-    });
-    const cleared = branchPanelReducer(open, { type: "cleared" });
-    expect(cleared).toEqual({
-      open: false,
-      activeBranchId: null,
-      lastBranchBySpace: { "cat-school": "cat-school:default" },
-    });
-  });
-
   it("an unknown action returns the same state unchanged", () => {
     const state: BranchPanelState = {
       open: true,

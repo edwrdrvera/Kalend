@@ -19,8 +19,7 @@ export const initialBranchPanelState: BranchPanelState = {
 type BranchPanelAction =
   | { type: "openBranch"; branchId: string; spaceId: string }
   | { type: "close" }
-  | { type: "spaceChanged"; spaceId: string | null }
-  | { type: "cleared" };
+  | { type: "spaceChanged"; spaceId: string | null };
 
 export function branchPanelReducer(
   state: BranchPanelState,
@@ -41,8 +40,6 @@ export function branchPanelReducer(
     case "spaceChanged":
       // FR7: changing the active Space closes the panel. Does NOT auto-open
       // the new Space's branch, even if one was previously remembered.
-      return { ...state, open: false, activeBranchId: null };
-    case "cleared":
       return { ...state, open: false, activeBranchId: null };
     default:
       return state;
