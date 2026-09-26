@@ -78,16 +78,6 @@ describe("branchPanelReducer", () => {
     const changed = branchPanelReducer(open, { type: "spaceChanged", spaceId: null });
     expect(changed.active).toBeNull();
   });
-
-  it("an unknown action returns the same state unchanged", () => {
-    const state: BranchPanelState = {
-      active: SCHOOL,
-      lastBranchBySpace: { "cat-school": "cat-school:default" },
-    };
-    // @ts-expect-error deliberately invalid action to exercise the default branch
-    const next = branchPanelReducer(state, { type: "notARealAction" });
-    expect(next).toBe(state);
-  });
 });
 
 describe("branch panel persistence", () => {

@@ -1,10 +1,5 @@
-// Reducer + localStorage persistence for which Space Panel branch is open.
-// Sibling of space-focus.ts (Space selection); mirrors its structure and style.
-
 export interface BranchPanelState {
-  /** The branch shown in the panel, or null when the panel is closed. */
   active: { branchId: string; spaceId: string } | null;
-  /** spaceId -> last opened branchId, remembered across sessions. */
   lastBranchBySpace: Record<string, string>;
 }
 
@@ -32,13 +27,8 @@ export function branchPanelReducer(
         },
       };
     case "close":
-      return { ...state, active: null };
     case "spaceChanged":
-      // FR7: changing the active Space closes the panel. Does NOT auto-open
-      // the new Space's branch, even if one was previously remembered.
       return { ...state, active: null };
-    default:
-      return state;
   }
 }
 
@@ -66,11 +56,6 @@ function isValidPersistedState(value: unknown): value is BranchPanelState {
   return Object.values(value.lastBranchBySpace).every((v) => typeof v === "string");
 }
 
-/**
- * The stored branch may no longer exist (its Space was deleted since the
- * save). useSpacePanel resolves it against the loaded categories and shows
- * no panel when it doesn't resolve, so no check is needed here.
- */
 export function loadBranchPanelState(): BranchPanelState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

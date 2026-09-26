@@ -41,8 +41,6 @@ export function useSpacePanel(
     : null;
   const activeSpaceId = activeBranch?.spaceId ?? null;
 
-  // An open panel's Space is the selected Space. openBranch selects it
-  // directly; after a reload this re-selects it once categories resolve it.
   useEffect(() => {
     if (activeSpaceId !== null) dispatchSpaceFocus({ type: "select", spaceId: activeSpaceId });
   }, [activeSpaceId, dispatchSpaceFocus]);
