@@ -78,7 +78,7 @@ Read in this order before doing anything else:
 3. `docs/project_overview.md` (local-only, may be missing): product plan
 4. Your agent's memory index, if it keeps one: cross-session notes
 
-Then run `git log --oneline -10` and confirm your understanding before acting. Do not start any work until the user confirms you have it right.
+Then run `git log --oneline -10`. When a person is in the session, confirm your understanding with them and don't start work until they confirm you have it right. When you run unattended (a cloud, background, or scheduled agent), skip the confirmation and work from the task you were given.
 
 Keep `HANDOFF.md` updated at every meaningful checkpoint: task done, decision made, work interrupted, or anything the next session will need to know. Before your context window fills, write a fresh snapshot there. Keep it current state only, not a history log: overwrite stale sections instead of appending.
 

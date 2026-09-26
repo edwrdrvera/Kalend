@@ -61,7 +61,7 @@ next-env.d.ts
 /HANDOFF*.md
 /TASKS.md
 /RESUME_NOTES.md
-# /docs is local-only (plans, hand-off notes, ADRs). Nothing in it is tracked.
+# /docs is local-only (plans and hand-off notes). Nothing in it is tracked. ADRs live in guides/adr/.
 /docs/
 
 # Design canvas files
