@@ -153,7 +153,7 @@ function conflictKeepsOwner(conflict) {
   if (!conflict) return true;
   const config = conflict.arguments[0];
   if (config?.type !== "ObjectExpression" || config.properties.some((prop) => prop.type === "SpreadElement")) return false;
-  const set = config.properties.find((prop) => !prop.computed && prop.key.name === "set");
+  const set = config.properties.findLast((prop) => !prop.computed && prop.key.name === "set");
   return ownerIsUser(set?.value, false);
 }
 

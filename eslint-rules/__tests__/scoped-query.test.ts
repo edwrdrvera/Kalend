@@ -88,6 +88,8 @@ ruleTester.run("scoped-query", rule, {
     // An insert whose values never appear in the chain.
     { code: "db.insert(tasks)", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     { code: "const t = tasks; tx.insert(t).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // With duplicate set keys, the last one wins at runtime.
+    { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title }, set: { user_id: body.u } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     { code: "db.query.tasks.findMany()", errors: [{ message: /db\.query\.tasks hides its filter/ }] },
     { code: "db.execute(sql`select * from tasks`)", errors: [{ message: /Raw SQL cannot be checked/ }] },
     {
