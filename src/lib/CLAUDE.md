@@ -9,7 +9,7 @@ Framework-free helpers. Anything shared by more than one component or route belo
   missing deployment variable produces a stable app-owned error.
 - `client.ts` — `createClient()` via `createBrowserClient`, for Client Components.
 - `server.ts` — `async createClient()` via `createServerClient`, for Server Components and Route Handlers. Reads/writes cookies through `next/headers`.
-- `auth-user.ts` — `getAuthenticatedUser()`, returns the verified `User` or `null`. This is what API routes call; don't re-implement the check.
+- `auth-user.ts` — `getAuthenticatedUser()`, returns the verified `User` or `null`. `withUser` in `api/route-handler.ts` calls it for every API route, so routes never call it directly. Don't re-implement the check.
 - `middleware.ts` — `updateSession()`, called from `src/proxy.ts`. Refreshes the session and enforces redirects (unauthenticated → `/login`, authenticated on `/` or `/login` → `/app`). Use `getUser()`, never `getSession()`: only `getUser()` validates the JWT against Supabase Auth.
 
 Env: copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `DATABASE_URL`.
