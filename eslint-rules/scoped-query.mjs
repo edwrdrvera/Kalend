@@ -27,11 +27,45 @@ const TARGET_TABLES = new Set(["events", "tasks", "categories"]);
 const ownerFilterHint = (table) =>
   `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
 
+function findVariable(scope, name) {
+  for (let s = scope; s; s = s.upper) {
+    const variable = s.set.get(name);
+    if (variable) return variable;
+  }
+  return null;
+}
+
+// Resolves a table reference to its schema name through the forms an agent
+// is likely to write: tasks, schema.tasks, an aliased import, a local alias,
+// alias(tasks, "t"), and a type cast.
+function tableName(node, scope, seen = new Set()) {
+  if (!node || seen.has(node)) return null;
+  seen.add(node);
+  if (node.type === "TSAsExpression" || node.type === "TSNonNullExpression" || node.type === "TSSatisfiesExpression") {
+    return tableName(node.expression, scope, seen);
+  }
+  if (node.type === "MemberExpression" && node.property.type === "Identifier") {
+    return TARGET_TABLES.has(node.property.name) ? node.property.name : null;
+  }
+  if (node.type === "CallExpression" && node.callee.type === "Identifier" && node.callee.name === "alias") {
+    return tableName(node.arguments[0], scope, seen);
+  }
+  if (node.type !== "Identifier") return null;
+  if (TARGET_TABLES.has(node.name)) return node.name;
+  const def = findVariable(scope, node.name)?.defs[0];
+  if (def?.type === "ImportBinding" && def.node.type === "ImportSpecifier") {
+    const imported = def.node.imported.name ?? def.node.imported.value;
+    return TARGET_TABLES.has(imported) ? imported : null;
+  }
+  if (def?.type === "Variable" && def.node.init) return tableName(def.node.init, scope, seen);
+  return null;
+}
+
 // The table a query starts from: db.select().from(X), db.update(X), db.delete(X).
-function queryRootTable(call) {
+function queryRootTable(call, scope) {
   if (call.callee.type !== "MemberExpression" || call.callee.property.type !== "Identifier") return null;
-  const arg = call.arguments[0];
-  if (!arg || arg.type !== "Identifier" || !TARGET_TABLES.has(arg.name)) return null;
+  const table = tableName(call.arguments[0], scope);
+  if (table === null) return null;
   const method = call.callee.property.name;
   const receiver = call.callee.object;
   if (method === "from") {
@@ -40,10 +74,10 @@ function queryRootTable(call) {
       receiver.callee.type === "MemberExpression" &&
       receiver.callee.property.type === "Identifier" &&
       receiver.callee.property.name.startsWith("select");
-    return isSelect ? arg.name : null;
+    return isSelect ? table : null;
   }
   if (method === "update" || method === "delete") {
-    return receiver.type === "Identifier" || receiver.type === "MemberExpression" ? arg.name : null;
+    return receiver.type === "Identifier" || receiver.type === "MemberExpression" ? table : null;
   }
   return null;
 }
@@ -64,21 +98,26 @@ function chainedWhere(root) {
   return null;
 }
 
-function isOwnerEq(node, table) {
-  const first = node.arguments[0];
+const isMember = (node, property) =>
+  node?.type === "MemberExpression" && node.property.type === "Identifier" && node.property.name === property;
+
+// eq(<table>.user_id, user.id): the column on the queried table, compared to
+// the authenticated user from withUser, never a value taken from the request.
+function isOwnerEq(node, table, scope) {
+  const [column, value] = node.arguments;
   return (
-    first?.type === "MemberExpression" &&
-    first.object.type === "Identifier" &&
-    first.object.name === table &&
-    first.property.type === "Identifier" &&
-    first.property.name === "user_id"
+    isMember(column, "user_id") &&
+    tableName(column.object, scope) === table &&
+    isMember(value, "id") &&
+    value.object.type === "Identifier" &&
+    value.object.name === "user"
   );
 }
 
-function isScoped(node, table) {
+function isScoped(node, table, scope) {
   if (node?.type !== "CallExpression" || node.callee.type !== "Identifier") return false;
-  if (node.callee.name === "eq") return isOwnerEq(node, table);
-  if (node.callee.name === "and") return node.arguments.some((arg) => isScoped(arg, table));
+  if (node.callee.name === "eq") return isOwnerEq(node, table, scope);
+  if (node.callee.name === "and") return node.arguments.some((arg) => isScoped(arg, table, scope));
   return false;
 }
 
@@ -91,10 +130,11 @@ const scopedQuery = {
   create(context) {
     return {
       CallExpression(node) {
-        const table = queryRootTable(node);
+        const scope = context.sourceCode.getScope(node);
+        const table = queryRootTable(node, scope);
         if (table !== null) {
           const where = chainedWhere(node);
-          if (!where || !isScoped(where.arguments[0], table)) {
+          if (!where || !isScoped(where.arguments[0], table, scope)) {
             context.report({ node, message: ownerFilterHint(table) });
           }
           return;

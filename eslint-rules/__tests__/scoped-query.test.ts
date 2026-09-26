@@ -29,8 +29,22 @@ ruleTester.run("scoped-query", rule, {
     "Array.from(tasks)",
     // Inserts carry user_id in their values, not a where.
     "db.insert(tasks).values({ title, user_id: user.id })",
+    // An aliased import is still checked, and passes when scoped.
+    "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
   ],
   invalid: [
+    // A table reached through the schema namespace.
+    { code: "import * as schema from '@/db/schema'; db.select().from(schema.tasks)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A renamed table import.
+    { code: "import { tasks as tasksTable } from '@/db/schema/tasks'; db.select().from(tasksTable)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A local alias of the table.
+    { code: "const t = tasks; db.update(t).set({ completed: true })", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A drizzle alias() of the table.
+    { code: "db.select().from(alias(tasks, 't'))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // The owner id taken from the request body.
+    { code: "db.select().from(tasks).where(eq(tasks.user_id, body.user_id))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A column compared with itself matches every row.
+    { code: "db.delete(tasks).where(eq(tasks.user_id, tasks.user_id))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // A select with no where at all.
     { code: "db.select().from(tasks)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // An update with no where rewrites every user's rows.
