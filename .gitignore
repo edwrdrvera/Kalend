@@ -43,6 +43,7 @@ next-env.d.ts
 
 # Local coding-agent state and overrides (the verify skill is shared)
 .claude/*
+!.claude/launch.json
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/verify/
