@@ -49,6 +49,9 @@ ruleTester.run("scoped-query", rule, {
     { code: "db.select().from(tasks)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // An update with no where rewrites every user's rows.
     { code: "db.update(tasks).set({ completed: true })", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A write whose builder comes from a call or an await is still a query.
+    { code: "tx().delete(tasks).where(eq(tasks.id, body.id))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    { code: "async () => (await getDb()).update(tasks).set({ title }).where(eq(tasks.id, body.id))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // A delete with no where.
     { code: "db.delete(events)", errors: [{ message: /Query over "events" is missing an eq\(events\.user_id/ }] },
     // An empty where.

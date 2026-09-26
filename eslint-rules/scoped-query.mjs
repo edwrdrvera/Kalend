@@ -76,10 +76,7 @@ function queryRootTable(call, scope) {
       receiver.callee.property.name.startsWith("select");
     return isSelect ? table : null;
   }
-  if (method === "update" || method === "delete") {
-    return receiver.type === "Identifier" || receiver.type === "MemberExpression" ? table : null;
-  }
-  return null;
+  return method === "update" || method === "delete" ? table : null;
 }
 
 // Climb the method chain above the query root and return its .where(...) call.
