@@ -27,8 +27,20 @@ ruleTester.run("scoped-query", rule, {
     "db.select().from(tasks).where(and(eq(tasks.user_id, user.id), ...conds))",
     // Array.from over a variable that happens to share a table name is not a query.
     "Array.from(tasks)",
-    // Inserts carry user_id in their values, not a where.
+    // Inserts carry the signed-in user's id in their values, not a where.
     "db.insert(tasks).values({ title, user_id: user.id })",
+    "db.insert(events).values({ title, user_id: user.id }).returning()",
+    // A spread before user_id can't override it.
+    "db.insert(tasks).values({ ...(due ? { due_at: due } : {}), user_id: user.id })",
+    "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b, user_id: user.id }])",
+    // An upsert may leave the owner alone or keep it as the signed-in user.
+    "db.insert(tasks).values({ title, user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title } })",
+    "db.insert(tasks).values({ title, user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title, user_id: user.id } })",
+    // A table outside the scoped set can insert anything.
+    "db.insert(waitlist).values({ email })",
+    // A table the rule can prove is not user-owned: a named import or a schema namespace member.
+    "import { waitlist } from '@/db/schema/waitlist'; db.insert(waitlist).values({ email })",
+    "import * as schema from '@/db/schema'; db.select().from(schema.waitlist)",
     // An aliased import is still checked, and passes when scoped.
     "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
   ],
@@ -60,6 +72,39 @@ ruleTester.run("scoped-query", rule, {
     { code: "db.select().from(tasks).where(or(eq(tasks.user_id, user.id), eq(tasks.id, id)))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // not() selects everyone else's rows.
     { code: "db.select().from(tasks).where(not(eq(tasks.user_id, user.id)))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // An insert with no user_id, or one taken from somewhere other than the signed-in user.
+    { code: "db.insert(tasks).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(tasks).values({ title, user_id: body.user_id })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values(body)", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values({ ...body })", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    // A spread after user_id can overwrite it.
+    { code: "db.insert(tasks).values({ user_id: user.id, ...body })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // A computed key after user_id can resolve to "user_id" at runtime and overwrite it.
+    { code: "db.insert(tasks).values({ user_id: user.id, [`user_id`]: body.uid })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(tasks).values({ user_id: user.id, ['user' + '_id']: body.uid })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // An upsert whose conflict update can move the row to another owner.
+    { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { user_id: body.uid } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: body })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { ...body } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // One row in a batch without the owner is enough to leak.
+    { code: "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b }])", errors: [{ message: /Insert into "categories" must set user_id: user\.id/ }] },
+    // An insert whose values never appear in the chain.
+    { code: "db.insert(tasks)", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "const t = tasks; tx.insert(t).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // With duplicate set keys, the last one wins at runtime.
+    { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title }, set: { user_id: body.u } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    // A string key on the schema still names the table.
+    { code: "import * as schema from '@/db/schema'; db.insert(schema['tasks']).values({ user_id: body.u })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
+    { code: "import * as schema from '@/db/schema'; db.select().from(schema['tasks'])", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A table the rule can't identify fails closed.
+    { code: "db.insert(cond ? tasks : events).values({ user_id: user.id })", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.update(pickTable(kind)).set({ title })", errors: [{ message: /can't tell which table/ }] },
+    { code: "function remove(table, id) { return db.delete(table).where(eq(table.id, id)) }", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.select().from(tables[kind])", errors: [{ message: /can't tell which table/ }] },
+    { code: "db.delete(ctx.table)", errors: [{ message: /can't tell which table/ }] },
+    { code: "import * as schema from '@/db/schema'; const { tasks: t } = schema; db.delete(t)", errors: [{ message: /can't tell which table/ }] },
+    // The cost of failing closed: a non-database delete in a checked folder is reported too.
+    { code: "function evict(id) { cache.delete(id) }", errors: [{ message: /can't tell which table/ }] },
     { code: "db.query.tasks.findMany()", errors: [{ message: /db\.query\.tasks hides its filter/ }] },
     { code: "db.execute(sql`select * from tasks`)", errors: [{ message: /Raw SQL cannot be checked/ }] },
     {
