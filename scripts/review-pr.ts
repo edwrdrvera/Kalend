@@ -133,7 +133,11 @@ async function main() {
   run(["git", "worktree", "add", "--detach", dir, head]);
 
   try {
-    run(["git", "checkout", base, "--", ".claude/skills"], dir);
+    try {
+      run(["git", "checkout", base, "--", ".claude/skills"], dir);
+    } catch {
+      console.error(`No .claude/skills on ${base}. Using the PR's own skills.`);
+    }
     console.error(`Reviewing ${view.url} in ${dir} (fresh session, no history)...`);
     const reviewer = Bun.spawn(
       [
@@ -168,7 +172,9 @@ async function main() {
     try {
       const changes = run(["git", "status", "--porcelain", "--", ".", ":!.claude/skills"], dir);
       if (changes.trim()) {
-        console.error(`Reviewer wrote files. Worktree kept at ${dir}:\n${changes}`);
+        console.error(
+          `Reviewer wrote files. Worktree kept at ${dir}:\n${changes}\nRemove it with: git worktree remove --force ${dir}`,
+        );
       } else {
         run(["git", "worktree", "remove", "--force", dir]);
         rmSync(join(dir, ".."), { recursive: true, force: true });
