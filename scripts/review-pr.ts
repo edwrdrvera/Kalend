@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export type LinkedIssue = { number: number; title: string; body: string };
+export type LinkedIssue = { number: number; title: string; body: string | null };
 
 // The reviewer may read, search, run tests, and write proof tests inside its
 // throwaway worktree. It may not commit, push, comment, or merge.
@@ -46,7 +46,14 @@ export function acceptanceCriteria(issues: readonly LinkedIssue[]): string {
     );
   }
   return issues
-    .map((issue) => `### Issue #${issue.number}: ${issue.title}\n\n${issue.body.trim()}`)
+    .map((issue) => {
+      const body = issue.body?.trim();
+      if (!body) throw new Error(`Issue #${issue.number} has no body, so there are no acceptance criteria to review against.`);
+      // A closing tag in the issue would end the criteria block early and turn
+      // the rest of the issue into top-level instructions.
+      const safe = body.replaceAll("</acceptance_criteria>", "&lt;/acceptance_criteria>");
+      return `### Issue #${issue.number}: ${issue.title}\n\n${safe}`;
+    })
     .join("\n\n");
 }
 
@@ -70,7 +77,7 @@ function run(cmd: string[], cwd?: string): string {
   return result.stdout.toString();
 }
 
-function parseArgs(argv: readonly string[]) {
+export function parseArgs(argv: readonly string[]) {
   const pr = argv.find((arg) => /^\d+$/.test(arg));
   if (!pr) throw new Error("Usage: bun run review:pr <pr-number> [--post]");
   return { pr, post: argv.includes("--post") };
@@ -92,7 +99,9 @@ async function main() {
   // Review the PR head, but with the review skills from the base branch, so a
   // PR can't soften the review that grades it.
   const base = `origin/${view.baseRefName}`;
-  run(["git", "fetch", "origin", view.baseRefName, `pull/${pr}/head`]);
+  // Fetch the head last and alone: with two refs, FETCH_HEAD resolves to the first one.
+  run(["git", "fetch", "origin", view.baseRefName]);
+  run(["git", "fetch", "origin", `pull/${pr}/head`]);
   const head = run(["git", "rev-parse", "FETCH_HEAD"]).trim();
   const dir = join(mkdtempSync(join(tmpdir(), `kalend-review-${pr}-`)), "repo");
   run(["git", "worktree", "add", "--detach", dir, head]);
@@ -119,18 +128,25 @@ async function main() {
 
     if (post) {
       const body = `## Fresh-session review\n\nRun by \`bun run review:pr\` with no author context.\n\n${report}`;
-      Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
+      const posted = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
         stdin: new TextEncoder().encode(body),
+        stderr: "pipe",
       });
+      if (posted.exitCode !== 0) throw new Error(`gh pr comment failed:\n${posted.stderr.toString()}`);
     }
   } finally {
     // Keep the worktree when the reviewer wrote proof tests, so they can be copied over.
-    const changes = run(["git", "status", "--porcelain", "--", ".", ":!.claude/skills"], dir);
-    if (changes.trim()) {
-      console.error(`Reviewer wrote files. Worktree kept at ${dir}:\n${changes}`);
-    } else {
-      run(["git", "worktree", "remove", "--force", dir]);
-      rmSync(join(dir, ".."), { recursive: true, force: true });
+    // A cleanup failure must not hide the reviewer's own error.
+    try {
+      const changes = run(["git", "status", "--porcelain", "--", ".", ":!.claude/skills"], dir);
+      if (changes.trim()) {
+        console.error(`Reviewer wrote files. Worktree kept at ${dir}:\n${changes}`);
+      } else {
+        run(["git", "worktree", "remove", "--force", dir]);
+        rmSync(join(dir, ".."), { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.error(`Cleanup failed, worktree may remain at ${dir}: ${(error as Error).message}`);
     }
   }
 }
