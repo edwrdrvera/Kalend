@@ -11,12 +11,22 @@ Harness: the desktop app's built-in browser tools (`mcp__Claude_Browser__*`). Th
 
 ## Launch
 
-0. If `lsof -tiTCP:3000 -sTCP:LISTEN` shows a server and the doctor passes for it, drive that one and skip teardown (you didn't start it). Unattended runs (scheduled tasks) can't call `preview_start` at all, so they depend on this.
+0. If `lsof -tiTCP:3000 -sTCP:LISTEN` shows a server and the doctor passes for it, drive that one and skip teardown (you didn't start it).
+   Unattended runs (scheduled tasks) can't call `preview_start`. Use `scripts/server.sh start` instead (see Unattended launch below), then open the pane with `navigate` to `http://localhost:3000/app`.
 1. `preview_start {name: "dev"}` (config in `.claude/launch.json`: `bun run dev`, port 3000, `autoPort: true`, so the real port may differ; read it from the result). Keep the returned `serverId` and `tabId`.
 2. Ready when `preview_logs {serverId, search: "Ready"}` shows Next's `Ready in …` line, and `curl -s localhost:<port>/api/ping` returns `{"message":"pong"}`.
 3. Teardown: `preview_stop {serverId}`. Only stop the server you started.
 
-Never start the server with Bash. Never run a second `bun run dev` from the same checkout: Next locks `.next/`. A worktree is a separate checkout and may run its own instance on another port.
+Never start the server with a raw `bun run dev` in Bash; use `preview_start`, or `scripts/server.sh` when `preview_start` is refused. Never run a second `bun run dev` from the same checkout: Next locks `.next/`. A worktree is a separate checkout and may run its own instance on another port.
+
+### Unattended launch
+
+```bash
+.claude/skills/verify/scripts/server.sh start [port]   # default 3000
+.claude/skills/verify/scripts/server.sh stop [port]
+```
+
+`start` prints one status line. `STARTED`: it launched a server in the background (pid in `output/verify/server-<port>.pid`, log in `server-<port>.log`), and you own the teardown. `REUSING`: someone else's server already answers, so don't stop it. `ALREADY RUNNING`: an earlier `start` owns it. `BUSY` exits non-zero: another program holds the port, so pass a different port. `EXITED` or `TIMEOUT` exit non-zero with the log tail; run `stop` before retrying. `stop` kills only the process tree `start` recorded and waits until it is gone. Run the doctor after `start`, same as for `preview_start`.
 
 ## Doctor
 
@@ -32,7 +42,7 @@ The agent must not type the password itself. Sign-in is a user step:
 
 1. `navigate` to `http://localhost:<port>/app`. If you land on `/app` and `find "Main navigation"` hits the icon rail (right after `navigate` it can miss while the page hydrates; retry once), the pane already has a session (cookies persist across runs); skip ahead.
 2. Otherwise you are on `/login` ("Sign in | Kalend"). Ask the user to sign in with the demo account (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env.local`) in the browser pane, and wait for them. Never read, echo, or paste those values anywhere: chat, screenshots, commits, PRs, evidence files.
-3. After they confirm, re-check step 1. Meanwhile, anything that doesn't need a session (landing page, route guard, `/api/ping`) can be verified.
+3. After they confirm, re-check step 1. In an unattended run nobody can sign in: mark every `/app` feature `verified-unreachable` (prerequisite: no session in the pane) and still verify the signed-out checks. Meanwhile, anything that doesn't need a session (landing page, route guard, `/api/ping`) can be verified.
 
 Failure modes: an inline error on the card (wrong password → run `bun run db:seed:demo` only if the user OKs it); protected APIs return 503 when Supabase is unreachable.
 
@@ -68,10 +78,11 @@ Proof = the action, the resulting UI state, and the persisted side effect.
 ## Cleanup
 
 1. Delete your `verify-` data (see Data safety). Confirm with a GET that none remain.
-2. `preview_stop {serverId}` for the server you started; don't kill by process name.
+2. `preview_stop {serverId}` for the server you started, or `scripts/server.sh stop` if `server.sh start` printed `STARTED`. Don't kill by process name.
 3. Reset any viewport change: `resize_window {preset: "desktop"}`.
 4. Leave `output/verify/…` in place. Confirm it still exists after teardown.
 
 ## Helpers
 
 - `scripts/doctor.sh [port]`: the read-only health check above. Exit 0 = OK.
+- `scripts/server.sh start|stop [port]`: background dev server for runs that can't call `preview_start`. See Unattended launch.
