@@ -92,7 +92,7 @@ Send a few high-conviction findings, not many nits. When you propose a restructu
 Merge the lanes' findings and drop duplicates. Read each cited line yourself, and drop anything you can't confirm. Sort the rest:
 
 - **Fix now.** Confirmed bugs, and in-scope structural findings with a clear fix. Fix each one, add a test when a test can catch it, and re-run `bunx tsc --noEmit` and `bun test`.
-- **Your call.** Anything that needs a product decision, changes what a user sees, or goes beyond the task. Don't fix these.
+- **Judgment calls.** Findings with more than one reasonable fix. Pick one, and say why it beats the other options. Apply it like a "Fix now" item. If the call changes what a user sees or goes beyond the task, don't apply it. Mark it "beyond this PR" instead.
 - **Checked and fine.** Risks you ruled out, with the reason.
 
 ## 5. Report
@@ -103,7 +103,7 @@ Keep the report short enough to read in two minutes. List these in order:
 - what changed and what must not change
 - the safety fact, its ladder step, and the proof or "unproven"
 - what you fixed, with the commit for each
-- what needs the user's call, one line each
+- each judgment call: what you did, why, and why not the other options
 - what you checked and found fine
 
 Edit the draft once against [the writing checklist](#writing-checklist) before you send it. Post it as a PR comment only if the user asks.
@@ -124,7 +124,7 @@ Edit the draft once against [the writing checklist](#writing-checklist) before y
 The reader is the PR author deciding what to do next. They read the first line and scan the rest. Leave out any section that would be empty:
 
 ```markdown
-**Verdict:** Ready to merge. | Fix N things before merging. | N decisions need you.
+**Verdict:** Ready to merge. | Fix N things before merging.
 One sentence on the biggest reason. If one file holds most of the risk, name it.
 
 ### Fix before merging
@@ -132,8 +132,11 @@ One sentence on the biggest reason. If one file holds most of the risk, name it.
    What goes wrong: the input or state, and the wrong result.
    Fix: one sentence. Add a code block only if it's under 10 lines.
 
-### Your call
-- **The decision** (`file:line`). The trade-off in one sentence. I'd pick X.
+### Judgment calls
+- **Short name of the choice** (`file:line`)
+  Do: the option you pick.
+  Why: what it fixes or prevents.
+  Why not the others: the main alternative, and what it would cost.
 
 ### Checked and fine
 - The risk, and why it can't happen, in one sentence.
@@ -148,7 +151,7 @@ The tier and the files that set it. The safety fact, its ladder step, and the co
 - Start with the Verdict line. Put nothing before it.
 - Don't restate what the PR does.
 - Put the most serious item first in each section.
-- Keep each item to three lines. If an item needs more, it belongs under "Your call".
+- Keep each item to three lines. If an item needs more, it belongs under "Judgment calls".
 - Count a bug and its missing test as one item. Leave out style nits.
 - List at most 5 items under "Checked and fine". Pick the risks the author would worry about most.
 

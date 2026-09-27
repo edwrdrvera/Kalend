@@ -85,7 +85,7 @@ Write it with `pstack:unslop` rules:
 
 - **The ownership fact**, its ladder step, and the test that proves it.
 - **Holes**, each with who, what, `file:line`, and the fix commit.
-- **Needs your call.**
+- **Judgment calls**, each with what to do, why, and why not the other options.
 - **Cleared.**
 
 Never paste secrets, tokens, or real user data into the report.

@@ -37,7 +37,7 @@ All three are safe to re-run.
   3. Open the PR with `Closes #<issue>` in its body, then run `pstack:make-pr-easy-to-review` on it. Its PR description must still follow `guides/github-writing.md`.
   4. Post the confidence report as the first PR comment.
   5. Run `bun run review:pr <number> --post`. It starts a new Claude process that sees only the PR and the linked issue's acceptance criteria, runs `/code-review` (plus `/security-review` on high tier) with `develop`'s skills, and posts a report without changing anything. Don't run those reviews in the session that wrote the code.
-  6. Fix what the report confirms within the task's scope, and update the confidence report. A PR gets at most 2 reviews, one first review and one re-run after fixes, and the script refuses a third. Don't re-run just to confirm small fixes. List a restructuring that goes beyond the task in the final summary instead of doing it.
+  6. Fix what the report confirms within the task's scope, and apply its judgment calls. Update the confidence report. A PR gets at most 2 reviews, one first review and one re-run after fixes, and the script refuses a third. Don't re-run just to confirm small fixes. List a restructuring that goes beyond the task in the final summary instead of doing it.
   7. Run `pstack:babysit` on the PR until CI is green and review comments are handled. It fixes high-confidence findings with new commits, re-runs CI, and updates the confidence report. It brings ambiguous decisions back to me instead of guessing.
 - Rewriting history or force-pushing needs my OK first.
 - For audits across many files, split the work across subagents and have each one cite file:line evidence. Check anything they report before acting on it.
