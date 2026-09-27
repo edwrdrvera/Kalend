@@ -113,6 +113,6 @@ These have their own `CLAUDE.md` with the conventions for that area. Read it bef
 
 No `CLAUDE.md` of their own:
 
-- `scripts/`: repo tooling run by CI and agents (`review-tier.ts`, `review-pr.ts`). Changes here are high tier.
+- `scripts/`: repo tooling run by CI and agents (`review-tier.ts`, `review-pr.ts`). Changes here are medium tier.
 - `src/hooks/`: client data hooks (`useCalendarEvents`, `useTasks`, `useCategories`) and the TimeGrid drag gestures (`useCreateDrag`, `useMoveDrag`, `useResizeDrag`)
 - `src/test-utils/`: `mock-db.ts` (an in-memory Drizzle mock for API route tests that fails the test if a handler skips its `user_id` filter) and `render-hook.ts` (happy-dom `renderHook` for hook tests)

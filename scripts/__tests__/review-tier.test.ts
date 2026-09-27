@@ -11,12 +11,9 @@ describe("tierOf", () => {
     "src/proxy.ts",
     "eslint.config.mjs",
     "eslint-rules/scoped-query.mjs",
-    ".github/workflows/ci.yml",
     "package.json",
     "bun.lock",
     "next.config.ts",
-    "scripts/review-tier.ts",
-    ".claude/skills/code-review/SKILL.md",
     "src/app/api/CLAUDE.md",
   ])("%s is high", (file) => {
     expect(tierOf(file)).toBe("high");
@@ -29,6 +26,9 @@ describe("tierOf", () => {
     "src/app/(app)/calendar/page.tsx",
     "src/test-utils/mock-db.ts",
     "some/unknown/file.ts",
+    ".github/workflows/ci.yml",
+    "scripts/review-tier.ts",
+    ".claude/skills/code-review/SKILL.md",
   ])("%s is medium", (file) => {
     expect(tierOf(file)).toBe("medium");
   });
