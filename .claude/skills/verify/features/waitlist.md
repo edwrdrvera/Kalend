@@ -14,7 +14,7 @@ This is placeholder UI for the landing page, not a product feature. Check that t
 Visit `/` while signed out (signed in, `/` redirects to `/app`).
 
 ## Driving it with the browser pane
-- The pane shares one cookie jar across tabs, so a signed-in pane always redirects `/` to `/app`. Signing out needs the user to sign back in; in an unattended run check the page without cookies instead: `curl -s localhost:<port>/` contains `id="waitlist-email"` and `Join the waitlist`, and `curl -s -X POST localhost:<port>/api/waitlist -H 'content-type: application/json' -d '{"email":"not-an-email"}'` returns the 400 above (writes nothing).
+- The pane shares one cookie jar across tabs, so a signed-in pane always redirects `/` to `/app`. To drive the form, log out (see auth.md), test it, then sign back in with `/api/dev/sign-in`. Without the dev sign-in, check the page without cookies instead: `curl -s localhost:<port>/` contains `id="waitlist-email"` and `Join the waitlist`, and `curl -s -X POST localhost:<port>/api/waitlist -H 'content-type: application/json' -d '{"email":"not-an-email"}'` returns the 400 above (writes nothing).
 - Signed out: `find "Email address"` → click, type, click `Join the waitlist`, `find "You're on the list"`.
 - There is no GET endpoint (GET returns 405); persistence can only be checked in the DB, so ask before inserting rows.
 

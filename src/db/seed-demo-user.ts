@@ -7,7 +7,9 @@
 // SUPABASE_SERVICE_ROLE_KEY is from Project Settings > API. It bypasses
 // Auth entirely, so: never put it in .env.local's NEXT_PUBLIC_* vars, never
 // commit it, and never use it outside a one-off local/CI script like this
-// one. DEMO_USER_EMAIL defaults to demo@kalend.app if not set.
+// one. The one exception is the dev-only route src/app/api/dev/sign-in, which
+// returns 404 outside `next dev`. DEMO_USER_EMAIL defaults to demo@kalend.app
+// if not set.
 
 import { createClient } from "@supabase/supabase-js";
 
