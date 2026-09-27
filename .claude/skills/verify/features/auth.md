@@ -21,5 +21,6 @@ Landing page → "Log in" link in the nav, or go straight to `/login`.
 - Guard: `curl -s -o /dev/null -w '%{http_code}' localhost:<port>/api/tasks` → `307` without cookies.
 
 ## Gotchas
+- Under `bun run dev` the Next.js dev tools badge sits on top of the icon rail's `Account` button, so a click on it opens the dev tools menu instead. Focus the button (`document.querySelector('button[aria-label="Account"]').focus()`) and press Return, then click `Log out`.
 - Credentials are secret and entered by the user only; never put them in evidence.
 - The browser pane keeps cookies across runs, so `/login` may immediately redirect to `/app`.
