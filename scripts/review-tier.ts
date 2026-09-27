@@ -35,14 +35,37 @@ export function reviewTier(files: readonly string[]): Tier {
   }, "low");
 }
 
+// Low tier skips the fresh-session review, so a large low diff (many
+// component files at once) is bumped to medium: size alone can hide a logic bug.
+export const maxLowTierLines = 150;
+
+export type ChangedFile = { path: string; additions: number; deletions: number };
+
+export function prTier(files: readonly ChangedFile[]): Tier {
+  const tier = reviewTier(files.map((file) => file.path));
+  const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  return tier === "low" && lines > maxLowTierLines ? "medium" : tier;
+}
+
 if (import.meta.main) {
   const base = process.argv[2] ?? "origin/develop";
-  const diff = Bun.spawnSync(["git", "diff", "--name-only", `${base}...HEAD`]);
+  const diff = Bun.spawnSync(["git", "diff", "--numstat", `${base}...HEAD`]);
   if (diff.exitCode !== 0) {
     console.error(diff.stderr.toString());
     process.exit(1);
   }
-  const files = diff.stdout.toString().split("\n").filter(Boolean);
-  console.log(`Review tier: ${reviewTier(files)}`);
-  for (const file of files) console.log(`  ${tierOf(file).padEnd(6)} ${file}`);
+  // Binary files report "-" for both counts, which counts as 0 lines.
+  const files = diff.stdout
+    .toString()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [additions, deletions, path] = line.split("\t");
+      return { path, additions: Number(additions) || 0, deletions: Number(deletions) || 0 };
+    });
+  const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  const tier = prTier(files);
+  const bumped = tier !== reviewTier(files.map((file) => file.path));
+  console.log(`Review tier: ${tier}${bumped ? ` (low files, but ${lines} changed lines is over ${maxLowTierLines})` : ""}`);
+  for (const file of files) console.log(`  ${tierOf(file.path).padEnd(6)} ${file.path}`);
 }

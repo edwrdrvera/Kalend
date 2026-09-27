@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { reviewTier, tierOf } from "../review-tier";
+import { maxLowTierLines, prTier, reviewTier, tierOf } from "../review-tier";
 
 describe("tierOf", () => {
   test.each([
@@ -57,5 +57,22 @@ describe("reviewTier", () => {
 
   test("an empty diff is low", () => {
     expect(reviewTier([])).toBe("low");
+  });
+});
+
+describe("prTier", () => {
+  const component = (additions: number) => ({ path: "src/components/TaskList.tsx", additions, deletions: 0 });
+
+  test("a small low diff stays low", () => {
+    expect(prTier([component(maxLowTierLines)])).toBe("low");
+  });
+
+  test("a low diff over the line limit becomes medium", () => {
+    expect(prTier([component(maxLowTierLines), { path: "README.md", additions: 0, deletions: 1 }])).toBe("medium");
+  });
+
+  test("size never lowers or raises a high diff", () => {
+    expect(prTier([{ path: "src/proxy.ts", additions: 1, deletions: 0 }])).toBe("high");
+    expect(prTier([{ path: "src/proxy.ts", additions: 900, deletions: 0 }])).toBe("high");
   });
 });
