@@ -19,6 +19,43 @@ This skill merges three pstack playbooks, adapted for Kalend: `pstack:blast-radi
 - You are the orchestrator, so run steps 1 to 3 as written. In step 4, fix nothing: put "Fix now" items in the report as findings with `file:line` and the proposed fix. Proof tests stay as files in the worktree.
 - On high tier, run `/security-review` in fresh-session mode too, in this same process.
 - Don't commit, push, or comment on the PR. The script posts the report when asked.
+- Write the report in the fresh-session layout below, not the step 5 list.
+
+### Fresh-session report layout
+
+The reader is the PR author deciding what to do next. They open the comment, read the first line, and scan. Use this layout exactly, and leave out any section that would be empty:
+
+```markdown
+**Verdict:** Ready to merge. | Fix N things before merging. | N decisions need you.
+One sentence on the biggest reason.
+
+### Fix before merging
+1. **Short name of the bug** (`file:line`)
+   What goes wrong: the input or state, and the wrong result it causes.
+   Fix: one sentence. Add a code block only if it's under 10 lines.
+
+### Your call
+- **The decision** (`file:line`). The tradeoff in one sentence. I'd pick: X.
+
+### Checked and fine
+- The risk, and why it can't happen, in one sentence.
+
+<details><summary>Tier and proof</summary>
+
+Tier, and the files that set it. The safety fact, how far you proved it (said, cited, walked through, ran a test, ran the app), and the command and output if you ran one.
+
+</details>
+```
+
+Rules:
+
+- Start with the Verdict line. Nothing goes before it: no "all lanes complete", no "here is the report".
+- Don't restate what the PR does. The author wrote it.
+- Don't mention lanes, subagents, or ladder step numbers outside the details block.
+- Each item is two or three lines at most. If an item needs more, the fix is too big for this PR, so put it under "Your call".
+- List at most 5 items under "Checked and fine". Pick the risks the author would most likely worry about.
+- On high tier, merge the `/security-review` findings into these same sections. Don't add a second report.
+- Write with `pstack:unslop` rules.
 
 ## 1. Get the tier and the inputs
 
