@@ -111,9 +111,10 @@ async function main() {
     files: ChangedFile[];
   };
 
-  // Low tier (UI, styles, docs, small diffs) is covered by CI and a browser check.
-  if (prTier(view.files) === "low" && !force) {
-    console.log(`PR ${pr} is low tier, so the fresh-session review is skipped. Pass --force to run it anyway.`);
+  // Trivial and low tier are covered by CI and a browser check.
+  const tier = prTier(view.files);
+  if ((tier === "trivial" || tier === "low") && !force) {
+    console.log(`PR ${pr} is ${tier} tier, so the fresh-session review is skipped. Pass --force to run it anyway.`);
     return;
   }
 

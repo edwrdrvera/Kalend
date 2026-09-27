@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { maxLowTierLines, prTier, reviewTier, tierOf } from "../review-tier";
+import { maxLowTierLines, maxTrivialLines, prTier, reviewTier, tierOf } from "../review-tier";
 
 describe("tierOf", () => {
   test.each([
@@ -61,18 +61,26 @@ describe("reviewTier", () => {
 });
 
 describe("prTier", () => {
-  const component = (additions: number) => ({ path: "src/components/TaskList.tsx", additions, deletions: 0 });
+  const file = (path: string, additions: number) => ({ path, additions, deletions: 0 });
 
-  test("a small low diff stays low", () => {
-    expect(prTier([component(maxLowTierLines)])).toBe("low");
+  test("a small diff with no high-tier file is trivial, whatever its folder", () => {
+    expect(prTier([file("src/components/TaskList.tsx", maxTrivialLines - 1)])).toBe("trivial");
+    expect(prTier([file("src/hooks/useTasks.ts", maxTrivialLines - 1)])).toBe("trivial");
+  });
+
+  test("a high-tier file is never trivial, however small", () => {
+    expect(prTier([file("src/proxy.ts", 1)])).toBe("high");
+  });
+
+  test("a mid-sized low diff stays low", () => {
+    expect(prTier([file("src/components/TaskList.tsx", maxLowTierLines)])).toBe("low");
   });
 
   test("a low diff over the line limit becomes medium", () => {
-    expect(prTier([component(maxLowTierLines), { path: "README.md", additions: 0, deletions: 1 }])).toBe("medium");
+    expect(prTier([file("src/components/TaskList.tsx", maxLowTierLines), { path: "README.md", additions: 0, deletions: 1 }])).toBe("medium");
   });
 
-  test("size never lowers or raises a high diff", () => {
-    expect(prTier([{ path: "src/proxy.ts", additions: 1, deletions: 0 }])).toBe("high");
-    expect(prTier([{ path: "src/proxy.ts", additions: 900, deletions: 0 }])).toBe("high");
+  test("size never lowers a large high diff", () => {
+    expect(prTier([file("src/proxy.ts", 900)])).toBe("high");
   });
 });

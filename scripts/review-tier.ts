@@ -35,15 +35,19 @@ export function reviewTier(files: readonly string[]): Tier {
   }, "low");
 }
 
-// Low tier skips the fresh-session review, so a large low diff (many
-// component files at once) is bumped to medium: size alone can hide a logic bug.
+// A PR's tier also weighs its size. A small diff with no high-tier file is
+// trivial: the whole diff reads faster than a report about it. A large low diff
+// (many component files at once) is bumped to medium: size alone can hide a logic bug.
+export const maxTrivialLines = 40;
 export const maxLowTierLines = 150;
 
+export type PrTier = "trivial" | Tier;
 export type ChangedFile = { path: string; additions: number; deletions: number };
 
-export function prTier(files: readonly ChangedFile[]): Tier {
+export function prTier(files: readonly ChangedFile[]): PrTier {
   const tier = reviewTier(files.map((file) => file.path));
   const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  if (tier !== "high" && lines < maxTrivialLines) return "trivial";
   return tier === "low" && lines > maxLowTierLines ? "medium" : tier;
 }
 
@@ -65,7 +69,8 @@ if (import.meta.main) {
     });
   const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
   const tier = prTier(files);
-  const bumped = tier !== reviewTier(files.map((file) => file.path));
-  console.log(`Review tier: ${tier}${bumped ? ` (low files, but ${lines} changed lines is over ${maxLowTierLines})` : ""}`);
+  const fileTier = reviewTier(files.map((file) => file.path));
+  const why = tier === fileTier ? "" : ` (${fileTier} files, ${lines} changed lines)`;
+  console.log(`Review tier: ${tier}${why}`);
   for (const file of files) console.log(`  ${tierOf(file.path).padEnd(6)} ${file.path}`);
 }
