@@ -38,13 +38,15 @@ Read-only. Checks `.env.local` has the three vars the server needs (`DATABASE_UR
 
 ## Sign in (needed for everything under `/app`)
 
-The agent must not type the password itself. Sign-in is a user step:
+The agent never types the demo password. Two ways in:
 
 1. `navigate` to `http://localhost:<port>/app`. If you land on `/app` and `find "Main navigation"` hits the icon rail (right after `navigate` it can miss while the page hydrates; retry once), the pane already has a session (cookies persist across runs); skip ahead.
-2. Otherwise you are on `/login` ("Sign in | Kalend"). Ask the user to sign in with the demo account (`DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` in `.env.local`) in the browser pane, and wait for them. Never read, echo, or paste those values anywhere: chat, screenshots, commits, PRs, evidence files.
-3. After they confirm, re-check step 1. In an unattended run nobody can sign in: mark every `/app` feature `verified-unreachable` (prerequisite: no session in the pane) and still verify the signed-out checks. Meanwhile, anything that doesn't need a session (landing page, route guard, `/api/ping`) can be verified.
+2. Otherwise `navigate` to `http://localhost:<port>/api/dev/sign-in`. It signs the pane in as the demo account on the server and redirects to `/app`; nobody types anything. It needs `KALEND_DEV_SIGN_IN=1`, `SUPABASE_SERVICE_ROLE_KEY`, and `DEMO_USER_EMAIL` in `.env.local` (the doctor reports which are missing), and it only works under `bun run dev`. A 404 JSON body means the flag is off; a 500 body names what's missing or what Supabase rejected.
+3. If that route isn't available, ask the user to sign in with the demo account in the browser pane and wait. Never read, echo, or paste `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` values anywhere: chat, screenshots, commits, PRs, evidence files. In an unattended run nobody can sign in: mark every `/app` feature `verified-unreachable` (prerequisite: no session and no dev sign-in) and still verify the signed-out checks.
 
-Failure modes: an inline error on the card (wrong password → run `bun run db:seed:demo` only if the user OKs it); protected APIs return 503 when Supabase is unreachable.
+Signing out (e.g. to check the landing page in the pane) is fine now: `/api/dev/sign-in` gets you back.
+
+Failure modes: an inline error on the login card (wrong password; run `bun run db:seed:demo` only if the user OKs it); protected APIs return 503 when Supabase is unreachable.
 
 ## Drive
 

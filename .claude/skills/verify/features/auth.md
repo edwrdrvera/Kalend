@@ -13,10 +13,11 @@ Single demo account; no signup or password reset. Middleware in `src/lib/supabas
 Landing page → "Log in" link in the nav, or go straight to `/login`.
 
 ## Driving it with the browser pane
+- Dev sign-in: `navigate` to `/api/dev/sign-in` → lands on `/app` signed in. With the flag unset it returns 404 JSON.
 - Form (user signs in; the agent never types the password): fields labeled `Email` / `Password`, button text `Sign in` (shows `Signing in...` while pending).
 - Success: URL `/app`, `find "Main navigation"` hits the icon rail.
 - Signed-in redirect: `navigate` to `/login`; `location.pathname` becomes `/app`.
-- Log out: `find "Account"` → click the first hit → `find "Log out"`. Clicking it ends the pane's session and only the user can sign back in, so in an unattended run stop at finding the button.
+- Log out: `find "Account"` → click the first hit → `find "Log out"`. Clicking it ends the pane's session; sign back in with `/api/dev/sign-in` (see the skill's Sign in section). Without the dev sign-in, stop at finding the button in an unattended run.
 - Guard: `curl -s -o /dev/null -w '%{http_code}' localhost:<port>/api/tasks` → `307` without cookies.
 
 ## Gotchas

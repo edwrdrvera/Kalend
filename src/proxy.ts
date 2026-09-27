@@ -14,8 +14,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - api/ping (health check endpoint)
      * - api/waitlist (public landing-page signup, no auth)
+     * - api/dev/sign-in (dev-only demo sign-in; 404 unless enabled, see its route)
      * - Static asset files (.svg, .png, .jpg, .jpeg, .gif, .webp)
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/dev/sign-in|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

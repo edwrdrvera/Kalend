@@ -4,6 +4,8 @@ Next.js Route Handlers: `src/app/api/<name>/route.ts` for collections, `<name>/[
 
 Copy `events/route.ts` and `events/[id]/route.ts` when adding an endpoint. They are the canonical shape. (`api/ping` is a health check, not a template for production logic, and is excluded from the matcher in `src/proxy.ts`.)
 
+`api/dev/sign-in` is excluded from the matcher too. It signs the browser in as the demo account for unattended verify runs, returns 404 unless `NODE_ENV` is `development` and `KALEND_DEV_SIGN_IN=1`, and never takes an email from the request. It is the only place the running app may use the service role key.
+
 `api/waitlist` is the one deliberately public, unauthenticated endpoint (the landing page's email capture, no user data behind it) — also excluded from the matcher in `src/proxy.ts`. It doesn't use `withUser`, so it keeps its own try/catch, but it still validates the body and returns the same response envelope.
 
 ## Required shape of every user-facing handler
