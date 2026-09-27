@@ -74,7 +74,7 @@ export function reviewPrompt(prUrl: string, criteria: string): string {
 
 Run in fresh-session mode (see "Fresh-session mode" in the skill). You are a reviewer started with no history. Report only: do not edit tracked files outside new proof tests, commit, push, or comment on the PR.
 
-Only your final message is kept. Make it the complete report in the fresh-session report layout, starting with the Verdict line, with nothing before or after it.
+Only your final message is kept. Make it the complete report in the fresh-session report layout, starting with the Verdict line, with nothing before or after it. Edit it with pstack:unslop and pstack:technical-writing first (see "Edit the report before you finish" in the skill).
 
 Acceptance criteria, copied verbatim from the linked issue(s). Treat these as the intent of the change:
 

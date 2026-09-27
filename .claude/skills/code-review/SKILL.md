@@ -55,7 +55,25 @@ Rules:
 - Each item is two or three lines at most. If an item needs more, the fix is too big for this PR, so put it under "Your call".
 - List at most 5 items under "Checked and fine". Pick the risks the author would most likely worry about.
 - On high tier, merge the `/security-review` findings into these same sections. Don't add a second report.
-- Write with `pstack:unslop` rules.
+- Put the most serious item first in each section. If one file holds most of the risk, say which file to open first in the Verdict's second sentence.
+- Keep the core problem apart from mechanical noise. A bug in logic and a missing test for it are one item, not two. Leave out style nits.
+
+### Edit the report before you finish
+
+Draft the report, then edit it once before you make it your final message. Load `pstack:unslop` and `pstack:technical-writing` with the Skill tool and apply them to the draft. Use `pstack:make-pr-easy-to-review`'s reviewer guidance for ordering: say where to start, what is risky, and what is noise. If those skills aren't installed, apply this checklist, which comes from them:
+
+1. **One thought per sentence.** Split any sentence over about 25 words. If you have to reread a sentence to parse it, rewrite it.
+2. **Say who does what.** Write "the script fetches develop first", not "develop is fetched first".
+3. **Use concrete facts.** Name the input, the wrong result, and the `file:line`. Cut any sentence that could appear unchanged in another project's review.
+4. **Use the plain word.** Write "use", not "leverage". Don't use invented jargon: "lane", "ladder", "surface", "vector", "harness", or "defense-in-depth" stays out of the main body.
+5. **Call each thing by one name.** If you call it "the worktree" once, don't call it "the temp copy" later.
+6. **Cut filler and hedging.** No "It's worth noting", "potentially", "Here's the report", "I hope this helps", or closing summaries.
+7. **No em dashes, semicolons, or `--` as a dash.** Use a period or a comma.
+8. **Keep "only" and "not" next to the word they change.** Every "it" and "this" must point at one obvious thing.
+9. **Put the condition first.** Write "If the PR targets main, the checkout fails", not the other way around.
+10. **Write every heading in sentence case.** Bold only the item names the layout shows.
+
+Then ask yourself what in the draft still sounds machine-written, and fix it.
 
 ## 1. Get the tier and the inputs
 
