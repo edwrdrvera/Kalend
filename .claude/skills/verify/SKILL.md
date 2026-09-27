@@ -26,7 +26,7 @@ Never start the server with a raw `bun run dev` in Bash; use `preview_start`, or
 .claude/skills/verify/scripts/server.sh stop [port]
 ```
 
-`start` prints one status line. `STARTED`: it launched a server in the background (pid in `output/verify/server-<port>.pid`, log in `server-<port>.log`), and you own the teardown. `REUSING`: someone else's server already answers, so don't stop it. `ALREADY RUNNING`: an earlier `start` owns it. `BUSY`, `EXITED`, or `TIMEOUT` exit non-zero with the log tail; run `stop` before retrying. `stop` kills only the process tree `start` recorded and waits until it is gone. Run the doctor after `start`, same as for `preview_start`.
+`start` prints one status line. `STARTED`: it launched a server in the background (pid in `output/verify/server-<port>.pid`, log in `server-<port>.log`), and you own the teardown. `REUSING`: someone else's server already answers, so don't stop it. `ALREADY RUNNING`: an earlier `start` owns it. `BUSY` exits non-zero: another program holds the port, so pass a different port. `EXITED` or `TIMEOUT` exit non-zero with the log tail; run `stop` before retrying. `stop` kills only the process tree `start` recorded and waits until it is gone. Run the doctor after `start`, same as for `preview_start`.
 
 ## Doctor
 

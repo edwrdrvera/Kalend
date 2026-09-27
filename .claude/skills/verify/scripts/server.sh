@@ -16,8 +16,10 @@ ping_ok() { [ "$(curl -s -m 5 "http://localhost:$PORT/api/ping")" = '{"message":
 case "${1:-}" in
   start)
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then echo "ALREADY RUNNING: started by this script, pid=$(cat "$PIDFILE")"; exit 0; fi
-    if ping_ok; then echo "REUSING: a server already answers on :$PORT (not started by this script; don't stop it)"; exit 0; fi
-    if lsof -tiTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then echo "BUSY: :$PORT is taken by something that isn't Kalend"; exit 1; fi
+    if lsof -tiTCP:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+      if ping_ok; then echo "REUSING: a server already answers on :$PORT (not started by this script; don't stop it)"; exit 0; fi
+      echo "BUSY: :$PORT is taken by something that isn't Kalend; pick another port or stop that process"; exit 1
+    fi
     nohup bun run dev -p "$PORT" >"$LOG" 2>&1 &
     echo $! >"$PIDFILE"
     for _ in $(seq 1 90); do
