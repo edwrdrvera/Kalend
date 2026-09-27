@@ -31,14 +31,19 @@ All three are safe to re-run.
 - **React Compiler is enabled** (`reactCompiler: true` in `next.config.ts`). Don't add `useMemo` or `useCallback` by hand. Write plain component code and let the compiler optimize it.
 - **Every API route is the access-control boundary.** The app's database client bypasses RLS, so each handler scopes user data with an explicit `user_id` filter. Details in `src/app/api/CLAUDE.md` and `src/db/CLAUDE.md`.
 - Type-check before you commit. Commit in small conventional-commit steps, and open a PR into `develop`.
-- Before opening a PR, run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. The tier (low, medium, or high) is the riskiest tier of any changed file, and it decides how much review the branch gets. Then, in this order:
-  1. Draft the confidence report from `guides/github-writing.md`. The review reads its "Not verified" list.
-  2. High only: check that the confidence report's Rollback line names a real way back (a reverse migration for schema changes).
-  3. Open the PR with `Closes #<issue>` in its body, then run `pstack:make-pr-easy-to-review` on it. Its PR description must still follow `guides/github-writing.md`.
-  4. Post the confidence report as the first PR comment.
-  5. Run `bun run review:pr <number> --post`. It starts a new Claude process that sees only the PR and the linked issue's acceptance criteria, runs `/code-review` (plus `/security-review` on high tier) with `develop`'s skills, and posts a report without changing anything. Don't run those reviews in the session that wrote the code.
-  6. Fix what the report confirms within the task's scope, and apply its judgment calls. Update the confidence report. A PR gets at most 2 reviews, one first review and one re-run after fixes, and the script refuses a third. Don't re-run just to confirm small fixes. List a restructuring that goes beyond the task in the final summary instead of doing it.
-  7. Run `pstack:babysit` on the PR until CI is green and review comments are handled. It fixes high-confidence findings with new commits, re-runs CI, and updates the confidence report. It brings ambiguous decisions back to me instead of guessing.
+- Before opening a PR, run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. The tier (low, medium, or high) is the riskiest tier of any changed file, and a low diff over 150 changed lines counts as medium. The tier decides how much of this flow runs:
+
+  | Step | Low | Medium | High |
+  | --- | --- | --- | --- |
+  | 1. Confidence report | Short form | Full | Full, with a real Rollback (a reverse migration for schema changes) |
+  | 2. Open PR with `Closes #<issue>`, then `pstack:make-pr-easy-to-review` | Open PR only | Both | Both |
+  | 3. Post the report as the first PR comment | Yes | Yes | Yes |
+  | 4. `bun run review:pr <number> --post` | Skip (the script refuses without `--force`) | `/code-review` | `/code-review` + `/security-review` |
+  | 5. Fix, then log each finding with `bun run review:log add` | n/a | Yes | Yes |
+  | 6. `pstack:babysit` | Only if CI fails | Yes | Yes |
+
+  Both report forms are in `guides/github-writing.md`, and the PR description follows it too. `review:pr` starts a new Claude process that sees only the PR and the linked issue's acceptance criteria, and posts a report without changing anything. Don't run those reviews in the session that wrote the code. A PR gets at most 2 reviews (one first review, one re-run after fixes), and the script refuses a third. Don't re-run just to confirm small fixes. Fix what the report confirms within the task's scope, apply its judgment calls, and update the confidence report. List a restructuring that goes beyond the task in the final summary instead of doing it. babysit fixes high-confidence findings with new commits, re-runs CI, and brings ambiguous decisions back to me instead of guessing.
+- Log every finding a review reports, with its outcome (`real-fixed`, `real-deferred`, `false-positive`, `ignored`). When a bug turns up later in code a review passed, log it against that PR as `missed`. `bun run review:log stats` compares reviewer versions, so check it before changing the review prompt or skills.
 - Rewriting history or force-pushing needs my OK first.
 - For audits across many files, split the work across subagents and have each one cite file:line evidence. Check anything they report before acting on it.
 
