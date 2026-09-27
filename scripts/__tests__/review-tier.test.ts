@@ -17,11 +17,7 @@ describe("tierOf", () => {
     "next.config.ts",
     "scripts/review-tier.ts",
     ".claude/skills/code-review/SKILL.md",
-    "CLAUDE.md",
     "src/app/api/CLAUDE.md",
-    "AGENTS.md",
-    "guides/agent-rules.md",
-    "guides/agents/domain.md",
   ])("%s is high", (file) => {
     expect(tierOf(file)).toBe("high");
   });
@@ -43,6 +39,10 @@ describe("tierOf", () => {
     "src/app/globals.css",
     "docs/code-style.md",
     "public/logo.svg",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "guides/agent-rules.md",
+    "guides/agents/domain.md",
   ])("%s is low", (file) => {
     expect(tierOf(file)).toBe("low");
   });

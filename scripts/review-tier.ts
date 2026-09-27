@@ -16,8 +16,6 @@ const highPatterns = [
   /^\.github\//,
   /^scripts\//,
   /^\.claude\//,
-  /(^|\/)(CLAUDE|AGENTS)\.md$/,
-  /^guides\//,
   /^(package\.json|bun\.lock|tsconfig\.json|next\.config\.ts|drizzle\.config\.ts)$/,
 ];
 
