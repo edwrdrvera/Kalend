@@ -6,6 +6,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// Each run is a full multi-agent review, so re-runs are capped: one review,
+// then at most one more after fixing what it found.
+export const maxReviewsPerPr = 2;
+const reportHeading = "## Fresh-session review";
+
+export function countPostedReviews(commentBodies: readonly string[]): number {
+  return commentBodies.filter((body) => body.startsWith(reportHeading)).length;
+}
+
 export type LinkedIssue = { number: number; title: string; body: string | null };
 
 // The reviewer may read, search, run tests, and write proof tests inside its
@@ -92,8 +101,20 @@ async function main() {
   const { pr, post } = parseArgs(process.argv.slice(2));
 
   const view = JSON.parse(
-    run(["gh", "pr", "view", pr, "--json", "url,baseRefName,closingIssuesReferences"]),
-  ) as { url: string; baseRefName: string; closingIssuesReferences: { number: number }[] };
+    run(["gh", "pr", "view", pr, "--json", "url,baseRefName,closingIssuesReferences,comments"]),
+  ) as {
+    url: string;
+    baseRefName: string;
+    closingIssuesReferences: { number: number }[];
+    comments: { body: string }[];
+  };
+
+  const posted = countPostedReviews(view.comments.map((comment) => comment.body));
+  if (posted >= maxReviewsPerPr) {
+    throw new Error(
+      `PR ${pr} already has ${posted} fresh-session reviews (the limit is ${maxReviewsPerPr}). Fix what they found without another run.`,
+    );
+  }
 
   const issues = view.closingIssuesReferences.map(({ number }) => {
     const issue = JSON.parse(run(["gh", "issue", "view", String(number), "--json", "title,body"]));
@@ -120,6 +141,8 @@ async function main() {
         "-p",
         prompt,
         "--no-session-persistence",
+        "--model",
+        "claude-sonnet-5",
         "--allowedTools",
         ...allowedTools,
         "--disallowedTools",
@@ -132,12 +155,12 @@ async function main() {
     if ((await reviewer.exited) !== 0) throw new Error("The reviewer exited with an error.");
 
     if (post) {
-      const body = `## Fresh-session review\n\nRun by \`bun run review:pr\` with no author context.\n\n${report}`;
-      const posted = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
+      const body = `${reportHeading}\n\nRun by \`bun run review:pr\` with no author context.\n\n${report}`;
+      const comment = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
         stdin: new TextEncoder().encode(body),
         stderr: "pipe",
       });
-      if (posted.exitCode !== 0) throw new Error(`gh pr comment failed:\n${posted.stderr.toString()}`);
+      if (comment.exitCode !== 0) throw new Error(`gh pr comment failed:\n${comment.stderr.toString()}`);
     }
   } finally {
     // Keep the worktree when the reviewer wrote proof tests, so they can be copied over.

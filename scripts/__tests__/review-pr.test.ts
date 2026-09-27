@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { acceptanceCriteria, allowedTools, disallowedTools, parseArgs, reviewPrompt } from "../review-pr";
+import {
+  acceptanceCriteria,
+  allowedTools,
+  countPostedReviews,
+  disallowedTools,
+  maxReviewsPerPr,
+  parseArgs,
+  reviewPrompt,
+} from "../review-pr";
 
 describe("acceptanceCriteria", () => {
   test("refuses a PR with no linked issue", () => {
@@ -55,5 +63,16 @@ describe("parseArgs", () => {
 
   test("refuses without a PR number", () => {
     expect(() => parseArgs(["--post"])).toThrow("Usage");
+  });
+});
+
+describe("countPostedReviews", () => {
+  test("counts only fresh-session review comments", () => {
+    const comments = ["**Confidence report**", "## Fresh-session review\n\nA", "LGTM", "## Fresh-session review\n\nB"];
+    expect(countPostedReviews(comments)).toBe(2);
+  });
+
+  test("allows at most two reviews per PR", () => {
+    expect(maxReviewsPerPr).toBe(2);
   });
 });
