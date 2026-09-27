@@ -114,8 +114,8 @@ async function main() {
       { cwd: dir, stdout: "pipe", stderr: "inherit" },
     );
     const report = await new Response(reviewer.stdout).text();
-    if ((await reviewer.exited) !== 0) throw new Error("The reviewer exited with an error.");
     console.log(report);
+    if ((await reviewer.exited) !== 0) throw new Error("The reviewer exited with an error.");
 
     if (post) {
       const body = `## Fresh-session review\n\nRun by \`bun run review:pr\` with no author context.\n\n${report}`;
