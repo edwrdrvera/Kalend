@@ -60,7 +60,7 @@ Rules:
 
 ### Edit the report before you finish
 
-Draft the report, then edit it once before you make it your final message. Load `pstack:unslop` and `pstack:technical-writing` with the Skill tool and apply them to the draft. Use `pstack:make-pr-easy-to-review`'s reviewer guidance for ordering: say where to start, what is risky, and what is noise. If those skills aren't installed, apply this checklist, which comes from them:
+Draft the report, then edit it once against this checklist before you make it your final message. The checklist holds the parts of `pstack:unslop`, `pstack:technical-writing`, and `pstack:make-pr-easy-to-review` that apply to a review comment. Don't load those skills: the checklist is enough, and loading them costs tokens on every review.
 
 1. **One thought per sentence.** Split any sentence over about 25 words. If you have to reread a sentence to parse it, rewrite it.
 2. **Say who does what.** Write "the script fetches develop first", not "develop is fetched first".
