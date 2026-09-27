@@ -13,6 +13,8 @@ This skill applies `pstack:blast-radius` to security: find the one fact that kee
 
 Collect the same inputs as the `code-review` skill, step 1: the tier, the diff, the ticket or PR text, and the "Not verified" list. Don't collect the author's explanation.
 
+In fresh-session mode (see the `code-review` skill), the prompt's acceptance criteria are the intent, and step 6 fixes nothing: report each hole with its proposed fix and leave proof tests as files.
+
 ## 2. Run it in a fresh subagent
 
 Spawn one `general-purpose` subagent. Give it the inputs above, this file's steps 3 to 5 copied in full, and the repo path. Tell it not to edit, commit, or push anything. Tell it to read `src/app/api/CLAUDE.md`, `src/db/CLAUDE.md`, `src/lib/CLAUDE.md`, and `guides/agent-rules.md` rules 14 to 17 first.
@@ -83,7 +85,7 @@ Write it with `pstack:unslop` rules:
 
 - **The ownership fact**, its ladder step, and the test that proves it.
 - **Holes**, each with who, what, `file:line`, and the fix commit.
-- **Needs your call.**
+- **Judgment calls**, each with what to do, why, and why not the other options.
 - **Cleared.**
 
 Never paste secrets, tokens, or real user data into the report.
