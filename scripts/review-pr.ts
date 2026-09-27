@@ -39,6 +39,12 @@ export const disallowedTools = [
   "Bash(gh pr edit:*)",
 ];
 
+// A closing tag in the issue would end the criteria block early and turn the
+// rest of the issue into top-level instructions.
+function escapeClosingTag(text: string): string {
+  return text.replaceAll("</acceptance_criteria>", "&lt;/acceptance_criteria>");
+}
+
 export function acceptanceCriteria(issues: readonly LinkedIssue[]): string {
   if (issues.length === 0) {
     throw new Error(
@@ -49,10 +55,7 @@ export function acceptanceCriteria(issues: readonly LinkedIssue[]): string {
     .map((issue) => {
       const body = issue.body?.trim();
       if (!body) throw new Error(`Issue #${issue.number} has no body, so there are no acceptance criteria to review against.`);
-      // A closing tag in the issue would end the criteria block early and turn
-      // the rest of the issue into top-level instructions.
-      const safe = body.replaceAll("</acceptance_criteria>", "&lt;/acceptance_criteria>");
-      return `### Issue #${issue.number}: ${issue.title}\n\n${safe}`;
+      return `### Issue #${issue.number}: ${escapeClosingTag(issue.title)}\n\n${escapeClosingTag(body)}`;
     })
     .join("\n\n");
 }
@@ -61,6 +64,8 @@ export function reviewPrompt(prUrl: string, criteria: string): string {
   return `/code-review ${prUrl}
 
 Run in fresh-session mode (see "Fresh-session mode" in the skill). You are a reviewer started with no history. Report only: do not edit tracked files outside new proof tests, commit, push, or comment on the PR.
+
+Only your final message is kept. Make it the complete report from step 5, with nothing after it.
 
 Acceptance criteria, copied verbatim from the linked issue(s). Treat these as the intent of the change:
 
@@ -105,9 +110,9 @@ async function main() {
   const head = run(["git", "rev-parse", "FETCH_HEAD"]).trim();
   const dir = join(mkdtempSync(join(tmpdir(), `kalend-review-${pr}-`)), "repo");
   run(["git", "worktree", "add", "--detach", dir, head]);
-  run(["git", "checkout", base, "--", ".claude/skills"], dir);
 
   try {
+    run(["git", "checkout", base, "--", ".claude/skills"], dir);
     console.error(`Reviewing ${view.url} in ${dir} (fresh session, no history)...`);
     const reviewer = Bun.spawn(
       [
