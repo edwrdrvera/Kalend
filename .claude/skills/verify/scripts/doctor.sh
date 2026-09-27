@@ -9,7 +9,8 @@ for v in DATABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
   grep -q "^$v=." .env.local 2>/dev/null || { echo "MISSING env: $v in .env.local"; ok=0; }
 done
 signin=1
-for v in KALEND_DEV_SIGN_IN SUPABASE_SERVICE_ROLE_KEY DEMO_USER_EMAIL; do
+grep -q "^KALEND_DEV_SIGN_IN=1$" .env.local 2>/dev/null || { echo "NOTE: KALEND_DEV_SIGN_IN is not 1 in .env.local; /api/dev/sign-in is unavailable"; signin=0; }
+for v in SUPABASE_SERVICE_ROLE_KEY DEMO_USER_EMAIL; do
   grep -q "^$v=." .env.local 2>/dev/null || { echo "NOTE: $v not set in .env.local; /api/dev/sign-in is unavailable"; signin=0; }
 done
 [ $signin = 1 ] && echo "dev sign-in configured"

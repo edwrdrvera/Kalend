@@ -81,12 +81,16 @@ describe("GET /api/dev/sign-in", () => {
     expect(verifyOtp).not.toHaveBeenCalled();
   });
 
-  it("returns 500 when the service role key is missing", async () => {
-    delete env.SUPABASE_SERVICE_ROLE_KEY;
+  it.each(["SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])(
+    "returns a 500 JSON error when %s is missing",
+    async (name) => {
+      delete env[name];
 
-    const response = await GET(request());
+      const response = await GET(request());
 
-    expect(response.status).toBe(500);
-    expect(generateLink).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(500);
+      expect((await response.json()).success).toBe(false);
+      expect(generateLink).not.toHaveBeenCalled();
+    }
+  );
 });
