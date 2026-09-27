@@ -5,6 +5,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { type ChangedFile, prTier } from "./review-tier";
 
 // Each run is a full multi-agent review, so re-runs are capped: one review,
 // then at most one more after fixing what it found.
@@ -93,21 +94,28 @@ function run(cmd: string[], cwd?: string): string {
 
 export function parseArgs(argv: readonly string[]) {
   const pr = argv.find((arg) => /^\d+$/.test(arg));
-  if (!pr) throw new Error("Usage: bun run review:pr <pr-number> [--post]");
-  return { pr, post: argv.includes("--post") };
+  if (!pr) throw new Error("Usage: bun run review:pr <pr-number> [--post] [--force]");
+  return { pr, post: argv.includes("--post"), force: argv.includes("--force") };
 }
 
 async function main() {
-  const { pr, post } = parseArgs(process.argv.slice(2));
+  const { pr, post, force } = parseArgs(process.argv.slice(2));
 
   const view = JSON.parse(
-    run(["gh", "pr", "view", pr, "--json", "url,baseRefName,closingIssuesReferences,comments"]),
+    run(["gh", "pr", "view", pr, "--json", "url,baseRefName,closingIssuesReferences,comments,files"]),
   ) as {
     url: string;
     baseRefName: string;
     closingIssuesReferences: { number: number }[];
     comments: { body: string }[];
+    files: ChangedFile[];
   };
+
+  // Low tier (UI, styles, docs, small diffs) is covered by CI and a browser check.
+  if (prTier(view.files) === "low" && !force) {
+    console.log(`PR ${pr} is low tier, so the fresh-session review is skipped. Pass --force to run it anyway.`);
+    return;
+  }
 
   const posted = countPostedReviews(view.comments.map((comment) => comment.body));
   if (posted >= maxReviewsPerPr) {
