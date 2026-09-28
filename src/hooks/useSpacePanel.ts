@@ -46,16 +46,26 @@ export function useSpacePanel(
     if (activeSpaceId !== null) dispatchSpaceFocus({ type: "select", spaceId: activeSpaceId });
   }, [activeSpaceId, dispatchSpaceFocus]);
 
+  const activeTask =
+    selection?.kind === "task" ? (tasks.find((t) => t.id === selection.taskId) ?? null) : null;
+  const activeEvent =
+    selection?.kind === "event" ? (events.find((e) => e.id === selection.eventId) ?? null) : null;
+  const openItemGone =
+    (selection?.kind === "task" && activeTask === null) ||
+    (selection?.kind === "event" && activeEvent === null);
+
+  useEffect(() => {
+    if (openItemGone) dispatch({ type: "itemGone" });
+  }, [openItemGone, branchPanel.dirty, branchPanel.pending]);
+
   return {
     panelMode,
     activeBranch,
     activeBranchId: selection?.kind === "branch" ? selection.branchId : null,
     allTasksOpen: selection?.kind === "allTasks",
-    // null when the selected task was deleted, so the panel renders nothing.
-    activeTask:
-      selection?.kind === "task" ? (tasks.find((t) => t.id === selection.taskId) ?? null) : null,
-    activeEvent:
-      selection?.kind === "event" ? (events.find((e) => e.id === selection.eventId) ?? null) : null,
+    // null when the selected task or event was deleted, so the panel renders nothing.
+    activeTask,
+    activeEvent,
     /** Where Back leads, when the open item came from an overview. */
     backTarget: selection?.kind === "task" || selection?.kind === "event" ? selection.from : null,
     navigationPending: branchPanel.pending !== null,

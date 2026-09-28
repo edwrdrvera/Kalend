@@ -302,3 +302,30 @@ describe("branch panel persistence", () => {
     }
   });
 });
+
+describe("itemGone", () => {
+  const EVENT_SEL = { kind: "event" as const, eventId: "e1", from: null };
+
+  it("clears the dirty flag so the next navigation opens immediately", () => {
+    const gone = branchPanelReducer(
+      { active: EVENT_SEL, dirty: true, pending: null },
+      { type: "itemGone" }
+    );
+    expect(gone.dirty).toBe(false);
+    const next = branchPanelReducer(gone, { type: "openAllTasks" });
+    expect(next).toEqual({ active: { kind: "allTasks" }, dirty: false, pending: null });
+  });
+
+  it("carries out a navigation that was held back", () => {
+    const next = branchPanelReducer(
+      { active: EVENT_SEL, dirty: true, pending: { type: "openAllTasks" } },
+      { type: "itemGone" }
+    );
+    expect(next).toEqual({ active: { kind: "allTasks" }, dirty: false, pending: null });
+  });
+
+  it("does nothing when nothing is dirty or pending", () => {
+    const state = { active: EVENT_SEL, dirty: false, pending: null };
+    expect(branchPanelReducer(state, { type: "itemGone" })).toBe(state);
+  });
+});

@@ -39,7 +39,9 @@ export type BranchPanelAction =
   /** Carry out the pending navigation: the edits were saved or discarded. */
   | { type: "proceed" }
   /** Drop the pending navigation and keep editing. */
-  | { type: "stay" };
+  | { type: "stay" }
+  /** The open task or event no longer exists, so its unsaved edits can't block anything. */
+  | { type: "itemGone" };
 
 function backTargetCarriedFrom(active: PanelSelection | null): PanelOverview | null {
   if (active === null) return null;
@@ -84,6 +86,13 @@ export function branchPanelReducer(
       return state.dirty === action.dirty ? state : { ...state, dirty: action.dirty };
     case "stay":
       return state.pending ? { ...state, pending: null } : state;
+    case "itemGone":
+      if (!state.dirty && !state.pending) return state;
+      return {
+        active: state.pending ? navigate(state.active, state.pending) : state.active,
+        dirty: false,
+        pending: null,
+      };
     case "proceed":
       if (!state.pending) return state;
       return { active: navigate(state.active, state.pending), dirty: false, pending: null };
