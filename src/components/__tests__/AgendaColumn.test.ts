@@ -79,28 +79,22 @@ interface RenderOptions {
   tasks?: CalendarTask[];
   categories?: CalendarCategory[];
   loading?: boolean;
-  selectedSpaceId?: string | null;
   branches?: Branch[];
   activeBranchId?: string | null;
+  date?: Date;
 }
 
 interface Interactions {
   eventClicks: string[];
   taskToggles: string[];
-  taskDeletes: string[];
-  createdTasks: Array<{
-    title: string;
-    dueAt?: string;
-    categoryId?: string | null;
-  }>;
+  allTasksOpens: number;
 }
 
 async function renderColumn(options: RenderOptions = {}) {
   const interactions: Interactions = {
     eventClicks: [],
     taskToggles: [],
-    taskDeletes: [],
-    createdTasks: [],
+    allTasksOpens: 0,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -109,22 +103,18 @@ async function renderColumn(options: RenderOptions = {}) {
   await act(() =>
     root?.render(
       createElement(AgendaColumn, {
-        selectedDate,
+        selectedDate: options.date ?? selectedDate,
         events: options.events ?? [],
         tasks: options.tasks ?? [],
         categories: options.categories ?? [],
         loading: options.loading ?? false,
-        selectedSpaceId: options.selectedSpaceId ?? null,
-        onCreateTask: async (title, dueAt, categoryId) => {
-          interactions.createdTasks.push({ title, dueAt, categoryId });
-        },
         onToggleTaskComplete: (task) =>
           interactions.taskToggles.push(task.id),
-        onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
         onEventClick: (event) => interactions.eventClicks.push(event.id),
         branches: options.branches ?? [],
         activeBranchId: options.activeBranchId ?? null,
         onOpenBranch: () => {},
+        onOpenAllTasks: () => interactions.allTasksOpens++,
       })
     )
   );
@@ -166,12 +156,14 @@ describe("AgendaColumn date header", () => {
         makeTask({ id: "t1", title: "Task A" }),
         makeTask({ id: "t2", title: "Task B" }),
         makeTask({ id: "t3", title: "Task C" }),
+        makeTask({ id: "t4", title: "Overdue", due_at: new Date(2030, 8, 10).toISOString() }),
+        makeTask({ id: "t5", title: "Undated", due_at: null }),
       ],
     });
 
     const text = document.body.textContent ?? "";
     expect(text).toContain("2 events");
-    expect(text).toContain("3 tasks");
+    expect(text).toContain("3 tasks due");
   });
 });
 
@@ -226,8 +218,75 @@ describe("AgendaColumn tasks section", () => {
     const text = document.body.textContent ?? "";
     expect(text).toContain("Read chapter 5");
 
-    const checkbox = byLabel("Mark as done");
+    const checkbox = byLabel("Mark Read chapter 5 as done");
     expect(checkbox).not.toBeNull();
+  });
+
+  it("lists only tasks due on the selected day", async () => {
+    await renderColumn({
+      tasks: [
+        makeTask({ id: "due", title: "Due Tuesday" }),
+        makeTask({ id: "late", title: "Overdue essay", due_at: new Date(2030, 8, 10).toISOString() }),
+        makeTask({ id: "none", title: "Someday reading", due_at: null }),
+        makeTask({ id: "next", title: "Due Wednesday", due_at: new Date(2030, 8, 18, 9).toISOString() }),
+      ],
+    });
+
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("Due Tuesday");
+    expect(text).not.toContain("Overdue essay");
+    expect(text).not.toContain("Someday reading");
+    expect(text).not.toContain("Due Wednesday");
+  });
+
+  it("switches its list when another day is selected", async () => {
+    await renderColumn({
+      date: new Date(2030, 8, 18, 12),
+      tasks: [
+        makeTask({ id: "due", title: "Due Tuesday" }),
+        makeTask({ id: "next", title: "Due Wednesday", due_at: new Date(2030, 8, 18, 9).toISOString() }),
+      ],
+    });
+
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("Due Wednesday");
+    expect(text).not.toContain("Due Tuesday");
+  });
+
+  it('labels a non-today day "Due this day" and never "planned"', async () => {
+    await renderColumn({ tasks: [makeTask()] });
+
+    expect(byLabel("Due this day")).not.toBeNull();
+    expect((document.body.textContent ?? "").toLowerCase()).not.toContain("planned");
+  });
+
+  it('labels today "Due today"', async () => {
+    const now = new Date();
+    await renderColumn({ date: now, tasks: [makeTask({ due_at: now.toISOString() })] });
+
+    expect(byLabel("Due today")).not.toBeNull();
+  });
+
+  it("shows the empty state when only overdue or undated tasks exist", async () => {
+    await renderColumn({
+      tasks: [
+        makeTask({ id: "late", due_at: new Date(2030, 8, 10).toISOString() }),
+        makeTask({ id: "none", due_at: null }),
+      ],
+    });
+
+    expect(document.body.textContent ?? "").toContain("Nothing scheduled");
+  });
+
+  it("opens All tasks from the header control", async () => {
+    const interactions = await renderColumn();
+
+    const button = [...document.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === "All tasks"
+    );
+    await act(() => button?.click());
+
+    expect(interactions.allTasksOpens).toBe(1);
   });
 
   it("renders completed tasks with strikethrough and reduced opacity", async () => {
@@ -254,7 +313,7 @@ describe("AgendaColumn tasks section", () => {
       tasks: [makeTask({ id: "task-toggle" })],
     });
 
-    const checkbox = byLabel("Mark as done");
+    const checkbox = byLabel("Mark Finish lab report as done");
     expect(checkbox).not.toBeNull();
     await act(() => checkbox?.click());
 

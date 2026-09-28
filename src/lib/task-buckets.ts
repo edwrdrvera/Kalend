@@ -1,10 +1,8 @@
 import { addDays, endOfMonth, isSameDay, startOfDay } from "date-fns";
 import type { CalendarTask } from "@/lib/calendar-types";
 
-// The five due-date buckets the agenda's Tasks list groups into, relative to
-// "now" (the real current day, not the calendar's selected day). Tasks are a
-// persistent to-do list, so they are anchored to today while the Schedule above
-// stays day-specific.
+// The five due-date buckets the All tasks view groups into, relative to "now"
+// (the real current day, not the calendar's selected day).
 export type TaskBucketKey = "overdue" | "today" | "week" | "month" | "unscheduled";
 
 export interface TaskBucket {

@@ -10,7 +10,7 @@ ensureDOM();
 const STORAGE_KEY = "kalend.branchPanel";
 const SCHOOL: CalendarCategory = { id: "space-1", name: "School", color: "blue" };
 const SAVED = {
-  active: { branchId: "space-1:default", spaceId: "space-1" },
+  active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
 };
 
 describe("useSpacePanel", () => {
