@@ -19,7 +19,7 @@ describe("useSpacePanel", () => {
 
   it("keeps saved settings through StrictMode's double-run of mount effects", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
-    const { act, unmount } = renderHook(() => useSpacePanel([], [], () => {}), { strict: true });
+    const { act, unmount } = renderHook(() => useSpacePanel([], [], [], () => {}), { strict: true });
     await act(() => {});
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(SAVED);
     unmount();
@@ -29,7 +29,7 @@ describe("useSpacePanel", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
     const { result, act, unmount } = renderHook(
-      () => useSpacePanel([SCHOOL], [], dispatchSpaceFocus),
+      () => useSpacePanel([SCHOOL], [], [], dispatchSpaceFocus),
       { strict: true }
     );
     await act(() => {});
@@ -44,7 +44,7 @@ describe("useSpacePanel", () => {
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
     const other: CalendarCategory = { id: "space-2", name: "Work", color: "red" };
     const { result, act, unmount } = renderHook(() =>
-      useSpacePanel([other], [], dispatchSpaceFocus)
+      useSpacePanel([other], [], [], dispatchSpaceFocus)
     );
     await act(() => {});
     expect(result.current.activeBranch).toBeNull();
@@ -65,7 +65,7 @@ describe("useSpacePanel", () => {
   it("shows a task's details, and nothing once that task is deleted", async () => {
     const { result, act, unmount } = renderHook(() => {
       const [tasks, setTasks] = useState([TASK]);
-      return { ...useSpacePanel([], tasks, () => {}), setTasks };
+      return { ...useSpacePanel([], tasks, [], () => {}), setTasks };
     });
     await act(() => {});
     await act(() => result.current.openTask(TASK));
@@ -79,7 +79,7 @@ describe("useSpacePanel", () => {
   it("holds a Branch open request, and its Space focus, while the task editor is dirty", async () => {
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
     const { result, act, unmount } = renderHook(() =>
-      useSpacePanel([SCHOOL], [TASK], dispatchSpaceFocus)
+      useSpacePanel([SCHOOL], [TASK], [], dispatchSpaceFocus)
     );
     await act(() => {});
     await act(() => result.current.openTask(TASK));

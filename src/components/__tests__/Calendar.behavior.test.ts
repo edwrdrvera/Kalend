@@ -39,7 +39,12 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
   };
 }
 
-const EVENTS = [makeEvent("e1", "Lecture", 9), makeEvent("e2", "Lab", 13)];
+// Starts today and ends tomorrow, so the week and day views draw it in the all-day row.
+const RETREAT: CalendarEvent = {
+  ...makeEvent("e3", "Retreat", 9),
+  end_at: new Date(new Date(todayAt(9)).getTime() + 25 * 3600_000).toISOString(),
+};
+const EVENTS = [makeEvent("e1", "Lecture", 9), makeEvent("e2", "Lab", 13), RETREAT];
 
 const ESSAY: CalendarTask = {
   id: "t1",
@@ -149,34 +154,166 @@ async function rightClick(el: Element) {
   await settle();
 }
 
-const editor = () => document.querySelector("[aria-label='Edit event']");
+const eventDetails = () => document.querySelector("[aria-label='Event details']");
+const createPopover = () => document.querySelector("[role='dialog'][aria-label='Create event']");
+const titleField = () => eventDetails()!.querySelector<HTMLInputElement>("#event-inspector-title")!;
 const panelOpen = () => document.querySelector("[aria-label='Close panel']") !== null;
+/** Selects School in the rail, then opens its Branch from the agenda's Branch list. */
+async function openSchoolBranch() {
+  await click(document.querySelector("nav [aria-label='School']")!);
+  const row = [...document.querySelectorAll<HTMLElement>("button")].find(
+    (b) => b.textContent === "School" && b.parentElement?.previousElementSibling?.textContent === "Branches"
+  );
+  if (!row) throw new Error("no School branch row");
+  await click(row);
+}
+
+/** Right-clicks the first empty time slot and picks Create event. */
+async function createFromSlotMenu() {
+  await rightClick(document.querySelector("div[role='button']")!);
+  await click(buttonByText("Create event")!);
+}
+
+async function switchView(label: string) {
+  const btn = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent?.endsWith(label));
+  if (!btn) throw new Error(`no ${label} view button`);
+  await click(btn);
+}
+
 // Below 1200px the panel is a modal sheet behind a full-screen scrim button.
 const panelIsSheet = () => document.querySelector("button.inset-0[aria-label='Close panel']") !== null;
 
 describe("Calendar behavior", () => {
-  it("clicking an event opens its editor, and Cancel closes it", async () => {
-    await mount();
-    await click(eventBlock("Lecture"));
-    expect(editor()).not.toBeNull();
+  describe("event details", () => {
+    beforeEach(() => testWindow.happyDOM.setInnerWidth(1300));
 
-    await click(buttonByText("Cancel")!);
-    expect(editor()).toBeNull();
-  });
+    it("clicking an event opens its details in the right panel, not the popover", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      expect(eventDetails()).not.toBeNull();
+      expect(createPopover()).toBeNull();
+      expect(titleField().value).toBe("Lecture");
 
-  it("a failed save keeps the editor open with the server's error", async () => {
-    patchResponse = { status: 400, body: { success: false, error: "Title is required" } };
-    await mount();
-    await click(eventBlock("Lecture"));
-    const form = editor()!.querySelector("form")!;
-    await act(async () => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await click(document.querySelector("[aria-label='Close event details']")!);
+      expect(eventDetails()).toBeNull();
     });
-    await settle();
 
-    expect(calls.some((c) => c.method === "PATCH" && c.url === "/api/events/e1")).toBe(true);
-    expect(editor()).not.toBeNull();
-    expect(editor()!.textContent).toContain("Title is required");
+    const entryPoints: { name: string; open: () => Promise<void> }[] = [
+      { name: "the week grid", open: () => click(eventBlock("Lab")) },
+      { name: "the all-day row", open: () => click(eventBlock("Retreat")) },
+      {
+        name: "the day grid",
+        open: async () => {
+          await switchView("Day");
+          await click(eventBlock("Lab"));
+        },
+      },
+      {
+        name: "the month grid",
+        open: async () => {
+          await switchView("Month");
+          await click(eventBlock("Lab"));
+        },
+      },
+      {
+        name: "the day agenda",
+        open: () => click(document.querySelector("[aria-label='Edit event: Lab']")!),
+      },
+    ];
+
+    for (const { name, open } of entryPoints) {
+      it(`an event opened from ${name} shows its details and no popover`, async () => {
+        await mount();
+        await open();
+        expect(eventDetails()).not.toBeNull();
+        expect(createPopover()).toBeNull();
+      });
+    }
+
+    it("creating an event from the context menu still opens the create popover", async () => {
+      await mount();
+      await createFromSlotMenu();
+      expect(createPopover()).not.toBeNull();
+      expect(eventDetails()).toBeNull();
+    });
+
+    it("opening an event closes an open create popover", async () => {
+      await mount();
+      await createFromSlotMenu();
+      expect(createPopover()).not.toBeNull();
+
+      await click(eventBlock("Lecture"));
+      expect(createPopover()).toBeNull();
+      expect(eventDetails()).not.toBeNull();
+    });
+
+    it("opening another event never shows the previous event's draft", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(eventBlock("Lab"));
+      expect(titleField().value).toBe("Lab");
+    });
+
+    it("a saved title reaches the server and the calendar", async () => {
+      patchResponse = { status: 200, body: { success: true, data: { ...EVENTS[0], title: "Seminar" } } };
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(buttonByText("Save")!);
+
+      const patch = calls.find((c) => c.method === "PATCH");
+      expect(patch?.url).toBe("/api/events/e1");
+      expect((patch?.body as { title: string }).title).toBe("Seminar");
+      expect(eventBlock("Seminar")).toBeDefined();
+    });
+
+    it("a failed save keeps the typed title and offers a retry", async () => {
+      patchResponse = { status: 400, body: { success: false, error: "Title is required" } };
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(buttonByText("Save")!);
+
+      expect(calls.some((c) => c.method === "PATCH" && c.url === "/api/events/e1")).toBe(true);
+      expect(eventDetails()).not.toBeNull();
+      expect(titleField().value).toBe("Seminar");
+      expect(buttonByText("Retry")).toBeDefined();
+    });
+
+    it("deleting an event closes its details only after the server confirms", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/events/e1")).toBe(true);
+      expect(eventDetails()).toBeNull();
+      expect(() => eventBlock("Lecture")).toThrow();
+    });
+
+    it("a failed delete brings the event back with its details still open", async () => {
+      deleteStatus = 500;
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(eventDetails()).not.toBeNull();
+      expect(eventBlock("Lecture")).toBeDefined();
+    });
+
+    it("unsaved edits hold another selection until the user answers", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(eventBlock("Lab"));
+
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+      expect(titleField().value).toBe("Seminar");
+
+      await click(buttonByText("Discard")!);
+      expect(titleField().value).toBe("Lab");
+    });
   });
 
   it("shift-selecting two events offers a bulk delete that deletes both", async () => {
@@ -202,22 +339,9 @@ describe("Calendar behavior", () => {
     expect(eventBlock("Lecture").className).not.toContain("ring-2");
   });
 
-  it("the editor breadcrumb opens the Space panel and closes the editor", async () => {
-    await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
-
-    expect(editor()).toBeNull();
-    expect(panelOpen()).toBe(true);
-    expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
-    });
-  });
-
   it("a panel closed before a remount stays closed", async () => {
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     await click(document.querySelector("[aria-label='Close panel']")!);
     expect(panelOpen()).toBe(false);
 
@@ -227,8 +351,7 @@ describe("Calendar behavior", () => {
 
   it("after a remount the panel reopens on the branch that was open", async () => {
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     expect(panelOpen()).toBe(true);
 
     await remount();
@@ -263,8 +386,7 @@ describe("Calendar behavior", () => {
   it("the panel is pinned on wide windows and a sheet on narrow ones", async () => {
     testWindow.happyDOM.setInnerWidth(1300);
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     expect(panelOpen()).toBe(true);
     expect(panelIsSheet()).toBe(false);
 

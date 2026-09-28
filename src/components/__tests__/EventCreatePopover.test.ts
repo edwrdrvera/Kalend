@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarCategory } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { typeInto } from "./test-dom";
 
@@ -26,21 +26,6 @@ const anchorRect: DOMRect = {
   toJSON: () => ({}),
 };
 
-function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
-  return {
-    id: "event-1",
-    title: "Standup",
-    start_at: "2026-09-09T14:00:00.000Z",
-    end_at: "2026-09-09T15:00:00.000Z",
-    color: "blue",
-    color_overridden: false,
-    category_id: null,
-    location: null,
-    icon: null,
-    ...overrides,
-  };
-}
-
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
@@ -54,13 +39,11 @@ afterEach(async () => {
 });
 
 interface RenderOptions {
-  event?: CalendarEvent | null;
   initialSpaceId?: string | null;
   onSubmit?: (values: EventFormValues) => void;
 }
 
 async function renderPopover({
-  event = null,
   initialSpaceId = null,
   onSubmit = () => {},
 }: RenderOptions = {}) {
@@ -72,7 +55,6 @@ async function renderPopover({
       createElement(EventCreatePopover, {
         anchorRect,
         side: "right",
-        event,
         initialStart: new Date("2026-09-09T10:00:00"),
         initialSpaceId,
         categories,
@@ -110,12 +92,12 @@ async function submitForm() {
 
 describe("EventCreatePopover Space membership", () => {
   it("starts a new Event in the focused Space", async () => {
-    await renderPopover({ event: null, initialSpaceId: "space-1" });
+    await renderPopover({ initialSpaceId: "space-1" });
     expect(spaceTriggerLabel()).toBe("Space: Work");
   });
 
   it("starts a new Event unassigned when creating from All Spaces", async () => {
-    await renderPopover({ event: null, initialSpaceId: null });
+    await renderPopover({ initialSpaceId: null });
     expect(spaceTriggerLabel()).toBe("Space: No Space");
   });
 
@@ -129,7 +111,6 @@ describe("EventCreatePopover Space membership", () => {
         createElement(EventCreatePopover, {
           anchorRect,
           side: "right",
-          event: null,
           initialStart: new Date("2026-09-09T10:00:00"),
           initialSpaceId,
           categories,
@@ -155,29 +136,12 @@ describe("EventCreatePopover Space membership", () => {
     const values = submitted as EventFormValues | null;
     expect(values?.categoryId).toBe("space-1");
   });
-
-  it("initialises an edit from the Event's own Space, not the current focus", async () => {
-    await renderPopover({
-      event: makeEvent({ category_id: "space-2" }),
-      initialSpaceId: "space-1",
-    });
-    expect(spaceTriggerLabel()).toBe("Space: Personal");
-  });
-
-  it("keeps an unassigned Event unassigned even while a Space is focused", async () => {
-    await renderPopover({
-      event: makeEvent({ category_id: null }),
-      initialSpaceId: "space-1",
-    });
-    expect(spaceTriggerLabel()).toBe("Space: No Space");
-  });
 });
 
 describe("EventCreatePopover submitted values", () => {
   it("submits the focused Space id and no space_id field", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
-      event: null,
       initialSpaceId: "space-1",
       onSubmit: (values) => {
         submitted = values;
@@ -205,35 +169,9 @@ describe("EventCreatePopover submitted values", () => {
     ]);
   });
 
-  it("allows the user to clear an existing Event's Space", async () => {
-    let submitted: EventFormValues | null = null;
-    await renderPopover({
-      event: makeEvent({ category_id: "space-1" }),
-      initialSpaceId: "space-1",
-      onSubmit: (values) => {
-        submitted = values;
-      },
-    });
-    expect(spaceTriggerLabel()).toBe("Space: Work");
-
-    await openSpaceDropdown();
-    const noSpace = spaceOption("No Space");
-    expect(noSpace).toBeDefined();
-    await act(() => noSpace?.click());
-    expect(spaceTriggerLabel()).toBe("Space: No Space");
-
-    await submitForm();
-
-    const values = submitted as EventFormValues | null;
-    expect(values).not.toBeNull();
-    expect(values?.categoryId).toBeNull();
-    expect(Object.keys(values ?? {})).not.toContain("space_id");
-  });
-
   it("submits categoryId null when a new Event clears the focused Space", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
-      event: null,
       initialSpaceId: "space-1",
       onSubmit: (values) => {
         submitted = values;
@@ -256,51 +194,20 @@ describe("EventCreatePopover submitted values", () => {
     expect(values?.categoryId).toBeNull();
     expect(Object.keys(values ?? {})).not.toContain("space_id");
   });
-
-  it("moves an Event into a Space chosen from the dropdown", async () => {
-    let submitted: EventFormValues | null = null;
-    await renderPopover({
-      event: makeEvent({ category_id: null }),
-      initialSpaceId: null,
-      onSubmit: (values) => {
-        submitted = values;
-      },
-    });
-
-    await openSpaceDropdown();
-    await act(() => spaceOption("Personal")?.click());
-    expect(spaceTriggerLabel()).toBe("Space: Personal");
-
-    await submitForm();
-
-    const values = submitted as EventFormValues | null;
-    expect(values?.categoryId).toBe("space-2");
-    // Joining a Space inherits its colour; it is not a custom colour choice.
-    expect(values?.colorOverridden).toBe(false);
-  });
 });
 
 describe("EventCreatePopover location and icon", () => {
   it("starts a new Event with empty location and icon fields", async () => {
-    await renderPopover({ event: null });
+    await renderPopover();
     const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
     const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
     expect(locationInput?.value).toBe("");
     expect(iconInput?.value).toBe("");
   });
 
-  it("initialises the fields from an existing Event", async () => {
-    await renderPopover({ event: makeEvent({ location: "Room 204", icon: "🧪" }) });
-    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
-    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
-    expect(locationInput?.value).toBe("Room 204");
-    expect(iconInput?.value).toBe("🧪");
-  });
-
   it("submits the typed location and icon", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
-      event: null,
       onSubmit: (values) => {
         submitted = values;
       },
@@ -323,7 +230,6 @@ describe("EventCreatePopover location and icon", () => {
   it("submits null for location and icon when left blank", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
-      event: null,
       onSubmit: (values) => {
         submitted = values;
       },

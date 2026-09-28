@@ -2,28 +2,26 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronRight, Clock, MapPin, Trash2 } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import { initialEventColor } from "@/lib/event-color-state";
 import type { EventFormValues } from "@/lib/event-form";
 import {
-  draftFromEvent,
   eventDraftValues,
   formatTimeRangeSummary,
+  MAX_ICON_LENGTH,
+  MAX_LOCATION_LENGTH,
   toDateTimeLocal,
   type EventDraft,
 } from "@/lib/event-draft";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarCategory } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
-/** Mirrors the API's field limits (`src/app/api/events/route.ts`). */
-const MAX_LOCATION_LENGTH = 500;
-const MAX_ICON_LENGTH = 10;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 /** Used for vertical centering; approximate — exact height varies with content. */
@@ -36,8 +34,6 @@ interface EventCreatePopoverProps {
   anchorRect: DOMRect;
   /** Which side of the anchor to open on, pre-computed by the caller. */
   side: "left" | "right";
-  /** Pre-populates the form when editing an existing event. */
-  event?: CalendarEvent | null;
   /** Pre-populates start time when creating from a clicked day or time slot. */
   initialStart?: Date;
   /** Pre-populates end time when creating from a dragged time range. */
@@ -45,10 +41,7 @@ interface EventCreatePopoverProps {
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
   categories: CalendarCategory[];
-  /** Path breadcrumb for an event that belongs to a Space; opens its panel. */
-  breadcrumb?: { label: string; onOpen: () => void } | null;
   onSubmit: (values: EventFormValues) => void;
-  onDelete?: () => void;
   onClose: () => void;
   submitting?: boolean;
   error?: string | null;
@@ -60,21 +53,16 @@ interface EventCreatePopoverProps {
 export default function EventCreatePopover({
   anchorRect,
   side,
-  event,
   initialStart,
   initialEnd,
   initialSpaceId = null,
   categories,
-  breadcrumb = null,
   onSubmit,
-  onDelete,
   onClose,
   submitting = false,
   error = null,
 }: EventCreatePopoverProps) {
-  const isEditing = Boolean(event);
   const [draft, setDraft] = useState<EventDraft>(() => {
-    if (event) return draftFromEvent(event);
     const start = initialStart ?? new Date();
     return {
       title: "",
@@ -150,7 +138,7 @@ export default function EventCreatePopover({
       {/* Fixed, compact editor that stays visually subordinate to the calendar. */}
       <div
         role="dialog"
-        aria-label={isEditing ? "Edit event" : "Create event"}
+        aria-label="Create event"
         style={{
           position: "fixed",
           top,
@@ -186,18 +174,6 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 p-3">
-          {/* Breadcrumb into the Space Panel for this event's branch */}
-          {breadcrumb && (
-            <button
-              type="button"
-              onClick={breadcrumb.onOpen}
-              className="-mx-1 -mb-1 flex items-center gap-1 self-start rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="truncate">{breadcrumb.label}</span>
-              <ChevronRight className="size-3 shrink-0" />
-            </button>
-          )}
-
           {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="new-event-icon" className="sr-only">
@@ -211,7 +187,7 @@ export default function EventCreatePopover({
               id="new-event-title"
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              placeholder={isEditing ? "Event title" : "New event"}
+              placeholder="New event"
               required
               autoFocus
               className={cn(APP_INPUT_CLS, "w-full font-semibold")}
@@ -282,18 +258,6 @@ export default function EventCreatePopover({
           )}
 
           <div className="flex items-center justify-end gap-1.5 border-t border-border pt-2.5">
-            {isEditing && onDelete && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onDelete}
-                aria-label="Delete event"
-                className="mr-auto rounded-sm px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            )}
             <Button
               type="button"
               variant="ghost"
@@ -304,7 +268,7 @@ export default function EventCreatePopover({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting} size="sm" className="rounded-sm px-3">
-              {submitting ? (isEditing ? "Saving…" : "Creating…") : isEditing ? "Save changes" : "Create event"}
+              {submitting ? "Creating…" : "Create event"}
             </Button>
           </div>
         </form>

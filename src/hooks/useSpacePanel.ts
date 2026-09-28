@@ -7,7 +7,7 @@ import {
   loadBranchPanelState,
   saveBranchPanelState,
 } from "@/lib/branch-panel-state";
-import type { CalendarTask, CalendarCategory } from "@/lib/calendar-types";
+import type { CalendarEvent, CalendarTask, CalendarCategory } from "@/lib/calendar-types";
 import type { SpaceFocusAction } from "@/lib/space-focus";
 
 type PanelMode = "pinned" | "sheet" | "fullscreen";
@@ -15,6 +15,7 @@ type PanelMode = "pinned" | "sheet" | "fullscreen";
 export function useSpacePanel(
   categories: CalendarCategory[],
   tasks: CalendarTask[],
+  events: CalendarEvent[],
   dispatchSpaceFocus: Dispatch<SpaceFocusAction>
 ) {
   // Read storage in the initializer, not a mount effect: StrictMode's second
@@ -53,6 +54,11 @@ export function useSpacePanel(
     // null when the selected task was deleted, so the panel renders nothing.
     activeTask:
       selection?.kind === "task" ? (tasks.find((t) => t.id === selection.taskId) ?? null) : null,
+    // null when the selected event was deleted, so the panel renders nothing.
+    activeEvent:
+      selection?.kind === "event" ? (events.find((e) => e.id === selection.eventId) ?? null) : null,
+    /** Where Back leads, when the open item came from an overview. */
+    backTarget: selection?.kind === "task" || selection?.kind === "event" ? selection.from : null,
     navigationPending: branchPanel.pending !== null,
     panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
     // The Space focus follows through the activeSpaceId effect once the Branch
@@ -61,6 +67,8 @@ export function useSpacePanel(
       dispatch({ type: "openBranch", branchId: branch.id, spaceId: branch.spaceId }),
     openAllTasks: () => dispatch({ type: "openAllTasks" }),
     openTask: (task: CalendarTask) => dispatch({ type: "openTask", taskId: task.id }),
+    openEvent: (event: CalendarEvent) => dispatch({ type: "openEvent", eventId: event.id }),
+    back: () => dispatch({ type: "back" }),
     setEditorDirty: (dirty: boolean) => dispatch({ type: "setDirty", dirty }),
     proceedNavigation: () => dispatch({ type: "proceed" }),
     cancelNavigation: () => dispatch({ type: "stay" }),
