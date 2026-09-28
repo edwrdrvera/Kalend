@@ -20,6 +20,7 @@ interface SpacePanelProps {
   modal: boolean;
   onClose: () => void;
   onToggleComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
   /** Creates a task in this branch's Space (title only; date/Space implied). */
   onCreateTask: (title: string) => Promise<void>;
   /** Opens the Space editor (rename / recolor / delete) for this branch's
@@ -33,6 +34,7 @@ export default function SpacePanel({
   modal,
   onClose,
   onToggleComplete,
+  onOpenTask,
   onCreateTask,
   onOpenSettings,
 }: SpacePanelProps) {
@@ -74,6 +76,7 @@ export default function SpacePanel({
           <PanelTasksSection
             tasks={tasks}
             onToggleComplete={onToggleComplete}
+            onOpenTask={onOpenTask}
             onAdd={() => setComposerOpen(true)}
           />
           {composerOpen && (

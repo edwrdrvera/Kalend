@@ -21,7 +21,8 @@ interface DayGridProps {
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onCreateEventRange?: (start: Date, end: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  onTaskClick: (task: CalendarTask) => void;
+  onTaskOpen: (task: CalendarTask) => void;
+  onTaskToggle: (task: CalendarTask) => void;
   onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
   onEventShiftClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
@@ -82,7 +83,8 @@ export default function DayGrid({
   onEventContextMenu,
   selectedEventIds,
   onEventClick,
-  onTaskClick,
+  onTaskOpen,
+  onTaskToggle,
   onEventMove,
   onEventResize,
   pendingRange,
@@ -119,7 +121,8 @@ export default function DayGrid({
             tasks={tasks}
             categories={categories}
             onEventClick={onEventClick}
-            onTaskClick={onTaskClick}
+            onTaskOpen={onTaskOpen}
+            onTaskToggle={onTaskToggle}
           />
         </div>
         <TimeGrid

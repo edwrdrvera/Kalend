@@ -10,6 +10,7 @@ import DayGrid from "./DayGrid";
 import EventCreatePopover from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
 import AllTasksPanel from "./AllTasksPanel";
+import TaskInspector from "./TaskInspector";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
-import type { CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { branchesForSpaces } from "@/lib/branch-stub";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
@@ -209,8 +210,16 @@ export default function Calendar() {
 
   // All branches, for the agenda list.
   const branches = branchesForSpaces(categories.data);
-  const { activeBranch } = panel;
-  const rightPanelOpen = activeBranch !== null || panel.allTasksOpen;
+  const { activeBranch, activeTask } = panel;
+  const rightPanelOpen = activeBranch !== null || panel.allTasksOpen || activeTask !== null;
+
+  // Close only after the server confirms, so a failed delete brings the task
+  // back with its details still open.
+  const handleDeleteTask = async (task: CalendarTask) => {
+    if (!(await tasks.deleteTask(task))) return;
+    panel.setEditorDirty(false);
+    panel.close();
+  };
 
   const renderRightPanel = (modal: boolean) => {
     if (activeBranch) {
@@ -221,6 +230,7 @@ export default function Calendar() {
           modal={modal}
           onClose={panel.close}
           onToggleComplete={tasks.toggleComplete}
+          onOpenTask={panel.openTask}
           onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
           onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
         />
@@ -236,6 +246,25 @@ export default function Calendar() {
           onClose={panel.close}
           onCreateTask={tasks.createTask}
           onToggleTaskComplete={tasks.toggleComplete}
+          onOpenTask={panel.openTask}
+        />
+      );
+    }
+    if (activeTask) {
+      return (
+        <TaskInspector
+          key={activeTask.id}
+          task={activeTask}
+          categories={categories.data}
+          modal={modal}
+          onClose={panel.close}
+          onSave={tasks.updateTask}
+          onToggleComplete={tasks.toggleComplete}
+          onDelete={handleDeleteTask}
+          onDirtyChange={panel.setEditorDirty}
+          navigationPending={panel.navigationPending}
+          onProceed={panel.proceedNavigation}
+          onStay={panel.cancelNavigation}
         />
       );
     }
@@ -260,6 +289,7 @@ export default function Calendar() {
           tasksLoading={tasks.loading}
           eventsLoading={events.loading}
           onToggleTaskComplete={tasks.toggleComplete}
+          onOpenTask={panel.openTask}
           onOpenAllTasks={panel.openAllTasks}
           onEventClick={handleEventClick}
           categories={categories.data}
@@ -313,7 +343,6 @@ export default function Calendar() {
                 onViewDateChange={setViewDate}
                 onCreateEvent={editor.openCreate}
                 onEventClick={handleEventClick}
-                onTaskClick={tasks.toggleComplete}
                 onDayContextMenu={handleDayContextMenu}
                 onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}
@@ -334,7 +363,8 @@ export default function Calendar() {
                 onCreateEvent={editor.openCreate}
                 onCreateEventRange={editor.openCreateRange}
                 onEventClick={handleEventClick}
-                onTaskClick={tasks.toggleComplete}
+                onTaskOpen={panel.openTask}
+                onTaskToggle={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
                 onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}
@@ -358,7 +388,8 @@ export default function Calendar() {
                 onCreateEvent={editor.openCreate}
                 onCreateEventRange={editor.openCreateRange}
                 onEventClick={handleEventClick}
-                onTaskClick={tasks.toggleComplete}
+                onTaskOpen={panel.openTask}
+                onTaskToggle={tasks.toggleComplete}
                 onSlotContextMenu={handleSlotContextMenu}
                 onEventShiftClick={selection.toggle}
                 onEventContextMenu={handleEventContextMenu}

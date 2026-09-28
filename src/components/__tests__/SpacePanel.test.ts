@@ -43,6 +43,7 @@ async function render(branch: Branch, tasks: CalendarTask[] = []) {
           handlers.closes++;
         },
         onToggleComplete: () => {},
+        onOpenTask: () => {},
         onCreateTask: async (title: string) => {
           handlers.created.push(title);
         },

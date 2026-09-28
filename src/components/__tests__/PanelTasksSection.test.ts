@@ -36,11 +36,12 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
 
 interface Interactions {
   toggled: string[];
+  opened: string[];
   added: boolean;
 }
 
 async function render(tasks: CalendarTask[]) {
-  const interactions: Interactions = { toggled: [], added: false };
+  const interactions: Interactions = { toggled: [], opened: [], added: false };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -50,6 +51,7 @@ async function render(tasks: CalendarTask[]) {
       createElement(PanelTasksSection, {
         tasks,
         onToggleComplete: (task: CalendarTask) => interactions.toggled.push(task.id),
+        onOpenTask: (task: CalendarTask) => interactions.opened.push(task.id),
         onAdd: () => {
           interactions.added = true;
         },
@@ -94,15 +96,25 @@ describe("PanelTasksSection rows", () => {
     const interactions = await render([makeTask({ id: "a" })]);
 
     document
-      .querySelector('[aria-label="Mark as done"]')
+      .querySelector('[aria-label="Mark Finish lab report as done"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(interactions.toggled).toEqual(["a"]);
+  });
+
+  it("opens the task from its title without completing it", async () => {
+    const interactions = await render([makeTask({ id: "a" })]);
+
+    document
+      .querySelector('[aria-label="Open task Finish lab report"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(interactions.opened).toEqual(["a"]);
+    expect(interactions.toggled).toEqual([]);
   });
 
   it("shows a checked, aria-pressed checkbox for a completed task", async () => {
     await render([makeTask({ id: "a", completed: true })]);
 
-    const checkbox = document.querySelector('[aria-label="Mark as not done"]');
+    const checkbox = document.querySelector('[aria-label="Mark Finish lab report as not done"]');
     expect(checkbox?.getAttribute("aria-pressed")).toBe("true");
   });
 });

@@ -21,6 +21,7 @@ interface AllTasksPanelProps {
   onClose: () => void;
   onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
 }
 
 // ── Collapse persistence ─────────────────────────────────────────────────
@@ -220,6 +221,7 @@ export default function AllTasksPanel({
   onClose,
   onCreateTask,
   onToggleTaskComplete,
+  onOpenTask,
 }: AllTasksPanelProps) {
   // Calendar renders only after mount, so reading storage here never runs on the server.
   const [collapsed, setCollapsed] = useState<Set<TaskBucketKey>>(() => readCollapsed());
@@ -246,6 +248,7 @@ export default function AllTasksPanel({
       task={task}
       categories={categories}
       onToggleTaskComplete={onToggleTaskComplete}
+      onOpenTask={onOpenTask}
     />
   );
 

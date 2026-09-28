@@ -32,7 +32,6 @@ interface MonthGridProps {
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  onTaskClick: (task: CalendarTask) => void;
   onDayContextMenu?: (day: Date, x: number, y: number) => void;
   onEventShiftClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
@@ -149,7 +148,6 @@ function DayCell({
   onDateSelect,
   onCreateEvent,
   onEventClick,
-  onTaskClick,
   onDayContextMenu,
   onEventShiftClick,
   onEventContextMenu,
@@ -164,7 +162,6 @@ function DayCell({
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  onTaskClick: (task: CalendarTask) => void;
   onDayContextMenu?: (day: Date, x: number, y: number) => void;
   onEventShiftClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
@@ -274,7 +271,6 @@ export default function MonthGrid({
   onViewDateChange,
   onCreateEvent,
   onEventClick,
-  onTaskClick,
   onDayContextMenu,
   onEventShiftClick,
   onEventContextMenu,
@@ -309,7 +305,6 @@ export default function MonthGrid({
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}
-            onTaskClick={onTaskClick}
             onDayContextMenu={onDayContextMenu}
             onEventShiftClick={onEventShiftClick}
             onEventContextMenu={onEventContextMenu}

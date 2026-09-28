@@ -18,7 +18,10 @@ export interface UseTasksReturn {
   retry: () => void;
   createTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   toggleComplete: (task: CalendarTask) => Promise<void>;
-  deleteTask: (task: CalendarTask) => Promise<void>;
+  /** Resolves false on failure without raising the shared error toast, so
+   *  the caller can keep its draft and show the error beside its own Save. */
+  updateTask: (task: CalendarTask, patch: TaskPatchRequest) => Promise<boolean>;
+  deleteTask: (task: CalendarTask) => Promise<boolean>;
   reconcileSpaceRemoval: (detachedTasks: CalendarTask[], categoryId: string) => void;
 }
 
@@ -152,8 +155,33 @@ export function useTasks(): UseTasksReturn {
     }
   };
 
+  // Optimistic: applies the patch immediately, restores the previous row on
+  // failure.
+  const updateTask = async (
+    task: CalendarTask,
+    patch: TaskPatchRequest
+  ): Promise<boolean> => {
+    setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
+
+    try {
+      const json = await mutateResource<CalendarTask>(
+        `/api/tasks/${task.id}`,
+        "PATCH",
+        patch,
+        "Failed to update task"
+      );
+      if (!json.data) throw new Error("Failed to update task");
+      const savedTask = json.data;
+      setTasks((prev) => prev.map((t) => (t.id === savedTask.id ? savedTask : t)));
+      return true;
+    } catch {
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
+      return false;
+    }
+  };
+
   // Optimistic: removes from state immediately, rolls back on failure.
-  const deleteTask = async (task: CalendarTask): Promise<void> => {
+  const deleteTask = async (task: CalendarTask): Promise<boolean> => {
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
 
     try {
@@ -163,9 +191,11 @@ export function useTasks(): UseTasksReturn {
         undefined,
         "Failed to delete task"
       );
+      return true;
     } catch (err) {
       setTasks((prev) => [...prev, task]);
       setError(err instanceof Error ? err.message : "Failed to delete task");
+      return false;
     }
   };
 
@@ -186,6 +216,7 @@ export function useTasks(): UseTasksReturn {
     retry,
     createTask,
     toggleComplete,
+    updateTask,
     deleteTask,
     reconcileSpaceRemoval,
   };

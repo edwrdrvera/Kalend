@@ -1,37 +1,79 @@
 export type PanelSelection =
   | { kind: "branch"; branchId: string; spaceId: string }
-  | { kind: "allTasks" };
+  | { kind: "allTasks" }
+  | { kind: "task"; taskId: string };
+
+/** A request that would replace or close the current selection. */
+export type PanelNavigation =
+  | { type: "openBranch"; branchId: string; spaceId: string }
+  | { type: "openAllTasks" }
+  | { type: "openTask"; taskId: string }
+  | { type: "close" }
+  | { type: "spaceChanged"; spaceId: string | null };
 
 export interface BranchPanelState {
   active: PanelSelection | null;
+  /** True while the open editor holds unsaved edits. */
+  dirty: boolean;
+  /** A navigation held back by unsaved edits until the user saves, discards, or stays. */
+  pending: PanelNavigation | null;
 }
 
 export const initialBranchPanelState: BranchPanelState = {
   active: null,
+  dirty: false,
+  pending: null,
 };
 
-type BranchPanelAction =
-  | { type: "openBranch"; branchId: string; spaceId: string }
-  | { type: "openAllTasks" }
-  | { type: "close" }
-  | { type: "spaceChanged"; spaceId: string | null };
+export type BranchPanelAction =
+  | PanelNavigation
+  | { type: "setDirty"; dirty: boolean }
+  /** Carry out the pending navigation: the edits were saved or discarded. */
+  | { type: "proceed" }
+  /** Drop the pending navigation and keep editing. */
+  | { type: "stay" };
+
+// Returns `active` itself when the navigation changes nothing, which is how
+// the reducer tells a no-op apart from a navigation the dirty guard must hold.
+function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSelection | null {
+  switch (nav.type) {
+    case "openBranch":
+      return active?.kind === "branch" && active.branchId === nav.branchId
+        ? active
+        : { kind: "branch", branchId: nav.branchId, spaceId: nav.spaceId };
+    case "openAllTasks":
+      return active?.kind === "allTasks" ? active : { kind: "allTasks" };
+    case "openTask":
+      return active?.kind === "task" && active.taskId === nav.taskId
+        ? active
+        : { kind: "task", taskId: nav.taskId };
+    case "close":
+      return null;
+    case "spaceChanged":
+      // All tasks and a task's details span every Space, so changing the
+      // Space filter leaves them open. A Branch belongs to one Space.
+      return active?.kind === "branch" ? null : active;
+  }
+}
 
 export function branchPanelReducer(
   state: BranchPanelState,
   action: BranchPanelAction
 ): BranchPanelState {
   switch (action.type) {
-    case "openBranch":
-      return {
-        active: { kind: "branch", branchId: action.branchId, spaceId: action.spaceId },
-      };
-    case "openAllTasks":
-      return { active: { kind: "allTasks" } };
-    case "close":
-      return { active: null };
-    case "spaceChanged":
-      // All tasks spans every Space, so changing the Space filter leaves it open.
-      return state.active?.kind === "allTasks" ? state : { active: null };
+    case "setDirty":
+      return state.dirty === action.dirty ? state : { ...state, dirty: action.dirty };
+    case "stay":
+      return state.pending ? { ...state, pending: null } : state;
+    case "proceed":
+      if (!state.pending) return state;
+      return { active: navigate(state.active, state.pending), dirty: false, pending: null };
+    default: {
+      const next = navigate(state.active, action);
+      if (next === state.active) return state;
+      if (state.dirty) return { ...state, pending: action };
+      return { active: next, dirty: false, pending: null };
+    }
   }
 }
 
@@ -67,14 +109,14 @@ export function loadBranchPanelState(): BranchPanelState {
       return initialBranchPanelState;
     }
     const { branchId, spaceId } = parsed.active;
-    return { active: { kind: "branch", branchId, spaceId } };
+    return { ...initialBranchPanelState, active: { kind: "branch", branchId, spaceId } };
   } catch {
     return initialBranchPanelState;
   }
 }
 
 export function saveBranchPanelState(state: BranchPanelState): void {
-  const stored: BranchPanelState = {
+  const stored = {
     active: state.active?.kind === "branch" ? state.active : null,
   };
   try {

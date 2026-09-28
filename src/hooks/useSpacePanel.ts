@@ -50,12 +50,20 @@ export function useSpacePanel(
     activeBranch,
     activeBranchId: selection?.kind === "branch" ? selection.branchId : null,
     allTasksOpen: selection?.kind === "allTasks",
+    // null when the selected task was deleted, so the panel renders nothing.
+    activeTask:
+      selection?.kind === "task" ? (tasks.find((t) => t.id === selection.taskId) ?? null) : null,
+    navigationPending: branchPanel.pending !== null,
     panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
-    openBranch: (branch: Branch) => {
-      dispatchSpaceFocus({ type: "select", spaceId: branch.spaceId });
-      dispatch({ type: "openBranch", branchId: branch.id, spaceId: branch.spaceId });
-    },
+    // The Space focus follows through the activeSpaceId effect once the Branch
+    // actually opens, so a navigation held by unsaved edits changes nothing yet.
+    openBranch: (branch: Branch) =>
+      dispatch({ type: "openBranch", branchId: branch.id, spaceId: branch.spaceId }),
     openAllTasks: () => dispatch({ type: "openAllTasks" }),
+    openTask: (task: CalendarTask) => dispatch({ type: "openTask", taskId: task.id }),
+    setEditorDirty: (dirty: boolean) => dispatch({ type: "setDirty", dirty }),
+    proceedNavigation: () => dispatch({ type: "proceed" }),
+    cancelNavigation: () => dispatch({ type: "stay" }),
     close: () => dispatch({ type: "close" }),
     selectSpace: (spaceId: string | null) => {
       dispatchSpaceFocus({ type: "select", spaceId });

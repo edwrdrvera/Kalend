@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { ensureDOM, renderHook } from "@/test-utils/render-hook";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
-import type { CalendarCategory } from "@/lib/calendar-types";
-import type { Dispatch } from "react";
+import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
+import { useState, type Dispatch } from "react";
+import { branchesForSpaces } from "@/lib/branch-stub";
 import type { SpaceFocusAction } from "@/lib/space-focus";
 
 ensureDOM();
@@ -48,6 +49,49 @@ describe("useSpacePanel", () => {
     await act(() => {});
     expect(result.current.activeBranch).toBeNull();
     expect(dispatchSpaceFocus).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  const TASK: CalendarTask = {
+    id: "task-1",
+    title: "Essay",
+    due_at: null,
+    completed: false,
+    color: null,
+    color_overridden: false,
+    category_id: null,
+  };
+
+  it("shows a task's details, and nothing once that task is deleted", async () => {
+    const { result, act, unmount } = renderHook(() => {
+      const [tasks, setTasks] = useState([TASK]);
+      return { ...useSpacePanel([], tasks, () => {}), setTasks };
+    });
+    await act(() => {});
+    await act(() => result.current.openTask(TASK));
+    expect(result.current.activeTask).toEqual(TASK);
+
+    await act(() => result.current.setTasks([]));
+    expect(result.current.activeTask).toBeNull();
+    unmount();
+  });
+
+  it("holds a Branch open request, and its Space focus, while the task editor is dirty", async () => {
+    const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
+    const { result, act, unmount } = renderHook(() =>
+      useSpacePanel([SCHOOL], [TASK], dispatchSpaceFocus)
+    );
+    await act(() => {});
+    await act(() => result.current.openTask(TASK));
+    await act(() => result.current.setEditorDirty(true));
+    await act(() => result.current.openBranch(branchesForSpaces([SCHOOL])[0]));
+    expect(result.current.navigationPending).toBe(true);
+    expect(result.current.activeTask).toEqual(TASK);
+    expect(dispatchSpaceFocus).not.toHaveBeenCalled();
+
+    await act(() => result.current.proceedNavigation());
+    expect(result.current.activeBranchId).toBe("space-1:default");
+    expect(dispatchSpaceFocus).toHaveBeenCalledWith({ type: "select", spaceId: "space-1" });
     unmount();
   });
 });

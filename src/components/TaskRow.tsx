@@ -13,9 +13,15 @@ interface TaskRowProps {
   task: CalendarTask;
   categories: CalendarCategory[];
   onToggleTaskComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
 }
 
-export default function TaskRow({ task, categories, onToggleTaskComplete }: TaskRowProps) {
+export default function TaskRow({
+  task,
+  categories,
+  onToggleTaskComplete,
+  onOpenTask,
+}: TaskRowProps) {
   const displayColor = resolveDisplayColor(
     task.color,
     task.category_id,
@@ -50,14 +56,17 @@ export default function TaskRow({ task, categories, onToggleTaskComplete }: Task
       <span className="flex h-[18px] shrink-0 items-center">
         <span aria-hidden className={cn("size-1.5 translate-y-[1px] rounded-full", dotClass)} />
       </span>
-      <span
+      <button
+        type="button"
+        onClick={() => onOpenTask(task)}
+        aria-label={`Open task ${task.title}`}
         className={cn(
-          "min-w-0 flex-1 text-[12.5px] leading-[18px]",
+          "min-w-0 flex-1 rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           task.completed ? "line-through opacity-50" : "text-foreground"
         )}
       >
         {task.title}
-      </span>
+      </button>
     </div>
   );
 }
