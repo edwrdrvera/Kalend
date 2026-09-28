@@ -230,6 +230,14 @@ describe("Calendar behavior", () => {
       });
     }
 
+    it("an event's right-click menu opens its details", async () => {
+      await mount();
+      await rightClick(eventBlock("Lab"));
+      await click(buttonByText("Open details")!);
+      expect(titleField().value).toBe("Lab");
+      expect(isAbsent(createPopover())).toBe(true);
+    });
+
     it("creating an event from the context menu still opens the create popover", async () => {
       await mount();
       await createFromSlotMenu();

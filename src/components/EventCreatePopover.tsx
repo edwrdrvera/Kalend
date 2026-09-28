@@ -7,12 +7,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import { initialEventColor } from "@/lib/event-color-state";
-import type { EventFormValues } from "@/lib/event-form";
+import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   eventDraftValues,
   formatTimeRangeSummary,
-  MAX_ICON_LENGTH,
-  MAX_LOCATION_LENGTH,
   toDateTimeLocal,
   type EventDraft,
 } from "@/lib/event-draft";

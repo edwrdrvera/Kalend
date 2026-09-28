@@ -3,9 +3,6 @@ import type { CalendarEvent } from "./calendar-types";
 import { initialEventColor, type EventColorState } from "./event-color-state";
 import type { EventFormValues } from "./event-form";
 
-export const MAX_LOCATION_LENGTH = 500;
-export const MAX_ICON_LENGTH = 10;
-
 /** The editable fields of an event, as the create popover and the inspector hold them. */
 export interface EventDraft {
   title: string;

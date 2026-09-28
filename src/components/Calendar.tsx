@@ -2,7 +2,7 @@
 
 import { useState, useRef, useReducer, useSyncExternalStore } from "react";
 import { startOfMonth, setHours, isSameDay } from "date-fns";
-import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
+import { CalendarPlus, ListTodo, PanelRight, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
@@ -197,6 +197,11 @@ export default function Calendar() {
       x,
       y,
       items: [
+        {
+          label: "Open details",
+          icon: <PanelRight className="size-3.5" />,
+          onSelect: () => handleEventClick(event),
+        },
         {
           label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
           destructive: true,

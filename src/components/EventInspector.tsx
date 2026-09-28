@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
-import type { EventFormValues } from "@/lib/event-form";
+import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   draftFromEvent,
   rebaseEventDraft,
   eventDraftValues,
   isEventDraftDirty,
-  MAX_ICON_LENGTH,
-  MAX_LOCATION_LENGTH,
   type EventDraft,
 } from "@/lib/event-draft";
 import { useInspectorSave } from "@/hooks/useInspectorSave";

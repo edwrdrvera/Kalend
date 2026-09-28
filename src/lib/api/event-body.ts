@@ -1,6 +1,6 @@
 import * as field from "@/lib/api/parse-fields";
 import { parsed, rejected, type ParseResult } from "@/lib/api/parse-fields";
-import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH } from "@/lib/event-draft";
+import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH } from "@/lib/event-form";
 
 
 const eventRules = {

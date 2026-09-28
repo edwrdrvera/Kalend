@@ -1,5 +1,8 @@
 import type { EventColor } from "./event-colors";
 
+export const MAX_LOCATION_LENGTH = 500;
+export const MAX_ICON_LENGTH = 10;
+
 export interface EventFormValues {
   title: string;
   startAt: string;
