@@ -4,6 +4,7 @@ import {
   allowedTools,
   countPostedReviews,
   disallowedTools,
+  linkedIssueNumbers,
   maxReviewsPerPr,
   parseArgs,
   reviewPrompt,
@@ -75,5 +76,19 @@ describe("countPostedReviews", () => {
 
   test("allows at most two reviews per PR", () => {
     expect(maxReviewsPerPr).toBe(2);
+  });
+});
+
+describe("linkedIssueNumbers", () => {
+  test("uses GitHub's closing references when it has them", () => {
+    expect(linkedIssueNumbers([{ number: 5 }], "Closes #9")).toEqual([5]);
+  });
+
+  test("reads closing keywords from the body when GitHub has none, as on a PR into a non-default branch", () => {
+    expect(linkedIssueNumbers([], "Closes #222\n\nFixes #7, refs #218")).toEqual([222, 7]);
+  });
+
+  test("finds nothing when the body has no closing keyword", () => {
+    expect(linkedIssueNumbers([], "Refs #218")).toEqual([]);
   });
 });

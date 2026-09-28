@@ -18,6 +18,13 @@ export function countPostedReviews(commentBodies: readonly string[]): number {
 
 export type LinkedIssue = { number: number; title: string; body: string | null };
 
+// GitHub only fills closingIssuesReferences for PRs into the default branch,
+// so a PR stacked on another branch falls back to the keywords in its body.
+export function linkedIssueNumbers(closingRefs: readonly { number: number }[], body: string): number[] {
+  if (closingRefs.length > 0) return closingRefs.map(({ number }) => number);
+  return [...body.matchAll(/\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?) #(\d+)/gi)].map((m) => Number(m[1]));
+}
+
 // The reviewer may read, search, run tests, and write proof tests inside its
 // throwaway worktree. It may not commit, push, comment, or merge.
 export const allowedTools = [
@@ -102,9 +109,10 @@ async function main() {
   const { pr, post, force } = parseArgs(process.argv.slice(2));
 
   const view = JSON.parse(
-    run(["gh", "pr", "view", pr, "--json", "url,baseRefName,closingIssuesReferences,comments,files"]),
+    run(["gh", "pr", "view", pr, "--json", "url,body,baseRefName,closingIssuesReferences,comments,files"]),
   ) as {
     url: string;
+    body: string;
     baseRefName: string;
     closingIssuesReferences: { number: number }[];
     comments: { body: string }[];
@@ -125,7 +133,7 @@ async function main() {
     );
   }
 
-  const issues = view.closingIssuesReferences.map(({ number }) => {
+  const issues = linkedIssueNumbers(view.closingIssuesReferences, view.body).map((number) => {
     const issue = JSON.parse(run(["gh", "issue", "view", String(number), "--json", "title,body"]));
     return { number, title: issue.title, body: issue.body } as LinkedIssue;
   });
