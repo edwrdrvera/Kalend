@@ -13,16 +13,22 @@ import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 interface TaskChipProps {
   task: CalendarTask;
   categories: CalendarCategory[];
-  onClick?: (task: CalendarTask) => void;
+  onOpen: (task: CalendarTask) => void;
+  onToggleComplete: (task: CalendarTask) => void;
   className?: string;
 }
 
 /** A due-date marker on the calendar grid, deliberately styled unlike an
  *  event pill (outlined, not filled) so it never reads as a scheduled
- *  block. Shared by MonthGrid's day cells and AllDayRow (week/day).
- *  Clicking it toggles complete, same as the sidebar task list, there's no
- *  separate task-edit view yet to open instead. */
-export default function TaskChip({ task, categories, onClick, className }: TaskChipProps) {
+ *  block. Used by AllDayRow (week/day). The checkbox completes the task;
+ *  the title opens its details. */
+export default function TaskChip({
+  task,
+  categories,
+  onOpen,
+  onToggleComplete,
+  className,
+}: TaskChipProps) {
   const overdue = !task.completed && task.due_at && isPast(new Date(task.due_at));
   const displayColor = resolveDisplayColor(
     task.color,
@@ -31,18 +37,12 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
     categories
   );
 
+  // Both buttons stop propagation: a click on the chip must not also reach
+  // the day cell underneath, which would select that day.
   return (
-    <button
-      type="button"
-      title={task.title}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.(task);
-      }}
-      aria-pressed={task.completed}
-      aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
+    <div
       className={cn(
-        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm border border-transparent px-1.5 text-left text-[11px] font-medium text-foreground outline-none transition-colors hover:bg-muted/70 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50",
+        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-[11px] font-medium transition-colors hover:bg-muted/70",
         task.completed
           ? "text-muted-foreground"
           : overdue
@@ -51,19 +51,25 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
         className
       )}
     >
-      <span
-        aria-hidden="true"
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleComplete(task);
+        }}
+        aria-pressed={task.completed}
+        aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
         className={cn(
-          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border transition-colors",
+          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
           task.completed
             ? "border-muted-foreground bg-muted-foreground text-background"
             : overdue
-              ? "border-destructive text-transparent group-hover:bg-destructive/10"
-              : "border-muted-foreground/70 text-transparent group-hover:border-foreground"
+              ? "border-destructive text-transparent hover:bg-destructive/10"
+              : "border-muted-foreground/70 text-transparent hover:border-foreground"
         )}
       >
         <Check className="size-3" strokeWidth={3} />
-      </span>
+      </button>
       <span
         aria-hidden="true"
         className={cn(
@@ -73,7 +79,21 @@ export default function TaskChip({ task, categories, onClick, className }: TaskC
             : "bg-muted-foreground/70"
         )}
       />
-      <span className={cn("truncate", task.completed && "line-through")}>{task.title}</span>
-    </button>
+      <button
+        type="button"
+        title={task.title}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpen(task);
+        }}
+        aria-label={`Open task ${task.title}`}
+        className={cn(
+          "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          task.completed && "line-through"
+        )}
+      >
+        {task.title}
+      </button>
+    </div>
   );
 }

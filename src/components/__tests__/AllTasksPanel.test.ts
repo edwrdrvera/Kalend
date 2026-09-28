@@ -38,6 +38,7 @@ afterEach(async () => {
 async function renderPanel(tasks: CalendarTask[]) {
   const calls = {
     toggled: [] as string[],
+    opened: [] as string[],
     created: [] as Array<{ title: string; categoryId?: string | null }>,
     closes: 0,
   };
@@ -56,6 +57,7 @@ async function renderPanel(tasks: CalendarTask[]) {
           calls.created.push({ title, categoryId });
         },
         onToggleTaskComplete: (task) => calls.toggled.push(task.id),
+        onOpenTask: (task) => calls.opened.push(task.id),
       })
     )
   );

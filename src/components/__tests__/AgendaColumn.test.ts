@@ -87,6 +87,7 @@ interface RenderOptions {
 interface Interactions {
   eventClicks: string[];
   taskToggles: string[];
+  taskOpens: string[];
   allTasksOpens: number;
 }
 
@@ -94,6 +95,7 @@ async function renderColumn(options: RenderOptions = {}) {
   const interactions: Interactions = {
     eventClicks: [],
     taskToggles: [],
+    taskOpens: [],
     allTasksOpens: 0,
   };
   container = document.createElement("div");
@@ -110,6 +112,7 @@ async function renderColumn(options: RenderOptions = {}) {
         loading: options.loading ?? false,
         onToggleTaskComplete: (task) =>
           interactions.taskToggles.push(task.id),
+        onOpenTask: (task) => interactions.taskOpens.push(task.id),
         onEventClick: (event) => interactions.eventClicks.push(event.id),
         branches: options.branches ?? [],
         activeBranchId: options.activeBranchId ?? null,
@@ -294,18 +297,9 @@ describe("AgendaColumn tasks section", () => {
       tasks: [makeTask({ title: "Done task", completed: true })],
     });
 
-    // Find the title span with line-through
-    const spans = document.querySelectorAll("span");
-    let found = false;
-    for (const span of spans) {
-      if ((span.textContent ?? "").trim() === "Done task") {
-        expect(span.className).toContain("line-through");
-        expect(span.className).toContain("opacity-50");
-        found = true;
-        break;
-      }
-    }
-    expect(found).toBe(true);
+    const title = byLabel("Open task Done task");
+    expect(title?.className).toContain("line-through");
+    expect(title?.className).toContain("opacity-50");
   });
 
   it("calls onToggleTaskComplete when checkbox is clicked", async () => {
@@ -318,6 +312,17 @@ describe("AgendaColumn tasks section", () => {
     await act(() => checkbox?.click());
 
     expect(interactions.taskToggles).toContain("task-toggle");
+  });
+
+  it("opens the task from its title without completing it", async () => {
+    const interactions = await renderColumn({
+      tasks: [makeTask({ id: "task-open" })],
+    });
+
+    await act(() => byLabel("Open task Finish lab report")?.click());
+
+    expect(interactions.taskOpens).toEqual(["task-open"]);
+    expect(interactions.taskToggles).toEqual([]);
   });
 
   it("shows a Space color dot driven by the task's category", async () => {

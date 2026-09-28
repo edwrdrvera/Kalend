@@ -18,6 +18,7 @@ interface AgendaColumnProps {
   categories: CalendarCategory[];
   loading: boolean;
   onToggleTaskComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   branches: Branch[];
   activeBranchId: string | null;
@@ -32,6 +33,7 @@ export default function AgendaColumn({
   categories,
   loading,
   onToggleTaskComplete,
+  onOpenTask,
   onEventClick,
   branches,
   activeBranchId,
@@ -101,6 +103,7 @@ export default function AgendaColumn({
                 tasks={dayTasks}
                 categories={categories}
                 onToggleTaskComplete={onToggleTaskComplete}
+                onOpenTask={onOpenTask}
                 precededBySchedule={eventCount > 0}
               />
             )}
@@ -116,12 +119,14 @@ function DueTasksSection({
   tasks,
   categories,
   onToggleTaskComplete,
+  onOpenTask,
   precededBySchedule,
 }: {
   label: string;
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   onToggleTaskComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
   precededBySchedule: boolean;
 }) {
   return (
@@ -136,6 +141,7 @@ function DueTasksSection({
             task={task}
             categories={categories}
             onToggleTaskComplete={onToggleTaskComplete}
+            onOpenTask={onOpenTask}
           />
         ))}
       </div>

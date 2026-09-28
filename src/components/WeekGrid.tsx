@@ -29,7 +29,8 @@ interface WeekGridProps {
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onCreateEventRange?: (start: Date, end: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  onTaskClick: (task: CalendarTask) => void;
+  onTaskOpen: (task: CalendarTask) => void;
+  onTaskToggle: (task: CalendarTask) => void;
   onSlotContextMenu?: (day: Date, hour: number, x: number, y: number) => void;
   onEventShiftClick?: (event: CalendarEvent) => void;
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
@@ -105,7 +106,8 @@ export default function WeekGrid({
   onCreateEvent,
   onCreateEventRange,
   onEventClick,
-  onTaskClick,
+  onTaskOpen,
+  onTaskToggle,
   onSlotContextMenu,
   onEventShiftClick,
   onEventContextMenu,
@@ -151,7 +153,8 @@ export default function WeekGrid({
             tasks={tasks}
             categories={categories}
             onEventClick={onEventClick}
-            onTaskClick={onTaskClick}
+            onTaskOpen={onTaskOpen}
+            onTaskToggle={onTaskToggle}
           />
         </div>
         <TimeGrid

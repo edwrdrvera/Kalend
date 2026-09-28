@@ -20,6 +20,7 @@ interface CalendarSidebarProps {
   tasksLoading: boolean;
   eventsLoading: boolean;
   onToggleTaskComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
   onOpenAllTasks: () => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
@@ -45,6 +46,7 @@ export default function CalendarSidebar({
   tasksLoading,
   eventsLoading,
   onToggleTaskComplete,
+  onOpenTask,
   onOpenAllTasks,
   onEventClick,
   categories,
@@ -84,6 +86,7 @@ export default function CalendarSidebar({
     categories,
     loading: tasksLoading || eventsLoading,
     onToggleTaskComplete,
+    onOpenTask,
     onEventClick,
     branches: spaceBranches,
     activeBranchId,

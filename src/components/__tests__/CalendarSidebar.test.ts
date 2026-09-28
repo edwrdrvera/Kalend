@@ -116,6 +116,7 @@ async function renderSidebar(options: RenderOptions = {}) {
         tasksLoading: options.tasksLoading ?? false,
         eventsLoading: options.eventsLoading ?? false,
         onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
+        onOpenTask: () => {},
         onOpenAllTasks: () => interactions.allTasksOpens++,
         onEventClick: (event) => interactions.eventClicks.push(event.id),
         categories: options.categories ?? [],

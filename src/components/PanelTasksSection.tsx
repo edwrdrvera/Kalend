@@ -8,6 +8,7 @@ import type { CalendarTask } from "@/lib/calendar-types";
 interface PanelTasksSectionProps {
   tasks: CalendarTask[];
   onToggleComplete: (task: CalendarTask) => void;
+  onOpenTask: (task: CalendarTask) => void;
   onAdd: () => void;
 }
 
@@ -38,6 +39,7 @@ function dueState(task: CalendarTask, now: Date): DueState {
 export default function PanelTasksSection({
   tasks,
   onToggleComplete,
+  onOpenTask,
   onAdd,
 }: PanelTasksSectionProps) {
   return (
@@ -76,7 +78,7 @@ export default function PanelTasksSection({
                   type="button"
                   onClick={() => onToggleComplete(task)}
                   aria-pressed={task.completed}
-                  aria-label={task.completed ? "Mark as not done" : "Mark as done"}
+                  aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
                   className={cn(
                     "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     task.completed
@@ -87,14 +89,17 @@ export default function PanelTasksSection({
                   <Check className="size-2.5" strokeWidth={3} />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <span
+                  <button
+                    type="button"
+                    onClick={() => onOpenTask(task)}
+                    aria-label={`Open task ${task.title}`}
                     className={cn(
-                      "block truncate text-[13px]",
+                      "block w-full truncate rounded-sm text-left text-[13px] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       task.completed ? "text-muted-foreground line-through" : "text-foreground"
                     )}
                   >
                     {task.title}
-                  </span>
+                  </button>
                   <span
                     className={cn(
                       "block text-[11.5px]",

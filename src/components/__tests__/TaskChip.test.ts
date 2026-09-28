@@ -23,14 +23,25 @@ const defaultTask: CalendarTask = {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderTask(task: CalendarTask, onClick?: (task: CalendarTask) => void) {
+async function renderTask(task: CalendarTask) {
+  const calls = { opened: [] as string[], toggled: [] as string[] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  await act(() => root?.render(createElement(TaskChip, { task, categories, onClick })));
-  const button = container.querySelector("button");
-  if (!button) throw new Error("Task chip was not rendered");
-  return button;
+  await act(() =>
+    root?.render(
+      createElement(TaskChip, {
+        task,
+        categories,
+        onOpen: (t) => calls.opened.push(t.id),
+        onToggleComplete: (t) => calls.toggled.push(t.id),
+      })
+    )
+  );
+  const checkbox = container.querySelector<HTMLButtonElement>("button[aria-pressed]");
+  const title = container.querySelector<HTMLButtonElement>(`button[aria-label="Open task ${task.title}"]`);
+  if (!checkbox || !title) throw new Error("Task chip was not rendered");
+  return { calls, checkbox, title, chip: container.firstElementChild as HTMLElement };
 }
 
 afterEach(async () => {
@@ -41,45 +52,56 @@ afterEach(async () => {
 });
 
 describe("TaskChip", () => {
-  it("renders an accessible, compact checkbox-led task marker", async () => {
-    const button = await renderTask(defaultTask);
+  it("renders an accessible checkbox and a named title button", async () => {
+    const { checkbox, title, chip } = await renderTask(defaultTask);
 
-    expect(button.getAttribute("aria-label")).toBe("Mark as done: Finish lab report");
-    expect(button.getAttribute("aria-pressed")).toBe("false");
-    expect(button.className).toContain("min-h-7");
-    expect(button.className).toContain("focus-visible:ring-2");
-    expect(button.querySelector("svg")).not.toBeNull();
+    expect(checkbox.getAttribute("aria-label")).toBe("Mark as done: Finish lab report");
+    expect(checkbox.getAttribute("aria-pressed")).toBe("false");
+    expect(title.textContent).toBe("Finish lab report");
+    expect(chip.className).toContain("min-h-7");
     expect(container?.querySelector('[class*="evt-green-solid"]')).not.toBeNull();
   });
 
   it("uses clear completed and overdue states", async () => {
-    let button = await renderTask({ ...defaultTask, completed: true });
-    expect(button.getAttribute("aria-label")).toBe("Mark as not done: Finish lab report");
-    expect(button.getAttribute("aria-pressed")).toBe("true");
-    expect(button.querySelector(".line-through")).not.toBeNull();
-    expect(button.querySelector(".bg-muted-foreground")).not.toBeNull();
+    let rendered = await renderTask({ ...defaultTask, completed: true });
+    expect(rendered.checkbox.getAttribute("aria-label")).toBe("Mark as not done: Finish lab report");
+    expect(rendered.checkbox.getAttribute("aria-pressed")).toBe("true");
+    expect(rendered.title.className).toContain("line-through");
 
     await act(() => root?.unmount());
     container?.remove();
     root = null;
     container = null;
 
-    button = await renderTask({ ...defaultTask, due_at: "2000-01-01T00:00:00.000Z" });
-    expect(button.className).toContain("text-destructive");
-    expect(button.className).not.toContain("line-through");
+    rendered = await renderTask({ ...defaultTask, due_at: "2000-01-01T00:00:00.000Z" });
+    expect(rendered.chip.className).toContain("text-destructive");
+    expect(rendered.title.className).not.toContain("line-through");
   });
 
-  it("stops the calendar click and sends the task to the toggle handler", async () => {
-    const clicked: CalendarTask[] = [];
-    const button = await renderTask(defaultTask, (task) => clicked.push(task));
+  it("opens the task from its title without completing it", async () => {
+    const { calls, title } = await renderTask(defaultTask);
+    await act(() => title.click());
+    expect(calls.opened).toEqual([defaultTask.id]);
+    expect(calls.toggled).toEqual([]);
+  });
+
+  it("completes the task only from its checkbox", async () => {
+    const { calls, checkbox } = await renderTask(defaultTask);
+    await act(() => checkbox.click());
+    expect(calls.toggled).toEqual([defaultTask.id]);
+    expect(calls.opened).toEqual([]);
+  });
+
+  it("keeps its clicks from reaching the day cell underneath", async () => {
+    const { checkbox, title } = await renderTask(defaultTask);
     let parentClicks = 0;
     document.body.addEventListener("click", () => {
       parentClicks += 1;
     });
 
-    await act(() => button.click());
+    await act(() => title.click());
+    await act(() => checkbox.click());
 
-    expect(clicked).toEqual([defaultTask]);
     expect(parentClicks).toBe(0);
   });
 });

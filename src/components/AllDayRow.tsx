@@ -16,7 +16,8 @@ interface AllDayRowProps {
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  onTaskClick?: (task: CalendarTask) => void;
+  onTaskOpen: (task: CalendarTask) => void;
+  onTaskToggle: (task: CalendarTask) => void;
 }
 
 /** One shared band above `TimeGrid` for both due tasks and all-/multi-day
@@ -28,7 +29,8 @@ export default function AllDayRow({
   tasks,
   categories,
   onEventClick,
-  onTaskClick,
+  onTaskOpen,
+  onTaskToggle,
 }: AllDayRowProps) {
   const blocks = layoutAllDayEvents(days, events);
   const laneCount = blocks.length > 0 ? Math.max(...blocks.map((block) => block.lane)) + 1 : 0;
@@ -63,7 +65,8 @@ export default function AllDayRow({
                     key={task.id}
                     task={task}
                     categories={categories}
-                    onClick={onTaskClick}
+                    onOpen={onTaskOpen}
+                    onToggleComplete={onTaskToggle}
                   />
                 ))}
               </div>

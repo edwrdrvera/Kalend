@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createElement, act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
-import { testWindow } from "./test-dom";
+import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { testWindow, typeInto } from "./test-dom";
 
 mock.module("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -41,6 +41,17 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
 
 const EVENTS = [makeEvent("e1", "Lecture", 9), makeEvent("e2", "Lab", 13)];
 
+const ESSAY: CalendarTask = {
+  id: "t1",
+  title: "Essay draft",
+  due_at: todayAt(23),
+  completed: false,
+  color: null,
+  color_overridden: false,
+  category_id: SPACE.id,
+};
+let tasks: CalendarTask[] = [];
+
 type Call = { url: string; method: string; body: unknown };
 let calls: Call[] = [];
 let patchResponse: { status: number; body: unknown } = { status: 200, body: null };
@@ -58,6 +69,7 @@ let container: HTMLDivElement | null = null;
 
 beforeEach(() => {
   calls = [];
+  tasks = [];
   patchResponse = { status: 200, body: { success: true, data: EVENTS[0] } };
   localStorage.clear();
   globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -65,7 +77,7 @@ beforeEach(() => {
     const method = init?.method ?? "GET";
     calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
     if (method === "GET" && url === "/api/events") return json({ success: true, data: EVENTS });
-    if (method === "GET" && url === "/api/tasks") return json({ success: true, data: [] });
+    if (method === "GET" && url === "/api/tasks") return json({ success: true, data: tasks });
     if (method === "GET" && url === "/api/categories") return json({ success: true, data: [SPACE] });
     if (method === "PATCH") return json(patchResponse.body, patchResponse.status);
     if (method === "DELETE") return json({ success: true });
@@ -256,5 +268,70 @@ describe("Calendar behavior", () => {
     });
     await settle();
     expect(panelIsSheet()).toBe(true);
+  });
+
+  describe("task details", () => {
+    const openTitles = () =>
+      [...document.querySelectorAll<HTMLElement>("button[aria-label^='Open task']")].map(
+        (b) => b.textContent
+      );
+    const inspector = () => document.querySelector("[aria-label='Task details']");
+
+    beforeEach(() => {
+      tasks = [ESSAY];
+      testWindow.happyDOM.setInnerWidth(1300);
+    });
+
+    it("a task title opens its details without completing it", async () => {
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+
+      expect(inspector()).not.toBeNull();
+      expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+    });
+
+    it("a saved title shows in the agenda and the calendar", async () => {
+      patchResponse = { status: 200, body: { success: true, data: { ...ESSAY, title: "Essay final" } } };
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+
+      const input = inspector()!.querySelector("input")!;
+      await act(async () => typeInto(input, "Essay final"));
+      await click(buttonByText("Save")!);
+
+      expect(calls.find((c) => c.method === "PATCH")).toEqual({
+        url: "/api/tasks/t1",
+        method: "PATCH",
+        body: { title: "Essay final" },
+      });
+      // Every rendering of the task (agenda rows, the week view's all-day chip) shows the new title.
+      expect(openTitles().length).toBeGreaterThanOrEqual(2);
+      expect(new Set(openTitles())).toEqual(new Set(["Essay final"]));
+    });
+
+    it("unsaved edits hold another selection until the user discards them", async () => {
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+      await act(async () => typeInto(inspector()!.querySelector("input")!, "Essay v2"));
+
+      await click(buttonByText("All tasks")!);
+      expect(inspector()).not.toBeNull();
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+
+      await click(buttonByText("Discard")!);
+      expect(inspector()).toBeNull();
+      expect(document.querySelector("[role='complementary'][aria-label='All tasks']")).not.toBeNull();
+    });
+
+    it("deleting a task closes its details and removes it everywhere", async () => {
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/tasks/t1")).toBe(true);
+      expect(inspector()).toBeNull();
+      expect(openTitles()).toEqual([]);
+    });
   });
 });
