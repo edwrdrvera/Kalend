@@ -192,7 +192,7 @@ describe("Calendar behavior", () => {
     expect(editor()).toBeNull();
     expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      active: { branchId: "space-1:default", spaceId: "space-1" },
+      active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
     });
   });
 
@@ -216,8 +216,30 @@ describe("Calendar behavior", () => {
     await remount();
     expect(panelOpen()).toBe(true);
     expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      active: { branchId: "space-1:default", spaceId: "space-1" },
+      active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
     });
+  });
+
+  it("All tasks stays open when another date is selected, and is not restored after a remount", async () => {
+    testWindow.happyDOM.setInnerWidth(1300);
+    await mount();
+    await click(buttonByText("All tasks")!);
+    const allTasksPanel = () => document.querySelector("[role='complementary'][aria-label='All tasks']");
+    expect(allTasksPanel()).not.toBeNull();
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const heading = () => document.querySelector("[data-testid='agenda-column'] h2")?.textContent;
+    const before = heading();
+    const dayCell = [...document.querySelectorAll<HTMLElement>("button")].find(
+      (b) => b.className.includes("w-7 h-7") && b.textContent === String(tomorrow.getDate())
+    );
+    await click(dayCell!);
+    expect(heading()).not.toBe(before);
+    expect(allTasksPanel()).not.toBeNull();
+
+    await remount();
+    expect(panelOpen()).toBe(false);
   });
 
   it("the panel is pinned on wide windows and a sheet on narrow ones", async () => {

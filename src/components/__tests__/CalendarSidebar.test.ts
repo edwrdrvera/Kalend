@@ -7,7 +7,8 @@ import type {
   CalendarEvent,
   CalendarTask,
 } from "@/lib/calendar-types";
-import { typeInto } from "./test-dom";
+import { branchesForSpaces } from "@/lib/branch-stub";
+import "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: CalendarSidebar } = await import("../CalendarSidebar");
@@ -82,34 +83,27 @@ interface RenderOptions {
   tasksLoading?: boolean;
   eventsLoading?: boolean;
   selectedSpaceId?: string | null;
-  onCreateTask?: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
 }
 
 interface Interactions {
-  createdTasks: Array<{ title: string; dueAt?: string; categoryId?: string | null }>;
   eventClicks: string[];
   taskToggles: string[];
-  taskDeletes: string[];
   selectedSpaces: (string | null)[];
+  openedBranches: string[];
+  allTasksOpens: number;
 }
 
 async function renderSidebar(options: RenderOptions = {}) {
   const interactions: Interactions = {
-    createdTasks: [],
     eventClicks: [],
     taskToggles: [],
-    taskDeletes: [],
     selectedSpaces: [],
+    openedBranches: [],
+    allTasksOpens: 0,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-
-  const onCreateTask =
-    options.onCreateTask ??
-    (async (title: string, dueAt?: string, categoryId?: string | null) => {
-      interactions.createdTasks.push({ title, dueAt, categoryId });
-    });
 
   await act(() =>
     root?.render(
@@ -121,18 +115,17 @@ async function renderSidebar(options: RenderOptions = {}) {
         events: options.events ?? [],
         tasksLoading: options.tasksLoading ?? false,
         eventsLoading: options.eventsLoading ?? false,
-        onCreateTask,
         onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
-        onDeleteTask: (task) => interactions.taskDeletes.push(task.id),
+        onOpenAllTasks: () => interactions.allTasksOpens++,
         onEventClick: (event) => interactions.eventClicks.push(event.id),
         categories: options.categories ?? [],
         selectedSpaceId: options.selectedSpaceId ?? null,
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
         onCreateSpace: () => {},
         onEditSpace: () => {},
-        branches: [],
+        branches: branchesForSpaces(options.categories ?? []),
         activeBranchId: null,
-        onOpenBranch: () => {},
+        onOpenBranch: (branch) => interactions.openedBranches.push(branch.id),
       })
     )
   );
@@ -186,6 +179,46 @@ describe("CalendarSidebar collapse", () => {
 
     const after = document.querySelectorAll('[data-testid="agenda-column"]');
     expect(after.length).toBe(1);
+  });
+
+  it("stays collapsed after a reload", async () => {
+    await renderSidebar();
+    await act(() => byLabel("Collapse sidebar")?.click());
+    await act(() => root?.unmount());
+    root = null;
+    document.body.replaceChildren();
+
+    await renderSidebar();
+
+    expect(byLabel("Expand sidebar")).not.toBeNull();
+    expect(document.querySelectorAll('[data-testid="agenda-column"]').length).toBe(1);
+  });
+
+  it("opens expanded when stored storage is unreadable", async () => {
+    const originalGetItem = localStorage.getItem.bind(localStorage);
+    localStorage.getItem = () => {
+      throw new Error("storage blocked");
+    };
+    try {
+      await renderSidebar();
+    } finally {
+      localStorage.getItem = originalGetItem;
+    }
+    expect(byLabel("Collapse sidebar")).not.toBeNull();
+  });
+
+  it("opening a Branch does not collapse the agenda", async () => {
+    const work = makeCategory({ id: "cat-1", name: "Work" });
+    const interactions = await renderSidebar({ categories: [work], selectedSpaceId: "cat-1" });
+
+    const branchButton = [...document.querySelectorAll("button")].find(
+      (b) => b.getAttribute("aria-label") === null && b.textContent?.trim() === "Work"
+    );
+    expect(branchButton).toBeDefined();
+    await act(() => branchButton?.click());
+
+    expect(interactions.openedBranches).toEqual(["cat-1:default"]);
+    expect(document.querySelectorAll('[data-testid="agenda-column"]').length).toBe(2);
   });
 });
 
@@ -244,39 +277,17 @@ describe("CalendarSidebar agenda inline", () => {
   });
 });
 
-describe("CalendarSidebar inline task composer", () => {
-  it("has a task creation trigger", async () => {
-    await renderSidebar({
-      categories: [makeCategory()],
-      tasks: [makeTask()],
-    });
+describe("CalendarSidebar All tasks control", () => {
+  it("opens the All tasks view from the desktop agenda", async () => {
+    const interactions = await renderSidebar();
 
-    const trigger = document.querySelector('[aria-label="Add a task"]');
-    expect(trigger).not.toBeNull();
-  });
+    const button = [...document.querySelectorAll("button")].find(
+      (b) => b.textContent?.trim() === "All tasks"
+    );
+    expect(button).toBeDefined();
+    await act(() => button?.click());
 
-  it("calls onCreateTask when a title is typed and submitted", async () => {
-    const interactions = await renderSidebar({
-      categories: [makeCategory()],
-      tasks: [makeTask()],
-    });
-
-    // Click the section's single "+" trigger to expand the composer.
-    const trigger = document.querySelector('[aria-label="Add a task"]') as HTMLButtonElement | null;
-    await act(() => trigger?.click());
-
-    // Type a task title into the expanded form.
-    const input = byLabel("New task title") as HTMLInputElement | null;
-    expect(input).not.toBeNull();
-    await act(() => typeInto(input!, "Study for midterm"));
-
-    // Submit the form.
-    const submitBtn = byLabel("Add task");
-    expect(submitBtn).not.toBeNull();
-    await act(async () => submitBtn?.click());
-
-    expect(interactions.createdTasks.length).toBeGreaterThanOrEqual(1);
-    expect(interactions.createdTasks[0]?.title).toBe("Study for midterm");
+    expect(interactions.allTasksOpens).toBe(1);
   });
 });
 

@@ -40,7 +40,7 @@ const SCHEDULE: { time: string; title: string; color: EventColor }[] = [
 ];
 
 // Agenda "Tasks" section: the persistent to-do list, grouped into due-date
-// buckets (mirrors AgendaTasksGroup's bucketing). Completed tasks show a filled
+// buckets (mirrors bucketTasks in task-buckets.ts). Completed tasks show a filled
 // checkbox + strikethrough; the header count is open tasks only (here: 4).
 const TASK_BUCKETS: {
   label: string;

@@ -9,6 +9,7 @@ import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
+import AllTasksPanel from "./AllTasksPanel";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
@@ -209,6 +210,37 @@ export default function Calendar() {
   // All branches, for the agenda list.
   const branches = branchesForSpaces(categories.data);
   const { activeBranch } = panel;
+  const rightPanelOpen = activeBranch !== null || panel.allTasksOpen;
+
+  const renderRightPanel = (modal: boolean) => {
+    if (activeBranch) {
+      return (
+        <SpacePanel
+          branch={activeBranch}
+          tasks={panel.panelTasks}
+          modal={modal}
+          onClose={panel.close}
+          onToggleComplete={tasks.toggleComplete}
+          onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
+          onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
+        />
+      );
+    }
+    if (panel.allTasksOpen) {
+      return (
+        <AllTasksPanel
+          tasks={tasks.data}
+          categories={categories.data}
+          selectedSpaceId={selectedSpaceId}
+          modal={modal}
+          onClose={panel.close}
+          onCreateTask={tasks.createTask}
+          onToggleTaskComplete={tasks.toggleComplete}
+        />
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
@@ -227,9 +259,8 @@ export default function Calendar() {
           events={visibleEvents}
           tasksLoading={tasks.loading}
           eventsLoading={events.loading}
-          onCreateTask={tasks.createTask}
           onToggleTaskComplete={tasks.toggleComplete}
-          onDeleteTask={tasks.deleteTask}
+          onOpenAllTasks={panel.openAllTasks}
           onEventClick={handleEventClick}
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
@@ -351,25 +382,13 @@ export default function Calendar() {
           <div
             className={cn(
               "relative h-full shrink-0 overflow-hidden transition-[width] duration-[180ms] ease-out motion-reduce:transition-none",
-              activeBranch ? "w-[330px]" : "w-0"
+              rightPanelOpen ? "w-[330px]" : "w-0"
             )}
           >
-            <div className="h-full w-[330px]">
-              {activeBranch && (
-                <SpacePanel
-                  branch={activeBranch}
-                  tasks={panel.panelTasks}
-                  modal={false}
-                  onClose={panel.close}
-                  onToggleComplete={tasks.toggleComplete}
-                  onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
-                />
-              )}
-            </div>
+            <div className="h-full w-[330px]">{renderRightPanel(false)}</div>
           </div>
         ) : (
-          activeBranch && (
+          rightPanelOpen && (
             <>
               <button
                 type="button"
@@ -383,15 +402,7 @@ export default function Calendar() {
                   panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[330px]"
                 )}
               >
-                <SpacePanel
-                  branch={activeBranch}
-                  tasks={panel.panelTasks}
-                  modal
-                  onClose={panel.close}
-                  onToggleComplete={tasks.toggleComplete}
-                  onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-                  onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
-                />
+                {renderRightPanel(true)}
               </div>
             </>
           )

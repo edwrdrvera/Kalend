@@ -1,13 +1,15 @@
 "use client";
 
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, ListTodo, Loader2 } from "lucide-react";
 import { format, startOfDay } from "date-fns";
+import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
+import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
-import AgendaTasksGroup from "./AgendaTasksGroup";
 import BranchList from "./BranchList";
+import TaskRow from "./TaskRow";
 
 interface AgendaColumnProps {
   selectedDate: Date;
@@ -15,18 +17,12 @@ interface AgendaColumnProps {
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   loading: boolean;
-  selectedSpaceId: string | null;
-  onCreateTask: (
-    title: string,
-    dueAt?: string,
-    categoryId?: string | null
-  ) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
-  onDeleteTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   branches: Branch[];
   activeBranchId: string | null;
   onOpenBranch: (branch: Branch) => void;
+  onOpenAllTasks: () => void;
 }
 
 export default function AgendaColumn({
@@ -35,47 +31,45 @@ export default function AgendaColumn({
   tasks,
   categories,
   loading,
-  selectedSpaceId,
-  onCreateTask,
   onToggleTaskComplete,
-  onDeleteTask,
   onEventClick,
   branches,
   activeBranchId,
   onOpenBranch,
+  onOpenAllTasks,
 }: AgendaColumnProps) {
   const dayStart = startOfDay(selectedDate);
   const dayEnd = new Date(dayStart);
   dayEnd.setHours(23, 59, 59, 999);
 
-  // Events that overlap the selected date.
   const dayEvents = events.filter((ev) => {
     const start = new Date(ev.start_at);
     const end = new Date(ev.end_at);
     return start <= dayEnd && end >= dayStart;
   });
+  const dayTasks = tasksDueOn(tasks, selectedDate);
 
   const eventCount = dayEvents.length;
-  // Tasks are a persistent to-do list (bucketed by due date in AgendaTasksGroup),
-  // not scoped to the selected day, so the count and emptiness look at all tasks.
-  const taskCount = tasks.filter((t) => !t.completed).length;
-  const isEmpty = eventCount === 0 && tasks.length === 0;
+  const isEmpty = eventCount === 0 && dayTasks.length === 0;
 
   return (
-    <div
-      data-testid="agenda-column"
-      className="flex h-full w-full flex-col bg-card"
-    >
-      <BranchList
-        branches={branches}
-        activeBranchId={activeBranchId}
-        onOpenBranch={onOpenBranch}
-      />
+    <div data-testid="agenda-column" className="flex h-full w-full flex-col bg-card">
+      <BranchList branches={branches} activeBranchId={activeBranchId} onOpenBranch={onOpenBranch} />
 
       <AgendaDateHeader
         selectedDate={selectedDate}
         eventCount={eventCount}
-        taskCount={taskCount}
+        taskCount={dayTasks.filter((t) => !t.completed).length}
+        action={
+          <button
+            type="button"
+            onClick={onOpenAllTasks}
+            className="flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ListTodo aria-hidden className="size-3.5" />
+            All tasks
+          </button>
+        }
       />
 
       {loading ? (
@@ -101,19 +95,50 @@ export default function AgendaColumn({
               selectedDate={selectedDate}
               onEventClick={onEventClick}
             />
-            <AgendaTasksGroup
-              tasks={tasks}
-              categories={categories}
-              selectedDate={selectedDate}
-              selectedSpaceId={selectedSpaceId}
-              onCreateTask={onCreateTask}
-              onToggleTaskComplete={onToggleTaskComplete}
-              onDeleteTask={onDeleteTask}
-              precededBySchedule={eventCount > 0}
-            />
+            {dayTasks.length > 0 && (
+              <DueTasksSection
+                label={dueSectionLabel(selectedDate, new Date())}
+                tasks={dayTasks}
+                categories={categories}
+                onToggleTaskComplete={onToggleTaskComplete}
+                precededBySchedule={eventCount > 0}
+              />
+            )}
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function DueTasksSection({
+  label,
+  tasks,
+  categories,
+  onToggleTaskComplete,
+  precededBySchedule,
+}: {
+  label: string;
+  tasks: CalendarTask[];
+  categories: CalendarCategory[];
+  onToggleTaskComplete: (task: CalendarTask) => void;
+  precededBySchedule: boolean;
+}) {
+  return (
+    <section aria-label={label} className={cn(precededBySchedule && "border-t border-border pt-3")}>
+      <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+        {label}
+      </h3>
+      <div className="flex flex-col gap-1">
+        {tasks.map((task) => (
+          <TaskRow
+            key={task.id}
+            task={task}
+            categories={categories}
+            onToggleTaskComplete={onToggleTaskComplete}
+          />
+        ))}
+      </div>
+    </section>
   );
 }

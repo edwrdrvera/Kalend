@@ -7,6 +7,7 @@ import IconRail from "./IconRail";
 import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
+import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 
@@ -18,9 +19,8 @@ interface CalendarSidebarProps {
   events: CalendarEvent[];
   tasksLoading: boolean;
   eventsLoading: boolean;
-  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
-  onDeleteTask: (task: CalendarTask) => void;
+  onOpenAllTasks: () => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
@@ -44,9 +44,8 @@ export default function CalendarSidebar({
   events,
   tasksLoading,
   eventsLoading,
-  onCreateTask,
   onToggleTaskComplete,
-  onDeleteTask,
+  onOpenAllTasks,
   onEventClick,
   categories,
   selectedSpaceId,
@@ -62,7 +61,15 @@ export default function CalendarSidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   // Desktop-only: collapses the agenda + mini calendar column. The rail
   // itself always stays visible; mobile's slide-out is unaffected.
-  const [collapsed, setCollapsed] = useState(false);
+  // Read storage in the initializer; Calendar renders only after mount, so
+  // this never runs on the server.
+  const [collapsed, setCollapsed] = useState(loadSidebarCollapsed);
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    saveSidebarCollapsed(next);
+  };
 
   // The agenda's branch list shows only the active Space's branches; the rail
   // flyouts use the full list.
@@ -76,10 +83,7 @@ export default function CalendarSidebar({
     tasks,
     categories,
     loading: tasksLoading || eventsLoading,
-    selectedSpaceId,
-    onCreateTask,
     onToggleTaskComplete,
-    onDeleteTask,
     onEventClick,
     branches: spaceBranches,
     activeBranchId,
@@ -124,12 +128,12 @@ export default function CalendarSidebar({
           onEditSpace={onEditSpace}
           accountMenu={accountMenu}
           collapsed={collapsed}
-          onToggleCollapse={() => setCollapsed((v) => !v)}
+          onToggleCollapse={toggleCollapsed}
         />
         {!collapsed && (
           <div className="flex h-full w-[272px] flex-col border-r border-border">
             <div className="min-h-0 flex-1 overflow-hidden">
-              <AgendaColumn {...agendaProps} />
+              <AgendaColumn {...agendaProps} onOpenAllTasks={onOpenAllTasks} />
             </div>
             <MiniCalendar {...miniCalProps} />
           </div>
@@ -161,7 +165,13 @@ export default function CalendarSidebar({
             accountMenu={mobileAccountMenu}
           />
           <div className="min-h-0 flex-1 overflow-hidden">
-            <AgendaColumn {...agendaProps} />
+            <AgendaColumn
+              {...agendaProps}
+              onOpenAllTasks={() => {
+                setMobileOpen(false);
+                onOpenAllTasks();
+              }}
+            />
           </div>
           <MiniCalendar {...miniCalProps} />
         </div>
