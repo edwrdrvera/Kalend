@@ -220,7 +220,7 @@ describe("Calendar behavior", () => {
       },
       {
         name: "the day agenda",
-        open: () => click(document.querySelector("[aria-label='Edit event: Lab']")!),
+        open: () => click(document.querySelector("[aria-label='Open event: Lab']")!),
       },
     ];
 
