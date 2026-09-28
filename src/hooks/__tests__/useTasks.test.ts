@@ -266,6 +266,48 @@ describe("useTasks", () => {
     unmount();
   });
 
+  it("updateTask() saves the edited fields and resolves true", async () => {
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+
+    const serverTask: CalendarTask = { ...TASK_A, title: "Renamed", due_at: null, category_id: "cat-1" };
+    stubFetch({ success: true, data: serverTask });
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.updateTask(TASK_A, {
+        title: "Renamed",
+        due_at: null,
+        category_id: "cat-1",
+      });
+    });
+
+    expect(ok).toBe(true);
+    expect(result.current.data.find((t) => t.id === TASK_A.id)).toEqual(serverTask);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/tasks/${TASK_A.id}`);
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ title: "Renamed", due_at: null, category_id: "cat-1" });
+    unmount();
+  });
+
+  it("updateTask() restores the task and resolves false on failure, without the shared error", async () => {
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+
+    stubFetch({ success: false, error: "Update failed" }, 500);
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.updateTask(TASK_A, { title: "Renamed" });
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.data.find((t) => t.id === TASK_A.id)).toEqual(TASK_A);
+    expect(result.current.error).toBeNull();
+    unmount();
+  });
+
   it("deleteTask() removes the task optimistically before the server responds", async () => {
     const { result, act, unmount } = renderHook(() => useTasks());
     await act(() => {});
