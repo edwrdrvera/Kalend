@@ -143,9 +143,7 @@ export function UnsavedChangesPrompt({
     saveRef.current?.focus();
   }, []);
 
-  // Escape answers the prompt with Stay instead of reaching the panel, where
-  // it would request the close again.
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const answerEscapeWithStay = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "Escape") return;
     e.stopPropagation();
     onStay();
@@ -156,7 +154,7 @@ export function UnsavedChangesPrompt({
       role="alertdialog"
       aria-label="Unsaved changes"
       aria-describedby="unsaved-changes-text"
-      onKeyDown={handleKeyDown}
+      onKeyDown={answerEscapeWithStay}
       className="m-4 mb-0 flex flex-col gap-2 rounded-lg border border-border bg-muted/60 p-3"
     >
       <p id="unsaved-changes-text" className="text-[12.5px] text-foreground">

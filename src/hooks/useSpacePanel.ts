@@ -54,7 +54,6 @@ export function useSpacePanel(
     // null when the selected task was deleted, so the panel renders nothing.
     activeTask:
       selection?.kind === "task" ? (tasks.find((t) => t.id === selection.taskId) ?? null) : null,
-    // null when the selected event was deleted, so the panel renders nothing.
     activeEvent:
       selection?.kind === "event" ? (events.find((e) => e.id === selection.eventId) ?? null) : null,
     /** Where Back leads, when the open item came from an overview. */

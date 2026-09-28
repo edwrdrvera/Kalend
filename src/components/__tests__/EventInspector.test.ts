@@ -37,12 +37,9 @@ afterEach(async () => {
 interface Harness {
   saves: EventFormValues[];
   deletes: string[];
-  /** What the next save resolves to. */
   saveResult: boolean;
 }
 
-// Wires the inspector to the real panel reducer the way Calendar does, plus
-// an outside control that requests a close.
 async function renderInspector() {
   const harness: Harness = { saves: [], deletes: [], saveResult: true };
 

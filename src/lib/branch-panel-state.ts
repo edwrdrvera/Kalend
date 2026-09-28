@@ -41,9 +41,7 @@ export type BranchPanelAction =
   /** Drop the pending navigation and keep editing. */
   | { type: "stay" };
 
-// Opening an item from another item keeps the first item's origin, so Back
-// still leads to the list the user started from.
-function originOf(active: PanelSelection | null): PanelOverview | null {
+function backTargetCarriedFrom(active: PanelSelection | null): PanelOverview | null {
   if (active === null) return null;
   return active.kind === "task" || active.kind === "event" ? active.from : active;
 }
@@ -61,11 +59,11 @@ function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSel
     case "openTask":
       return active?.kind === "task" && active.taskId === nav.taskId
         ? active
-        : { kind: "task", taskId: nav.taskId, from: originOf(active) };
+        : { kind: "task", taskId: nav.taskId, from: backTargetCarriedFrom(active) };
     case "openEvent":
       return active?.kind === "event" && active.eventId === nav.eventId
         ? active
-        : { kind: "event", eventId: nav.eventId, from: originOf(active) };
+        : { kind: "event", eventId: nav.eventId, from: backTargetCarriedFrom(active) };
     case "back":
       return active?.kind === "task" || active?.kind === "event" ? active.from : null;
     case "close":

@@ -140,8 +140,6 @@ export default function Calendar() {
 
   const editor = useEventEditor(events, selectedSpaceId, calendarContentRef);
 
-  // Every way of editing an event lands here. The popover only creates, so
-  // closing it keeps two editors from ever holding the same event.
   const handleEventClick = (event: CalendarEvent) => {
     selection.clear();
     editor.close();

@@ -39,7 +39,6 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
   };
 }
 
-// Starts today and ends tomorrow, so the week and day views draw it in the all-day row.
 const RETREAT: CalendarEvent = {
   ...makeEvent("e3", "Retreat", 9),
   end_at: new Date(new Date(todayAt(9)).getTime() + 25 * 3600_000).toISOString(),
@@ -161,7 +160,6 @@ const eventDetails = () => document.querySelector("[aria-label='Event details']"
 const createPopover = () => document.querySelector("[role='dialog'][aria-label='Create event']");
 const titleField = () => eventDetails()!.querySelector<HTMLInputElement>("#event-inspector-title")!;
 const panelOpen = () => document.querySelector("[aria-label='Close panel']") !== null;
-/** Selects School in the rail, then opens its Branch from the agenda's Branch list. */
 async function openSchoolBranch() {
   await click(document.querySelector("nav [aria-label='School']")!);
   const row = [...document.querySelectorAll<HTMLElement>("button")].find(
@@ -171,7 +169,6 @@ async function openSchoolBranch() {
   await click(row);
 }
 
-/** Right-clicks the first empty time slot and picks Create event. */
 async function createFromSlotMenu() {
   await rightClick(document.querySelector("div[role='button']")!);
   await click(buttonByText("Create event")!);
