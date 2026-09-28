@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import type { Branch } from "@/lib/branch-types";
 import type { CalendarTask } from "@/lib/calendar-types";
+import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
 import PanelMeetsSection from "./PanelMeetsSection";
 import PanelPeopleSection from "./PanelPeopleSection";
@@ -15,11 +16,7 @@ import SpacePanelFooter from "./SpacePanelFooter";
 interface SpacePanelProps {
   branch: Branch;
   tasks: CalendarTask[];
-  /**
-   * true in overlay/full-screen modes (< ~1200px): the panel behaves as a
-   * modal dialog (focus trapped). false when pinned on desktop: it is a
-   * complementary landmark and the calendar stays interactive alongside it.
-   */
+  /** Modal dialog in overlay/full-screen modes; see PanelShell. */
   modal: boolean;
   onClose: () => void;
   onToggleComplete: (task: CalendarTask) => void;
@@ -39,7 +36,6 @@ export default function SpacePanel({
   onCreateTask,
   onOpenSettings,
 }: SpacePanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
@@ -52,13 +48,6 @@ export default function SpacePanel({
     setNewTitle("");
   }
 
-  // Move focus into the panel on open; restore it to the opener on close.
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    return () => opener?.focus?.();
-  }, []);
-
   async function handleCreateTask(e: FormEvent) {
     e.preventDefault();
     const title = newTitle.trim();
@@ -68,40 +57,8 @@ export default function SpacePanel({
     setComposerOpen(false);
   }
 
-  // Escape closes when focus is inside the panel (all breakpoints). In modal
-  // mode, keep Tab focus contained within the panel.
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
-    if (!modal || e.key !== "Tab") return;
-    const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
-      'a[href],button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])'
-    );
-    if (!focusables || focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
-    }
-  }
-
   return (
-    <div
-      ref={panelRef}
-      tabIndex={-1}
-      role={modal ? "dialog" : "complementary"}
-      aria-modal={modal ? true : undefined}
-      aria-label={`${branch.spaceName}, ${branch.name}`}
-      onKeyDown={handleKeyDown}
-      className="flex h-full w-full flex-col border-l border-border bg-card outline-none"
-    >
+    <PanelShell label={`${branch.spaceName}, ${branch.name}`} modal={modal} onClose={onClose}>
       <SpacePanelHeader branch={branch} onClose={onClose} onOverflow={onOpenSettings} />
 
       {/* Body: scrolls independently; sections self-omit when empty, and
@@ -145,6 +102,6 @@ export default function SpacePanel({
       </div>
 
       <SpacePanelFooter onOpenSettings={onOpenSettings} />
-    </div>
+    </PanelShell>
   );
 }
