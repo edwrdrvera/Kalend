@@ -24,7 +24,7 @@ export function draftPatch(task: CalendarTask, draft: TaskDraft): TaskPatchReque
   const title = draft.title.trim();
   if (title !== saved.title) patch.title = title;
   if (draft.dueDate !== saved.dueDate) {
-    // Same end-of-day convention as quick task creation.
+    // End of the chosen day in local time, like the task create dialog.
     patch.due_at = draft.dueDate ? new Date(`${draft.dueDate}T23:59:00`).toISOString() : null;
   }
   if (draft.categoryId !== saved.categoryId) patch.category_id = draft.categoryId;

@@ -213,10 +213,12 @@ export default function Calendar() {
   const { activeBranch, activeTask } = panel;
   const rightPanelOpen = activeBranch !== null || panel.allTasksOpen || activeTask !== null;
 
-  const handleDeleteTask = (task: CalendarTask) => {
+  // Close only after the server confirms, so a failed delete brings the task
+  // back with its details still open.
+  const handleDeleteTask = async (task: CalendarTask) => {
+    if (!(await tasks.deleteTask(task))) return;
     panel.setEditorDirty(false);
     panel.close();
-    void tasks.deleteTask(task);
   };
 
   const renderRightPanel = (modal: boolean) => {

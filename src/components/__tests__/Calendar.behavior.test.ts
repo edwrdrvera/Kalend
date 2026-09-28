@@ -55,6 +55,7 @@ let tasks: CalendarTask[] = [];
 type Call = { url: string; method: string; body: unknown };
 let calls: Call[] = [];
 let patchResponse: { status: number; body: unknown } = { status: 200, body: null };
+let deleteStatus = 200;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -70,6 +71,7 @@ let container: HTMLDivElement | null = null;
 beforeEach(() => {
   calls = [];
   tasks = [];
+  deleteStatus = 200;
   patchResponse = { status: 200, body: { success: true, data: EVENTS[0] } };
   localStorage.clear();
   globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -80,7 +82,11 @@ beforeEach(() => {
     if (method === "GET" && url === "/api/tasks") return json({ success: true, data: tasks });
     if (method === "GET" && url === "/api/categories") return json({ success: true, data: [SPACE] });
     if (method === "PATCH") return json(patchResponse.body, patchResponse.status);
-    if (method === "DELETE") return json({ success: true });
+    if (method === "DELETE") {
+      return deleteStatus === 200
+        ? json({ success: true })
+        : json({ success: false, error: "Delete failed" }, deleteStatus);
+    }
     return json({ success: false, error: `unexpected ${method} ${url}` }, 500);
   }) as unknown as typeof fetch;
 });
@@ -332,6 +338,28 @@ describe("Calendar behavior", () => {
       expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/tasks/t1")).toBe(true);
       expect(inspector()).toBeNull();
       expect(openTitles()).toEqual([]);
+    });
+
+    it("a failed delete brings the task back with its details still open", async () => {
+      deleteStatus = 500;
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/tasks/t1")).toBe(true);
+      expect(inspector()).not.toBeNull();
+      expect(openTitles()).toContain("Essay draft");
+    });
+
+    it("Delete is unavailable while the unsaved-edits prompt is showing", async () => {
+      await mount();
+      await click(document.querySelector("[aria-label='Open task Essay draft']")!);
+      await act(async () => typeInto(inspector()!.querySelector("input")!, "Essay v2"));
+      await click(buttonByText("All tasks")!);
+
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+      expect((buttonByText("Delete") as HTMLButtonElement).disabled).toBe(true);
     });
   });
 });

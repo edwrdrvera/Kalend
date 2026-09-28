@@ -178,7 +178,13 @@ export default function TaskInspector({
             {confirmingDelete ? (
               <div role="group" aria-label="Confirm delete" className="flex items-center gap-1.5">
                 <span className="text-[12px] text-muted-foreground">Delete this task?</span>
-                <Button type="button" variant="destructive" size="sm" onClick={() => onDelete(task)}>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={navigationPending}
+                  onClick={() => onDelete(task)}
+                >
                   Delete
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setConfirmingDelete(false)}>
@@ -186,7 +192,13 @@ export default function TaskInspector({
                 </Button>
               </div>
             ) : (
-              <Button type="button" variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={navigationPending}
+                onClick={() => setConfirmingDelete(true)}
+              >
                 <Trash2 />
                 Delete
               </Button>
