@@ -86,13 +86,13 @@ describe("branchPanelReducer", () => {
 });
 
 describe("task selection and the unsaved-edits guard", () => {
-  const TASK = { kind: "task" as const, taskId: "task-1" };
+  const TASK = { kind: "task" as const, taskId: "task-1", from: null };
   const openTask = (taskId: string) => ({ type: "openTask" as const, taskId });
   const dirtyTask = (): BranchPanelState => ({ active: TASK, dirty: true, pending: null });
 
   it("openTask replaces any selection with that task's details", () => {
     const next = branchPanelReducer(withActive(SCHOOL), openTask("task-1"));
-    expect(next).toEqual(withActive(TASK));
+    expect(next).toEqual(withActive({ ...TASK, from: SCHOOL }));
   });
 
   it("spaceChanged leaves a task's details open", () => {
@@ -136,7 +136,7 @@ describe("task selection and the unsaved-edits guard", () => {
   it("proceed carries out the pending navigation and clears dirty", () => {
     const held = branchPanelReducer(dirtyTask(), openTask("task-2"));
     expect(branchPanelReducer(held, { type: "proceed" })).toEqual(
-      withActive({ kind: "task", taskId: "task-2" })
+      withActive({ kind: "task", taskId: "task-2", from: null })
     );
   });
 
@@ -160,6 +160,52 @@ describe("task selection and the unsaved-edits guard", () => {
     const next = branchPanelReducer(held, openTask("task-2"));
     expect(next.pending).toEqual(openTask("task-2"));
     expect(next.active).toEqual(TASK);
+  });
+});
+
+describe("item origin and Back", () => {
+  const ALL_TASKS = { kind: "allTasks" as const };
+  const EVENT_FROM_SCHOOL = { kind: "event" as const, eventId: "event-1", from: SCHOOL };
+
+  it("openEvent records the overview it was opened from", () => {
+    const next = branchPanelReducer(withActive(SCHOOL), { type: "openEvent", eventId: "event-1" });
+    expect(next).toEqual(withActive(EVENT_FROM_SCHOOL));
+  });
+
+  it("openEvent with nothing open has no origin", () => {
+    const next = branchPanelReducer(initialBranchPanelState, { type: "openEvent", eventId: "event-1" });
+    expect(next).toEqual(withActive({ kind: "event", eventId: "event-1", from: null }));
+  });
+
+  it("opening an item from another item keeps the first item's origin", () => {
+    const next = branchPanelReducer(withActive(EVENT_FROM_SCHOOL), { type: "openTask", taskId: "task-1" });
+    expect(next).toEqual(withActive({ kind: "task", taskId: "task-1", from: SCHOOL }));
+  });
+
+  it("back returns a task opened from All tasks to All tasks", () => {
+    const task = branchPanelReducer(withActive(ALL_TASKS), { type: "openTask", taskId: "task-1" });
+    expect(branchPanelReducer(task, { type: "back" })).toEqual(withActive(ALL_TASKS));
+  });
+
+  it("back returns an event to the Branch it was opened from", () => {
+    expect(branchPanelReducer(withActive(EVENT_FROM_SCHOOL), { type: "back" })).toEqual(withActive(SCHOOL));
+  });
+
+  it("back closes the panel when the item has no origin", () => {
+    const event = withActive({ kind: "event", eventId: "event-1", from: null });
+    expect(branchPanelReducer(event, { type: "back" })).toEqual(initialBranchPanelState);
+  });
+
+  it("back is held by unsaved edits, and proceed then returns to the origin", () => {
+    const dirty: BranchPanelState = { active: EVENT_FROM_SCHOOL, dirty: true, pending: null };
+    const held = branchPanelReducer(dirty, { type: "back" });
+    expect(held).toEqual({ ...dirty, pending: { type: "back" } });
+    expect(branchPanelReducer(held, { type: "proceed" })).toEqual(withActive(SCHOOL));
+  });
+
+  it("does not restore an event's details after a reload", () => {
+    saveBranchPanelState(withActive(EVENT_FROM_SCHOOL));
+    expect(loadBranchPanelState()).toEqual(initialBranchPanelState);
   });
 });
 

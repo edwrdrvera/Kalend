@@ -43,7 +43,7 @@ async function renderInspector() {
     const [task, setTask] = useState(TASK);
     const [panel, dispatch] = useReducer(branchPanelReducer, {
       ...initialBranchPanelState,
-      active: { kind: "task", taskId: TASK.id },
+      active: { kind: "task", taskId: TASK.id, from: null },
     });
     return createElement(
       "div",

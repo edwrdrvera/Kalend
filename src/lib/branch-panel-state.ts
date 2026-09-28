@@ -1,13 +1,21 @@
-export type PanelSelection =
+/** An overview an item can be opened from, and that Back returns to. */
+export type PanelOverview =
   | { kind: "branch"; branchId: string; spaceId: string }
-  | { kind: "allTasks" }
-  | { kind: "task"; taskId: string };
+  | { kind: "allTasks" };
+
+export type PanelSelection =
+  | PanelOverview
+  | { kind: "task"; taskId: string; from: PanelOverview | null }
+  | { kind: "event"; eventId: string; from: PanelOverview | null };
 
 /** A request that would replace or close the current selection. */
 export type PanelNavigation =
   | { type: "openBranch"; branchId: string; spaceId: string }
   | { type: "openAllTasks" }
   | { type: "openTask"; taskId: string }
+  | { type: "openEvent"; eventId: string }
+  /** Return to the overview the open item came from, or close without one. */
+  | { type: "back" }
   | { type: "close" }
   | { type: "spaceChanged"; spaceId: string | null };
 
@@ -33,6 +41,13 @@ export type BranchPanelAction =
   /** Drop the pending navigation and keep editing. */
   | { type: "stay" };
 
+// Opening an item from another item keeps the first item's origin, so Back
+// still leads to the list the user started from.
+function originOf(active: PanelSelection | null): PanelOverview | null {
+  if (active === null) return null;
+  return active.kind === "task" || active.kind === "event" ? active.from : active;
+}
+
 // Returns `active` itself when the navigation changes nothing, which is how
 // the reducer tells a no-op apart from a navigation the dirty guard must hold.
 function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSelection | null {
@@ -46,7 +61,13 @@ function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSel
     case "openTask":
       return active?.kind === "task" && active.taskId === nav.taskId
         ? active
-        : { kind: "task", taskId: nav.taskId };
+        : { kind: "task", taskId: nav.taskId, from: originOf(active) };
+    case "openEvent":
+      return active?.kind === "event" && active.eventId === nav.eventId
+        ? active
+        : { kind: "event", eventId: nav.eventId, from: originOf(active) };
+    case "back":
+      return active?.kind === "task" || active?.kind === "event" ? active.from : null;
     case "close":
       return null;
     case "spaceChanged":
