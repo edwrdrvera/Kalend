@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { act, createElement, useReducer, useState } from "react";
+import { act, createElement, useEffect, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
@@ -46,7 +46,9 @@ async function renderInspector() {
 
   function App() {
     const [event, setEvent] = useState(EVENT);
-    harness.setEvent = setEvent;
+    useEffect(() => {
+      harness.setEvent = setEvent;
+    }, []);
     const [panel, dispatch] = useReducer(branchPanelReducer, {
       ...initialBranchPanelState,
       active: { kind: "event", eventId: EVENT.id, from: null },
