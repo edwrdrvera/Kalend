@@ -108,9 +108,9 @@ export function rebaseEventDraft(
     draft.colorState.colorOverridden === was.colorState.colorOverridden &&
     draft.colorState.categoryId === was.colorState.categoryId;
   return {
-    title: draft.title === was.title ? now.title : draft.title,
-    icon: draft.icon === was.icon ? now.icon : draft.icon,
-    location: draft.location === was.location ? now.location : draft.location,
+    title: draft.title.trim() === was.title ? now.title : draft.title,
+    icon: draft.icon.trim() === was.icon ? now.icon : draft.icon,
+    location: draft.location.trim() === was.location ? now.location : draft.location,
     startAt: draft.startAt === was.startAt ? now.startAt : draft.startAt,
     endAt: draft.endAt === was.endAt ? now.endAt : draft.endAt,
     colorState: sameColor ? now.colorState : draft.colorState,

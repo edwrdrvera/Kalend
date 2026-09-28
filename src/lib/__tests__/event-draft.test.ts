@@ -78,3 +78,11 @@ describe("rebaseEventDraft", () => {
     expect(next.endAt).toBe(draftFromEvent(MOVED).endAt);
   });
 });
+
+describe("rebaseEventDraft whitespace", () => {
+  it("treats a whitespace-only change as unedited, like the dirty check does", () => {
+    const moved = { ...EVENT, title: "Renamed elsewhere" };
+    const padded = { ...draftFromEvent(EVENT), title: `${EVENT.title} ` };
+    expect(rebaseEventDraft(padded, EVENT, moved).title).toBe("Renamed elsewhere");
+  });
+});

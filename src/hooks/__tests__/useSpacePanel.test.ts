@@ -94,4 +94,19 @@ describe("useSpacePanel", () => {
     expect(dispatchSpaceFocus).toHaveBeenCalledWith({ type: "select", spaceId: "space-1" });
     unmount();
   });
+
+  it("lets the next panel open once a dirty task is deleted elsewhere", async () => {
+    const { result, act, unmount } = renderHook(() => {
+      const [tasks, setTasks] = useState([TASK]);
+      return { ...useSpacePanel([], tasks, [], () => {}), setTasks };
+    });
+    await act(() => {});
+    await act(() => result.current.openTask(TASK));
+    await act(() => result.current.setEditorDirty(true));
+    await act(() => result.current.setTasks([]));
+    await act(() => result.current.openAllTasks());
+    expect(result.current.navigationPending).toBe(false);
+    expect(result.current.allTasksOpen).toBe(true);
+    unmount();
+  });
 });
