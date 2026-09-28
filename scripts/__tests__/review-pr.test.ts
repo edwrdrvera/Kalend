@@ -57,8 +57,9 @@ test("the allow list gives no write access to git or GitHub", () => {
 });
 
 describe("parseArgs", () => {
-  test("reads the PR number and --post", () => {
-    expect(parseArgs(["199", "--post"])).toEqual({ pr: "199", post: true });
+  test("reads the PR number, --post, and --force", () => {
+    expect(parseArgs(["199", "--post"])).toEqual({ pr: "199", post: true, force: false });
+    expect(parseArgs(["199", "--force"])).toEqual({ pr: "199", post: false, force: true });
   });
 
   test("refuses without a PR number", () => {

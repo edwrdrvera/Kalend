@@ -51,6 +51,19 @@ Use this template:
 - Leave out the Visual field only when nothing changes on screen, and say so.
 - For a database change, Rollback names the reverse migration or the plan to fix forward. "Revert the PR" isn't enough once a migration has run.
 
+### Trivial tier
+
+A trivial PR (under 40 changed lines, no high-tier file) posts no report comment. End the PR body with one line: `Verified: [what you ran or checked, and what you saw]`.
+
+### Short form (low tier only)
+
+A low-tier PR changes nothing risky, so the report is three lines:
+
+**Confidence report**
+* **What changed:** [The behavior that is different now]
+* **How verified:** [Checks you ran, and what you saw in the browser if it's visible]
+* **Not verified:** [Everything you couldn't check, and why]. Write "Nothing" only if that's true.
+
 ## Issues
 
 Every GitHub issue body follows this template:

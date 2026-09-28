@@ -35,14 +35,42 @@ export function reviewTier(files: readonly string[]): Tier {
   }, "low");
 }
 
+// A PR's tier also weighs its size. A small diff with no high-tier file is
+// trivial: the whole diff reads faster than a report about it. A large low diff
+// (many component files at once) is bumped to medium: size alone can hide a logic bug.
+export const maxTrivialLines = 40;
+export const maxLowTierLines = 150;
+
+export type PrTier = "trivial" | Tier;
+export type ChangedFile = { path: string; additions: number; deletions: number };
+
+export function prTier(files: readonly ChangedFile[]): PrTier {
+  const tier = reviewTier(files.map((file) => file.path));
+  const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  if (tier !== "high" && lines < maxTrivialLines) return "trivial";
+  return tier === "low" && lines > maxLowTierLines ? "medium" : tier;
+}
+
 if (import.meta.main) {
   const base = process.argv[2] ?? "origin/develop";
-  const diff = Bun.spawnSync(["git", "diff", "--name-only", `${base}...HEAD`]);
+  const diff = Bun.spawnSync(["git", "diff", "--numstat", `${base}...HEAD`]);
   if (diff.exitCode !== 0) {
     console.error(diff.stderr.toString());
     process.exit(1);
   }
-  const files = diff.stdout.toString().split("\n").filter(Boolean);
-  console.log(`Review tier: ${reviewTier(files)}`);
-  for (const file of files) console.log(`  ${tierOf(file).padEnd(6)} ${file}`);
+  // Binary files report "-" for both counts, which counts as 0 lines.
+  const files = diff.stdout
+    .toString()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => {
+      const [additions, deletions, path] = line.split("\t");
+      return { path, additions: Number(additions) || 0, deletions: Number(deletions) || 0 };
+    });
+  const lines = files.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+  const tier = prTier(files);
+  const fileTier = reviewTier(files.map((file) => file.path));
+  const why = tier === fileTier ? "" : ` (${fileTier} files, ${lines} changed lines)`;
+  console.log(`Review tier: ${tier}${why}`);
+  for (const file of files) console.log(`  ${tierOf(file.path).padEnd(6)} ${file.path}`);
 }
