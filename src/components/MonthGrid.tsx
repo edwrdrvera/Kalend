@@ -15,6 +15,7 @@ import {
   addDays,
 } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { tasksDueOn } from "@/lib/day-agenda";
 import { cn } from "@/lib/utils";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
@@ -57,10 +58,6 @@ function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
 
 /** Tasks due on this exact day. Unlike events, a task's due date is a
  *  single point in time, not a range, so this is a same-day check. */
-function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
-  return tasks.filter((task) => task.due_at && isSameDay(new Date(task.due_at), day));
-}
-
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
@@ -177,7 +174,7 @@ function DayCell({
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
-  const dayTasks = getTasksForDay(day, tasks);
+  const dayTasks = tasksDueOn(tasks, day);
 
   // Single click selects the day (the agenda/side nav follows); double click on
   // an empty part of the cell opens the event creator. The double-click guard

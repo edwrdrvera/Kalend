@@ -1,7 +1,7 @@
 "use client";
 
-import { isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
+import { tasksDueOn } from "@/lib/day-agenda";
 import TaskChip from "./TaskChip";
 
 interface TaskDueRowProps {
@@ -11,10 +11,6 @@ interface TaskDueRowProps {
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   onTaskClick?: (task: CalendarTask) => void;
-}
-
-function getTasksForDay(day: Date, tasks: CalendarTask[]): CalendarTask[] {
-  return tasks.filter((task) => task.due_at && isSameDay(new Date(task.due_at), day));
 }
 
 /** Row for task due dates, separate from AllDayRow's event bars: a task
@@ -33,7 +29,7 @@ export default function TaskDueRow({ days, tasks, categories, onTaskClick }: Tas
       >
         {days.map((day) => (
           <div key={day.getTime()} className="flex flex-col gap-1 p-2">
-            {getTasksForDay(day, tasks).map((task) => (
+            {tasksDueOn(tasks, day).map((task) => (
               <TaskChip key={task.id} task={task} categories={categories} onClick={onTaskClick} />
             ))}
           </div>
