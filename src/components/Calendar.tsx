@@ -243,7 +243,6 @@ export default function Calendar() {
     panel.close();
   };
 
-  // Neither the Space link nor Back touches the calendar's date or view.
   const inspectorNav = (categoryId: string | null): InspectorNav => {
     const category = categories.data.find((c) => c.id === categoryId);
     const spaceBranch = category ? branchesForSpace(category)[0] : null;

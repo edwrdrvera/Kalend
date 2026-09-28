@@ -22,9 +22,7 @@ export function InspectorHeader({
   nav,
   onClose,
 }: {
-  /** "Task details" or "Event details". */
   title: string;
-  /** The item's saved title, for the breadcrumb. */
   itemTitle: string;
   nav: InspectorNav;
   onClose: () => void;
@@ -79,7 +77,6 @@ export function InspectorFooter({
   navigationPending,
   onDelete,
 }: {
-  /** "task" or "event", for the confirm text. */
   noun: string;
   dirty: boolean;
   saving: boolean;
