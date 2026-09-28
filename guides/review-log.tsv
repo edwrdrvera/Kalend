@@ -1,1 +1,2 @@
 pr	date	tier	reviewer_version	finding	severity	outcome
+208	2026-09-28	medium	84d90a7	tasksDueOn duplicated two existing same-day task filters (MonthGrid, TaskDueRow)	low	real-fixed
