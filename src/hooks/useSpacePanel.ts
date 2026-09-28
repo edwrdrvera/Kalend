@@ -36,9 +36,9 @@ export function useSpacePanel(
     return () => window.removeEventListener("resize", compute);
   }, []);
 
-  const activeBranch = branchPanel.active
-    ? findBranch(categories, branchPanel.active.branchId)
-    : null;
+  const selection = branchPanel.active;
+  const activeBranch =
+    selection?.kind === "branch" ? findBranch(categories, selection.branchId) : null;
   const activeSpaceId = activeBranch?.spaceId ?? null;
 
   useEffect(() => {
@@ -48,12 +48,14 @@ export function useSpacePanel(
   return {
     panelMode,
     activeBranch,
-    activeBranchId: branchPanel.active?.branchId ?? null,
+    activeBranchId: selection?.kind === "branch" ? selection.branchId : null,
+    allTasksOpen: selection?.kind === "allTasks",
     panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
     openBranch: (branch: Branch) => {
       dispatchSpaceFocus({ type: "select", spaceId: branch.spaceId });
       dispatch({ type: "openBranch", branchId: branch.id, spaceId: branch.spaceId });
     },
+    openAllTasks: () => dispatch({ type: "openAllTasks" }),
     close: () => dispatch({ type: "close" }),
     selectSpace: (spaceId: string | null) => {
       dispatchSpaceFocus({ type: "select", spaceId });

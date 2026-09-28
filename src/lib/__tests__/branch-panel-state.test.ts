@@ -10,7 +10,7 @@ import {
   type BranchPanelState,
 } from "../branch-panel-state";
 
-const SCHOOL = { branchId: "cat-school:default", spaceId: "cat-school" };
+const SCHOOL = { kind: "branch" as const, branchId: "cat-school:default", spaceId: "cat-school" };
 
 describe("branchPanelReducer", () => {
   it("openBranch opens the panel on that branch", () => {
@@ -33,7 +33,26 @@ describe("branchPanelReducer", () => {
       branchId: "cat-work:default",
       spaceId: "cat-work",
     });
-    expect(second).toEqual({ active: { branchId: "cat-work:default", spaceId: "cat-work" } });
+    expect(second).toEqual({
+      active: { kind: "branch", branchId: "cat-work:default", spaceId: "cat-work" },
+    });
+  });
+
+  it("openAllTasks replaces an open branch with the All tasks view", () => {
+    const open = branchPanelReducer(initialBranchPanelState, {
+      type: "openBranch",
+      branchId: "cat-school:default",
+      spaceId: "cat-school",
+    });
+    expect(branchPanelReducer(open, { type: "openAllTasks" })).toEqual({
+      active: { kind: "allTasks" },
+    });
+  });
+
+  it("spaceChanged leaves the All tasks view open", () => {
+    const allTasks = branchPanelReducer(initialBranchPanelState, { type: "openAllTasks" });
+    const changed = branchPanelReducer(allTasks, { type: "spaceChanged", spaceId: "cat-work" });
+    expect(changed).toEqual({ active: { kind: "allTasks" } });
   });
 
   it("close closes the panel", () => {
@@ -114,10 +133,23 @@ describe("branch panel persistence", () => {
     expect(loadBranchPanelState()).toEqual(initialBranchPanelState);
   });
 
+  it("loads the pre-union { active: { branchId, spaceId } } shape as closed", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ active: { branchId: "cat-school:default", spaceId: "cat-school" } })
+    );
+    expect(loadBranchPanelState()).toEqual(initialBranchPanelState);
+  });
+
+  it("does not restore the All tasks view after a reload", () => {
+    saveBranchPanelState({ active: { kind: "allTasks" } });
+    expect(loadBranchPanelState()).toEqual(initialBranchPanelState);
+  });
+
   it("returns the initial state when active is missing its spaceId", () => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ active: { branchId: "cat-school:default" } })
+      JSON.stringify({ active: { kind: "branch", branchId: "cat-school:default" } })
     );
     expect(loadBranchPanelState()).toEqual(initialBranchPanelState);
   });
