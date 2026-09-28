@@ -6,6 +6,7 @@ import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import {
   draftFromEvent,
+  rebaseEventDraft,
   eventDraftValues,
   isEventDraftDirty,
   MAX_ICON_LENGTH,
@@ -59,6 +60,11 @@ export default function EventInspector({
   onStay,
 }: EventInspectorProps) {
   const [draft, setDraft] = useState<EventDraft>(() => draftFromEvent(event));
+  const [seenEvent, setSeenEvent] = useState(event);
+  if (seenEvent !== event) {
+    setSeenEvent(event);
+    setDraft((d) => rebaseEventDraft(d, seenEvent, event));
+  }
   const dirty = isEventDraftDirty(event, draft);
   const { values, error: invalidReason } = eventDraftValues(draft);
   const { saving, saveError, clearError, handleSubmit, saveAndProceed } = useInspectorSave({
