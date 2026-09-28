@@ -56,6 +56,7 @@ async function renderInspector() {
           task,
           categories: [],
           modal: false,
+          nav: { space: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (t, patch) => {
             harness.saves.push(patch);
@@ -228,6 +229,7 @@ describe("TaskInspector", () => {
           task: { ...TASK, due_at: "2026-10-01T23:59:00" },
           categories: [],
           modal: false,
+          nav: { space: null, back: null },
           onClose: () => {},
           onSave: async (_t, patch) => {
             saves.push(patch);

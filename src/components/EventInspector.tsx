@@ -21,6 +21,7 @@ import {
   FIELD_LABEL_CLS,
   InspectorFooter,
   InspectorHeader,
+  type InspectorNav,
   UnsavedChangesPrompt,
 } from "./InspectorParts";
 
@@ -28,6 +29,7 @@ interface EventInspectorProps {
   event: CalendarEvent;
   categories: CalendarCategory[];
   modal: boolean;
+  nav: InspectorNav;
   onClose: () => void;
   /** Resolves false when the save failed, so the draft stays. */
   onSave: (event: CalendarEvent, values: EventFormValues) => Promise<boolean>;
@@ -47,6 +49,7 @@ export default function EventInspector({
   event,
   categories,
   modal,
+  nav,
   onClose,
   onSave,
   onDelete,
@@ -74,7 +77,7 @@ export default function EventInspector({
 
   return (
     <PanelShell label="Event details" modal={modal} onClose={onClose}>
-      <InspectorHeader title="Event details" onClose={onClose} />
+      <InspectorHeader title="Event details" itemTitle={event.title} nav={nav} onClose={onClose} />
 
       {navigationPending && (
         <UnsavedChangesPrompt noun="event" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />

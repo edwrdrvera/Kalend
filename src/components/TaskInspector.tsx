@@ -13,6 +13,7 @@ import {
   ICON_BUTTON_CLS,
   InspectorFooter,
   InspectorHeader,
+  type InspectorNav,
   UnsavedChangesPrompt,
 } from "./InspectorParts";
 import { useInspectorSave } from "@/hooks/useInspectorSave";
@@ -21,6 +22,7 @@ interface TaskInspectorProps {
   task: CalendarTask;
   categories: CalendarCategory[];
   modal: boolean;
+  nav: InspectorNav;
   onClose: () => void;
   /** Resolves false when the save failed, so the draft stays. */
   onSave: (task: CalendarTask, patch: TaskPatchRequest) => Promise<boolean>;
@@ -39,6 +41,7 @@ export default function TaskInspector({
   task,
   categories,
   modal,
+  nav,
   onClose,
   onSave,
   onToggleComplete,
@@ -68,7 +71,7 @@ export default function TaskInspector({
 
   return (
     <PanelShell label="Task details" modal={modal} onClose={onClose}>
-      <InspectorHeader title="Task details" onClose={onClose} />
+      <InspectorHeader title="Task details" itemTitle={task.title} nav={nav} onClose={onClose} />
 
       {navigationPending && (
         <UnsavedChangesPrompt noun="task" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />

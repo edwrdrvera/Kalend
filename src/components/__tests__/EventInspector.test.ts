@@ -63,6 +63,7 @@ async function renderInspector() {
           event,
           categories: CATEGORIES,
           modal: false,
+          nav: { space: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (e, values) => {
             harness.saves.push(values);
@@ -124,6 +125,15 @@ describe("EventInspector", () => {
     expect(document.querySelector<HTMLInputElement>('[aria-label="Start time"]')).not.toBeNull();
     expect([...document.querySelectorAll("input")].some((i) => i.value === "Room 204")).toBe(true);
     expect(spaceLabel()).toBe("Space: Work");
+  });
+
+  it("without a Space, the breadcrumb is just the saved title and there is no Back", async () => {
+    await renderInspector();
+    await editTitle("Retro");
+    const crumbs = document.querySelector("nav[aria-label='Breadcrumb']");
+    expect(crumbs?.textContent).toBe("Standup");
+    expect(crumbs?.querySelector("button")).toBeNull();
+    expect(document.querySelector("[aria-label^='Back to']")).toBeNull();
   });
 
   it("disables Save until something changes, then saves every field and becomes clean", async () => {

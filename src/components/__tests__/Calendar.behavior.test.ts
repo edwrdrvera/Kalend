@@ -398,6 +398,75 @@ describe("Calendar behavior", () => {
     expect(panelIsSheet()).toBe(true);
   });
 
+  describe("breadcrumb and Back", () => {
+    const breadcrumb = () => document.querySelector("nav[aria-label='Breadcrumb']");
+    const calendarPosition = () => ({
+      title: document.querySelector("h1")?.textContent,
+      view: [...document.querySelectorAll("button[aria-pressed='true']")]
+        .map((b) => b.textContent)
+        .find((t) => /(Week|Month|Day)$/.test(t ?? "")),
+    });
+    const allTasksPanel = () => document.querySelector("[role='complementary'][aria-label='All tasks']");
+
+    beforeEach(() => {
+      tasks = [ESSAY];
+      testWindow.happyDOM.setInnerWidth(1300);
+    });
+
+    it("names the Space and the item, and the Space opens its overview without moving the calendar", async () => {
+      await mount();
+      await switchView("Month");
+      const before = calendarPosition();
+      await click(eventBlock("Lecture"));
+      expect(breadcrumb()?.textContent).toBe("School/Lecture");
+      expect(document.querySelector("[aria-label^='Back to']")).toBeNull();
+
+      await click([...breadcrumb()!.querySelectorAll("button")].find((b) => b.textContent === "School")!);
+      expect(eventDetails()).toBeNull();
+      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
+        active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
+      });
+      expect(calendarPosition()).toEqual(before);
+    });
+
+    it("Back from a task opened in All tasks returns to All tasks", async () => {
+      await mount();
+      await click(buttonByText("All tasks")!);
+      await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
+      expect(allTasksPanel()).toBeNull();
+
+      await click(document.querySelector("[aria-label='Back to All tasks']")!);
+      expect(allTasksPanel()).not.toBeNull();
+    });
+
+    it("Back from an event opened over a Space overview returns to that overview", async () => {
+      await mount();
+      await openSchoolBranch();
+      await click(eventBlock("Lecture"));
+      expect(eventDetails()).not.toBeNull();
+
+      await click(document.querySelector("[aria-label='Back to School']")!);
+      expect(eventDetails()).toBeNull();
+      expect(panelOpen()).toBe(true);
+      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!).active?.kind).toBe("branch");
+    });
+
+    it("Back waits for the unsaved-edits answer", async () => {
+      await mount();
+      await click(buttonByText("All tasks")!);
+      await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
+      const input = document.querySelector("[aria-label='Task details'] input") as HTMLInputElement;
+      await act(async () => typeInto(input, "Essay v2"));
+
+      await click(document.querySelector("[aria-label='Back to All tasks']")!);
+      expect(allTasksPanel()).toBeNull();
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+
+      await click(buttonByText("Discard")!);
+      expect(allTasksPanel()).not.toBeNull();
+    });
+  });
+
   describe("task details", () => {
     const openTitles = () =>
       [...document.querySelectorAll<HTMLElement>("button[aria-label^='Open task']")].map(

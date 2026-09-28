@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
-import { branchesForSpaces } from "@/lib/branch-stub";
+import { branchesForSpace, branchesForSpaces, findBranch } from "@/lib/branch-stub";
+import type { InspectorNav } from "./InspectorParts";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
@@ -242,6 +243,23 @@ export default function Calendar() {
     panel.close();
   };
 
+  // Neither the Space link nor Back touches the calendar's date or view.
+  const inspectorNav = (categoryId: string | null): InspectorNav => {
+    const category = categories.data.find((c) => c.id === categoryId);
+    const spaceBranch = category ? branchesForSpace(category)[0] : null;
+    const { backTarget } = panel;
+    const backLabel =
+      backTarget?.kind === "allTasks"
+        ? "All tasks"
+        : backTarget
+          ? (findBranch(categories.data, backTarget.branchId)?.name ?? null)
+          : null;
+    return {
+      space: category && spaceBranch ? { name: category.name, onOpen: () => panel.openBranch(spaceBranch) } : null,
+      back: backLabel ? { label: backLabel, onBack: panel.back } : null,
+    };
+  };
+
   const renderRightPanel = (modal: boolean) => {
     if (activeBranch) {
       return (
@@ -278,6 +296,7 @@ export default function Calendar() {
           task={activeTask}
           categories={categories.data}
           modal={modal}
+          nav={inspectorNav(activeTask.category_id)}
           onClose={panel.close}
           onSave={tasks.updateTask}
           onToggleComplete={tasks.toggleComplete}
@@ -296,6 +315,7 @@ export default function Calendar() {
           event={activeEvent}
           categories={categories.data}
           modal={modal}
+          nav={inspectorNav(activeEvent.category_id)}
           onClose={panel.close}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
