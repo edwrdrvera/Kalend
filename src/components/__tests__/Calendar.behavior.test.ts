@@ -154,6 +154,9 @@ async function rightClick(el: Element) {
   await settle();
 }
 
+// A failed `expect(element).toBeNull()` makes bun print the whole happy-dom
+// tree, which hangs the run. Assert on a boolean instead.
+const isAbsent = (el: Element | null) => el === null;
 const eventDetails = () => document.querySelector("[aria-label='Event details']");
 const createPopover = () => document.querySelector("[role='dialog'][aria-label='Create event']");
 const titleField = () => eventDetails()!.querySelector<HTMLInputElement>("#event-inspector-title")!;
@@ -191,11 +194,11 @@ describe("Calendar behavior", () => {
       await mount();
       await click(eventBlock("Lecture"));
       expect(eventDetails()).not.toBeNull();
-      expect(createPopover()).toBeNull();
+      expect(isAbsent(createPopover())).toBe(true);
       expect(titleField().value).toBe("Lecture");
 
       await click(document.querySelector("[aria-label='Close event details']")!);
-      expect(eventDetails()).toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
     });
 
     const entryPoints: { name: string; open: () => Promise<void> }[] = [
@@ -226,7 +229,7 @@ describe("Calendar behavior", () => {
         await mount();
         await open();
         expect(eventDetails()).not.toBeNull();
-        expect(createPopover()).toBeNull();
+        expect(isAbsent(createPopover())).toBe(true);
       });
     }
 
@@ -234,7 +237,7 @@ describe("Calendar behavior", () => {
       await mount();
       await createFromSlotMenu();
       expect(createPopover()).not.toBeNull();
-      expect(eventDetails()).toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
     });
 
     it("opening an event closes an open create popover", async () => {
@@ -243,7 +246,7 @@ describe("Calendar behavior", () => {
       expect(createPopover()).not.toBeNull();
 
       await click(eventBlock("Lecture"));
-      expect(createPopover()).toBeNull();
+      expect(isAbsent(createPopover())).toBe(true);
       expect(eventDetails()).not.toBeNull();
     });
 
@@ -287,7 +290,7 @@ describe("Calendar behavior", () => {
       await click(document.querySelector("[aria-label='Confirm delete'] button")!);
 
       expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/events/e1")).toBe(true);
-      expect(eventDetails()).toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
       expect(() => eventBlock("Lecture")).toThrow();
     });
 
@@ -419,10 +422,10 @@ describe("Calendar behavior", () => {
       const before = calendarPosition();
       await click(eventBlock("Lecture"));
       expect(breadcrumb()?.textContent).toBe("School/Lecture");
-      expect(document.querySelector("[aria-label^='Back to']")).toBeNull();
+      expect(isAbsent(document.querySelector("[aria-label^='Back to']"))).toBe(true);
 
       await click([...breadcrumb()!.querySelectorAll("button")].find((b) => b.textContent === "School")!);
-      expect(eventDetails()).toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
       expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
         active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
       });
@@ -433,7 +436,7 @@ describe("Calendar behavior", () => {
       await mount();
       await click(buttonByText("All tasks")!);
       await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
-      expect(allTasksPanel()).toBeNull();
+      expect(isAbsent(allTasksPanel())).toBe(true);
 
       await click(document.querySelector("[aria-label='Back to All tasks']")!);
       expect(allTasksPanel()).not.toBeNull();
@@ -446,7 +449,7 @@ describe("Calendar behavior", () => {
       expect(eventDetails()).not.toBeNull();
 
       await click(document.querySelector("[aria-label='Back to School']")!);
-      expect(eventDetails()).toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
       expect(panelOpen()).toBe(true);
       expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!).active?.kind).toBe("branch");
     });
@@ -459,7 +462,7 @@ describe("Calendar behavior", () => {
       await act(async () => typeInto(input, "Essay v2"));
 
       await click(document.querySelector("[aria-label='Back to All tasks']")!);
-      expect(allTasksPanel()).toBeNull();
+      expect(isAbsent(allTasksPanel())).toBe(true);
       expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
 
       await click(buttonByText("Discard")!);
