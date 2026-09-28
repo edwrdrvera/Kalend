@@ -94,3 +94,25 @@ export function isEventDraftDirty(event: CalendarEvent, draft: EventDraft): bool
     draft.colorState.categoryId !== saved.colorState.categoryId
   );
 }
+
+/** Moves the fields the user hasn't edited onto the newly saved event and keeps the edited ones. */
+export function rebaseEventDraft(
+  draft: EventDraft,
+  previous: CalendarEvent,
+  next: CalendarEvent
+): EventDraft {
+  const was = draftFromEvent(previous);
+  const now = draftFromEvent(next);
+  const sameColor =
+    draft.colorState.color === was.colorState.color &&
+    draft.colorState.colorOverridden === was.colorState.colorOverridden &&
+    draft.colorState.categoryId === was.colorState.categoryId;
+  return {
+    title: draft.title.trim() === was.title ? now.title : draft.title,
+    icon: draft.icon.trim() === was.icon ? now.icon : draft.icon,
+    location: draft.location.trim() === was.location ? now.location : draft.location,
+    startAt: draft.startAt === was.startAt ? now.startAt : draft.startAt,
+    endAt: draft.endAt === was.endAt ? now.endAt : draft.endAt,
+    colorState: sameColor ? now.colorState : draft.colorState,
+  };
+}

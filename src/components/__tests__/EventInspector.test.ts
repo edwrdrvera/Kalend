@@ -38,13 +38,15 @@ interface Harness {
   saves: EventFormValues[];
   deletes: string[];
   saveResult: boolean;
+  setEvent: (event: CalendarEvent) => void;
 }
 
 async function renderInspector() {
-  const harness: Harness = { saves: [], deletes: [], saveResult: true };
+  const harness: Harness = { saves: [], deletes: [], saveResult: true, setEvent: () => {} };
 
   function App() {
     const [event, setEvent] = useState(EVENT);
+    harness.setEvent = setEvent;
     const [panel, dispatch] = useReducer(branchPanelReducer, {
       ...initialBranchPanelState,
       active: { kind: "event", eventId: EVENT.id, from: null },
@@ -228,5 +230,25 @@ describe("EventInspector", () => {
     await editTitle("Retro");
     await click("Outside close");
     expect(document.querySelector<HTMLButtonElement>('[aria-label="Confirm delete"] button')?.disabled).toBe(true);
+  });
+
+  it("follows the event when it moves elsewhere, keeping an edited title", async () => {
+    const harness = await renderInspector();
+    await editTitle("Retro");
+    await act(async () =>
+      harness.setEvent({ ...EVENT, start_at: "2026-09-09T16:00:00.000Z", end_at: "2026-09-09T17:00:00.000Z" })
+    );
+    expect(titleInput().value).toBe("Retro");
+    await click("Save");
+    expect(harness.saves.at(-1)?.startAt).toBe("2026-09-09T16:00:00.000Z");
+    expect(harness.saves.at(-1)?.title).toBe("Retro");
+  });
+
+  it("stays clean when an unedited event moves elsewhere", async () => {
+    const harness = await renderInspector();
+    await act(async () =>
+      harness.setEvent({ ...EVENT, start_at: "2026-09-09T16:00:00.000Z", end_at: "2026-09-09T17:00:00.000Z" })
+    );
+    expect(button("Save")?.disabled).toBe(true);
   });
 });

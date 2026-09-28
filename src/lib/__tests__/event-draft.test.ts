@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { CalendarEvent } from "../calendar-types";
-import { draftFromEvent, eventDraftValues, isEventDraftDirty } from "../event-draft";
+import { draftFromEvent, eventDraftValues, isEventDraftDirty, rebaseEventDraft } from "../event-draft";
 
 const EVENT: CalendarEvent = {
   id: "event-1",
@@ -46,5 +46,43 @@ describe("event draft", () => {
       location: null,
       icon: null,
     });
+  });
+});
+
+describe("rebaseEventDraft", () => {
+  const MOVED: CalendarEvent = {
+    ...EVENT,
+    start_at: "2026-09-09T16:00:00.000Z",
+    end_at: "2026-09-09T17:30:00.000Z",
+  };
+
+  it("an unedited draft follows the moved event and stays clean", () => {
+    const next = rebaseEventDraft(draftFromEvent(EVENT), EVENT, MOVED);
+    expect(next).toEqual(draftFromEvent(MOVED));
+    expect(isEventDraftDirty(MOVED, next)).toBe(false);
+  });
+
+  it("keeps an edited title and takes the new times", () => {
+    const edited = { ...draftFromEvent(EVENT), title: "Retro" };
+    const next = rebaseEventDraft(edited, EVENT, MOVED);
+    expect(next.title).toBe("Retro");
+    expect(next.startAt).toBe(draftFromEvent(MOVED).startAt);
+    expect(next.endAt).toBe(draftFromEvent(MOVED).endAt);
+    expect(eventDraftValues(next).values?.startAt).toBe(MOVED.start_at);
+  });
+
+  it("keeps times the user typed", () => {
+    const edited = { ...draftFromEvent(EVENT), startAt: "2026-09-10T08:00" };
+    const next = rebaseEventDraft(edited, EVENT, MOVED);
+    expect(next.startAt).toBe("2026-09-10T08:00");
+    expect(next.endAt).toBe(draftFromEvent(MOVED).endAt);
+  });
+});
+
+describe("rebaseEventDraft whitespace", () => {
+  it("treats a whitespace-only change as unedited, like the dirty check does", () => {
+    const moved = { ...EVENT, title: "Renamed elsewhere" };
+    const padded = { ...draftFromEvent(EVENT), title: `${EVENT.title} ` };
+    expect(rebaseEventDraft(padded, EVENT, moved).title).toBe("Renamed elsewhere");
   });
 });
