@@ -1,30 +1,35 @@
 # Tasks
 
-Persistent to-do list, shown in the agenda column and in a Space's panel. API: `/api/tasks`, `/api/tasks/<id>`.
+Persistent to-do list. API: `/api/tasks`, `/api/tasks/<id>` (rows carry `title`, `due_at`, `completed`, `category_id`).
 
 ## Sub-features
-- Create from the agenda "Tasks" section.
-- Create from a Space panel ("Open tasks" section).
-- Create from the task dialog (`TaskCreateDialog`, `Task title` field), opened by right-clicking an empty calendar slot → `Create task`.
-- Due date: the composer's `+ due date` button swaps in a date field; click that field to open the picker. After a pick the field is a button named `Due date, <Month D, YYYY>`.
-- Toggle done / not done, from the agenda row or the Space panel row (`Mark as done` / `Mark as not done`).
-- Dated tasks also render as chips on the Month grid and in the Week/Day all-day row (`TaskChip`). Clicking a chip toggles the same state; its label carries the title: `Mark as done: <title>` / `Mark as not done: <title>`.
-- Bucketing by due date relative to the real current day: Overdue, Today, This week, This month, Unscheduled (`src/lib/task-buckets.ts`).
-- No UI delete for tasks (the hook has `deleteTask`, but nothing renders a control for it).
+- All tasks panel: the agenda header's `All tasks` button opens a right-side panel (heading "All tasks", "N open across all Spaces") listing every task in due-date buckets relative to the real current day: Overdue, Today, This week, This month, Unscheduled (`src/lib/task-buckets.ts`), plus a `Completed` group. Bucket collapse persists in `localStorage["kalend:taskBuckets:collapsed"]`; `Completed` always starts collapsed.
+- Create from the All tasks panel: header `+` (`Add a task`) opens a composer: `New task title` (placeholder `Task title`), `+ due date`, a Space picker, submit `Add task` (Return submits).
+- Create from a Space panel ("Open tasks" section, `Add task` `+`, same `New task title` label, placeholder `New task`).
+- Create from the task dialog (`TaskCreateDialog`, "New task", input `Task title`, `Create`): right-click an empty calendar slot → `Create task`. The due date is fixed to the clicked day.
+- Agenda: the left column lists only tasks due on the selected day, under "Due today" or "Due this day". There is no composer in the agenda.
+- Complete: only the checkbox toggles, labeled `Mark <title> as done` / `Mark <title> as not done` on rows (agenda, All tasks, Space panel). A task marked done in the All tasks panel moves into `Completed`.
+- Open details: every task title is a button `Open task <title>` (rows and chips). It opens the Task inspector in the right panel slot (heading "Task details", close `Close task details`).
+- Task inspector: fields `Title` (textbox), `Due date` (`Due date, not selected` or `Due date, <Month D, YYYY>`), `Space` (`Space: <name>` / `Space: No Space`), a `Done` checkbox (role checkbox, saves immediately, no Save needed), `Delete`, and `Save` (disabled until an edit; `Saving…`, then `Retry` on failure).
+- Delete: inspector `Delete` → group `Confirm delete` with "Delete this task?" → `Delete` / `Cancel`. The inspector closes after the delete succeeds.
+- Unsaved changes: with a dirty draft, opening another panel (e.g. `All tasks`) shows alertdialog `Unsaved changes` ("You have unsaved changes to this task.") with `Save` / `Discard` / `Stay`. `Save` saves, then continues to the requested panel.
+- Dated tasks render as `TaskChip`s in the Week/Day all-day row: checkbox `Mark as done: <title>` / `Mark as not done: <title>` plus title button `Open task <title>`. The Month grid shows only a plain "N task(s)" count per day cell, not chips.
 
 ## How to get to it (user POV)
-Sign in → `/app`. The agenda column on the right has a **Tasks** heading with a `+`.
+Sign in → `/app` → `All tasks` at the top of the left agenda column.
 
 ## Driving it with the browser pane
-1. `find "Add a task"` → click (the `+` next to the Tasks heading).
-2. `find "New task title"` → click it, `computer {action:"type", text:"verify-task-<ts>"}`, then `computer {action:"key", text:"Return"}`. Typing matters; `form_input` may not fire React's onChange.
-3. UI proof: `find "verify-task-<ts>"` returns the row; `find "Mark as done"` near it exists.
-4. Toggle: `find "Mark as done"` returns one hit per open task, so locate your row's button in the page (`[...document.querySelectorAll('*')].find(e=>e.children.length===0&&e.textContent==='verify-task-<ts>').closest('div.flex').querySelector('button').getBoundingClientRect()`) and click its center. Screenshot coordinates are in the screenshot frame, not CSS pixels: scale by frame width / `innerWidth`. The label flips to `Mark as not done`.
-5. Persistence: in the page, `(await fetch('/api/tasks').then(r=>r.json())).data.filter(t=>t.title.startsWith('verify-'))` shows the row with `completed` matching the UI. The toggle is optimistic; wait a few seconds before the GET or it reads the old value.
-6. Cleanup: `fetch('/api/tasks/<id>', {method:'DELETE'})` for your ids.
+1. `find "All tasks"` → click the first hit. `find "Add a task"` → click. `find "New task title"` → click, `computer {action:"type", text:"verify-task-<ts>"}`, then `computer {action:"key", text:"Return"}`. Typing matters; `form_input` may not fire React's onChange.
+2. UI proof: `find "verify-task-<ts>"` returns `Mark verify-task-<ts> as done` and `Open task verify-task-<ts>`.
+3. Toggle: click `Mark verify-task-<ts> as done`. The row moves into `Completed`; click `Completed` to expand it and find `Mark verify-task-<ts> as not done`.
+4. Persistence: in the page, `(await fetch('/api/tasks').then(r=>r.json())).data.filter(t=>t.title.startsWith('verify-'))` shows `completed` matching the UI. The toggle is optimistic; wait ~3s before the GET.
+5. Inspector: click `Open task verify-task-<ts>`, `triple_click` the `Title` textbox (`read_page` on the `Task details` complementary gives its ref), type a new title. Click `All tasks` to get the `Unsaved changes` prompt and click its `Save`, or click the footer `Save` (see Gotchas). Re-GET for the new title.
+6. Dated path: right-click an empty slot → `Create task` → type in `Task title` → Return. Its chip appears in that day's all-day row (`find "Mark as done: verify-task-<ts>"`) and in the agenda when that day is selected.
+7. Cleanup through the UI: `Open task …` → `Delete` → `Delete` inside `Confirm delete`. GET confirms none remain. Fallback: `fetch('/api/tasks/<id>', {method:'DELETE'})` (the open page keeps the row until a reload).
 
 ## Gotchas
-- Two elements carry `aria-label="Add task"` (agenda submit button, Space panel). Use `Add a task` for the agenda opener.
-- Space panel composer uses the same `New task title` label; scope with `read_page` if both are open.
-- `find "Mark as done"` also hits grid chips of dated tasks. For a dated task, `find "Mark as done: verify-task-<ts>"` is a direct handle to its chip.
-- Deleting through `fetch` DELETE doesn't update the open page; the row stays on screen until a reload.
+- `aria-label="Add task"` is on two elements (Space panel `+`, All tasks composer submit). `Add a task` is unique to the All tasks header `+`.
+- `New task title` exists in both the All tasks and Space panel composers; only one is open at a time because they share the right panel slot.
+- `Mark <title> as done` and `Open task <title>` appear once per surface (agenda, All tasks, chip). Any hit acts on the same task.
+- Under `bun run dev` the Next.js dev tools badge sits over the inspector's footer `Save` at the bottom right. Use the `Unsaved changes` prompt's `Save`, or focus the button and press Return.
+- The inspector's two `Delete` buttons both say "Delete". The confirm one is inside the `Confirm delete` group (`read_page` on that group).
