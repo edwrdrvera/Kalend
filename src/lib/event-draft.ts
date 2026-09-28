@@ -3,7 +3,6 @@ import type { CalendarEvent } from "./calendar-types";
 import { initialEventColor, type EventColorState } from "./event-color-state";
 import type { EventFormValues } from "./event-form";
 
-/** Mirrors the API's field limits (`src/app/api/events/route.ts`). */
 export const MAX_LOCATION_LENGTH = 500;
 export const MAX_ICON_LENGTH = 10;
 
