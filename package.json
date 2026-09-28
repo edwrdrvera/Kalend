@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "bun --bun next dev",
-    "build": "bun --bun next build",
+    "build": "next build",
     "start": "bun --bun next start",
     "db:seed": "bun run src/db/seed.ts",
     "db:seed:demo": "bun run src/db/seed-demo-user.ts",
