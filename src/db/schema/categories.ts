@@ -6,7 +6,7 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   color: text("color").notNull().default("blue"),
   created_at: timestamp("created_at").defaultNow()
-});
+}).enableRLS();
 
 // Drizzle inferred types (server-side). For component props, use the
 // wire types from Calendar.tsx.
