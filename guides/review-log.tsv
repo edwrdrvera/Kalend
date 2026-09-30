@@ -2,3 +2,5 @@ pr	date	tier	reviewer_version	finding	severity	outcome
 208	2026-09-28	medium	84d90a7	tasksDueOn duplicated two existing same-day task filters (MonthGrid, TaskDueRow)	low	real-fixed
 218	2026-09-28	high	1f2d499	Event right-click menu had no way to open details, an entry point issue 215 names	medium	real-fixed
 218	2026-09-28	high	1f2d499	event-body.ts imported length limits from the client draft module	low	real-fixed
+225	2026-09-30	high	1f2d499	Two migration files instead of one; reviewer said leave as is	low	ignored
+225	2026-09-30	high	1f2d499	Realtime publication might still broadcast rows; checked live, no public tables are published	low	false-positive
