@@ -27,12 +27,8 @@ const VALUES: EventFormValues = {
 };
 const rect = { x: 0, y: 0, width: 10, height: 10 } as DOMRect;
 
-async function setup(writes: Partial<Record<"createEvent" | "updateEvent" | "deleteEvent", ReturnType<typeof mock>>> = {}) {
-  const events = {
-    createEvent: writes.createEvent ?? mock(async () => EVENT),
-    updateEvent: writes.updateEvent ?? mock(async () => EVENT),
-    deleteEvent: writes.deleteEvent ?? mock(async () => {}),
-  };
+async function setup(createEvent: ReturnType<typeof mock> = mock(async () => EVENT)) {
+  const events = { createEvent };
   const hook = renderHook(() => useEventEditor(events, "space-9", { current: null }));
   await hook.act(() => {});
   return { events, ...hook };
@@ -42,7 +38,6 @@ describe("useEventEditor", () => {
   it("opens a create target in the focused Space, and each open bumps the key", async () => {
     const { result, act } = await setup();
     await act(() => result.current.openCreate(new Date("2026-09-21T09:00:00Z"), rect));
-    expect(result.current.target?.event).toBeNull();
     expect(result.current.target?.initialSpaceId).toBe("space-9");
     const first = result.current.key;
     await act(() => result.current.openCreate(new Date("2026-09-21T09:00:00Z"), rect));
@@ -60,18 +55,16 @@ describe("useEventEditor", () => {
     expect(result.current.pendingRange).toBeNull();
   });
 
-  it("submitting an existing event updates it and closes", async () => {
+  it("submitting creates the event and closes", async () => {
     const { result, act, events } = await setup();
-    await act(() => result.current.openEdit(EVENT, rect));
-    expect(result.current.target?.initialSpaceId).toBe("space-1");
+    await act(() => result.current.openCreate(new Date(), rect));
     await act(() => result.current.submit(VALUES));
-    expect(events.updateEvent).toHaveBeenCalledWith("e1", VALUES);
-    expect(events.createEvent).not.toHaveBeenCalled();
+    expect(events.createEvent).toHaveBeenCalledWith(VALUES);
     expect(result.current.target).toBeNull();
   });
 
   it("a failed submit keeps the editor open with the error", async () => {
-    const { result, act } = await setup({ createEvent: mock(async () => { throw new Error("Title is required"); }) });
+    const { result, act } = await setup(mock(async () => { throw new Error("Title is required"); }));
     await act(() => result.current.openCreate(new Date(), rect));
     await act(() => result.current.submit(VALUES));
     expect(result.current.error).toBe("Title is required");

@@ -50,6 +50,10 @@ Failure modes: an inline error on the login card (wrong password; run `bun run d
 
 ## Drive
 
+Set the viewport first: `resize_window {width: 1440, height: 900}`. The pane's own size can be narrower than the desktop layout, and the right panel only pins beside the grid at 1200px and up. Reset it in Cleanup.
+
+In an unattended run the pane may be hidden, and the first `computer` input can fail with "not on screen and has not drawn yet". Take a `screenshot` and retry; `find`, `read_page`, and `javascript_tool` work regardless.
+
 Prefer handles in this order: `aria-label`, visible text, placeholder. Every one below exists in `src/components/`. Per-feature recipes live in `features/` (index: `features/README.md`). Read the feature file for what you are verifying and cover every entry point it lists.
 
 Reading state after an action: `find`/`read_page` for the UI, then for side effects run in the page (the session cookie rides along):

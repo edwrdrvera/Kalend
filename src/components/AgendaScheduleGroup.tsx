@@ -55,7 +55,7 @@ export default function AgendaScheduleGroup({
                 onEventClick(event, e.currentTarget.getBoundingClientRect())
               }
               className="flex items-center gap-2 rounded-sm px-1 py-0.5 text-left transition hover:bg-muted/45 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Edit event: ${event.title}`}
+              aria-label={`Open event: ${event.title}`}
             >
               <span className="w-[54px] shrink-0 whitespace-nowrap text-[11.5px] font-medium tabular-nums text-muted-foreground">
                 {allDay

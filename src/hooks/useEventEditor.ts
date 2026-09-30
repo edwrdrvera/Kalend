@@ -1,15 +1,13 @@
 import { useState, type RefObject } from "react";
 import type { EventFormValues } from "@/lib/event-form";
-import type { CalendarEvent } from "@/lib/calendar-types";
 import type { UseCalendarEventsReturn } from "@/hooks/useCalendarEvents";
 import { computePopoverSide } from "@/lib/popover-position";
 
-type EventWrites = Pick<UseCalendarEventsReturn, "createEvent" | "updateEvent" | "deleteEvent">;
+type EventWrites = Pick<UseCalendarEventsReturn, "createEvent">;
 
 interface EventEditorTarget {
   rect: DOMRect;
   side: "left" | "right";
-  event: CalendarEvent | null;
   start: Date;
   end: Date | null;
   initialSpaceId: string | null;
@@ -37,21 +35,12 @@ export function useEventEditor(
   };
 
   const openCreate = (day: Date, rect: DOMRect) =>
-    open({ rect, event: null, start: day, end: null, initialSpaceId: selectedSpaceId });
+    open({ rect, start: day, end: null, initialSpaceId: selectedSpaceId });
 
   const openCreateRange = (start: Date, end: Date, rect: DOMRect) => {
-    open({ rect, event: null, start, end, initialSpaceId: selectedSpaceId });
+    open({ rect, start, end, initialSpaceId: selectedSpaceId });
     setPendingRange({ start, end });
   };
-
-  const openEdit = (event: CalendarEvent, rect: DOMRect) =>
-    open({
-      rect,
-      event,
-      start: new Date(event.start_at),
-      end: new Date(event.end_at),
-      initialSpaceId: event.category_id,
-    });
 
   const close = () => {
     setTarget(null);
@@ -63,24 +52,13 @@ export function useEventEditor(
     setSubmitting(true);
     setError(null);
     try {
-      if (target.event) {
-        await events.updateEvent(target.event.id, values);
-      } else {
-        await events.createEvent(values);
-      }
+      await events.createEvent(values);
       close();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const remove = async () => {
-    if (!target?.event) return;
-    const event = target.event;
-    setTarget(null);
-    await events.deleteEvent(event);
   };
 
   return {
@@ -91,11 +69,7 @@ export function useEventEditor(
     key,
     openCreate,
     openCreateRange,
-    openEdit,
     submit,
-    remove,
     close,
-    // The breadcrumb leaves a drag-created range drawn, unlike close().
-    closeKeepingRange: () => setTarget(null),
   };
 }

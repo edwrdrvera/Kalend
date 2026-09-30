@@ -16,7 +16,8 @@ export interface UseCalendarEventsReturn {
   reconcileSpaceRemoval: (detached: CalendarEvent[], categoryId: string) => void;
   createEvent: (values: EventFormValues) => Promise<CalendarEvent>;
   updateEvent: (id: string, values: EventFormValues) => Promise<CalendarEvent>;
-  deleteEvent: (event: CalendarEvent) => Promise<void>;
+  /** Resolves false when the server rejected the delete and the event came back. */
+  deleteEvent: (event: CalendarEvent) => Promise<boolean>;
   changeEventTime: (event: CalendarEvent, start: Date, end: Date) => Promise<void>;
 }
 
@@ -120,7 +121,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
   };
 
   // Optimistic: remove from state immediately, roll back on failure.
-  const deleteEvent = async (event: CalendarEvent): Promise<void> => {
+  const deleteEvent = async (event: CalendarEvent): Promise<boolean> => {
     setEvents((prev) => prev.filter((e) => e.id !== event.id));
 
     try {
@@ -130,11 +131,13 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
         undefined,
         "Failed to delete event"
       );
+      return true;
     } catch (err) {
       setEvents((prev) => [...prev, event]);
       setError(
         err instanceof Error ? err.message : "Failed to delete event"
       );
+      return false;
     }
   };
 
