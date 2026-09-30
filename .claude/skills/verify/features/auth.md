@@ -7,6 +7,7 @@ Single demo account; no signup or password reset. Middleware in `src/lib/supabas
 - Signed-out visit to `/app` redirects to `/login`.
 - Signed-in visit to `/` or `/login` redirects to `/app`.
 - Log out from the account menu (`SettingsMenu.tsx`): icon rail `Account` button → `Log out` (`Logging out...` while pending) → `/login`.
+- The same account menu has a theme toggle: `Switch to light mode` / `Switch to dark mode`. It flips the `dark` class on `<html>` and persists in `localStorage["kalend-theme"]`.
 - Unauthenticated `/api/*` (except `ping`, `waitlist`) is redirected 307 to `/login` by the middleware (the handler-level 401 is only reachable if the middleware is bypassed).
 
 ## How to get to it (user POV)
@@ -18,6 +19,7 @@ Landing page → "Log in" link in the nav, or go straight to `/login`.
 - Success: URL `/app`, `find "Main navigation"` hits the icon rail.
 - Signed-in redirect: `navigate` to `/login`; `location.pathname` becomes `/app`.
 - Log out: `find "Account"` → click the first hit → `find "Log out"`. Clicking it ends the pane's session; sign back in with `/api/dev/sign-in` (see the skill's Sign in section). Without the dev sign-in, stop at finding the button in an unattended run.
+- Theme: open the account menu as for Log out, click `Switch to light mode`, check `document.documentElement.classList.contains('dark')` is false, then click `Switch to dark mode` to restore.
 - Guard: `curl -s -o /dev/null -w '%{http_code}' localhost:<port>/api/tasks` → `307` without cookies.
 
 ## Gotchas
