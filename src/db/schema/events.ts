@@ -13,7 +13,7 @@ export const events = pgTable("events", {
   category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
   location: text("location"),
   icon: text("icon")
-});
+}).enableRLS();
 
 // Drizzle inferred types (server-side, dates are Date objects). For
 // component props, use the wire types from Calendar.tsx (ISO strings).

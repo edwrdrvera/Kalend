@@ -6,7 +6,7 @@ export const waitlist = pgTable("waitlist", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   created_at: timestamp("created_at").defaultNow(),
-});
+}).enableRLS();
 
 // Drizzle inferred types (server-side). For component props, use the
 // wire types from Calendar.tsx.

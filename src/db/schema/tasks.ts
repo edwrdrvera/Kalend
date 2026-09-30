@@ -11,7 +11,7 @@ export const tasks = pgTable("tasks", {
   color: text("color").default("blue"),
   color_overridden: boolean("color_overridden").notNull().default(false),
   category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" })
-});
+}).enableRLS();
 
 // Drizzle inferred types (server-side, dates are Date objects). For
 // component props, use the wire types from Calendar.tsx (ISO strings).

@@ -64,6 +64,20 @@
       "when": 1789247770217,
       "tag": "0008_noisy_lady_ursula",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790725092625,
+      "tag": "0009_enable_rls_in_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790725092942,
+      "tag": "0010_revoke_api_role_grants",
+      "breakpoints": true
     }
   ]
 }
