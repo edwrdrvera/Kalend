@@ -1,5 +1,8 @@
 pr	date	tier	reviewer_version	finding	severity	outcome
 208	2026-09-28	medium	84d90a7	tasksDueOn duplicated two existing same-day task filters (MonthGrid, TaskDueRow)	low	real-fixed
+220	2026-09-28	medium	1f2d499	Rebase kept whitespace-only edits stale, disagreeing with the dirty check's trimming	medium	real-fixed
+220	2026-09-28	medium	1f2d499	No test covered the itemGone effect or the inspector's rebase-on-prop-change wiring	medium	real-fixed
+220	2026-09-28	medium	1f2d499	Judgment call: itemGone fires on optimistic delete before the server confirms; kept as is per the reviewer	low	ignored
 218	2026-09-28	high	1f2d499	Event right-click menu had no way to open details, an entry point issue 215 names	medium	real-fixed
 218	2026-09-28	high	1f2d499	event-body.ts imported length limits from the client draft module	low	real-fixed
 225	2026-09-30	high	1f2d499	Two migration files instead of one; reviewer said leave as is	low	ignored
