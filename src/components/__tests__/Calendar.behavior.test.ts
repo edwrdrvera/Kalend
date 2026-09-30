@@ -39,7 +39,11 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
   };
 }
 
-const EVENTS = [makeEvent("e1", "Lecture", 9), makeEvent("e2", "Lab", 13)];
+const RETREAT: CalendarEvent = {
+  ...makeEvent("e3", "Retreat", 9),
+  end_at: new Date(new Date(todayAt(9)).getTime() + 25 * 3600_000).toISOString(),
+};
+const EVENTS = [makeEvent("e1", "Lecture", 9), makeEvent("e2", "Lab", 13), RETREAT];
 
 const ESSAY: CalendarTask = {
   id: "t1",
@@ -149,34 +153,175 @@ async function rightClick(el: Element) {
   await settle();
 }
 
-const editor = () => document.querySelector("[aria-label='Edit event']");
+// A failed `expect(element).toBeNull()` makes bun print the whole happy-dom
+// tree, which hangs the run. Assert on a boolean instead.
+const isAbsent = (el: Element | null) => el === null;
+const eventDetails = () => document.querySelector("[aria-label='Event details']");
+const createPopover = () => document.querySelector("[role='dialog'][aria-label='Create event']");
+const titleField = () => eventDetails()!.querySelector<HTMLInputElement>("#event-inspector-title")!;
 const panelOpen = () => document.querySelector("[aria-label='Close panel']") !== null;
+async function openSchoolBranch() {
+  await click(document.querySelector("nav [aria-label='School']")!);
+  const row = [...document.querySelectorAll<HTMLElement>("button")].find(
+    (b) => b.textContent === "School" && b.parentElement?.previousElementSibling?.textContent === "Branches"
+  );
+  if (!row) throw new Error("no School branch row");
+  await click(row);
+}
+
+async function createFromSlotMenu() {
+  await rightClick(document.querySelector("div[role='button']")!);
+  await click(buttonByText("Create event")!);
+}
+
+async function switchView(label: string) {
+  const btn = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent?.endsWith(label));
+  if (!btn) throw new Error(`no ${label} view button`);
+  await click(btn);
+}
+
 // Below 1200px the panel is a modal sheet behind a full-screen scrim button.
 const panelIsSheet = () => document.querySelector("button.inset-0[aria-label='Close panel']") !== null;
 
 describe("Calendar behavior", () => {
-  it("clicking an event opens its editor, and Cancel closes it", async () => {
-    await mount();
-    await click(eventBlock("Lecture"));
-    expect(editor()).not.toBeNull();
+  describe("event details", () => {
+    beforeEach(() => testWindow.happyDOM.setInnerWidth(1300));
 
-    await click(buttonByText("Cancel")!);
-    expect(editor()).toBeNull();
-  });
+    it("clicking an event opens its details in the right panel, not the popover", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      expect(eventDetails()).not.toBeNull();
+      expect(isAbsent(createPopover())).toBe(true);
+      expect(titleField().value).toBe("Lecture");
 
-  it("a failed save keeps the editor open with the server's error", async () => {
-    patchResponse = { status: 400, body: { success: false, error: "Title is required" } };
-    await mount();
-    await click(eventBlock("Lecture"));
-    const form = editor()!.querySelector("form")!;
-    await act(async () => {
-      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await click(document.querySelector("[aria-label='Close event details']")!);
+      expect(isAbsent(eventDetails())).toBe(true);
     });
-    await settle();
 
-    expect(calls.some((c) => c.method === "PATCH" && c.url === "/api/events/e1")).toBe(true);
-    expect(editor()).not.toBeNull();
-    expect(editor()!.textContent).toContain("Title is required");
+    const entryPoints: { name: string; open: () => Promise<void> }[] = [
+      { name: "the week grid", open: () => click(eventBlock("Lab")) },
+      { name: "the all-day row", open: () => click(eventBlock("Retreat")) },
+      {
+        name: "the day grid",
+        open: async () => {
+          await switchView("Day");
+          await click(eventBlock("Lab"));
+        },
+      },
+      {
+        name: "the month grid",
+        open: async () => {
+          await switchView("Month");
+          await click(eventBlock("Lab"));
+        },
+      },
+      {
+        name: "the day agenda",
+        open: () => click(document.querySelector("[aria-label='Open event: Lab']")!),
+      },
+    ];
+
+    for (const { name, open } of entryPoints) {
+      it(`an event opened from ${name} shows its details and no popover`, async () => {
+        await mount();
+        await open();
+        expect(eventDetails()).not.toBeNull();
+        expect(isAbsent(createPopover())).toBe(true);
+      });
+    }
+
+    it("an event's right-click menu opens its details", async () => {
+      await mount();
+      await rightClick(eventBlock("Lab"));
+      await click(buttonByText("Open details")!);
+      expect(titleField().value).toBe("Lab");
+      expect(isAbsent(createPopover())).toBe(true);
+    });
+
+    it("creating an event from the context menu still opens the create popover", async () => {
+      await mount();
+      await createFromSlotMenu();
+      expect(createPopover()).not.toBeNull();
+      expect(isAbsent(eventDetails())).toBe(true);
+    });
+
+    it("opening an event closes an open create popover", async () => {
+      await mount();
+      await createFromSlotMenu();
+      expect(createPopover()).not.toBeNull();
+
+      await click(eventBlock("Lecture"));
+      expect(isAbsent(createPopover())).toBe(true);
+      expect(eventDetails()).not.toBeNull();
+    });
+
+    it("opening another event never shows the previous event's draft", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(eventBlock("Lab"));
+      expect(titleField().value).toBe("Lab");
+    });
+
+    it("a saved title reaches the server and the calendar", async () => {
+      patchResponse = { status: 200, body: { success: true, data: { ...EVENTS[0], title: "Seminar" } } };
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(buttonByText("Save")!);
+
+      const patch = calls.find((c) => c.method === "PATCH");
+      expect(patch?.url).toBe("/api/events/e1");
+      expect((patch?.body as { title: string }).title).toBe("Seminar");
+      expect(eventBlock("Seminar")).toBeDefined();
+    });
+
+    it("a failed save keeps the typed title and offers a retry", async () => {
+      patchResponse = { status: 400, body: { success: false, error: "Title is required" } };
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(buttonByText("Save")!);
+
+      expect(calls.some((c) => c.method === "PATCH" && c.url === "/api/events/e1")).toBe(true);
+      expect(eventDetails()).not.toBeNull();
+      expect(titleField().value).toBe("Seminar");
+      expect(buttonByText("Retry")).toBeDefined();
+    });
+
+    it("deleting an event closes its details only after the server confirms", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/events/e1")).toBe(true);
+      expect(isAbsent(eventDetails())).toBe(true);
+      expect(() => eventBlock("Lecture")).toThrow();
+    });
+
+    it("a failed delete brings the event back with its details still open", async () => {
+      deleteStatus = 500;
+      await mount();
+      await click(eventBlock("Lecture"));
+      await click(buttonByText("Delete")!);
+      await click(document.querySelector("[aria-label='Confirm delete'] button")!);
+
+      expect(eventDetails()).not.toBeNull();
+      expect(eventBlock("Lecture")).toBeDefined();
+    });
+
+    it("unsaved edits hold another selection until the user answers", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Seminar"));
+      await click(eventBlock("Lab"));
+
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+      expect(titleField().value).toBe("Seminar");
+
+      await click(buttonByText("Discard")!);
+      expect(titleField().value).toBe("Lab");
+    });
   });
 
   it("shift-selecting two events offers a bulk delete that deletes both", async () => {
@@ -202,22 +347,9 @@ describe("Calendar behavior", () => {
     expect(eventBlock("Lecture").className).not.toContain("ring-2");
   });
 
-  it("the editor breadcrumb opens the Space panel and closes the editor", async () => {
-    await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
-
-    expect(editor()).toBeNull();
-    expect(panelOpen()).toBe(true);
-    expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
-    });
-  });
-
   it("a panel closed before a remount stays closed", async () => {
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     await click(document.querySelector("[aria-label='Close panel']")!);
     expect(panelOpen()).toBe(false);
 
@@ -227,8 +359,7 @@ describe("Calendar behavior", () => {
 
   it("after a remount the panel reopens on the branch that was open", async () => {
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     expect(panelOpen()).toBe(true);
 
     await remount();
@@ -263,8 +394,7 @@ describe("Calendar behavior", () => {
   it("the panel is pinned on wide windows and a sheet on narrow ones", async () => {
     testWindow.happyDOM.setInnerWidth(1300);
     await mount();
-    await click(eventBlock("Lecture"));
-    await click(editor()!.querySelector("form button")!);
+    await openSchoolBranch();
     expect(panelOpen()).toBe(true);
     expect(panelIsSheet()).toBe(false);
 
@@ -274,6 +404,75 @@ describe("Calendar behavior", () => {
     });
     await settle();
     expect(panelIsSheet()).toBe(true);
+  });
+
+  describe("breadcrumb and Back", () => {
+    const breadcrumb = () => document.querySelector("nav[aria-label='Breadcrumb']");
+    const calendarPosition = () => ({
+      title: document.querySelector("h1")?.textContent,
+      view: [...document.querySelectorAll("button[aria-pressed='true']")]
+        .map((b) => b.textContent)
+        .find((t) => /(Week|Month|Day)$/.test(t ?? "")),
+    });
+    const allTasksPanel = () => document.querySelector("[role='complementary'][aria-label='All tasks']");
+
+    beforeEach(() => {
+      tasks = [ESSAY];
+      testWindow.happyDOM.setInnerWidth(1300);
+    });
+
+    it("names the Space and the item, and the Space opens its overview without moving the calendar", async () => {
+      await mount();
+      await switchView("Month");
+      const before = calendarPosition();
+      await click(eventBlock("Lecture"));
+      expect(breadcrumb()?.textContent).toBe("School/Lecture");
+      expect(isAbsent(document.querySelector("[aria-label^='Back to']"))).toBe(true);
+
+      await click([...breadcrumb()!.querySelectorAll("button")].find((b) => b.textContent === "School")!);
+      expect(isAbsent(eventDetails())).toBe(true);
+      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
+        active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
+      });
+      expect(calendarPosition()).toEqual(before);
+    });
+
+    it("Back from a task opened in All tasks returns to All tasks", async () => {
+      await mount();
+      await click(buttonByText("All tasks")!);
+      await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
+      expect(isAbsent(allTasksPanel())).toBe(true);
+
+      await click(document.querySelector("[aria-label='Back to All tasks']")!);
+      expect(allTasksPanel()).not.toBeNull();
+    });
+
+    it("Back from an event opened over a Space overview returns to that overview", async () => {
+      await mount();
+      await openSchoolBranch();
+      await click(eventBlock("Lecture"));
+      expect(eventDetails()).not.toBeNull();
+
+      await click(document.querySelector("[aria-label='Back to School']")!);
+      expect(isAbsent(eventDetails())).toBe(true);
+      expect(panelOpen()).toBe(true);
+      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!).active?.kind).toBe("branch");
+    });
+
+    it("Back waits for the unsaved-edits answer", async () => {
+      await mount();
+      await click(buttonByText("All tasks")!);
+      await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
+      const input = document.querySelector("[aria-label='Task details'] input") as HTMLInputElement;
+      await act(async () => typeInto(input, "Essay v2"));
+
+      await click(document.querySelector("[aria-label='Back to All tasks']")!);
+      expect(isAbsent(allTasksPanel())).toBe(true);
+      expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
+
+      await click(buttonByText("Discard")!);
+      expect(allTasksPanel()).not.toBeNull();
+    });
   });
 
   describe("task details", () => {

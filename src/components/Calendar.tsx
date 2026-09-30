@@ -2,7 +2,7 @@
 
 import { useState, useRef, useReducer, useSyncExternalStore } from "react";
 import { startOfMonth, setHours, isSameDay } from "date-fns";
-import { CalendarPlus, ListTodo, Trash2 } from "lucide-react";
+import { CalendarPlus, ListTodo, PanelRight, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
 import WeekGrid from "./WeekGrid";
@@ -11,6 +11,7 @@ import EventCreatePopover from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
 import AllTasksPanel from "./AllTasksPanel";
 import TaskInspector from "./TaskInspector";
+import EventInspector from "./EventInspector";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
@@ -25,7 +26,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import { branchesForSpaces } from "@/lib/branch-stub";
+import type { EventFormValues } from "@/lib/event-form";
+import { branchesForSpace, branchesForSpaces, findBranch } from "@/lib/branch-stub";
+import type { InspectorNav } from "./InspectorParts";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
@@ -107,7 +110,7 @@ export default function Calendar() {
       dispatchSpaceFocus({ type: "deleted", spaceId: categoryId });
     }
   );
-  const panel = useSpacePanel(categories.data, tasks.data, dispatchSpaceFocus);
+  const panel = useSpacePanel(categories.data, tasks.data, events.data, dispatchSpaceFocus);
 
   const handleRetry = () => {
     events.retry();
@@ -137,9 +140,10 @@ export default function Calendar() {
 
   const editor = useEventEditor(events, selectedSpaceId, calendarContentRef);
 
-  const handleEventClick = (event: CalendarEvent, anchorRect: DOMRect) => {
+  const handleEventClick = (event: CalendarEvent) => {
     selection.clear();
-    editor.openEdit(event, anchorRect);
+    editor.close();
+    panel.openEvent(event);
   };
 
   // Open the Space editor in edit mode for a given Space id (used by the panel
@@ -194,6 +198,11 @@ export default function Calendar() {
       y,
       items: [
         {
+          label: "Open details",
+          icon: <PanelRight className="size-3.5" />,
+          onSelect: () => handleEventClick(event),
+        },
+        {
           label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
           destructive: true,
           icon: <Trash2 className="size-3.5" />,
@@ -210,8 +219,9 @@ export default function Calendar() {
 
   // All branches, for the agenda list.
   const branches = branchesForSpaces(categories.data);
-  const { activeBranch, activeTask } = panel;
-  const rightPanelOpen = activeBranch !== null || panel.allTasksOpen || activeTask !== null;
+  const { activeBranch, activeTask, activeEvent } = panel;
+  const rightPanelOpen =
+    activeBranch !== null || panel.allTasksOpen || activeTask !== null || activeEvent !== null;
 
   // Close only after the server confirms, so a failed delete brings the task
   // back with its details still open.
@@ -219,6 +229,37 @@ export default function Calendar() {
     if (!(await tasks.deleteTask(task))) return;
     panel.setEditorDirty(false);
     panel.close();
+  };
+
+  const handleSaveEvent = async (event: CalendarEvent, values: EventFormValues) => {
+    try {
+      await events.updateEvent(event.id, values);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleDeleteEvent = async (event: CalendarEvent) => {
+    if (!(await events.deleteEvent(event))) return;
+    panel.setEditorDirty(false);
+    panel.close();
+  };
+
+  const inspectorNav = (categoryId: string | null): InspectorNav => {
+    const category = categories.data.find((c) => c.id === categoryId);
+    const spaceBranch = category ? branchesForSpace(category)[0] : null;
+    const { backTarget } = panel;
+    const backLabel =
+      backTarget?.kind === "allTasks"
+        ? "All tasks"
+        : backTarget
+          ? (findBranch(categories.data, backTarget.branchId)?.name ?? null)
+          : null;
+    return {
+      space: category && spaceBranch ? { name: category.name, onOpen: () => panel.openBranch(spaceBranch) } : null,
+      back: backLabel ? { label: backLabel, onBack: panel.back } : null,
+    };
   };
 
   const renderRightPanel = (modal: boolean) => {
@@ -257,10 +298,29 @@ export default function Calendar() {
           task={activeTask}
           categories={categories.data}
           modal={modal}
+          nav={inspectorNav(activeTask.category_id)}
           onClose={panel.close}
           onSave={tasks.updateTask}
           onToggleComplete={tasks.toggleComplete}
           onDelete={handleDeleteTask}
+          onDirtyChange={panel.setEditorDirty}
+          navigationPending={panel.navigationPending}
+          onProceed={panel.proceedNavigation}
+          onStay={panel.cancelNavigation}
+        />
+      );
+    }
+    if (activeEvent) {
+      return (
+        <EventInspector
+          key={activeEvent.id}
+          event={activeEvent}
+          categories={categories.data}
+          modal={modal}
+          nav={inspectorNav(activeEvent.category_id)}
+          onClose={panel.close}
+          onSave={handleSaveEvent}
+          onDelete={handleDeleteEvent}
           onDirtyChange={panel.setEditorDirty}
           navigationPending={panel.navigationPending}
           onProceed={panel.proceedNavigation}
@@ -443,30 +503,11 @@ export default function Calendar() {
           key={editor.key}
           anchorRect={editor.target.rect}
           side={editor.target.side}
-          event={editor.target.event}
           initialStart={editor.target.start}
           initialEnd={editor.target.end ?? undefined}
           initialSpaceId={editor.target.initialSpaceId}
           categories={categories.data}
-          breadcrumb={(() => {
-            const spaceId = editor.target.event?.category_id;
-            if (!spaceId) return null;
-            const branch = branches.find((b) => b.spaceId === spaceId);
-            if (!branch) return null;
-            const label =
-              branch.name === branch.spaceName
-                ? branch.spaceName
-                : `${branch.spaceName} › ${branch.name}`;
-            return {
-              label,
-              onOpen: () => {
-                panel.openBranch(branch);
-                editor.closeKeepingRange();
-              },
-            };
-          })()}
           onSubmit={editor.submit}
-          onDelete={editor.target.event ? editor.remove : undefined}
           onClose={editor.close}
           submitting={editor.submitting}
           error={editor.error}

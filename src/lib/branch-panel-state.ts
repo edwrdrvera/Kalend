@@ -1,13 +1,21 @@
-export type PanelSelection =
+/** An overview an item can be opened from, and that Back returns to. */
+export type PanelOverview =
   | { kind: "branch"; branchId: string; spaceId: string }
-  | { kind: "allTasks" }
-  | { kind: "task"; taskId: string };
+  | { kind: "allTasks" };
+
+export type PanelSelection =
+  | PanelOverview
+  | { kind: "task"; taskId: string; from: PanelOverview | null }
+  | { kind: "event"; eventId: string; from: PanelOverview | null };
 
 /** A request that would replace or close the current selection. */
 export type PanelNavigation =
   | { type: "openBranch"; branchId: string; spaceId: string }
   | { type: "openAllTasks" }
   | { type: "openTask"; taskId: string }
+  | { type: "openEvent"; eventId: string }
+  /** Return to the overview the open item came from, or close without one. */
+  | { type: "back" }
   | { type: "close" }
   | { type: "spaceChanged"; spaceId: string | null };
 
@@ -31,7 +39,14 @@ export type BranchPanelAction =
   /** Carry out the pending navigation: the edits were saved or discarded. */
   | { type: "proceed" }
   /** Drop the pending navigation and keep editing. */
-  | { type: "stay" };
+  | { type: "stay" }
+  /** The open task or event no longer exists, so its unsaved edits can't block anything. */
+  | { type: "itemGone" };
+
+function backTargetCarriedFrom(active: PanelSelection | null): PanelOverview | null {
+  if (active === null) return null;
+  return active.kind === "task" || active.kind === "event" ? active.from : active;
+}
 
 // Returns `active` itself when the navigation changes nothing, which is how
 // the reducer tells a no-op apart from a navigation the dirty guard must hold.
@@ -46,7 +61,13 @@ function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSel
     case "openTask":
       return active?.kind === "task" && active.taskId === nav.taskId
         ? active
-        : { kind: "task", taskId: nav.taskId };
+        : { kind: "task", taskId: nav.taskId, from: backTargetCarriedFrom(active) };
+    case "openEvent":
+      return active?.kind === "event" && active.eventId === nav.eventId
+        ? active
+        : { kind: "event", eventId: nav.eventId, from: backTargetCarriedFrom(active) };
+    case "back":
+      return active?.kind === "task" || active?.kind === "event" ? active.from : null;
     case "close":
       return null;
     case "spaceChanged":
@@ -65,6 +86,13 @@ export function branchPanelReducer(
       return state.dirty === action.dirty ? state : { ...state, dirty: action.dirty };
     case "stay":
       return state.pending ? { ...state, pending: null } : state;
+    case "itemGone":
+      if (!state.dirty && !state.pending) return state;
+      return {
+        active: state.pending ? navigate(state.active, state.pending) : state.active,
+        dirty: false,
+        pending: null,
+      };
     case "proceed":
       if (!state.pending) return state;
       return { active: navigate(state.active, state.pending), dirty: false, pending: null };

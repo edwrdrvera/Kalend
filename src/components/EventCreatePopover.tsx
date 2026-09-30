@@ -1,25 +1,25 @@
 "use client";
 
-import { useState, useEffect, useReducer, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { format, isSameDay } from "date-fns";
-import { ChevronRight, Clock, MapPin, Trash2 } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { APP_INPUT_CLS, DateField, SMALL_INPUT_CLS } from "@/components/DateField";
-import { DEFAULT_EVENT_COLOR, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
-import { eventColorReducer, initialEventColor } from "@/lib/event-color-state";
-import type { EventFormValues } from "@/lib/event-form";
-import ColorSwatchPicker from "./ColorSwatchPicker";
-import CategorySelect from "./CategorySelect";
+import { APP_INPUT_CLS } from "@/components/DateField";
+import { initialEventColor } from "@/lib/event-color-state";
+import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
+import {
+  eventDraftValues,
+  formatTimeRangeSummary,
+  toDateTimeLocal,
+  type EventDraft,
+} from "@/lib/event-draft";
+import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarCategory } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
-/** Mirrors the API's field limits (`src/app/api/events/route.ts`). */
-const MAX_LOCATION_LENGTH = 500;
-const MAX_ICON_LENGTH = 10;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 /** Used for vertical centering; approximate — exact height varies with content. */
@@ -27,36 +27,11 @@ const POPOVER_HEIGHT_ESTIMATE = 300;
 
 export type { EventFormValues } from "@/lib/event-form";
 
-function toDateTimeLocal(date: Date): string {
-  return format(date, "yyyy-MM-dd'T'HH:mm");
-}
-
-function splitDateTimeLocal(value: string): { date: string; time: string } {
-  const [date = "", time = ""] = value.split("T");
-  return { date, time };
-}
-
-function joinDateTimeLocal(date: string, time: string): string {
-  return `${date}T${time || "00:00"}`;
-}
-
-function formatTimeRangeSummary(startValue: string, endValue: string): string {
-  const start = new Date(startValue);
-  const end = new Date(endValue);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
-  if (isSameDay(start, end)) {
-    return `${format(start, "EEEE, MMM d")} · ${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
-  }
-  return `${format(start, "EEE, MMM d, h:mm a")} – ${format(end, "EEE, MMM d, h:mm a")}`;
-}
-
 interface EventCreatePopoverProps {
   /** Bounding rect of the clicked day cell — used to anchor the panel. */
   anchorRect: DOMRect;
   /** Which side of the anchor to open on, pre-computed by the caller. */
   side: "left" | "right";
-  /** Pre-populates the form when editing an existing event. */
-  event?: CalendarEvent | null;
   /** Pre-populates start time when creating from a clicked day or time slot. */
   initialStart?: Date;
   /** Pre-populates end time when creating from a dragged time range. */
@@ -64,10 +39,7 @@ interface EventCreatePopoverProps {
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
   categories: CalendarCategory[];
-  /** Path breadcrumb for an event that belongs to a Space; opens its panel. */
-  breadcrumb?: { label: string; onOpen: () => void } | null;
   onSubmit: (values: EventFormValues) => void;
-  onDelete?: () => void;
   onClose: () => void;
   submitting?: boolean;
   error?: string | null;
@@ -79,38 +51,27 @@ interface EventCreatePopoverProps {
 export default function EventCreatePopover({
   anchorRect,
   side,
-  event,
   initialStart,
   initialEnd,
   initialSpaceId = null,
   categories,
-  breadcrumb = null,
   onSubmit,
-  onDelete,
   onClose,
   submitting = false,
   error = null,
 }: EventCreatePopoverProps) {
-  const isEditing = Boolean(event);
-  const [title, setTitle] = useState(() => event?.title ?? "");
-  const [icon, setIcon] = useState(() => event?.icon ?? "");
-  const [location, setLocation] = useState(() => event?.location ?? "");
-  const [startAt, setStartAt] = useState(() =>
-    toDateTimeLocal(event ? new Date(event.start_at) : initialStart ?? new Date())
-  );
-  const [endAt, setEndAt] = useState(() =>
-    toDateTimeLocal(
-      event
-        ? new Date(event.end_at)
-        : initialEnd ??
-            new Date((initialStart ?? new Date()).getTime() + DEFAULT_DURATION_MS)
-    )
-  );
-  const [colorState, dispatchColor] = useReducer(
-    eventColorReducer,
-    initialEventColor(event, initialSpaceId)
-  );
-  const { color, categoryId, colorOverridden } = colorState;
+  const [draft, setDraft] = useState<EventDraft>(() => {
+    const start = initialStart ?? new Date();
+    return {
+      title: "",
+      icon: "",
+      location: "",
+      startAt: toDateTimeLocal(start),
+      endAt: toDateTimeLocal(initialEnd ?? new Date(start.getTime() + DEFAULT_DURATION_MS)),
+      colorState: initialEventColor(null, initialSpaceId),
+    };
+  });
+  const update = (changes: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...changes }));
   const [timeExpanded, setTimeExpanded] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -148,37 +109,11 @@ export default function EventCreatePopover({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const start = splitDateTimeLocal(startAt);
-  const end = splitDateTimeLocal(endAt);
-
-  const selectedCategory = categories.find((c) => c.id === categoryId);
-  const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
-  const swatchColor = isEventColor(visibleColor) ? visibleColor : DEFAULT_EVENT_COLOR;
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setValidationError(null);
-    if (!title.trim()) return;
-    const s = new Date(startAt);
-    const en = new Date(endAt);
-    if (Number.isNaN(s.getTime()) || Number.isNaN(en.getTime())) {
-      setValidationError("Invalid date.");
-      return;
-    }
-    if (s >= en) {
-      setValidationError("Start must be before end.");
-      return;
-    }
-    onSubmit({
-      title: title.trim(),
-      startAt: s.toISOString(),
-      endAt: en.toISOString(),
-      color,
-      colorOverridden,
-      categoryId,
-      location: location.trim() || null,
-      icon: icon.trim() || null,
-    });
+    const { values, error: invalid } = eventDraftValues(draft);
+    setValidationError(invalid);
+    if (values) onSubmit(values);
   };
 
   return createPortal(
@@ -201,7 +136,7 @@ export default function EventCreatePopover({
       {/* Fixed, compact editor that stays visually subordinate to the calendar. */}
       <div
         role="dialog"
-        aria-label={isEditing ? "Edit event" : "Create event"}
+        aria-label="Create event"
         style={{
           position: "fixed",
           top,
@@ -237,32 +172,20 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 p-3">
-          {/* Breadcrumb into the Space Panel for this event's branch */}
-          {breadcrumb && (
-            <button
-              type="button"
-              onClick={breadcrumb.onOpen}
-              className="-mx-1 -mb-1 flex items-center gap-1 self-start rounded-sm px-1 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="truncate">{breadcrumb.label}</span>
-              <ChevronRight className="size-3 shrink-0" />
-            </button>
-          )}
-
           {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="new-event-icon" className="sr-only">
               Event icon
             </label>
-            <IconPicker value={icon} onChange={setIcon} maxLength={MAX_ICON_LENGTH} />
+            <IconPicker value={draft.icon} onChange={(icon) => update({ icon })} maxLength={MAX_ICON_LENGTH} />
             <label htmlFor="new-event-title" className="sr-only">
               Event title
             </label>
             <input
               id="new-event-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={isEditing ? "Event title" : "New event"}
+              value={draft.title}
+              onChange={(e) => update({ title: e.target.value })}
+              placeholder="New event"
               required
               autoFocus
               className={cn(APP_INPUT_CLS, "w-full font-semibold")}
@@ -277,8 +200,8 @@ export default function EventCreatePopover({
             </label>
             <input
               id="new-event-location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={draft.location}
+              onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               className={cn(APP_INPUT_CLS, "w-full")}
             />
@@ -300,7 +223,7 @@ export default function EventCreatePopover({
                   className="-mx-1 flex items-center gap-2 rounded-sm px-1 py-1 text-left text-xs text-foreground/80 transition-colors hover:bg-muted/50"
                 >
                   <Clock className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span>{formatTimeRangeSummary(startAt, endAt)}</span>
+                  <span>{formatTimeRangeSummary(draft.startAt, draft.endAt)}</span>
                 </button>
               </div>
             </div>
@@ -312,87 +235,27 @@ export default function EventCreatePopover({
               )}
             >
               <div className="overflow-hidden">
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs text-muted-foreground">Start</label>
-                    <div className="flex flex-col gap-1.5">
-                      <DateField
-                        label="Start date"
-                        value={start.date}
-                        onChange={(d) => setStartAt(joinDateTimeLocal(d, start.time))}
-                      />
-                      <input
-                        type="time"
-                        aria-label="Start time"
-                        value={start.time}
-                        onChange={(e) => setStartAt(joinDateTimeLocal(start.date, e.target.value))}
-                        className={cn(SMALL_INPUT_CLS, "w-full")}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs text-muted-foreground">End</label>
-                    <div className="flex flex-col gap-1.5">
-                      <DateField
-                        label="End date"
-                        value={end.date}
-                        onChange={(d) => setEndAt(joinDateTimeLocal(d, end.time))}
-                      />
-                      <input
-                        type="time"
-                        aria-label="End time"
-                        value={end.time}
-                        onChange={(e) => setEndAt(joinDateTimeLocal(end.date, e.target.value))}
-                        className={cn(SMALL_INPUT_CLS, "w-full")}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <EventTimeFields
+                  startAt={draft.startAt}
+                  endAt={draft.endAt}
+                  onStartChange={(startAt) => update({ startAt })}
+                  onEndChange={(endAt) => update({ endAt })}
+                />
               </div>
             </div>
           </div>
 
-          {/* Color + Space row */}
-          <div className="flex items-center gap-2">
-            <ColorSwatchPicker
-              color={swatchColor}
-              onColorChange={(nextColor) => dispatchColor({ type: "pick", color: nextColor })}
-            />
-            <CategorySelect
-              categories={categories}
-              categoryId={categoryId}
-              onChange={(nextId) => dispatchColor({ type: "space", categoryId: nextId, categories })}
-            />
-          </div>
-          {selectedCategory && (
-            colorOverridden ? (
-              <button
-                type="button"
-                className="self-start text-xs font-medium text-primary hover:underline"
-                onClick={() => dispatchColor({ type: "inherit" })}
-              >
-                Use Space color
-              </button>
-            ) : <p className="text-xs text-muted-foreground">Using Space color</p>
-          )}
+          <EventColorSpaceFields
+            colorState={draft.colorState}
+            categories={categories}
+            onChange={(colorState) => update({ colorState })}
+          />
 
           {(validationError ?? error) && (
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
 
           <div className="flex items-center justify-end gap-1.5 border-t border-border pt-2.5">
-            {isEditing && onDelete && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onDelete}
-                aria-label="Delete event"
-                className="mr-auto rounded-sm px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            )}
             <Button
               type="button"
               variant="ghost"
@@ -403,7 +266,7 @@ export default function EventCreatePopover({
               Cancel
             </Button>
             <Button type="submit" disabled={submitting} size="sm" className="rounded-sm px-3">
-              {submitting ? (isEditing ? "Saving…" : "Creating…") : isEditing ? "Save changes" : "Create event"}
+              {submitting ? "Creating…" : "Create event"}
             </Button>
           </div>
         </form>

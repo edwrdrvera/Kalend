@@ -20,9 +20,10 @@ interface IconPickerProps {
   value: string;
   onChange: (icon: string) => void;
   maxLength: number;
+  id?: string;
 }
 
-export default function IconPicker({ value, onChange, maxLength }: IconPickerProps) {
+export default function IconPicker({ value, onChange, maxLength, id = "new-event-icon" }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +41,7 @@ export default function IconPicker({ value, onChange, maxLength }: IconPickerPro
   return (
     <div ref={containerRef} className="relative">
       <input
-        id="new-event-icon"
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, maxLength))}
         onFocus={() => setOpen(true)}

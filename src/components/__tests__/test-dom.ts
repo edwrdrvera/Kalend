@@ -25,6 +25,7 @@ const browserGlobals = [
   "HTMLButtonElement",
   "HTMLInputElement",
   "HTMLFormElement",
+  "DOMRect",
 ] as const;
 
 const globals = globalThis as Record<string, unknown>;
