@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks, type TaskBucketKey } from "@/lib/task-buckets";
+import { dueAtFromDate } from "@/lib/task-draft";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import CategorySelect from "./CategorySelect";
 import PanelShell from "./PanelShell";
@@ -90,9 +91,7 @@ function InlineTaskComposer({
     setError(null);
 
     try {
-      const dueAt = draft.dueDate
-        ? new Date(`${draft.dueDate}T23:59:00Z`).toISOString()
-        : undefined;
+      const dueAt = draft.dueDate ? dueAtFromDate(draft.dueDate) : undefined;
       await onCreateTask(draft.title.trim(), dueAt, draft.categoryId);
       onClose();
     } catch (err) {

@@ -17,6 +17,11 @@ export function draftFromTask(task: CalendarTask): TaskDraft {
   };
 }
 
+/** A "yyyy-MM-dd" due date as the end of that day in local time, the way every task form saves it. */
+export function dueAtFromDate(dueDate: string): string {
+  return new Date(`${dueDate}T23:59:00`).toISOString();
+}
+
 /** Only the fields the draft changed. An empty patch means the draft is clean. */
 export function draftPatch(task: CalendarTask, draft: TaskDraft): TaskPatchRequest {
   const saved = draftFromTask(task);
@@ -24,8 +29,7 @@ export function draftPatch(task: CalendarTask, draft: TaskDraft): TaskPatchReque
   const title = draft.title.trim();
   if (title !== saved.title) patch.title = title;
   if (draft.dueDate !== saved.dueDate) {
-    // End of the chosen day in local time, like the task create dialog.
-    patch.due_at = draft.dueDate ? new Date(`${draft.dueDate}T23:59:00`).toISOString() : null;
+    patch.due_at = draft.dueDate ? dueAtFromDate(draft.dueDate) : null;
   }
   if (draft.categoryId !== saved.categoryId) patch.category_id = draft.categoryId;
   return patch;
