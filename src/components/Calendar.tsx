@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useReducer, useSyncExternalStore } from "react";
-import { startOfMonth, setHours, isSameDay } from "date-fns";
+import { addHours, startOfHour, startOfMonth, setHours, isSameDay } from "date-fns";
 import { CalendarPlus, ListTodo, PanelRight, Trash2 } from "lucide-react";
 import CalendarSidebar from "./CalendarSidebar";
 import MonthGrid from "./MonthGrid";
@@ -274,6 +274,7 @@ export default function Calendar() {
           onToggleComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
           onOpenEvent={panel.openEvent}
+          onCreateEvent={(anchor) => editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor)}
           onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
           onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
         />

@@ -37,11 +37,10 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
 interface Interactions {
   toggled: string[];
   opened: string[];
-  added: boolean;
 }
 
 async function render(tasks: CalendarTask[]) {
-  const interactions: Interactions = { toggled: [], opened: [], added: false };
+  const interactions: Interactions = { toggled: [], opened: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -52,36 +51,17 @@ async function render(tasks: CalendarTask[]) {
         tasks,
         onToggleComplete: (task: CalendarTask) => interactions.toggled.push(task.id),
         onOpenTask: (task: CalendarTask) => interactions.opened.push(task.id),
-        onAdd: () => {
-          interactions.added = true;
-        },
       })
     )
   );
   return interactions;
 }
 
-describe("PanelTasksSection label row", () => {
-  it("always renders the label and Add affordance, even with no tasks", async () => {
+describe("PanelTasksSection when empty", () => {
+  it("renders nothing, so an events-only Space shows no empty task list", async () => {
     await render([]);
 
-    expect(document.querySelector("h3")?.textContent).toBe("Open tasks");
-    expect(document.querySelector('[aria-label="Add task"]')).not.toBeNull();
-  });
-
-  it("calls onAdd when + Add is clicked", async () => {
-    const interactions = await render([]);
-
-    document
-      .querySelector('[aria-label="Add task"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(interactions.added).toBe(true);
-  });
-
-  it("renders no rows when there are no tasks", async () => {
-    await render([]);
-
-    expect(document.querySelectorAll('[aria-pressed]')).toHaveLength(0);
+    expect(container?.textContent).toBe("");
   });
 });
 
