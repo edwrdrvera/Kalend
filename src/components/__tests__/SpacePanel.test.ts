@@ -38,12 +38,14 @@ async function render(branch: Branch, tasks: CalendarTask[] = []) {
       createElement(SpacePanel, {
         branch,
         tasks,
+        upcoming: [],
         modal: false,
         onClose: () => {
           handlers.closes++;
         },
         onToggleComplete: () => {},
         onOpenTask: () => {},
+        onOpenEvent: () => {},
         onCreateTask: async (title: string) => {
           handlers.created.push(title);
         },

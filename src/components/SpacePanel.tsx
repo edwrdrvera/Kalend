@@ -4,20 +4,24 @@ import { useState, type FormEvent } from "react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import type { Branch } from "@/lib/branch-types";
-import type { CalendarTask } from "@/lib/calendar-types";
+import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { UpcomingDay } from "@/lib/space-overview";
 import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
+import PanelUpcomingSection from "./PanelUpcomingSection";
 import PanelTasksSection from "./PanelTasksSection";
 import SpacePanelFooter from "./SpacePanelFooter";
 
 interface SpacePanelProps {
   branch: Branch;
   tasks: CalendarTask[];
+  upcoming: UpcomingDay[];
   /** Modal dialog in overlay/full-screen modes; see PanelShell. */
   modal: boolean;
   onClose: () => void;
   onToggleComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
+  onOpenEvent: (event: CalendarEvent) => void;
   /** Creates a task in this branch's Space (title only; date/Space implied). */
   onCreateTask: (title: string) => Promise<void>;
   /** Opens the Space editor (rename / recolor / delete) for this branch's
@@ -28,10 +32,12 @@ interface SpacePanelProps {
 export default function SpacePanel({
   branch,
   tasks,
+  upcoming,
   modal,
   onClose,
   onToggleComplete,
   onOpenTask,
+  onOpenEvent,
   onCreateTask,
   onOpenSettings,
 }: SpacePanelProps) {
@@ -67,6 +73,7 @@ export default function SpacePanel({
         key={branch.id}
         className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
       >
+        <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} />
         <div>
           <PanelTasksSection
             tasks={tasks}

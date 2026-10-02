@@ -268,10 +268,12 @@ export default function Calendar() {
         <SpacePanel
           branch={activeBranch}
           tasks={panel.panelTasks}
+          upcoming={panel.panelUpcoming}
           modal={modal}
           onClose={panel.close}
           onToggleComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
+          onOpenEvent={panel.openEvent}
           onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
           onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
         />
