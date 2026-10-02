@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import { createClient } from "./server";
 import { AUTH_USER_ID_HEADER } from "./middleware";
 
+declare const signedIn: unique symbol;
+
 /**
  * Minimal shape returned to route handlers. Every handler only ever uses
  * `.id` to scope queries by owner (see `src/app/api/CLAUDE.md`), so the
@@ -9,7 +11,9 @@ import { AUTH_USER_ID_HEADER } from "./middleware";
  * imply extra fields are available when they aren't.
  */
 export interface AuthenticatedUser {
-  id: string;
+  readonly id: string;
+  /** Only getAuthenticatedUser makes one, so a helper typed to take it can't be handed a request field. */
+  readonly [signedIn]: true;
 }
 
 /**
@@ -31,7 +35,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
     const headerStore = await headers();
     const forwardedId = headerStore.get(AUTH_USER_ID_HEADER);
     if (forwardedId) {
-      return { id: forwardedId };
+      return { id: forwardedId } as AuthenticatedUser;
     }
 
     const supabase = await createClient();
@@ -44,7 +48,7 @@ export async function getAuthenticatedUser(): Promise<AuthenticatedUser | null> 
       return null;
     }
 
-    return { id: user.id };
+    return { id: user.id } as AuthenticatedUser;
   } catch (err) {
     console.error("Auth verification error:", err);
     return null;

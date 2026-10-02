@@ -1,5 +1,6 @@
 import { describe, it } from "bun:test";
 import { RuleTester, type Rule } from "eslint";
+import tsParser from "@typescript-eslint/parser";
 import plugin from "../scoped-query.mjs";
 
 // Let RuleTester register its cases through bun:test.
@@ -180,5 +181,30 @@ ruleTester.run("scoped-query", rule, {
       errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }],
     },
   ],
+  ],
+});
+
+// A helper outside withUser may take the caller as a parameter typed AuthenticatedUser.
+const typedTester = new RuleTester({
+  languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" },
+});
+
+typedTester.run("scoped-query with typed helpers", rule, {
+  valid: [
+    "async function load(tx, user: AuthenticatedUser) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }",
+    "const load = async (tx, id, user: AuthenticatedUser) => tx.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.user_id, user.id)))",
+    "async function add(tx, user: AuthenticatedUser) { return tx.insert(tasks).values({ title, user_id: user.id }) }",
+  ],
+  invalid: [
+    // Any other annotation, or none, proves nothing about where the user came from.
+    { code: "async function load(tx, user: { id: string }) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
+    { code: "async function load(tx, user: Owner) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
+    { code: "async function load(tx, user) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
+    // A local variable is not a parameter, however it is annotated.
+    { code: "const user: AuthenticatedUser = body; db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    { code: "const user = body as AuthenticatedUser; db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    // The typed parameter changed before the query.
+    { code: "async function load(tx, user: AuthenticatedUser) { user = body; return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
+    { code: "async function load(tx, user: AuthenticatedUser) { user.id = body.uid; return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
   ],
 });

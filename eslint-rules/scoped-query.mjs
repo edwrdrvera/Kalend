@@ -147,21 +147,41 @@ const isMutation = (reference) => {
   return (parent?.type === "AssignmentExpression" && parent.left === member) || parent?.type === "UpdateExpression";
 };
 
+const isWithUserCallback = (fn, name) => {
+  const call = fn.parent;
+  return (
+    fn.params[2] === name &&
+    call?.type === "CallExpression" &&
+    call.callee.type === "Identifier" &&
+    call.callee.name === "withUser" &&
+    call.arguments[0] === fn
+  );
+};
+
+// A helper may take the caller as a parameter typed AuthenticatedUser. That
+// type is branded, so only getAuthenticatedUser (through withUser) can make
+// one, and the compiler rejects anything built from a request.
+const isTypedAsAuthenticatedUser = (fn, name) => {
+  const annotation = name.typeAnnotation?.typeAnnotation;
+  return (
+    fn.params.includes(name) &&
+    annotation?.type === "TSTypeReference" &&
+    annotation.typeName.type === "Identifier" &&
+    annotation.typeName.name === "AuthenticatedUser"
+  );
+};
+
 // True only for the third parameter of the function passed straight to
-// withUser(...), never reassigned or mutated. A local variable, a request
-// field, or a shadowing declaration that merely happens to be named user fails.
+// withUser(...), or a function parameter typed AuthenticatedUser, and never
+// reassigned or mutated. A local variable, a request field, or a shadowing
+// declaration that merely happens to be named user fails.
 function isRouteUser(identifier, scope) {
   const variable = findVariable(scope, identifier.name);
   const def = variable?.defs[0];
   if (def?.type !== "Parameter") return false;
   const fn = def.node;
-  const call = fn.parent;
   return (
-    fn.params[2] === def.name &&
-    call?.type === "CallExpression" &&
-    call.callee.type === "Identifier" &&
-    call.callee.name === "withUser" &&
-    call.arguments[0] === fn &&
+    (isWithUserCallback(fn, def.name) || isTypedAsAuthenticatedUser(fn, def.name)) &&
     !variable.references.some(isMutation)
   );
 }
