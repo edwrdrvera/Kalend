@@ -144,6 +144,17 @@ describe("SpacePanel", () => {
     expect(handlers.closes).toBe(1);
   });
 
+  it("closes only the task composer on Escape, leaving the panel open", async () => {
+    const handlers = await render(FIXTURE_BRANCH_FULL);
+    await act(() => buttonWithText("Add task")?.click());
+    const input = document.querySelector<HTMLInputElement>('[aria-label="New task title"]');
+    await act(() => {
+      input?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    expect(document.querySelector('[aria-label="New task title"]')).toBeNull();
+    expect(handlers.closes).toBe(0);
+  });
+
   it("reveals a composer from + Add and creates a task in the branch", async () => {
     const handlers = await render(FIXTURE_BRANCH_FULL);
     const add = buttonWithText("Add task");

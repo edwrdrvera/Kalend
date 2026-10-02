@@ -35,6 +35,10 @@ import { useCategories } from "@/hooks/useCategories";
 import { useEventEditor } from "@/hooks/useEventEditor";
 import { useEventSelection } from "@/hooks/useEventSelection";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
+import { useAlertDelivery } from "@/hooks/useAlertDelivery";
+import { useAlertTray } from "@/hooks/useAlertTray";
+import { useAlertItemOpener } from "@/hooks/useAlertItemOpener";
+import AlertMessages from "./AlertMessages";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
 function ErrorToast({
@@ -145,6 +149,18 @@ export default function Calendar() {
     editor.close();
     panel.openEvent(event);
   };
+
+  // A reminder opens its event or task in the panel. An item that isn't loaded
+  // (just created in another tab) has nothing to open yet.
+  const alerts = useAlertTray();
+  const openAlertItem = useAlertItemOpener({
+    events,
+    tasks,
+    openEvent: handleEventClick,
+    openTask: panel.openTask,
+    onMissing: alerts.notify,
+  });
+  useAlertDelivery(alerts.dispatch, openAlertItem);
 
   // Open the Space editor in edit mode for a given Space id (used by the panel
   // overflow/footer and the rail context menu). No-op if the Space is gone.
@@ -535,6 +551,13 @@ export default function Calendar() {
         onOpenChange={(open) => {
           if (!open) setTaskCreateDay(null);
         }}
+      />
+
+      <AlertMessages
+        tray={alerts.tray}
+        onOpen={openAlertItem}
+        onDismiss={alerts.dismiss}
+        onClearMissed={alerts.clearMissed}
       />
 
       {contextMenu && (
