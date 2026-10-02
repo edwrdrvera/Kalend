@@ -10,20 +10,28 @@ export interface AlertMessage {
   text: string;
 }
 
+/** A plain message with nothing to open, such as "that event no longer exists". */
+export interface AlertNotice {
+  id: string;
+  text: string;
+}
+
 /**
  * What the delivery UI shows. `due` alerts pop up and clear themselves.
  * `missed` alerts (they came due while Kalend was closed) wait in one list
- * until the user dismisses them.
+ * until the user dismisses them. `notices` report a problem with opening one.
  */
 export interface AlertTray {
   due: AlertMessage[];
   missed: AlertMessage[];
+  notices: AlertNotice[];
 }
 
-export const emptyAlertTray: AlertTray = { due: [], missed: [] };
+export const emptyAlertTray: AlertTray = { due: [], missed: [], notices: [] };
 
 export type AlertTrayAction =
   | { type: "claimed"; claim: AlertClaim }
+  | { type: "notice"; notice: AlertNotice }
   | { type: "dismiss"; id: string }
   | { type: "clearMissed" };
 
@@ -54,12 +62,15 @@ export function alertTrayReducer(tray: AlertTray, action: AlertTrayAction): Aler
       const known = new Set([...tray.due, ...tray.missed].map((message) => message.id));
       const due = appendNew(tray.due, action.claim.due.map(dueMessage), known);
       const missed = appendNew(tray.missed, action.claim.missed.map(missedMessage), known);
-      return due === tray.due && missed === tray.missed ? tray : { due, missed };
+      return due === tray.due && missed === tray.missed ? tray : { ...tray, due, missed };
     }
+    case "notice":
+      return { ...tray, notices: [...tray.notices, action.notice] };
     case "dismiss":
       return {
         due: tray.due.filter((message) => message.id !== action.id),
         missed: tray.missed.filter((message) => message.id !== action.id),
+        notices: tray.notices.filter((notice) => notice.id !== action.id),
       };
     case "clearMissed":
       return tray.missed.length === 0 ? tray : { ...tray, missed: [] };

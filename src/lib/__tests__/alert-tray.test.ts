@@ -64,6 +64,20 @@ describe("alertTrayReducer", () => {
     expect(alertTrayReducer(tray, { type: "dismiss", id: "a1" }).missed).toHaveLength(1);
   });
 
+  it("adds a notice and dismisses it by id", () => {
+    const notice = { id: "n1", text: "That event no longer exists." };
+    const tray = alertTrayReducer(emptyAlertTray, { type: "notice", notice });
+    expect(tray.notices).toEqual([notice]);
+    expect(alertTrayReducer(tray, { type: "dismiss", id: "n1" }).notices).toEqual([]);
+  });
+
+  it("keeps notices when a claim arrives", () => {
+    const notice = { id: "n1", text: "x" };
+    const withNotice = alertTrayReducer(emptyAlertTray, { type: "notice", notice });
+    const next = alertTrayReducer(withNotice, { type: "claimed", claim: { due: [lecture], missed: [] } });
+    expect(next.notices).toEqual([notice]);
+  });
+
   it("clears the whole missed list and leaves due messages", () => {
     const tray = alertTrayReducer(emptyAlertTray, { type: "claimed", claim: { due: [lecture], missed: [essay] } });
     const cleared = alertTrayReducer(tray, { type: "clearMissed" });

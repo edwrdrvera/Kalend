@@ -13,6 +13,7 @@ const tray: AlertTray = {
     { id: "a2", kind: "task", itemId: "t1", text: "Essay (reminder at Aug 9, 10:00 PM)" },
     { id: "a3", kind: "event", itemId: "e2", text: "Lab (reminder at Aug 9, 9:00 AM)" },
   ],
+  notices: [],
 };
 
 let root: Root | null = null;
@@ -74,7 +75,7 @@ afterEach(async () => {
 
 describe("AlertMessages", () => {
   it("keeps an empty polite live region mounted so arrivals are announced", async () => {
-    await render({ due: [], missed: [] });
+    await render({ due: [], missed: [], notices: [] });
     const region = container!.querySelector('[aria-live="polite"]');
     expect(region?.getAttribute("aria-label")).toBe("Reminders");
     expect(region?.textContent).toBe("");
@@ -115,6 +116,15 @@ describe("AlertMessages", () => {
     const calls = await render(tray);
     await act(() => button("Dismiss all").click());
     expect(calls.cleared).toBe(1);
+  });
+
+  it("shows a notice as plain text that can be dismissed but not opened", async () => {
+    const calls = await render({ due: [], missed: [], notices: [{ id: "n1", text: "That event no longer exists." }] });
+    expect(container!.textContent).toContain("That event no longer exists.");
+    expect(() => button("That event no longer exists.")).toThrow();
+    await act(() => button("Dismiss: That event no longer exists.").click());
+    expect(calls.dismissed).toEqual(["n1"]);
+    expect(calls.opened).toEqual([]);
   });
 
   it("hides the missed section when nothing was missed", async () => {

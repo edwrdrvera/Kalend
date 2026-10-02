@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Bell, X } from "lucide-react";
 import type { AlertKind } from "@/lib/alerts";
-import type { AlertMessage, AlertTray } from "@/lib/alert-tray";
+import type { AlertTray } from "@/lib/alert-tray";
 
 export const ALERT_AUTO_DISMISS_MS = 10_000;
 
@@ -24,8 +24,9 @@ function DueMessage({
   onOpen,
   onDismiss,
 }: {
-  message: AlertMessage;
-  onOpen: AlertMessagesProps["onOpen"];
+  message: { id: string; text: string };
+  /** Absent for a notice, which has nothing to open. */
+  onOpen?: () => void;
   onDismiss: AlertMessagesProps["onDismiss"];
 }) {
   const [paused, setPaused] = useState(false);
@@ -48,16 +49,20 @@ function DueMessage({
       }}
     >
       <Bell className="size-4 shrink-0 text-primary" aria-hidden />
-      <button
-        type="button"
-        onClick={() => {
-          onOpen(message.kind, message.itemId);
-          onDismiss(message.id);
-        }}
-        className="min-w-0 flex-1 text-left font-medium hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-      >
-        {message.text}
-      </button>
+      {onOpen ? (
+        <button
+          type="button"
+          onClick={() => {
+            onOpen();
+            onDismiss(message.id);
+          }}
+          className="min-w-0 flex-1 text-left font-medium hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          {message.text}
+        </button>
+      ) : (
+        <span className="min-w-0 flex-1 font-medium">{message.text}</span>
+      )}
       <button
         type="button"
         onClick={() => onDismiss(message.id)}
@@ -126,10 +131,18 @@ export default function AlertMessages({ tray, onOpen, onDismiss, onClearMissed }
           </ul>
         </section>
       )}
-      {tray.due.length > 0 && (
+      {tray.due.length + tray.notices.length > 0 && (
         <ul className="flex w-full flex-col gap-2">
           {tray.due.map((message) => (
-            <DueMessage key={message.id} message={message} onOpen={onOpen} onDismiss={onDismiss} />
+            <DueMessage
+              key={message.id}
+              message={message}
+              onOpen={() => onOpen(message.kind, message.itemId)}
+              onDismiss={onDismiss}
+            />
+          ))}
+          {tray.notices.map((notice) => (
+            <DueMessage key={notice.id} message={notice} onDismiss={onDismiss} />
           ))}
         </ul>
       )}

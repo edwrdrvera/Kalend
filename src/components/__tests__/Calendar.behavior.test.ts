@@ -599,6 +599,36 @@ describe("Calendar behavior", () => {
       expect(document.querySelector("[aria-label='Task details']") !== null).toBe(true);
     });
 
+    const taskReminder = (itemId: string, title: string) => ({
+      ...dueLecture,
+      id: "a9",
+      kind: "task",
+      item_id: itemId,
+      title,
+      offset_minutes: 0,
+    });
+
+    it("refetches and opens an item this tab has not loaded yet", async () => {
+      alertClaim = { due: [taskReminder(ESSAY.id, ESSAY.title)], missed: [] };
+      await mount(); // the task does not exist yet, as if another tab created it
+      tasks = [ESSAY];
+      const taskFetches = () => calls.filter((c) => c.method === "GET" && c.url === "/api/tasks").length;
+      const before = taskFetches();
+
+      await click(buttonByText("Essay draft is due now")!);
+      expect(taskFetches()).toBe(before + 1);
+      expect(document.querySelector("[aria-label='Task details']") !== null).toBe(true);
+    });
+
+    it("says the item no longer exists when the refetch still lacks it", async () => {
+      alertClaim = { due: [taskReminder("deleted-task", "Ghost task")], missed: [] };
+      await mount();
+
+      await click(buttonByText("Ghost task is due now")!);
+      expect(reminders().textContent).toContain("That task no longer exists.");
+      expect(document.querySelector("[aria-label='Task details']") === null).toBe(true);
+    });
+
     it("lists reminders missed while closed, once, and lets them be dismissed", async () => {
       alertClaim = { due: [], missed: [{ ...dueLecture, id: "a3" }] };
       await mount();

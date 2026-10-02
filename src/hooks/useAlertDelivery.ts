@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 import type { AlertKind } from "@/lib/alerts";
-import { alertTrayReducer, dueMessage, emptyAlertTray, type AlertTray } from "@/lib/alert-tray";
+import { dueMessage, type AlertTrayAction } from "@/lib/alert-tray";
 import { claimAlerts } from "./alert-requests";
 
 export const ALERT_POLL_MS = 30_000;
-
-export interface UseAlertDeliveryReturn {
-  tray: AlertTray;
-  dismiss: (id: string) => void;
-  clearMissed: () => void;
-}
 
 /**
  * Asks the server for alerts that came due on mount, every 30 seconds, and
@@ -19,12 +13,12 @@ export interface UseAlertDeliveryReturn {
  * reloads and other tabs never repeat one. Due alerts become in-app messages
  * and, when the user already allowed notifications, browser notifications.
  * This never asks for permission. Missed alerts only join the in-app list.
+ * Messages go to the tray from `useAlertTray`.
  */
 export function useAlertDelivery(
+  dispatch: Dispatch<AlertTrayAction>,
   onOpenItem: (kind: AlertKind, itemId: string) => void
-): UseAlertDeliveryReturn {
-  const [tray, dispatch] = useReducer(alertTrayReducer, emptyAlertTray);
-
+): void {
   // Notifications outlive the render that created them, so they open the item
   // through the latest handler instead of the one from claim time.
   const openItem = useRef(onOpenItem);
@@ -69,11 +63,5 @@ export function useAlertDelivery(
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
-
-  return {
-    tray,
-    dismiss: (id) => dispatch({ type: "dismiss", id }),
-    clearMissed: () => dispatch({ type: "clearMissed" }),
-  };
+  }, [dispatch]);
 }

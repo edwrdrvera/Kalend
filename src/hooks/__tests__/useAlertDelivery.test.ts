@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
+import type { AlertKind } from "@/lib/alerts";
 import type { AlertClaim, ClaimedAlert } from "@/lib/calendar-types";
 
 const LECTURE: ClaimedAlert = {
@@ -80,9 +81,16 @@ afterEach(() => {
 });
 
 import { ALERT_POLL_MS, useAlertDelivery } from "../useAlertDelivery";
+import { useAlertTray } from "../useAlertTray";
 
-const mount = (onOpen: (kind: string, id: string) => void = () => {}) =>
-  renderHook(() => useAlertDelivery(onOpen));
+function useDelivery(onOpen: (kind: AlertKind, id: string) => void) {
+  const tray = useAlertTray();
+  useAlertDelivery(tray.dispatch, onOpen);
+  return tray;
+}
+
+const mount = (onOpen: (kind: AlertKind, id: string) => void = () => {}) =>
+  renderHook(() => useDelivery(onOpen));
 const claimCalls = () => fetchMock.mock.calls.filter(([url]) => url === "/api/alerts/claim");
 
 describe("useAlertDelivery", () => {
@@ -179,10 +187,10 @@ describe("useAlertDelivery", () => {
 
   it("opens the item through the latest handler when a notification is clicked", async () => {
     claim = { due: [LECTURE], missed: [] };
-    const first = mock<(kind: string, id: string) => void>();
-    const latest = mock<(kind: string, id: string) => void>();
+    const first = mock<(kind: AlertKind, id: string) => void>();
+    const latest = mock<(kind: AlertKind, id: string) => void>();
     let onOpen = first;
-    const { result, act, unmount } = renderHook(() => useAlertDelivery(onOpen));
+    const { result, act, unmount } = renderHook(() => useDelivery(onOpen));
     await act(() => {});
 
     onOpen = latest;
