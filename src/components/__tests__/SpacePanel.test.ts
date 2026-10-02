@@ -110,6 +110,13 @@ describe("SpacePanel", () => {
     expect(handlers.eventCreates).toBe(1);
   });
 
+  it("hides the empty state while the task composer is open", async () => {
+    await render(FIXTURE_BRANCH_FULL);
+    await act(() => buttonWithText("Add task")?.click());
+    expect(document.querySelector('[aria-label="New task title"]')).not.toBeNull();
+    expect(container?.textContent).not.toContain("Nothing coming up");
+  });
+
   it("shows only upcoming events for a Space with events and no tasks", async () => {
     await render(FIXTURE_BRANCH_FULL, [], [SHIFT_DAY]);
     const text = container?.textContent ?? "";

@@ -117,7 +117,7 @@ export default function SpacePanel({
             </form>
           )}
         </div>
-        {upcoming.length === 0 && tasks.length === 0 ? (
+        {upcoming.length === 0 && tasks.length === 0 && !composerOpen ? (
           <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
             Nothing coming up in {branch.name}. Events and tasks you add here show up in this panel.
           </p>
