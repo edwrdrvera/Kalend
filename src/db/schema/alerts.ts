@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-import { ALERT_OFFSETS } from "../../lib/alerts";
+import { ALERT_OFFSETS, type AlertOffset } from "../../lib/alerts";
 import { events } from "./events";
 import { tasks } from "./tasks";
 
@@ -11,7 +11,7 @@ export const alerts = pgTable(
     user_id: uuid("user_id").notNull(),
     event_id: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
     task_id: uuid("task_id").references(() => tasks.id, { onDelete: "cascade" }),
-    offset_minutes: integer("offset_minutes").notNull(),
+    offset_minutes: integer("offset_minutes").$type<AlertOffset>().notNull(),
     // The item's start or due time minus the offset. The server derives it, so
     // a change to the item must rewrite it (see src/lib/api/alert-sync.ts).
     fire_at: timestamp("fire_at", { withTimezone: true }).notNull(),

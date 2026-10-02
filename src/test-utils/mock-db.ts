@@ -15,6 +15,8 @@
  * test assertions to fail and surfacing the missing filter.
  */
 import { mock } from "bun:test";
+import type { SQL } from "drizzle-orm";
+import { rowMatcher } from "./where-matcher";
 
 // ── Types ───────────────────────────────────────────────────────────────
 
@@ -29,6 +31,9 @@ export interface MockDbState<T extends BaseRow> {
   shouldFailOnDelete?: boolean;
   transactionCount?: number;
   lockCount?: number;
+  /** Apply the route's real `where` condition to this table's rows (see
+   *  where-matcher.ts) instead of the id and user_id heuristics. */
+  evaluateWhere?: boolean;
 }
 
 export interface MockAuthUser {
@@ -144,8 +149,12 @@ export function setupMockDb<T extends BaseRow>(
   }));
 
   mock.module("@/db", () => {
+    // Routes that touch alerts (to keep them in step with an event or task)
+    // run in tests that don't care about them, so give those an empty table.
+    const unusedAlerts: MockDbState<BaseRow> = { rows: [], shouldFail: false };
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
-      relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
+      relatedStates[tableNameOf(table) ?? ""] ??
+      (tableNameOf(table) === "alerts" && idPrefix !== "alert-" ? unusedAlerts : (dbState as MockDbState<BaseRow>));
 
     const primaryPrefixFor = (table: unknown) => {
       const name = tableNameOf(table);
@@ -173,6 +182,9 @@ export function setupMockDb<T extends BaseRow>(
             if (selectedState.shouldFail) throw new Error("DB Connection failed");
             const user = getUser();
             if (!user) return [];
+            if (selectedState.evaluateWhere) {
+              return selectedState.rows.filter(rowMatcher(condition as SQL));
+            }
             const scopedByUser = conditionContains(condition, user.id);
             // Only delegate to getCategoryRows for secondary category-
             // ownership lookups. When this mock IS the categories table
@@ -210,25 +222,44 @@ export function setupMockDb<T extends BaseRow>(
           }),
         }),
       }),
-      insert: () => ({
-        values: (vals: Record<string, unknown>) => ({
-          returning: mock(async () => {
-            if (dbState.shouldFail) throw new Error("DB Insert failed");
-            const payload = filterUndefined
-              ? Object.fromEntries(
-                  Object.entries(vals).filter(([, v]) => v !== undefined)
-                )
-              : vals;
-            const row = {
-              id: `${idPrefix}uuid-1`,
-              created_at: new Date(),
-              ...insertDefaults,
-              ...payload,
-            } as T;
-            dbState.rows.push(row);
-            return [row];
-          }),
-        }),
+      insert: (table: unknown) => ({
+        values: (vals: Record<string, unknown>) => {
+          let skipDuplicates = false;
+          const builder = {
+            // An alert is unique per item and offset. A duplicate inserts nothing.
+            onConflictDoNothing: () => {
+              skipDuplicates = true;
+              return builder;
+            },
+            returning: mock(async () => {
+              const insertState = stateFor(table);
+              if (insertState.shouldFail) throw new Error("DB Insert failed");
+              if (skipDuplicates) {
+                const duplicate = insertState.rows.some((r) => {
+                  const row = r as BaseRow & Record<string, unknown>;
+                  return row.offset_minutes === vals.offset_minutes &&
+                    ((vals.event_id != null && row.event_id === vals.event_id) ||
+                      (vals.task_id != null && row.task_id === vals.task_id));
+                });
+                if (duplicate) return [];
+              }
+              const payload = filterUndefined
+                ? Object.fromEntries(
+                    Object.entries(vals).filter(([, v]) => v !== undefined)
+                  )
+                : vals;
+              const row = {
+                id: `${idPrefix}uuid-1`,
+                created_at: new Date(),
+                ...insertDefaults,
+                ...payload,
+              } as T;
+              insertState.rows.push(row as unknown as BaseRow);
+              return [row];
+            }),
+          };
+          return builder;
+        },
       }),
       update: (table: unknown) => ({
         set: (vals: Record<string, unknown>) => ({
@@ -236,13 +267,14 @@ export function setupMockDb<T extends BaseRow>(
             returning: mock(async () => {
               const selectedState = stateFor(table);
               if (selectedState.shouldFail) throw new Error("DB Update failed");
+              const matches = selectedState.evaluateWhere ? rowMatcher(condition as SQL) : null;
               const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
               const user = getUser();
               const scopedByUser = user && conditionContains(condition, user.id);
               const categoryId = extractIdFromCondition(condition, "category-");
               const indexes = selectedState.rows
                 .map((r, index) => ({ r, index }))
-                .filter(({ r }) =>
+                .filter(({ r }) => matches ? matches(r) :
                   (!targetId || r.id === targetId) &&
                   (!categoryId || (tableNameOf(table) !== "events" && tableNameOf(table) !== "tasks") || (r as BaseRow & { category_id?: string }).category_id === categoryId) &&
                   (!scopedByUser || r.user_id === user!.id)
@@ -266,6 +298,12 @@ export function setupMockDb<T extends BaseRow>(
           returning: mock(async () => {
             const selectedState = stateFor(table);
             if (selectedState.shouldFail || selectedState.shouldFailOnDelete) throw new Error("DB Delete failed");
+            if (selectedState.evaluateWhere) {
+              const matches = rowMatcher(condition as SQL);
+              const removed = selectedState.rows.filter(matches);
+              selectedState.rows = selectedState.rows.filter((r) => !matches(r));
+              return removed;
+            }
             const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
             const user = getUser();
             const scopedByUser = user && conditionContains(condition, user.id);
@@ -274,6 +312,15 @@ export function setupMockDb<T extends BaseRow>(
             );
             if (idx === -1) return [];
             const [deleted] = selectedState.rows.splice(idx, 1);
+            // Mirror the foreign key: an alert goes with its event or task.
+            const alertState = relatedStates.alerts;
+            const owner = tableNameOf(table);
+            if (alertState && (owner === "events" || owner === "tasks")) {
+              const link = owner === "events" ? "event_id" : "task_id";
+              alertState.rows = alertState.rows.filter(
+                (a) => (a as BaseRow & Record<string, unknown>)[link] !== deleted.id
+              );
+            }
             return [deleted];
           }),
         }),
