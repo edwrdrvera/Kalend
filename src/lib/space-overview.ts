@@ -9,11 +9,7 @@ export interface UpcomingDay {
   events: CalendarEvent[];
 }
 
-/**
- * The Space's events still ahead of `now` (in-progress ones included) that
- * start within the next UPCOMING_DAYS days, earliest first, capped at
- * UPCOMING_LIMIT and grouped by start day.
- */
+/** In-progress events count as upcoming: they matter until they end. */
 export function upcomingEventsByDay(
   events: CalendarEvent[],
   spaceId: string,
