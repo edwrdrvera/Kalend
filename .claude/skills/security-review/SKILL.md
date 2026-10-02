@@ -88,4 +88,6 @@ Write it with `pstack:unslop` rules:
 - **Judgment calls**, each with what to do, why, and why not the other options.
 - **Cleared.**
 
+Format each hole and judgment call as a bold name with short labeled sub-bullets, the same way as the `code-review` report layout. Never write an item as a paragraph.
+
 Never paste secrets, tokens, or real user data into the report.
