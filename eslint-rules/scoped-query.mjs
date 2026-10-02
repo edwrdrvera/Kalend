@@ -139,17 +139,64 @@ function chainedCall(root, method) {
 const isMember = (node, property) =>
   node?.type === "MemberExpression" && node.property.type === "Identifier" && node.property.name === property;
 
-const isUserId = (node) =>
-  isMember(node, "id") && node.object.type === "Identifier" && node.object.name === "user";
+const isMutation = (reference) => {
+  if (reference.isWrite()) return true;
+  const member = reference.identifier.parent;
+  if (member?.type !== "MemberExpression" || member.object !== reference.identifier) return false;
+  const parent = member.parent;
+  return (parent?.type === "AssignmentExpression" && parent.left === member) || parent?.type === "UpdateExpression";
+};
+
+const isWithUserCallback = (fn, name) => {
+  const call = fn.parent;
+  return (
+    fn.params[2] === name &&
+    call?.type === "CallExpression" &&
+    call.callee.type === "Identifier" &&
+    call.callee.name === "withUser" &&
+    call.arguments[0] === fn
+  );
+};
+
+// A helper may take the caller as a parameter typed AuthenticatedUser. That
+// type is branded, so only getAuthenticatedUser (through withUser) can make
+// one, and the compiler rejects anything built from a request.
+const isTypedAsAuthenticatedUser = (fn, name) => {
+  const annotation = name.typeAnnotation?.typeAnnotation;
+  return (
+    fn.params.includes(name) &&
+    annotation?.type === "TSTypeReference" &&
+    annotation.typeName.type === "Identifier" &&
+    annotation.typeName.name === "AuthenticatedUser"
+  );
+};
+
+// True only for the third parameter of the function passed straight to
+// withUser(...), or a function parameter typed AuthenticatedUser, and never
+// reassigned or mutated. A local variable, a request field, or a shadowing
+// declaration that merely happens to be named user fails.
+function isRouteUser(identifier, scope) {
+  const variable = findVariable(scope, identifier.name);
+  const def = variable?.defs[0];
+  if (def?.type !== "Parameter") return false;
+  const fn = def.node;
+  return (
+    (isWithUserCallback(fn, def.name) || isTypedAsAuthenticatedUser(fn, def.name)) &&
+    !variable.references.some(isMutation)
+  );
+}
+
+const isUserId = (node, scope) =>
+  isMember(node, "id") && node.object.type === "Identifier" && isRouteUser(node.object, scope);
 
 // eq(<table>.user_id, user.id): the column on the queried table, compared to
-// the authenticated user from withUser, never a value taken from the request.
+// the user withUser hands to the route, never a value taken from the request.
 function isOwnerEq(node, table, scope) {
   const [column, value] = node.arguments;
   return (
     isMember(column, "user_id") &&
     tableName(column.object, scope) === table &&
-    isUserId(value)
+    isUserId(value, scope)
   );
 }
 
@@ -162,29 +209,29 @@ const canSetOwner = (prop) => prop.type === "SpreadElement" || prop.computed || 
 
 // The last property that can write user_id decides the owner, so it must be
 // user_id: user.id. With `required`, the object must hold one.
-function ownerIsUser(object, required) {
+function ownerIsUser(object, required, scope) {
   if (object?.type !== "ObjectExpression") return false;
   const decider = object.properties.findLast(canSetOwner);
   if (decider === undefined) return !required;
-  return isUserIdKey(decider) && isUserId(decider.value);
+  return isUserIdKey(decider) && isUserId(decider.value, scope);
 }
 
-function valuesHaveOwner(values) {
+function valuesHaveOwner(values, scope) {
   const rows = values?.arguments[0];
   if (rows?.type === "ArrayExpression") {
-    return rows.elements.length > 0 && rows.elements.every((row) => ownerIsUser(row, true));
+    return rows.elements.length > 0 && rows.elements.every((row) => ownerIsUser(row, true, scope));
   }
-  return ownerIsUser(rows, true);
+  return ownerIsUser(rows, true, scope);
 }
 
 // .onConflictDoUpdate({ set }) rewrites an existing row, so its set may leave
 // user_id alone or set it to user.id, and nothing else.
-function conflictKeepsOwner(conflict) {
+function conflictKeepsOwner(conflict, scope) {
   if (!conflict) return true;
   const config = conflict.arguments[0];
   if (config?.type !== "ObjectExpression" || config.properties.some((prop) => prop.type === "SpreadElement")) return false;
   const set = config.properties.findLast((prop) => !prop.computed && prop.key.name === "set");
-  return ownerIsUser(set?.value, false);
+  return ownerIsUser(set?.value, false, scope);
 }
 
 function isScoped(node, table, scope) {
@@ -213,8 +260,8 @@ const scopedQuery = {
             return;
           } else if (method === "insert") {
             if (
-              !valuesHaveOwner(chainedCall(node, "values")) ||
-              !conflictKeepsOwner(chainedCall(node, "onConflictDoUpdate"))
+              !valuesHaveOwner(chainedCall(node, "values"), scope) ||
+              !conflictKeepsOwner(chainedCall(node, "onConflictDoUpdate"), scope)
             ) {
               context.report({ node, message: ownerValueHint(table) });
             }

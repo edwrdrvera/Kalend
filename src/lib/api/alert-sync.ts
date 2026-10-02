@@ -4,9 +4,9 @@ import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
 import { fireAtFor, type AlertTarget } from "@/lib/alerts";
+import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-type Owner = { id: string };
 
 /**
  * Locks the caller's event or task and reads the time its alerts count back
@@ -16,7 +16,7 @@ type Owner = { id: string };
  */
 export async function lockAlertTime(
   tx: Tx,
-  user: Owner,
+  user: AuthenticatedUser,
   target: AlertTarget
 ): Promise<{ exists: false } | { exists: true; at: Date | null }> {
   if (target.kind === "event") {
@@ -43,7 +43,7 @@ export async function lockAlertTime(
  */
 export async function rescheduleAlerts(
   tx: Tx,
-  user: Owner,
+  user: AuthenticatedUser,
   target: AlertTarget,
   itemTime: Date | null,
   now: Date
