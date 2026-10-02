@@ -1,6 +1,6 @@
 import * as field from "@/lib/api/parse-fields";
 import { parsed, rejected, type ParseResult } from "@/lib/api/parse-fields";
-import { ALERT_OFFSETS, isAlertOffset, type AlertKind, type AlertOffset } from "@/lib/alerts";
+import { ALERT_OFFSETS, isAlertOffset, type AlertOffset, type AlertTarget } from "@/lib/alerts";
 import type { AlertCreateRequest } from "@/lib/calendar-types";
 import { isUuid } from "@/lib/uuid";
 
@@ -18,7 +18,7 @@ const alertRules = {
 
 /** The one item an alert belongs to. Naming both, or neither, is not representable. */
 export type AlertCreate = {
-  target: { kind: AlertKind; id: string };
+  target: AlertTarget;
   offset_minutes: AlertOffset;
 };
 

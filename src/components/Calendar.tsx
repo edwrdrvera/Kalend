@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
+import type { AlertKind } from "@/lib/alerts";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { branchesForSpace, branchesForSpaces, findBranch } from "@/lib/branch-stub";
@@ -35,6 +36,8 @@ import { useCategories } from "@/hooks/useCategories";
 import { useEventEditor } from "@/hooks/useEventEditor";
 import { useEventSelection } from "@/hooks/useEventSelection";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
+import { useAlertDelivery } from "@/hooks/useAlertDelivery";
+import AlertMessages from "./AlertMessages";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
 
 function ErrorToast({
@@ -145,6 +148,19 @@ export default function Calendar() {
     editor.close();
     panel.openEvent(event);
   };
+
+  // A reminder opens its event or task in the panel. An item that isn't loaded
+  // (just created in another tab) has nothing to open yet.
+  const openAlertItem = (kind: AlertKind, id: string) => {
+    if (kind === "event") {
+      const event = events.data.find((e) => e.id === id);
+      if (event) handleEventClick(event);
+      return;
+    }
+    const task = tasks.data.find((t) => t.id === id);
+    if (task) panel.openTask(task);
+  };
+  const alertDelivery = useAlertDelivery(openAlertItem);
 
   // Open the Space editor in edit mode for a given Space id (used by the panel
   // overflow/footer and the rail context menu). No-op if the Space is gone.
@@ -535,6 +551,13 @@ export default function Calendar() {
         onOpenChange={(open) => {
           if (!open) setTaskCreateDay(null);
         }}
+      />
+
+      <AlertMessages
+        tray={alertDelivery.tray}
+        onOpen={openAlertItem}
+        onDismiss={alertDelivery.dismiss}
+        onClearMissed={alertDelivery.clearMissed}
       />
 
       {contextMenu && (

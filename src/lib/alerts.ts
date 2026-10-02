@@ -7,6 +7,9 @@
 
 export type AlertKind = "event" | "task";
 
+/** The one event or task an alert belongs to. */
+export type AlertTarget = { kind: AlertKind; id: string };
+
 const MINUTE_MS = 60_000;
 
 /** How far before the item's start (event) or due time (task) each alert fires. */

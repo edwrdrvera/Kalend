@@ -3,11 +3,10 @@ import type { db } from "@/db";
 import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
-import { fireAtFor, type AlertKind } from "@/lib/alerts";
+import { fireAtFor, type AlertTarget } from "@/lib/alerts";
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Owner = { id: string };
-export type AlertTarget = { kind: AlertKind; id: string };
 
 /**
  * Locks the caller's event or task and reads the time its alerts count back

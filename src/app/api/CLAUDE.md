@@ -15,6 +15,8 @@ Copy `events/route.ts` and `events/[id]/route.ts` when adding an endpoint. They 
 3. Validate the body before touching the DB with the resource's pure parser in `src/lib/api/` (`parseEventCreate`/`parseEventPatch`, `parseTaskCreate`/`parseTaskPatch`, `parseAlertCreate`; field rules in `parse-fields.ts`, shared by both modes so create and update can't drift). On `!parsed.ok` return `fail(parsed.error, 400)`. A body key with no parser rule is rejected (`Unknown field: <key>`), so a misspelled field fails loudly instead of being dropped. Checks that need the DB (Space ownership, PATCH `start_at < end_at` against the stored row) stay in the handler. Categories still validate inline (two fields).
 4. Don't add a try/catch. `withUser` turns invalid JSON into a 400 and any other thrown error into a logged 500. Return `ok(data)` (pass `{ status: 201 }` on create) or `fail(message, status)`.
 
+`alerts/` has an extra shape: `POST /api/alerts/claim` is the delivery path. One `UPDATE ... RETURNING` marks due alerts fired as it hands them out, so each fires once across tabs and reloads. Routes that change an event's `start_at` or a task's `due_at` call `rescheduleAlerts` (`src/lib/api/alert-sync.ts`) in the same transaction.
+
 ## Response envelope
 
 Always `{ success: true, data }` or `{ success: false, error }`. Status codes: 201 on create, 200 otherwise, 400 validation, 401 unauthenticated, 404 not found, 500 server error.
