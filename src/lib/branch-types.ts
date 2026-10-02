@@ -14,33 +14,6 @@ import type { CalendarTask } from "./calendar-types";
  * contract and every component bound to it stay the same.
  */
 
-/** One recurring meeting pattern row: "Lecture" / "Tue, Thu · 10:00". */
-export interface BranchMeet {
-  /** Fixed-width first-column label, full ink. e.g. "Lecture", "Lab". */
-  label: string;
-  /** Second-column pattern, secondary ink. e.g. "Tue, Thu · 10:00". */
-  pattern: string;
-}
-
-/** One person row: avatar + name + role. */
-export interface BranchPerson {
-  id: string;
-  /** Body-size name, e.g. "Dr. Wolfe". */
-  name: string;
-  /** Caption-size role in muted ink, e.g. "Instructor". */
-  role: string;
-  /** Optional avatar image; falls back to an initials circle when absent. */
-  avatarUrl?: string | null;
-}
-
-/** One resource link row: glyph + accent-colored label. */
-export interface BranchLink {
-  id: string;
-  /** Accent-colored label, e.g. "Course syllabus". */
-  label: string;
-  href: string;
-}
-
 /**
  * A branch: the unit the Space Panel is bound to. Belongs to exactly one Space.
  * `spaceId` is the existing category UUID (see the Category-to-Space
@@ -58,12 +31,6 @@ export interface Branch {
   color: EventColor;
   /** Optional; header description line(s). Header collapses this line if empty. */
   description?: string | null;
-  /** Recurring pattern rows. Empty array → Meets section omitted. */
-  meets: BranchMeet[];
-  /** People rows. Empty array → People section omitted. */
-  people: BranchPerson[];
-  /** Resource links. Empty array → Links section omitted. */
-  links: BranchLink[];
 }
 
 /**

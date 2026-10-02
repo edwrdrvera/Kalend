@@ -17,9 +17,6 @@ function makeBranch(overrides: Partial<Branch> = {}): Branch {
     name: "CS 340",
     color: "blue",
     description: null,
-    meets: [],
-    people: [],
-    links: [],
     ...overrides,
   };
 }

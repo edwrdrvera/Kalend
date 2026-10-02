@@ -2,6 +2,7 @@ import { useEffect, useReducer, useState, type Dispatch } from "react";
 import type { Branch } from "@/lib/branch-types";
 import { resolveBranchTasks } from "@/lib/branch-types";
 import { findBranch } from "@/lib/branch-stub";
+import { upcomingEventsByDay } from "@/lib/space-overview";
 import {
   branchPanelReducer,
   loadBranchPanelState,
@@ -70,6 +71,7 @@ export function useSpacePanel(
     backTarget: selection?.kind === "task" || selection?.kind === "event" ? selection.from : null,
     navigationPending: branchPanel.pending !== null,
     panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
+    panelUpcoming: activeBranch ? upcomingEventsByDay(events, activeBranch.spaceId, new Date()) : [],
     // The Space focus follows through the activeSpaceId effect once the Branch
     // actually opens, so a navigation held by unsaved edits changes nothing yet.
     openBranch: (branch: Branch) =>
