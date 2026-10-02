@@ -124,36 +124,43 @@ Edit the draft once against [the writing checklist](#writing-checklist) before y
 The reader is the PR author deciding what to do next. They read the first line and scan the rest. Leave out any section that would be empty:
 
 ```markdown
-**Verdict:** Ready to merge. | Fix N things before merging.
+### Verdict: Ready to merge. | Fix N things before merging.
 One sentence on the biggest reason. If one file holds most of the risk, name it.
 
+---
+
 ### Fix before merging
-1. **Short name of the bug** (`file:line`)
-   What goes wrong: the input or state, and the wrong result.
-   Fix: one sentence. Add a code block only if it's under 10 lines.
+**1. Short name of the bug** (`file:line`)
+- **Breaks when:** the input or state.
+- **Result:** the wrong behavior.
+- **Fix:** one sentence. Add a code block only if it's under 10 lines.
 
 ### Judgment calls
-- **Short name of the choice** (`file:line`)
-  Do: the option you pick.
-  Why: what it fixes or prevents.
-  Why not the others: the main alternative, and what it would cost.
+**Short name of the choice** (`file:line`)
+- **Do:** the option you pick.
+- **Why:** what it fixes or prevents.
+- **Not the others:** the main alternative, and what it would cost.
 
 ### Checked and fine
-- The risk, and why it can't happen, in one sentence.
+- **The risk:** why it can't happen, in one sentence.
 
 <details><summary>Tier and proof</summary>
 
-The tier and the files that set it. The safety fact, its ladder step, and the command and output if you ran one.
+- **Tier:** the tier, and the files that set it.
+- **Safety fact:** the fact, its ladder step, and the command and output if you ran one.
 
 </details>
 ```
 
-- Start with the Verdict line. Put nothing before it.
+- Start with the Verdict heading. Put nothing before it.
+- Format for scanning. Every item is a bold name followed by short labeled sub-bullets, never a paragraph.
+- Put a blank line between items and between sections.
 - Don't restate what the PR does.
 - Put the most serious item first in each section.
-- Keep each item to three lines. If an item needs more, it belongs under "Judgment calls".
+- Keep each sub-bullet to one or two lines. If an item needs more, it belongs under "Judgment calls".
 - Count a bug and its missing test as one item. Leave out style nits.
 - List at most 5 items under "Checked and fine". Pick the risks the author would worry about most.
+
 
 ## Writing checklist
 
@@ -168,6 +175,6 @@ This checklist holds the parts of `pstack:unslop`, `pstack:technical-writing`, a
 7. **No em dashes, semicolons, or `--` as a dash.** Use a period or a comma.
 8. **Keep "only" and "not" next to the word they change.** Every "it" and "this" points at one obvious thing.
 9. **Put the condition first.** Write "If the PR targets main, the checkout fails."
-10. **Write headings in sentence case.** Bold only the item names.
+10. **Write headings in sentence case.** Bold only the item names and the sub-bullet labels.
 
 Last, ask what in the draft still sounds machine-written, and fix it.

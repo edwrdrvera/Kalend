@@ -34,22 +34,43 @@ These rules come from the `pstack:technical-writing` and `pstack:unslop` skills.
 
 After you open a PR, post a confidence report as the first PR comment. It keeps the body short, and a reviewer who only reads the body loses nothing. The report says what you proved and what you didn't. Use the same plain language as the body.
 
-Use this template:
+Use this template. Group the fields under three bold headings so the reader can jump to what they need:
 
-**Confidence report**
-* **Tests:** [Which checks you ran and whether they passed]
-* **Runtime:** [What you did in the running app, as a user would]
-* **Visual:** [What the user sees now and which screens you checked. Screenshots stay in the session, so describe what they showed]
-* **Not verified:** [Everything you couldn't check, and why]. Write "Nothing" only if that's true.
-* **What changed:** [The behavior that is different now]
-* **What must not change:** [The behavior that has to stay the same, and how you checked it]
-* **How far failure can travel:** [Who or what breaks if this is wrong]
-* **Rollback:** [How to undo it: revert the PR, or run a reverse migration for a schema change]
+```markdown
+### Confidence report
+
+**Proof**
+- **Tests:** [Which checks you ran and whether they passed]
+- **Runtime:** [What you did in the running app, as a user would]
+- **Visual:** [What the user sees now and which screens you checked]
+
+**Gaps**
+- **Not verified:** [Everything you couldn't check, and why]
+
+**Impact**
+- **What changed:** [The behavior that is different now]
+- **What must not change:** [The behavior that has to stay the same, and how you checked it]
+- **How far failure can travel:** [Who or what breaks if this is wrong]
+- **Rollback:** [How to undo it]
+```
+
+Layout rules:
 
 - Fill in every field. A blank field means you didn't look.
+- When a field lists more than one thing, make each thing its own sub-bullet under the field. Never join them into one run-on line.
+- Keep each bullet to 1 or 2 short lines. Put the result first, then the detail.
+- Screenshots stay in the session, so describe what they showed.
 - Report what you ran, not what should work. "The task list loads after deleting a task" is a result. "Deleting should work now" is not.
 - Leave out the Visual field only when nothing changes on screen, and say so.
 - For a database change, Rollback names the reverse migration or the plan to fix forward. "Revert the PR" isn't enough once a migration has run.
+
+Example of a field that lists several things:
+
+```markdown
+- **Not verified:**
+  - Signed-in click-through, because the demo login wasn't available.
+  - Mobile layout below 400px.
+```
 
 ### Trivial tier
 
@@ -59,10 +80,14 @@ A trivial PR (under 40 changed lines, no high-tier file) posts no report comment
 
 A low-tier PR changes nothing risky, so the report is three lines:
 
-**Confidence report**
-* **What changed:** [The behavior that is different now]
-* **How verified:** [Checks you ran, and what you saw in the browser if it's visible]
-* **Not verified:** [Everything you couldn't check, and why]. Write "Nothing" only if that's true.
+```markdown
+### Confidence report
+- **What changed:** [The behavior that is different now]
+- **How verified:** [Checks you ran, and what you saw in the browser if it's visible]
+- **Not verified:** [Everything you couldn't check, and why]
+```
+
+Use sub-bullets when a field lists more than one thing.
 
 ## Issues
 
