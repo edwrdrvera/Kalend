@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { addDays, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
-import type { UpcomingDay } from "@/lib/space-overview";
+import { groupByDay, type UpcomingDay } from "@/lib/space-overview";
 
 /** Rows shown before "Show more", so a busy Space doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -24,13 +24,10 @@ export default function PanelUpcomingSection({ days, onOpenEvent }: PanelUpcomin
   const total = days.reduce((n, d) => n + d.events.length, 0);
   if (total === 0) return null;
 
-  let budget = expanded ? total : COLLAPSED_ROWS;
-  const visible = days.flatMap((d) => {
-    const events = d.events.slice(0, budget);
-    budget -= events.length;
-    return events.length > 0 ? [{ day: d.day, events }] : [];
-  });
-  const hidden = total - visible.reduce((n, d) => n + d.events.length, 0);
+  const all = days.flatMap((d) => d.events);
+  const shown = expanded ? all : all.slice(0, COLLAPSED_ROWS);
+  const visible = groupByDay(shown);
+  const hidden = total - shown.length;
   const now = new Date();
 
   return (
