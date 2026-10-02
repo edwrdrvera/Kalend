@@ -26,8 +26,13 @@ export function upcomingEventsByDay(
     .sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at))
     .slice(0, UPCOMING_LIMIT);
 
+  return groupByDay(upcoming);
+}
+
+/** Buckets events already in start order into consecutive days. */
+export function groupByDay(events: CalendarEvent[]): UpcomingDay[] {
   const days: UpcomingDay[] = [];
-  for (const event of upcoming) {
+  for (const event of events) {
     const start = new Date(event.start_at);
     const last = days.at(-1);
     if (last && isSameDay(last.day, start)) last.events.push(event);
