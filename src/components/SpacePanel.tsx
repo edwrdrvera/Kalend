@@ -7,10 +7,7 @@ import type { Branch } from "@/lib/branch-types";
 import type { CalendarTask } from "@/lib/calendar-types";
 import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
-import PanelMeetsSection from "./PanelMeetsSection";
-import PanelPeopleSection from "./PanelPeopleSection";
 import PanelTasksSection from "./PanelTasksSection";
-import PanelLinksSection from "./PanelLinksSection";
 import SpacePanelFooter from "./SpacePanelFooter";
 
 interface SpacePanelProps {
@@ -70,8 +67,6 @@ export default function SpacePanel({
         key={branch.id}
         className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
       >
-        <PanelMeetsSection meets={branch.meets} />
-        <PanelPeopleSection people={branch.people} />
         <div>
           <PanelTasksSection
             tasks={tasks}
@@ -101,7 +96,6 @@ export default function SpacePanel({
             </form>
           )}
         </div>
-        <PanelLinksSection links={branch.links} />
       </div>
 
       <SpacePanelFooter onOpenSettings={onOpenSettings} />

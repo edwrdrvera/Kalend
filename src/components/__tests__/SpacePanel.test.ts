@@ -5,7 +5,7 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarTask } from "@/lib/calendar-types";
-import { FIXTURE_BRANCH_FULL, FIXTURE_BRANCH_SPARSE } from "@/lib/branch-fixtures";
+import { FIXTURE_BRANCH_FULL } from "@/lib/branch-fixtures";
 import type { Branch } from "@/lib/branch-types";
 
 // DOM globals must be installed (test-dom above) before importing react-dom.
@@ -55,24 +55,14 @@ async function render(branch: Branch, tasks: CalendarTask[] = []) {
 }
 
 describe("SpacePanel", () => {
-  it("shows the Space label and branch heading, plus data-backed sections", async () => {
+  it("shows the Space label and branch heading, with no placeholder sections", async () => {
     await render(FIXTURE_BRANCH_FULL);
     const text = container?.textContent ?? "";
     expect(text).toContain("School");
     expect(text).toContain("CS 340");
-    expect(text).toContain("Meets");
-    expect(text).toContain("People");
-    expect(text).toContain("Links");
-  });
-
-  it("omits Meets/People/Links when the branch has none", async () => {
-    await render(FIXTURE_BRANCH_SPARSE);
-    const text = container?.textContent ?? "";
     expect(text).not.toContain("Meets");
     expect(text).not.toContain("People");
     expect(text).not.toContain("Links");
-    // Open tasks label always renders (it hosts the "+ Add" affordance).
-    expect(text).toContain("Open tasks");
   });
 
   it("closes on Escape when focus is inside the panel", async () => {

@@ -6,9 +6,7 @@
 // should require no changes anywhere else.
 //
 // v1 rule (stubbed data model): every Space has exactly one branch that
-// mirrors the Space itself (same name, same color), with every optional
-// section (meets/people/links) empty so those sections stay omitted in the
-// panel UI.
+// mirrors the Space itself (same name, same color).
 
 import type { CalendarCategory } from "./calendar-types";
 import { DEFAULT_EVENT_COLOR, isEventColor } from "./event-colors";
@@ -28,9 +26,6 @@ export function branchesForSpace(category: CalendarCategory): Branch[] {
       name: category.name,
       color: isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR,
       description: null,
-      meets: [],
-      people: [],
-      links: [],
     },
   ];
 }

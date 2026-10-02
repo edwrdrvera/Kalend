@@ -17,9 +17,6 @@ describe("branchesForSpace", () => {
       name: "School",
       color: "blue",
       description: null,
-      meets: [],
-      people: [],
-      links: [],
     });
   });
 
