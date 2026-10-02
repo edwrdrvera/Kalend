@@ -60,6 +60,7 @@ type Call = { url: string; method: string; body: unknown };
 let calls: Call[] = [];
 let patchResponse: { status: number; body: unknown } = { status: 200, body: null };
 let deleteStatus = 200;
+let alertClaim: { due: unknown[]; missed: unknown[] } = { due: [], missed: [] };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -76,6 +77,7 @@ beforeEach(() => {
   calls = [];
   tasks = [];
   deleteStatus = 200;
+  alertClaim = { due: [], missed: [] };
   patchResponse = { status: 200, body: { success: true, data: EVENTS[0] } };
   localStorage.clear();
   globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -85,6 +87,7 @@ beforeEach(() => {
     if (method === "GET" && url === "/api/events") return json({ success: true, data: EVENTS });
     if (method === "GET" && url === "/api/tasks") return json({ success: true, data: tasks });
     if (method === "GET" && url === "/api/categories") return json({ success: true, data: [SPACE] });
+    if (method === "POST" && url === "/api/alerts/claim") return json({ success: true, data: alertClaim });
     if (method === "PATCH") return json(patchResponse.body, patchResponse.status);
     if (method === "DELETE") {
       return deleteStatus === 200
@@ -559,6 +562,79 @@ describe("Calendar behavior", () => {
 
       expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
       expect((buttonByText("Delete") as HTMLButtonElement).disabled).toBe(true);
+    });
+  });
+
+  describe("reminders", () => {
+    const dueLecture = {
+      id: "a1",
+      kind: "event",
+      item_id: "e1",
+      title: "Lecture",
+      offset_minutes: 15,
+      fire_at: new Date().toISOString(),
+    };
+    const reminders = () => document.querySelector("[aria-label='Reminders']")!;
+
+    it("shows a due reminder and opens its event when clicked", async () => {
+      alertClaim = { due: [dueLecture], missed: [] };
+      await mount();
+      expect(reminders().textContent).toContain("Lecture starts in 15 min");
+      expect(isAbsent(eventDetails())).toBe(true);
+
+      await click(buttonByText("Lecture starts in 15 min")!);
+      expect(isAbsent(eventDetails())).toBe(false);
+      expect(titleField().value).toBe("Lecture");
+      expect(reminders().textContent).not.toContain("Lecture starts in 15 min");
+    });
+
+    it("opens the task for a task reminder", async () => {
+      tasks = [ESSAY];
+      alertClaim = {
+        due: [{ ...dueLecture, id: "a2", kind: "task", item_id: ESSAY.id, title: ESSAY.title, offset_minutes: 0 }],
+        missed: [],
+      };
+      await mount();
+      await click(buttonByText("Essay draft is due now")!);
+      expect(document.querySelector("[aria-label='Task details']") !== null).toBe(true);
+    });
+
+    const taskReminder = (itemId: string, title: string) => ({
+      ...dueLecture,
+      id: "a9",
+      kind: "task",
+      item_id: itemId,
+      title,
+      offset_minutes: 0,
+    });
+
+    it("refetches and opens an item this tab has not loaded yet", async () => {
+      alertClaim = { due: [taskReminder(ESSAY.id, ESSAY.title)], missed: [] };
+      await mount(); // the task does not exist yet, as if another tab created it
+      tasks = [ESSAY];
+      const taskFetches = () => calls.filter((c) => c.method === "GET" && c.url === "/api/tasks").length;
+      const before = taskFetches();
+
+      await click(buttonByText("Essay draft is due now")!);
+      expect(taskFetches()).toBe(before + 1);
+      expect(document.querySelector("[aria-label='Task details']") !== null).toBe(true);
+    });
+
+    it("says the item no longer exists when the refetch still lacks it", async () => {
+      alertClaim = { due: [taskReminder("deleted-task", "Ghost task")], missed: [] };
+      await mount();
+
+      await click(buttonByText("Ghost task is due now")!);
+      expect(reminders().textContent).toContain("That task no longer exists.");
+      expect(document.querySelector("[aria-label='Task details']") === null).toBe(true);
+    });
+
+    it("lists reminders missed while closed, once, and lets them be dismissed", async () => {
+      alertClaim = { due: [], missed: [{ ...dueLecture, id: "a3" }] };
+      await mount();
+      expect(reminders().textContent).toContain("Missed while you were away");
+      await click(buttonByText("Dismiss all")!);
+      expect(reminders().textContent).toBe("");
     });
   });
 });

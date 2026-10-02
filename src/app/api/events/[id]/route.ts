@@ -3,6 +3,7 @@ import { events } from "@/db/schema/events";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseEventPatch } from "@/lib/api/event-body";
+import { rescheduleAlerts } from "@/lib/api/alert-sync";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 
@@ -34,6 +35,9 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
     if (body.color === undefined && (body.category_id === null || (body.color_overridden === false && !targetCategory))) updates.color = visibleColor;
     if ((body.start_at ?? existing.start_at) >= (body.end_at ?? existing.end_at)) return { timeError: true } as const;
     const [updated] = await tx.update(events).set(updates).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning();
+    if (body.start_at && body.start_at.getTime() !== existing.start_at.getTime()) {
+      await rescheduleAlerts(tx, user, { kind: "event", id }, body.start_at, new Date());
+    }
     return { updated } as const;
   }));
   if (!result) return fail("Event not found", 404);
