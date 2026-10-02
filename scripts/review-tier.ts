@@ -17,7 +17,13 @@ const highPatterns = [
 ];
 
 // Agent skills are Markdown but steer every review, so they skip the .md low rule.
-const mediumPatterns = [/^\.claude\//];
+// The calendar shell, the time grid and the global styles are medium too: they
+// match the component and .css low rules, but a change there reaches nearly every screen.
+const mediumPatterns = [
+  /^\.claude\//,
+  /^src\/components\/(Calendar|TimeGrid)\.tsx$/,
+  /^src\/app\/globals\.css$/,
+];
 
 const lowPatterns = [/^src\/components\//, /\.css$/, /\.md$/, /^public\//];
 
