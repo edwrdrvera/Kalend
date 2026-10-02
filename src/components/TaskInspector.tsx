@@ -4,8 +4,18 @@ import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
-import { draftFromTask, draftPatch, type TaskDraft } from "@/lib/task-draft";
+import type { AlertOffset } from "@/lib/alerts";
+import {
+  draftFromTask,
+  draftPatch,
+  isTaskDraftDirty,
+  rebaseTaskDraft,
+  wantedAlert,
+  type SavedTask,
+  type TaskDraft,
+} from "@/lib/task-draft";
 import { APP_INPUT_CLS, DateField } from "./DateField";
+import AlertField from "./AlertField";
 import CategorySelect from "./CategorySelect";
 import PanelShell from "./PanelShell";
 import {
@@ -20,12 +30,15 @@ import { useInspectorSave } from "@/hooks/useInspectorSave";
 
 interface TaskInspectorProps {
   task: CalendarTask;
+  /** The task's stored alert, which the draft is compared against. */
+  alertOffset: AlertOffset | null;
   categories: CalendarCategory[];
   modal: boolean;
   nav: InspectorNav;
   onClose: () => void;
-  /** Resolves false when the save failed, so the draft stays. */
-  onSave: (task: CalendarTask, patch: TaskPatchRequest) => Promise<boolean>;
+  /** Resolves false when the save failed, so the draft stays. An empty patch
+   *  means only the alert changed. */
+  onSave: (task: CalendarTask, patch: TaskPatchRequest, alertOffset: AlertOffset | null) => Promise<boolean>;
   onToggleComplete: (task: CalendarTask) => void;
   onDelete: (task: CalendarTask) => void;
   onDirtyChange: (dirty: boolean) => void;
@@ -39,6 +52,7 @@ interface TaskInspectorProps {
  *  task gets a fresh draft. */
 export default function TaskInspector({
   task,
+  alertOffset,
   categories,
   modal,
   nav,
@@ -51,14 +65,20 @@ export default function TaskInspector({
   onProceed,
   onStay,
 }: TaskInspectorProps) {
-  const [draft, setDraft] = useState<TaskDraft>(() => draftFromTask(task));
+  const saved: SavedTask = { task, alertOffset };
+  const [draft, setDraft] = useState<TaskDraft>(() => draftFromTask(saved));
+  const [seen, setSeen] = useState(saved);
+  if (seen.task !== task || seen.alertOffset !== alertOffset) {
+    setSeen(saved);
+    setDraft((d) => rebaseTaskDraft(d, seen, saved));
+  }
   const patch = draftPatch(task, draft);
-  const dirty = Object.keys(patch).length > 0;
+  const dirty = isTaskDraftDirty(saved, draft);
   const titleMissing = draft.title.trim() === "";
   const { saving, saveError, clearError, handleSubmit, saveAndProceed } = useInspectorSave({
     dirty,
     invalidReason: titleMissing ? "Add a title before saving." : null,
-    persist: () => onSave(task, patch),
+    persist: () => onSave(task, patch, wantedAlert(draft)),
     onDirtyChange,
     onProceed,
     onStay,
@@ -120,6 +140,13 @@ export default function TaskInspector({
             className="-mx-2 w-fit"
           />
         </div>
+
+        <AlertField
+          id="task-inspector-alert"
+          value={wantedAlert(draft)}
+          onChange={(offset) => update({ alertOffset: offset })}
+          disabledReason={draft.dueDate ? null : "Add a due date to set an alert."}
+        />
 
         <button
           type="button"

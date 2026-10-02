@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createElement, act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import { testWindow, typeInto } from "./test-dom";
+import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import { chooseOption, testWindow, typeInto } from "./test-dom";
 
 mock.module("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -61,6 +61,8 @@ let calls: Call[] = [];
 let patchResponse: { status: number; body: unknown } = { status: 200, body: null };
 let deleteStatus = 200;
 let alertClaim: { due: unknown[]; missed: unknown[] } = { due: [], missed: [] };
+let storedAlerts: CalendarAlert[] = [];
+let alertWriteStatus = 200;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -78,6 +80,8 @@ beforeEach(() => {
   tasks = [];
   deleteStatus = 200;
   alertClaim = { due: [], missed: [] };
+  storedAlerts = [];
+  alertWriteStatus = 200;
   patchResponse = { status: 200, body: { success: true, data: EVENTS[0] } };
   localStorage.clear();
   globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -88,6 +92,25 @@ beforeEach(() => {
     if (method === "GET" && url === "/api/tasks") return json({ success: true, data: tasks });
     if (method === "GET" && url === "/api/categories") return json({ success: true, data: [SPACE] });
     if (method === "POST" && url === "/api/alerts/claim") return json({ success: true, data: alertClaim });
+    if (url === "/api/alerts" && method === "GET") return json({ success: true, data: storedAlerts });
+    if (url === "/api/alerts" && method === "POST") {
+      if (alertWriteStatus !== 200) return json({ success: false, error: "alert failed" }, alertWriteStatus);
+      const body = JSON.parse(String(init?.body));
+      const created: CalendarAlert = {
+        id: `alert-${storedAlerts.length + 1}-${body.offset_minutes}`,
+        event_id: body.event_id ?? null,
+        task_id: body.task_id ?? null,
+        offset_minutes: body.offset_minutes,
+        fire_at: new Date().toISOString(),
+        fired_at: null,
+      };
+      storedAlerts = [...storedAlerts, created];
+      return json({ success: true, data: created }, 201);
+    }
+    if (url.startsWith("/api/alerts/") && method === "DELETE") {
+      storedAlerts = storedAlerts.filter((a) => `/api/alerts/${a.id}` !== url);
+      return json({ success: true });
+    }
     if (method === "PATCH") return json(patchResponse.body, patchResponse.status);
     if (method === "DELETE") {
       return deleteStatus === 200
@@ -635,6 +658,191 @@ describe("Calendar behavior", () => {
       expect(reminders().textContent).toContain("Missed while you were away");
       await click(buttonByText("Dismiss all")!);
       expect(reminders().textContent).toBe("");
+    });
+  });
+
+  describe("alerts", () => {
+    beforeEach(() => testWindow.happyDOM.setInnerWidth(1300));
+
+    const lectureAlert = (offset: 5 | 15 | 60 = 15): CalendarAlert => ({
+      id: "a-lecture",
+      event_id: "e1",
+      task_id: null,
+      offset_minutes: offset,
+      fire_at: new Date().toISOString(),
+      fired_at: null,
+    });
+    const alertSelect = (kind: "event" | "task") =>
+      document.querySelector<HTMLSelectElement>(`#${kind}-inspector-alert`)!;
+    const alertCalls = () =>
+      calls
+        .filter((c) => c.url.startsWith("/api/alerts") && !c.url.endsWith("/claim") && c.method !== "GET")
+        .map((c) => `${c.method} ${c.url}${c.body ? ` ${JSON.stringify(c.body)}` : ""}`);
+    // The row a bell belongs to: the nearest ancestor holding an Open button.
+    const bellRows = () =>
+      [...document.querySelectorAll("[aria-label='Alert set']")].map((bell) => {
+        let row = bell.parentElement;
+        while (row && !row.querySelector("button[aria-label^='Open']")) row = row.parentElement;
+        return row?.querySelector("button[aria-label^='Open']")?.getAttribute("aria-label");
+      });
+    const save = () => click(buttonByText("Save")!);
+
+    class FakeNotification {
+      static permission: NotificationPermission = "default";
+      static asked = 0;
+      static answer: NotificationPermission = "denied";
+      static async requestPermission() {
+        FakeNotification.asked++;
+        FakeNotification.permission = FakeNotification.answer;
+        return FakeNotification.answer;
+      }
+    }
+    const originalNotification = (globalThis as Record<string, unknown>).Notification;
+    beforeEach(() => {
+      FakeNotification.permission = "default";
+      FakeNotification.asked = 0;
+      FakeNotification.answer = "denied";
+      (globalThis as Record<string, unknown>).Notification = FakeNotification;
+    });
+    afterEach(() => {
+      (globalThis as Record<string, unknown>).Notification = originalNotification;
+    });
+
+    it("shows a bell in the day panel only for items that have an alert", async () => {
+      storedAlerts = [lectureAlert()];
+      await mount();
+      expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
+    });
+
+    it("sets an alert after the event saves, then shows the bell and keeps it after a reload", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      expect(alertSelect("event").value).toBe("");
+
+      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await save();
+
+      expect(alertCalls()).toEqual(['POST /api/alerts {"event_id":"e1","offset_minutes":15}']);
+      expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+      expect(alertSelect("event").value).toBe("15");
+      expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
+
+      await remount();
+      expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
+      await click(eventBlock("Lecture"));
+      expect(alertSelect("event").value).toBe("15");
+    });
+
+    it("saves the event first and the alert second when both changed", async () => {
+      patchResponse = { status: 200, body: { success: true, data: { ...EVENTS[0], title: "Lecture 2" } } };
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => typeInto(titleField(), "Lecture 2"));
+      await act(async () => chooseOption(alertSelect("event"), "60"));
+      await save();
+
+      const writes = calls.filter((c) => c.method !== "GET" && !c.url.endsWith("/claim")).map((c) => `${c.method} ${c.url}`);
+      expect(writes).toEqual(["PATCH /api/events/e1", "POST /api/alerts"]);
+    });
+
+    it("changes an alert by creating the new one before deleting the old one", async () => {
+      storedAlerts = [lectureAlert(15)];
+      await mount();
+      await click(eventBlock("Lecture"));
+      expect(alertSelect("event").value).toBe("15");
+
+      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await save();
+      expect(alertCalls()).toEqual(['POST /api/alerts {"event_id":"e1","offset_minutes":5}', "DELETE /api/alerts/a-lecture"]);
+      expect(alertSelect("event").value).toBe("5");
+    });
+
+    it("clears an alert and removes the bell", async () => {
+      storedAlerts = [lectureAlert(15)];
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => chooseOption(alertSelect("event"), ""));
+      await save();
+
+      expect(alertCalls()).toEqual(["DELETE /api/alerts/a-lecture"]);
+      expect(bellRows()).toEqual([]);
+    });
+
+    it("keeps the draft and offers a retry when the alert fails after the event saved", async () => {
+      alertWriteStatus = 500;
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await save();
+
+      expect(eventDetails()!.querySelector("[role='alert']")?.textContent).toContain("Couldn't save");
+      expect(alertSelect("event").value).toBe("15");
+      expect(bellRows()).toEqual([]);
+
+      alertWriteStatus = 200;
+      await click(buttonByText("Retry")!);
+      expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
+    });
+
+    it("sets and clears a task's alert from the task details", async () => {
+      tasks = [ESSAY];
+      await mount();
+      await click(document.querySelector("button[aria-label='Open task Essay draft']")!);
+      await act(async () => chooseOption(alertSelect("task"), "0"));
+      await save();
+      expect(alertCalls()).toEqual(['POST /api/alerts {"task_id":"t1","offset_minutes":0}']);
+      expect(calls.some((c) => c.method === "PATCH")).toBe(false);
+      expect(new Set(bellRows())).toEqual(new Set(["Open task Essay draft"]));
+
+      await act(async () => chooseOption(alertSelect("task"), ""));
+      await save();
+      expect(bellRows()).toEqual([]);
+    });
+
+    it("asks for notification permission once, on the first saved alert, and explains a refusal", async () => {
+      await mount();
+      expect(FakeNotification.asked).toBe(0);
+      await click(eventBlock("Lecture"));
+      expect(FakeNotification.asked).toBe(0);
+
+      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await save();
+      expect(FakeNotification.asked).toBe(1);
+      expect(document.querySelector("[aria-label='Reminders']")!.textContent).toContain("only inside Kalend");
+
+      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await save();
+      expect(FakeNotification.asked).toBe(1);
+    });
+
+    it("says nothing when the user allows notifications", async () => {
+      FakeNotification.answer = "granted";
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await save();
+      expect(FakeNotification.asked).toBe(1);
+      expect(document.querySelector("[aria-label='Reminders']")!.textContent).toBe("");
+    });
+
+    it("does not ask when permission was already answered", async () => {
+      FakeNotification.permission = "denied";
+      storedAlerts = [lectureAlert(15)];
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await save();
+      expect(FakeNotification.asked).toBe(0);
+      expect(document.querySelector("[aria-label='Reminders']")!.textContent).toBe("");
+    });
+
+    it("explains in-app-only alerts right away in a browser with no notifications", async () => {
+      delete (globalThis as Record<string, unknown>).Notification;
+      await mount();
+      await click(eventBlock("Lecture"));
+      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await save();
+      expect(document.querySelector("[aria-label='Reminders']")!.textContent).toContain("only inside Kalend");
     });
   });
 });

@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AlertBell from "./AlertBell";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 import {
   EVENT_COLOR_SWATCH_CLASSES,
@@ -14,6 +15,8 @@ interface TaskRowProps {
   categories: CalendarCategory[];
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
+  /** Shows the alert bell. Only the day panel passes it. */
+  hasAlert?: boolean;
 }
 
 export default function TaskRow({
@@ -21,6 +24,7 @@ export default function TaskRow({
   categories,
   onToggleTaskComplete,
   onOpenTask,
+  hasAlert = false,
 }: TaskRowProps) {
   const displayColor = resolveDisplayColor(
     task.color,
@@ -67,6 +71,11 @@ export default function TaskRow({
       >
         {task.title}
       </button>
+      {hasAlert && (
+        <span className="flex h-[18px] shrink-0 items-center">
+          <AlertBell />
+        </span>
+      )}
     </div>
   );
 }
