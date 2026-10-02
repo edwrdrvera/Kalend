@@ -26,13 +26,35 @@ const mockDbState: MockDbState<MockTask> = {
 // Category rows used to test ownership validation.
 const mockCategoryRows: { id: string; user_id: string; color: string }[] = [];
 
+interface MockAlert {
+  id: string;
+  user_id: string;
+  event_id: null;
+  task_id: string;
+  offset_minutes: number;
+  fire_at: Date;
+  fired_at: Date | null;
+}
+const mockAlertState: MockDbState<MockAlert> = { rows: [], shouldFail: false, evaluateWhere: true };
+const alert = (id: string, over: Partial<MockAlert>): MockAlert => ({
+  id,
+  user_id: "user-uuid-123",
+  event_id: null,
+  task_id: "task-uuid-1",
+  offset_minutes: 15,
+  fire_at: new Date("2026-08-15T23:44:00Z"),
+  fired_at: null,
+  ...over,
+});
+
 setupMockDb(
   "task-",
   mockDbState,
   () => mockCurrentUser,
   { completed: false, due_at: null } as Partial<MockTask>,
   false,
-  () => mockCategoryRows
+  () => mockCategoryRows,
+  { alerts: mockAlertState }
 );
 
 // Import route handlers after mock setup
@@ -64,6 +86,8 @@ describe("Tasks API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockAlertState.rows = [];
+    mockAlertState.shouldFail = false;
     mockCategoryRows.length = 0;
     mockCategoryRows.push({
       id: "11111111-1111-4111-8111-111111111111",
@@ -629,6 +653,77 @@ describe("Tasks API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(true);
       expect(json.data.id).toBe("task-uuid-1");
+    });
+
+    it("removes the task's alerts and leaves everyone else's", async () => {
+      mockAlertState.rows = [
+        alert("alert-mine", { task_id: "task-uuid-1" }),
+        alert("alert-theirs", { user_id: "other-user-456", task_id: "task-uuid-other" }),
+      ];
+      const response = await DELETE(
+        new Request("http://localhost/api/tasks/task-uuid-1", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "task-uuid-1" }) }
+      );
+      expect(response.status).toBe(200);
+      expect(mockAlertState.rows.map((a) => a.id)).toEqual(["alert-theirs"]);
+    });
+  });
+
+  describe("alerts follow the due date", () => {
+    const patchTask = (body: object, id = "task-uuid-1") =>
+      PATCH(
+        new Request(`http://localhost/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+        { params: Promise.resolve({ id }) }
+      );
+    const stored = (id: string) => mockAlertState.rows.find((a) => a.id === id);
+
+    beforeEach(() => {
+      mockAlertState.rows = [
+        alert("alert-day", { task_id: "task-uuid-1", offset_minutes: 1440 }),
+        alert("alert-due", { task_id: "task-uuid-1", offset_minutes: 0 }),
+        alert("alert-theirs", { user_id: "other-user-456", task_id: "task-uuid-other" }),
+      ];
+    });
+
+    it("moves each alert by its own offset when the due date changes", async () => {
+      const response = await patchTask({ due_at: "2099-03-10T12:00:00Z" });
+      expect(response.status).toBe(200);
+      expect(stored("alert-day")?.fire_at.toISOString()).toBe("2099-03-09T12:00:00.000Z");
+      expect(stored("alert-due")?.fire_at.toISOString()).toBe("2099-03-10T12:00:00.000Z");
+    });
+
+    it("lets a fired alert fire again once it lands in the future", async () => {
+      stored("alert-day")!.fired_at = new Date("2026-08-14T23:59:00Z");
+      await patchTask({ due_at: "2099-03-10T12:00:00Z" });
+      expect(stored("alert-day")?.fired_at).toBeNull();
+    });
+
+    it("removes the task's alerts when the due date is cleared", async () => {
+      const response = await patchTask({ due_at: null });
+      expect(response.status).toBe(200);
+      expect(mockAlertState.rows.map((a) => a.id)).toEqual(["alert-theirs"]);
+    });
+
+    it("leaves alerts alone when the due date is not part of the change", async () => {
+      const before = stored("alert-day")!.fire_at.toISOString();
+      await patchTask({ completed: true });
+      expect(mockAlertState.rows).toHaveLength(3);
+      expect(stored("alert-day")?.fire_at.toISOString()).toBe(before);
+    });
+
+    it("does not touch another user's alerts through a task id it does not own", async () => {
+      const response = await patchTask({ due_at: null }, "task-uuid-other");
+      expect(response.status).toBe(404);
+      expect(stored("alert-theirs")).toBeDefined();
+    });
+
+    it("rolls the task change back when the alerts cannot be updated", async () => {
+      mockAlertState.shouldFail = true;
+      const response = await patchTask({ due_at: "2099-03-10T12:00:00Z" });
+      expect(response.status).toBe(500);
+      expect(mockDbState.rows.find((t) => t.id === "task-uuid-1")?.due_at?.toISOString()).toBe(
+        "2026-08-15T23:59:00.000Z"
+      );
     });
   });
 });

@@ -31,7 +31,30 @@ const MISSING_CATEGORY_ID = "22222222-2222-4222-8222-222222222222";
 // Category rows used to test ownership validation.
 const mockCategoryRows: { id: string; user_id: string; color: string }[] = [];
 
-setupMockDb("evt-", mockDbState, () => mockCurrentUser, {}, false, () => mockCategoryRows);
+interface MockAlert {
+  id: string;
+  user_id: string;
+  event_id: string;
+  task_id: null;
+  offset_minutes: number;
+  fire_at: Date;
+  fired_at: Date | null;
+}
+const mockAlertState: MockDbState<MockAlert> = { rows: [], shouldFail: false, evaluateWhere: true };
+const alert = (id: string, over: Partial<MockAlert>): MockAlert => ({
+  id,
+  user_id: "user-uuid-123",
+  event_id: "evt-uuid-1",
+  task_id: null,
+  offset_minutes: 15,
+  fire_at: new Date("2026-08-10T09:45:00Z"),
+  fired_at: null,
+  ...over,
+});
+
+setupMockDb("evt-", mockDbState, () => mockCurrentUser, {}, false, () => mockCategoryRows, {
+  alerts: mockAlertState,
+});
 
 // Import route handlers after mock setup
 import { GET, POST } from "../route";
@@ -64,6 +87,8 @@ describe("Events API Endpoints", () => {
       },
     ];
     mockDbState.shouldFail = false;
+    mockAlertState.rows = [];
+    mockAlertState.shouldFail = false;
     mockDbState.transactionCount = 0;
     mockDbState.lockCount = 0;
     mockCategoryRows.length = 0;
@@ -978,6 +1003,91 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(true);
       expect(json.data.id).toBe("evt-uuid-1");
+    });
+
+    it("removes the event's alerts and leaves everyone else's", async () => {
+      mockAlertState.rows = [
+        alert("alert-mine", { event_id: "evt-uuid-1" }),
+        alert("alert-theirs", { user_id: "other-user-456", event_id: "evt-uuid-other" }),
+      ];
+      const response = await DELETE(
+        new Request("http://localhost/api/events/evt-uuid-1", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "evt-uuid-1" }) }
+      );
+      expect(response.status).toBe(200);
+      expect(mockAlertState.rows.map((a) => a.id)).toEqual(["alert-theirs"]);
+    });
+  });
+
+  describe("alerts follow a moved event", () => {
+    const patchStart = (id: string, start_at: string) =>
+      PATCH(
+        new Request(`http://localhost/api/events/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            start_at,
+            end_at: new Date(new Date(start_at).getTime() + 3_600_000).toISOString(),
+          }),
+        }),
+        { params: Promise.resolve({ id }) }
+      );
+    const stored = (id: string) => mockAlertState.rows.find((a) => a.id === id)!;
+
+    beforeEach(() => {
+      mockAlertState.rows = [
+        alert("alert-hour", { event_id: "evt-uuid-1", offset_minutes: 60 }),
+        alert("alert-start", { event_id: "evt-uuid-1", offset_minutes: 0 }),
+        alert("alert-theirs", { user_id: "other-user-456", event_id: "evt-uuid-other" }),
+      ];
+    });
+
+    it("moves each alert by its own offset", async () => {
+      const response = await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      expect(response.status).toBe(200);
+      expect(stored("alert-hour").fire_at.toISOString()).toBe("2099-08-20T09:00:00.000Z");
+      expect(stored("alert-start").fire_at.toISOString()).toBe("2099-08-20T10:00:00.000Z");
+    });
+
+    it("lets a fired alert fire again once it lands in the future", async () => {
+      stored("alert-hour").fired_at = new Date("2026-08-10T09:00:00Z");
+      await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      expect(stored("alert-hour").fired_at).toBeNull();
+    });
+
+    it("keeps an alert fired when the event moves to a time already past", async () => {
+      const firedAt = new Date("2026-08-10T09:00:00Z");
+      stored("alert-hour").fired_at = firedAt;
+      await patchStart("evt-uuid-1", "2020-01-01T10:00:00Z");
+      expect(stored("alert-hour").fired_at).toEqual(firedAt);
+      expect(stored("alert-hour").fire_at.toISOString()).toBe("2020-01-01T09:00:00.000Z");
+    });
+
+    it("leaves other users' alerts alone", async () => {
+      const before = stored("alert-theirs").fire_at.toISOString();
+      await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      expect(stored("alert-theirs").fire_at.toISOString()).toBe(before);
+    });
+
+    it("does not touch alerts when the start did not change", async () => {
+      const before = stored("alert-hour").fire_at.toISOString();
+      const response = await PATCH(
+        new Request("http://localhost/api/events/evt-uuid-1", {
+          method: "PATCH",
+          body: JSON.stringify({ title: "Renamed", start_at: "2026-08-10T10:00:00Z" }),
+        }),
+        { params: Promise.resolve({ id: "evt-uuid-1" }) }
+      );
+      expect(response.status).toBe(200);
+      expect(stored("alert-hour").fire_at.toISOString()).toBe(before);
+    });
+
+    it("rolls the event move back when the alerts cannot be updated", async () => {
+      mockAlertState.shouldFail = true;
+      const response = await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      expect(response.status).toBe(500);
+      expect(mockDbState.rows.find((e) => e.id === "evt-uuid-1")?.start_at.toISOString()).toBe(
+        "2026-08-10T10:00:00.000Z"
+      );
     });
   });
 });
