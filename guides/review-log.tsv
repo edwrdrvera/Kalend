@@ -7,3 +7,5 @@ pr	date	tier	reviewer_version	finding	severity	outcome
 218	2026-09-28	high	1f2d499	event-body.ts imported length limits from the client draft module	low	real-fixed
 225	2026-09-30	high	1f2d499	Two migration files instead of one; reviewer said leave as is	low	ignored
 225	2026-09-30	high	1f2d499	Realtime publication might still broadcast rows; checked live, no public tables are published	low	false-positive
+227	2026-10-02	medium	f95b39e	Empty state showed under the open task composer on an empty Space	medium	real-fixed
+227	2026-10-02	medium	f95b39e	Day grouping duplicated in the Upcoming section with a mutable counter; extracted groupByDay	low	real-fixed
