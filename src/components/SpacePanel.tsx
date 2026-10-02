@@ -103,6 +103,8 @@ export default function SpacePanel({
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
+                    // Keep PanelShell from also closing the whole panel.
+                    e.stopPropagation();
                     setComposerOpen(false);
                     setNewTitle("");
                   }
