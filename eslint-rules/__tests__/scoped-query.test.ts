@@ -13,8 +13,24 @@ const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: "latest", sourceType: "module" },
 });
 
+// `user` only counts when it is the third parameter of the callback handed to
+// withUser, so test snippets run inside one. Leading imports stay at the top.
+const inRoute = (code: string) => {
+  const imports = code.match(/^(?:import [^;]+;\s*)*/)?.[0] ?? "";
+  return `${imports}withUser(async (request, context, user) => { ${code.slice(imports.length)} })`;
+};
+const wrap = <T extends string | { code: string }>(cases: T[]): T[] =>
+  cases.map((c) => {
+    if (typeof c === "string") return inRoute(c) as T;
+    const testCase = c as { code: string };
+    return { ...testCase, code: inRoute(testCase.code) } as T;
+  });
+
+const NOT_OWNER = [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }];
+
 ruleTester.run("scoped-query", rule, {
   valid: [
+  ...wrap([
     // Owner filter written inline, directly and nested in and().
     "db.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id)))",
     // The tx builder inside a transaction, with .for('update') chained after.
@@ -25,6 +41,8 @@ ruleTester.run("scoped-query", rule, {
     "db.select().from(waitlist).where(eq(waitlist.email, email))",
     // Dynamic extra conditions spread next to the owner filter.
     "db.select().from(tasks).where(and(eq(tasks.user_id, user.id), ...conds))",
+    // A nested callback still sees the route user.
+    "db.transaction(async (tx) => tx.select().from(tasks).where(eq(tasks.user_id, user.id)))",
     // Array.from over a variable that happens to share a table name is not a query.
     "Array.from(tasks)",
     // Inserts carry the signed-in user's id in their values, not a where.
@@ -43,8 +61,16 @@ ruleTester.run("scoped-query", rule, {
     "import * as schema from '@/db/schema'; db.select().from(schema.waitlist)",
     // An aliased import is still checked, and passes when scoped.
     "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
+  ]),
+  ...[
+    // The route user may be named anything.
+    "withUser(async (r, c, me) => db.select().from(tasks).where(eq(tasks.user_id, me.id)))",
+    // Exported handlers are the usual shape.
+    "export const GET = withUser(async (request, context, user) => db.select().from(tasks).where(eq(tasks.user_id, user.id)))",
+  ],
   ],
   invalid: [
+  ...wrap([
     // A table reached through the schema namespace.
     { code: "import * as schema from '@/db/schema'; db.select().from(schema.tasks)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // A renamed table import.
@@ -123,5 +149,28 @@ ruleTester.run("scoped-query", rule, {
       code: "db.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.completed, false)))",
       errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }],
     },
+  ]),
+  ...[
+    // A variable named user that is not the one withUser hands over (issue #197).
+    { code: "const user = body; db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    { code: "const user = await request.json(); db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    { code: "db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    { code: "function load(user) { return db.select().from(tasks).where(eq(tasks.user_id, user.id)) }", errors: NOT_OWNER },
+    { code: "const { user } = await request.json(); db.select().from(tasks).where(eq(tasks.user_id, user.id))", errors: NOT_OWNER },
+    // Shadowing the route user inside the handler.
+    { code: "withUser(async (r, c, user) => { { const user = body; return db.select().from(tasks).where(eq(tasks.user_id, user.id)) } })", errors: NOT_OWNER },
+    // The route user, but not its position: the request is the first parameter.
+    { code: "withUser(async (user) => db.select().from(tasks).where(eq(tasks.user_id, user.id)))", errors: NOT_OWNER },
+    // The route user reassigned or mutated before the query.
+    { code: "withUser(async (r, c, user) => { user = body; return db.select().from(tasks).where(eq(tasks.user_id, user.id)) })", errors: NOT_OWNER },
+    { code: "withUser(async (r, c, user) => { user.id = body.uid; return db.select().from(tasks).where(eq(tasks.user_id, user.id)) })", errors: NOT_OWNER },
+    // A function that was never passed to withUser.
+    { code: "wrap(async (r, c, user) => db.select().from(tasks).where(eq(tasks.user_id, user.id)))", errors: NOT_OWNER },
+    // The same holds for inserts.
+    {
+      code: "const user = body; db.insert(tasks).values({ title, user_id: user.id })",
+      errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }],
+    },
+  ],
   ],
 });
