@@ -60,7 +60,7 @@ This map lists folders, not files. Open a folder to see what it holds.
 | Path | What it holds |
 | :--- | :--- |
 | `src/app/` | Pages and layouts. `(marketing)/` holds the landing and login pages. `(app)/app/` holds the calendar. |
-| `src/app/api/` | The API: `events`, `tasks`, `categories` (Spaces), `waitlist`, and `ping`. |
+| `src/app/api/` | The API: `events`, `tasks`, `categories` (Spaces), `alerts`, `waitlist`, and `ping`. |
 | `src/proxy.ts` | Sends signed-out visitors to `/login` and signed-in visitors to `/app`. |
 | `src/components/` | React components. `Calendar.tsx` holds the calendar state. `TimeGrid.tsx` draws the Week and Day grids. |
 | `src/hooks/` | Data hooks (`useCalendarEvents`, `useTasks`, `useCategories`) and the drag hooks (`useCreateDrag`, `useMoveDrag`, `useResizeDrag`). |

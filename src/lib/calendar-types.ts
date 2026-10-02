@@ -1,3 +1,5 @@
+import type { AlertKind, AlertOffset } from "@/lib/alerts";
+
 // Wire shapes returned by the calendar API routes: dates arrive as
 // ISO strings over JSON, not the `Date` objects the Drizzle types
 // declare server-side.
@@ -68,5 +70,50 @@ export interface CategoryDeleteApiResponse {
   data?: CalendarCategory;
   events?: CalendarEvent[];
   tasks?: CalendarTask[];
+  error?: string;
+}
+
+/** A stored alert. Exactly one of `event_id` and `task_id` is set. */
+export interface CalendarAlert {
+  id: string;
+  event_id: string | null;
+  task_id: string | null;
+  offset_minutes: AlertOffset;
+  fire_at: string;
+  fired_at: string | null;
+}
+
+/** A POST /api/alerts body: name one item with `event_id` or `task_id`. */
+export interface AlertCreateRequest {
+  event_id?: string;
+  task_id?: string;
+  offset_minutes: AlertOffset;
+}
+
+export interface AlertsApiResponse {
+  success: boolean;
+  data?: CalendarAlert[];
+  error?: string;
+}
+
+/** An alert that just fired, with the title of the item it belongs to. */
+export interface ClaimedAlert {
+  id: string;
+  kind: AlertKind;
+  item_id: string;
+  title: string;
+  offset_minutes: AlertOffset;
+  fire_at: string;
+}
+
+/** `due` fired within five minutes of its time. `missed` came due earlier. */
+export interface AlertClaim {
+  due: ClaimedAlert[];
+  missed: ClaimedAlert[];
+}
+
+export interface AlertClaimApiResponse {
+  success: boolean;
+  data?: AlertClaim;
   error?: string;
 }

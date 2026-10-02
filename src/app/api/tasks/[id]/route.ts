@@ -3,6 +3,8 @@ import { tasks } from "@/db/schema/tasks";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseTaskPatch } from "@/lib/api/task-body";
+import { rescheduleAlerts } from "@/lib/api/alert-sync";
+import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 
 interface RouteContext {
@@ -26,11 +28,19 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
     }
   }
 
-  const [updatedTask] = await db
-    .update(tasks)
-    .set(updates)
-    .where(and(eq(tasks.id, id), eq(tasks.user_id, user.id)))
-    .returning();
+  // The task and its alerts change together, so an alert never keeps a fire
+  // time that no longer matches the due date.
+  const updatedTask = await retryTransaction(() => db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(tasks)
+      .set(updates)
+      .where(and(eq(tasks.id, id), eq(tasks.user_id, user.id)))
+      .returning();
+    if (updated && updates.due_at !== undefined) {
+      await rescheduleAlerts(tx, user, { kind: "task", id }, updates.due_at, new Date());
+    }
+    return updated;
+  }));
 
   if (!updatedTask) {
     return fail("Task not found", 404);
