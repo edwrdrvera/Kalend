@@ -34,6 +34,12 @@ export interface MockDbState<T extends BaseRow> {
   /** Apply the route's real `where` condition to this table's rows (see
    *  where-matcher.ts) instead of the id and user_id heuristics. */
   evaluateWhere?: boolean;
+  /** For an insert chained with `onConflictDoNothing()`: true when `incoming`
+   *  collides with `existing`, in which case nothing is inserted. */
+  conflictsWith?(existing: T, incoming: Record<string, unknown>): boolean;
+  /** Runs after a row is deleted from this table, so a test can remove the
+   *  rows the database would delete through a foreign key. */
+  cascadeOn?(deleted: T): void;
 }
 
 export interface MockAuthUser {
@@ -149,12 +155,8 @@ export function setupMockDb<T extends BaseRow>(
   }));
 
   mock.module("@/db", () => {
-    // Routes that touch alerts (to keep them in step with an event or task)
-    // run in tests that don't care about them, so give those an empty table.
-    const unusedAlerts: MockDbState<BaseRow> = { rows: [], shouldFail: false };
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
-      relatedStates[tableNameOf(table) ?? ""] ??
-      (tableNameOf(table) === "alerts" && idPrefix !== "alert-" ? unusedAlerts : (dbState as MockDbState<BaseRow>));
+      relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
     const primaryPrefixFor = (table: unknown) => {
       const name = tableNameOf(table);
@@ -215,7 +217,13 @@ export function setupMockDb<T extends BaseRow>(
             };
             const promise = run() as ReturnType<typeof run> & { for: () => ReturnType<typeof run> };
             promise.for = () => {
+              // The primary state counts every lock. A related table's state
+              // also counts the locks taken on its own table.
               dbState.lockCount = (dbState.lockCount ?? 0) + 1;
+              const locked = stateFor(table);
+              if (locked !== (dbState as MockDbState<BaseRow>)) {
+                locked.lockCount = (locked.lockCount ?? 0) + 1;
+              }
               return promise;
             };
             return promise;
@@ -226,7 +234,6 @@ export function setupMockDb<T extends BaseRow>(
         values: (vals: Record<string, unknown>) => {
           let skipDuplicates = false;
           const builder = {
-            // An alert is unique per item and offset. A duplicate inserts nothing.
             onConflictDoNothing: () => {
               skipDuplicates = true;
               return builder;
@@ -234,14 +241,9 @@ export function setupMockDb<T extends BaseRow>(
             returning: mock(async () => {
               const insertState = stateFor(table);
               if (insertState.shouldFail) throw new Error("DB Insert failed");
-              if (skipDuplicates) {
-                const duplicate = insertState.rows.some((r) => {
-                  const row = r as BaseRow & Record<string, unknown>;
-                  return row.offset_minutes === vals.offset_minutes &&
-                    ((vals.event_id != null && row.event_id === vals.event_id) ||
-                      (vals.task_id != null && row.task_id === vals.task_id));
-                });
-                if (duplicate) return [];
+              if (skipDuplicates && insertState.conflictsWith) {
+                const collides = insertState.conflictsWith;
+                if (insertState.rows.some((row) => collides(row, vals))) return [];
               }
               const payload = filterUndefined
                 ? Object.fromEntries(
@@ -302,6 +304,7 @@ export function setupMockDb<T extends BaseRow>(
               const matches = rowMatcher(condition as SQL);
               const removed = selectedState.rows.filter(matches);
               selectedState.rows = selectedState.rows.filter((r) => !matches(r));
+              removed.forEach((row) => selectedState.cascadeOn?.(row));
               return removed;
             }
             const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
@@ -312,15 +315,7 @@ export function setupMockDb<T extends BaseRow>(
             );
             if (idx === -1) return [];
             const [deleted] = selectedState.rows.splice(idx, 1);
-            // Mirror the foreign key: an alert goes with its event or task.
-            const alertState = relatedStates.alerts;
-            const owner = tableNameOf(table);
-            if (alertState && (owner === "events" || owner === "tasks")) {
-              const link = owner === "events" ? "event_id" : "task_id";
-              alertState.rows = alertState.rows.filter(
-                (a) => (a as BaseRow & Record<string, unknown>)[link] !== deleted.id
-              );
-            }
+            selectedState.cascadeOn?.(deleted);
             return [deleted];
           }),
         }),

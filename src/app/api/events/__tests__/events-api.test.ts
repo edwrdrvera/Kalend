@@ -89,6 +89,10 @@ describe("Events API Endpoints", () => {
     mockDbState.shouldFail = false;
     mockAlertState.rows = [];
     mockAlertState.shouldFail = false;
+    // The foreign key deletes an event's alerts with it.
+    mockDbState.cascadeOn = (deleted) => {
+      mockAlertState.rows = mockAlertState.rows.filter((a) => a.event_id !== deleted.id);
+    };
     mockDbState.transactionCount = 0;
     mockDbState.lockCount = 0;
     mockCategoryRows.length = 0;

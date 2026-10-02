@@ -88,6 +88,10 @@ describe("Tasks API Endpoints", () => {
     mockDbState.shouldFail = false;
     mockAlertState.rows = [];
     mockAlertState.shouldFail = false;
+    // The foreign key deletes a task's alerts with it.
+    mockDbState.cascadeOn = (deleted) => {
+      mockAlertState.rows = mockAlertState.rows.filter((a) => a.task_id !== deleted.id);
+    };
     mockCategoryRows.length = 0;
     mockCategoryRows.push({
       id: "11111111-1111-4111-8111-111111111111",

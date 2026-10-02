@@ -31,7 +31,16 @@ const OTHER_ALERT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-222222222222";
 
 let mockCurrentUser: MockAuthUser | null = { id: ME, email: "student@university.edu" };
 
-const alertState: MockDbState<MockAlert> = { rows: [], shouldFail: false, evaluateWhere: true };
+// An alert is unique per item and offset, like the table's unique constraints.
+const alertState: MockDbState<MockAlert> = {
+  rows: [],
+  shouldFail: false,
+  evaluateWhere: true,
+  conflictsWith: (existing, incoming) =>
+    existing.offset_minutes === incoming.offset_minutes &&
+    ((incoming.event_id != null && existing.event_id === incoming.event_id) ||
+      (incoming.task_id != null && existing.task_id === incoming.task_id)),
+};
 const eventState: MockDbState<MockItem> = { rows: [], shouldFail: false, evaluateWhere: true };
 const taskState: MockDbState<MockItem> = { rows: [], shouldFail: false, evaluateWhere: true };
 
@@ -68,6 +77,8 @@ describe("Alerts API", () => {
     ];
     alertState.shouldFail = false;
     alertState.lockCount = 0;
+    eventState.lockCount = 0;
+    taskState.lockCount = 0;
   });
 
   describe("GET /api/alerts", () => {
@@ -112,9 +123,16 @@ describe("Alerts API", () => {
       expect(new Date(json.data.fire_at).toISOString()).toBe("2026-08-14T23:00:00.000Z");
     });
 
-    it("locks the item while it reads the time", async () => {
+    it("locks the event while it reads the time", async () => {
       await post({ event_id: EVENT_ID, offset_minutes: 5 });
-      expect(alertState.lockCount).toBeGreaterThan(0);
+      expect(eventState.lockCount).toBe(1);
+      expect(taskState.lockCount).toBe(0);
+    });
+
+    it("locks the task while it reads the due date", async () => {
+      await post({ task_id: TASK_ID, offset_minutes: 5 });
+      expect(taskState.lockCount).toBe(1);
+      expect(eventState.lockCount).toBe(0);
     });
 
     it("returns the existing alert instead of adding a duplicate", async () => {
