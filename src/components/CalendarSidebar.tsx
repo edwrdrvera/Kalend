@@ -8,7 +8,7 @@ import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
-import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 
 interface CalendarSidebarProps {
@@ -19,6 +19,7 @@ interface CalendarSidebarProps {
   events: CalendarEvent[];
   tasksLoading: boolean;
   eventsLoading: boolean;
+  alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   onOpenAllTasks: () => void;
@@ -45,6 +46,7 @@ export default function CalendarSidebar({
   events,
   tasksLoading,
   eventsLoading,
+  alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
   onOpenAllTasks,
@@ -85,6 +87,7 @@ export default function CalendarSidebar({
     tasks,
     categories,
     loading: tasksLoading || eventsLoading,
+    alertsByItem,
     onToggleTaskComplete,
     onOpenTask,
     onEventClick,

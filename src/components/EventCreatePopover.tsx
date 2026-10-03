@@ -69,6 +69,7 @@ export default function EventCreatePopover({
       startAt: toDateTimeLocal(start),
       endAt: toDateTimeLocal(initialEnd ?? new Date(start.getTime() + DEFAULT_DURATION_MS)),
       colorState: initialEventColor(null, initialSpaceId),
+      alertOffset: null,
     };
   });
   const update = (changes: Partial<EventDraft>) => setDraft((d) => ({ ...d, ...changes }));

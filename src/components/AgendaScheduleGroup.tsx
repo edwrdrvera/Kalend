@@ -8,18 +8,22 @@ import {
   resolveDisplayColor,
 } from "@/lib/event-colors";
 import { isMultiDayEvent } from "@/lib/time-grid-layout";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarAlert, CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import AlertBell from "./AlertBell";
 
 interface AgendaScheduleGroupProps {
   events: CalendarEvent[];
   categories: CalendarCategory[];
   selectedDate: Date;
+  /** Event ids that have an alert get a bell. */
+  alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
 }
 
 export default function AgendaScheduleGroup({
   events,
   categories,
+  alertsByItem,
   onEventClick,
 }: AgendaScheduleGroupProps) {
   if (events.length === 0) return null;
@@ -48,31 +52,33 @@ export default function AgendaScheduleGroup({
               : "bg-muted-foreground/70";
 
           return (
-            <button
-              key={event.id}
-              type="button"
-              onClick={(e) =>
-                onEventClick(event, e.currentTarget.getBoundingClientRect())
-              }
-              className="flex items-center gap-2 rounded-sm px-1 py-0.5 text-left transition hover:bg-muted/45 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={`Open event: ${event.title}`}
-            >
-              <span className="w-[54px] shrink-0 whitespace-nowrap text-[11.5px] font-medium tabular-nums text-muted-foreground">
-                {allDay
-                  ? "All day"
-                  : format(new Date(event.start_at), "h:mm a")}
-              </span>
-              <span
-                aria-hidden
-                className={cn(
-                  "w-[2.5px] self-stretch rounded-full",
-                  barClass
-                )}
-              />
-              <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
-                {event.title}
-              </span>
-            </button>
+            <div key={event.id} className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) =>
+                  onEventClick(event, e.currentTarget.getBoundingClientRect())
+                }
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1 py-0.5 text-left transition hover:bg-muted/45 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`Open event: ${event.title}`}
+              >
+                <span className="w-[54px] shrink-0 whitespace-nowrap text-[11.5px] font-medium tabular-nums text-muted-foreground">
+                  {allDay
+                    ? "All day"
+                    : format(new Date(event.start_at), "h:mm a")}
+                </span>
+                <span
+                  aria-hidden
+                  className={cn(
+                    "w-[2.5px] self-stretch rounded-full",
+                    barClass
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
+                  {event.title}
+                </span>
+              </button>
+              {alertsByItem.has(event.id) && <AlertBell />}
+            </div>
           );
         })}
       </div>

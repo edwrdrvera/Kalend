@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { act, createElement, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
+import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
-import { typeInto } from "./test-dom";
+import { chooseOption, typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: TaskInspector } = await import("../TaskInspector");
@@ -26,8 +27,12 @@ afterEach(async () => {
   document.body.replaceChildren();
 });
 
+const DATED_TASK: CalendarTask = { ...TASK, due_at: new Date("2026-10-05T23:59:00").toISOString() };
+
 interface Harness {
   saves: TaskPatchRequest[];
+  /** The alert each save asked for. */
+  alertSaves: (AlertOffset | null)[];
   toggles: string[];
   deletes: string[];
   /** What the next save resolves to. */
@@ -36,11 +41,12 @@ interface Harness {
 
 // Wires the inspector to the real panel reducer and a single tasks state,
 // the way Calendar does, plus an outside control that requests a close.
-async function renderInspector() {
-  const harness: Harness = { saves: [], toggles: [], deletes: [], saveResult: true };
+async function renderInspector(initial: { task?: CalendarTask; alertOffset?: AlertOffset } = {}) {
+  const harness: Harness = { saves: [], alertSaves: [], toggles: [], deletes: [], saveResult: true };
 
   function App() {
-    const [task, setTask] = useState(TASK);
+    const [task, setTask] = useState(initial.task ?? TASK);
+    const [alertOffset, setAlertOffset] = useState<AlertOffset | null>(initial.alertOffset ?? null);
     const [panel, dispatch] = useReducer(branchPanelReducer, {
       ...initialBranchPanelState,
       active: { kind: "task", taskId: TASK.id, from: null },
@@ -54,13 +60,18 @@ async function renderInspector() {
         createElement(TaskInspector, {
           key: task.id,
           task,
+          alertOffset,
           categories: [],
           modal: false,
           nav: { space: null, back: null },
           onClose: () => dispatch({ type: "close" }),
-          onSave: async (t, patch) => {
+          onSave: async (t, patch, wantedAlert) => {
             harness.saves.push(patch);
-            if (harness.saveResult) setTask({ ...t, ...patch });
+            harness.alertSaves.push(wantedAlert);
+            if (harness.saveResult) {
+              setTask({ ...t, ...patch });
+              setAlertOffset(wantedAlert);
+            }
             return harness.saveResult;
           },
           onToggleComplete: (t) => harness.toggles.push(t.id),
@@ -227,6 +238,7 @@ describe("TaskInspector", () => {
       root?.render(
         createElement(TaskInspector, {
           task: { ...TASK, due_at: "2026-10-01T23:59:00" },
+          alertOffset: null,
           categories: [],
           modal: false,
           nav: { space: null, back: null },
@@ -247,6 +259,108 @@ describe("TaskInspector", () => {
     await click("Clear due date");
     await click("Save");
     expect(saves).toEqual([{ due_at: null }]);
+  });
+
+  describe("alert", () => {
+    const alertSelect = () => document.querySelector<HTMLSelectElement>("#task-inspector-alert")!;
+    const note = () => document.body.textContent ?? "";
+
+    it("offers none and the five offsets under a visible Alert label", async () => {
+      await renderInspector({ task: DATED_TASK });
+      const label = document.querySelector<HTMLLabelElement>('label[for="task-inspector-alert"]');
+      expect(label?.textContent).toBe("Alert");
+      expect([...alertSelect().options].map((o) => o.textContent)).toEqual([
+        "None",
+        "At the time",
+        "5 min before",
+        "15 min before",
+        "1 hour before",
+        "1 day before",
+      ]);
+      expect(alertSelect().value).toBe("");
+      expect(alertSelect().disabled).toBe(false);
+    });
+
+    it("sets an alert alongside the task, and saving only the alert sends an empty patch", async () => {
+      const harness = await renderInspector({ task: DATED_TASK });
+      await act(() => chooseOption(alertSelect(), "15"));
+      expect(button("Save")?.disabled).toBe(false);
+      await click("Save");
+
+      expect(harness.saves).toEqual([{}]);
+      expect(harness.alertSaves).toEqual([15]);
+      expect(alertSelect().value).toBe("15");
+      expect(button("Save")?.disabled).toBe(true);
+    });
+
+    it("shows the stored alert, changes it, and clears it", async () => {
+      const harness = await renderInspector({ task: DATED_TASK, alertOffset: 60 });
+      expect(alertSelect().value).toBe("60");
+      expect(button("Save")?.disabled).toBe(true);
+
+      await act(() => chooseOption(alertSelect(), "5"));
+      await click("Save");
+      expect(alertSelect().value).toBe("5");
+
+      await act(() => chooseOption(alertSelect(), ""));
+      await click("Save");
+      expect(harness.alertSaves).toEqual([5, null]);
+      expect(alertSelect().value).toBe("");
+    });
+
+    it("is turned off with a reason for a task with no due date", async () => {
+      await renderInspector();
+      expect(alertSelect().disabled).toBe(true);
+      expect(note()).toContain("Add a due date to set an alert.");
+      expect(alertSelect().getAttribute("aria-describedby")).toBe("task-inspector-alert-note");
+    });
+
+    it("turns off and saves no alert when the due date is cleared, and returns when it is added back", async () => {
+      const harness = await renderInspector({ task: DATED_TASK, alertOffset: 15 });
+      await click("Clear due date");
+      expect(alertSelect().disabled).toBe(true);
+      expect(alertSelect().value).toBe("");
+      await click("Save");
+      expect(harness.saves).toEqual([{ due_at: null }]);
+      expect(harness.alertSaves).toEqual([null]);
+    });
+
+    it("counts an alert change as an unsaved edit when closing", async () => {
+      const harness = await renderInspector({ task: DATED_TASK });
+      await act(() => chooseOption(alertSelect(), "0"));
+      await click("Close task details");
+      expect(panelState()).toBe("open");
+      expect(prompt()?.textContent).toContain("unsaved changes to this task");
+
+      await act(async () => {
+        prompt()?.querySelector("button")?.click();
+      });
+      expect(harness.alertSaves).toEqual([0]);
+      expect(panelState()).toBe("closed");
+    });
+
+    it("Discard drops an alert change without saving it", async () => {
+      const harness = await renderInspector({ task: DATED_TASK });
+      await act(() => chooseOption(alertSelect(), "0"));
+      await click("Close task details");
+      await click("Discard");
+      expect(panelState()).toBe("closed");
+      expect(harness.alertSaves).toEqual([]);
+    });
+
+    it("keeps the chosen alert and offers a retry when the save fails", async () => {
+      const harness = await renderInspector({ task: DATED_TASK });
+      harness.saveResult = false;
+      await act(() => chooseOption(alertSelect(), "60"));
+      await click("Save");
+      expect(alertSelect().value).toBe("60");
+      expect(alertText()).toContain("Couldn't save");
+
+      harness.saveResult = true;
+      await click("Retry");
+      expect(harness.alertSaves).toEqual([60, 60]);
+      expect(alertText()).toBe("");
+    });
   });
 
   it("completes only through the Done checkbox, and deletes only after confirming", async () => {

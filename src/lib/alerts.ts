@@ -27,6 +27,15 @@ const OFFSET_PHRASE: Record<AlertOffset, string> = {
   1440: "in 1 day",
 };
 
+/** How the alert choice in the details panel names each offset. */
+export const OFFSET_LABEL: Record<AlertOffset, string> = {
+  0: "At the time",
+  5: "5 min before",
+  15: "15 min before",
+  60: "1 hour before",
+  1440: "1 day before",
+};
+
 const KIND_VERB: Record<AlertKind, string> = {
   event: "starts",
   task: "is due",

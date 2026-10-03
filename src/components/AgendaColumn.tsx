@@ -3,7 +3,7 @@
 import { Calendar, ListTodo, Loader2 } from "lucide-react";
 import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { Branch } from "@/lib/branch-types";
 import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
 import AgendaDateHeader from "./AgendaDateHeader";
@@ -17,6 +17,8 @@ interface AgendaColumnProps {
   tasks: CalendarTask[];
   categories: CalendarCategory[];
   loading: boolean;
+  /** Events and tasks with an alert show a bell. */
+  alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
@@ -32,6 +34,7 @@ export default function AgendaColumn({
   tasks,
   categories,
   loading,
+  alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
   onEventClick,
@@ -95,6 +98,7 @@ export default function AgendaColumn({
               events={dayEvents}
               categories={categories}
               selectedDate={selectedDate}
+              alertsByItem={alertsByItem}
               onEventClick={onEventClick}
             />
             {dayTasks.length > 0 && (
@@ -102,6 +106,7 @@ export default function AgendaColumn({
                 label={dueSectionLabel(selectedDate, new Date())}
                 tasks={dayTasks}
                 categories={categories}
+                alertsByItem={alertsByItem}
                 onToggleTaskComplete={onToggleTaskComplete}
                 onOpenTask={onOpenTask}
                 precededBySchedule={eventCount > 0}
@@ -118,6 +123,7 @@ function DueTasksSection({
   label,
   tasks,
   categories,
+  alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
   precededBySchedule,
@@ -125,6 +131,7 @@ function DueTasksSection({
   label: string;
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   precededBySchedule: boolean;
@@ -140,6 +147,7 @@ function DueTasksSection({
             key={task.id}
             task={task}
             categories={categories}
+            hasAlert={alertsByItem.has(task.id)}
             onToggleTaskComplete={onToggleTaskComplete}
             onOpenTask={onOpenTask}
           />

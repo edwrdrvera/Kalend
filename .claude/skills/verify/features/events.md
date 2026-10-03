@@ -9,6 +9,7 @@ Week / Month / Day views with a time grid. API: `/api/events`, `/api/events/<id>
 - Delete from the popover (`Delete event`, immediate, no confirm) or right-click → `Delete event` → dialog "Delete this event?" → `Delete`.
 - Multi-select: shift-click events; right-clicking a selected one offers `Delete N events` with a "Delete N events?" confirm.
 - Agenda "Schedule" list (left column, selected day only; "Nothing scheduled for <Month D>" when empty): `Edit event: <title>` buttons. The selected day changes on a click in a day header, a slot, a Month cell, a mini-calendar date, or `Today`. A drag-create does not change it.
+- Alerts: the Event details panel (click an event) has an `Alert` select (None, At the time, 5 min, 15 min, 1 hour, 1 day before) between Space and the footer. It saves with `Save`, after the event itself; an alert-only change sends no event update. Events with an alert show an `Alert set` bell in the agenda Schedule row. API: `GET /api/alerts`. Native `<select>`: use `form_input` (arrow keys from the pane may not change it), then click `Save`. The first saved alert asks for notification permission once; the pane's permission may already be `denied`, so no prompt appears. Delete the event to remove its alerts.
 - View switcher: Week / Month / Day (buttons with `aria-pressed`; below 768px they read W / M / D); `Previous` / `Today` / `Next` (Today is hidden below 768px).
 
 ## How to get to it (user POV)

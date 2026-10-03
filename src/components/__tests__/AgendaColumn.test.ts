@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type {
+  CalendarAlert,
   CalendarCategory,
   CalendarEvent,
   CalendarTask,
@@ -79,6 +80,8 @@ interface RenderOptions {
   tasks?: CalendarTask[];
   categories?: CalendarCategory[];
   loading?: boolean;
+  /** Ids of the events and tasks that have an alert. */
+  alertedIds?: string[];
   branches?: Branch[];
   activeBranchId?: string | null;
   date?: Date;
@@ -110,6 +113,9 @@ async function renderColumn(options: RenderOptions = {}) {
         tasks: options.tasks ?? [],
         categories: options.categories ?? [],
         loading: options.loading ?? false,
+        alertsByItem: new Map(
+          (options.alertedIds ?? []).map((id) => [id, { id: `alert-${id}` } as CalendarAlert])
+        ),
         onToggleTaskComplete: (task) =>
           interactions.taskToggles.push(task.id),
         onOpenTask: (task) => interactions.taskOpens.push(task.id),
@@ -358,5 +364,41 @@ describe("AgendaColumn loading state", () => {
     const text = document.body.textContent ?? "";
     expect(text).not.toContain("Schedule");
     expect(text).not.toContain("Tasks");
+  });
+});
+
+describe("AgendaColumn alert bell", () => {
+  const bells = () => document.querySelectorAll('[aria-label="Alert set"]');
+
+  it("shows a bell named Alert set beside an event that has an alert", async () => {
+    await renderColumn({
+      events: [makeEvent({ id: "with", title: "Biology lecture" }), makeEvent({ id: "without", title: "Chem lab" })],
+      alertedIds: ["with"],
+    });
+    expect(bells()).toHaveLength(1);
+    const row = byLabel("Open event: Biology lecture")?.parentElement;
+    expect(row?.querySelector('[aria-label="Alert set"]')).not.toBeNull();
+    expect(byLabel("Open event: Chem lab")?.parentElement?.querySelector('[aria-label="Alert set"]')).toBeNull();
+  });
+
+  it("shows a bell beside a task that has an alert and nothing beside one without", async () => {
+    await renderColumn({
+      tasks: [makeTask({ id: "with", title: "Essay" }), makeTask({ id: "without", title: "Reading" })],
+      alertedIds: ["with"],
+    });
+    expect(bells()).toHaveLength(1);
+    const row = byLabel("Open task Essay")?.parentElement;
+    expect(row?.querySelector('[aria-label="Alert set"]')).not.toBeNull();
+  });
+
+  it("shows no bell when nothing has an alert", async () => {
+    await renderColumn({ events: [makeEvent()], tasks: [makeTask()] });
+    expect(bells()).toHaveLength(0);
+  });
+
+  it("keeps the event row clickable with its name unchanged", async () => {
+    const interactions = await renderColumn({ events: [makeEvent({ id: "e1" })], alertedIds: ["e1"] });
+    await act(() => byLabel("Open event: Biology lecture")?.click());
+    expect(interactions.eventClicks).toEqual(["e1"]);
   });
 });

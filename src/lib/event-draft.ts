@@ -1,4 +1,5 @@
 import { format, isSameDay } from "date-fns";
+import type { AlertOffset } from "./alerts";
 import type { CalendarEvent } from "./calendar-types";
 import { initialEventColor, type EventColorState } from "./event-color-state";
 import type { EventFormValues } from "./event-form";
@@ -13,6 +14,14 @@ export interface EventDraft {
   /** Local "yyyy-MM-ddTHH:mm". */
   endAt: string;
   colorState: EventColorState;
+  /** The one alert the inspector offers. Null means none. */
+  alertOffset: AlertOffset | null;
+}
+
+/** What the inspector's draft is compared against: the event and its stored alert. */
+export interface SavedEvent {
+  event: CalendarEvent;
+  alertOffset: AlertOffset | null;
 }
 
 export function toDateTimeLocal(date: Date): string {
@@ -38,7 +47,7 @@ export function formatTimeRangeSummary(startValue: string, endValue: string): st
   return `${format(start, "EEE, MMM d, h:mm a")} – ${format(end, "EEE, MMM d, h:mm a")}`;
 }
 
-export function draftFromEvent(event: CalendarEvent): EventDraft {
+export function draftFromEvent({ event, alertOffset }: SavedEvent): EventDraft {
   return {
     title: event.title,
     icon: event.icon ?? "",
@@ -46,6 +55,7 @@ export function draftFromEvent(event: CalendarEvent): EventDraft {
     startAt: toDateTimeLocal(new Date(event.start_at)),
     endAt: toDateTimeLocal(new Date(event.end_at)),
     colorState: initialEventColor(event),
+    alertOffset,
   };
 }
 
@@ -77,9 +87,9 @@ export function eventDraftValues(
   };
 }
 
-/** True when the draft differs from the saved event in anything a save would send. */
-export function isEventDraftDirty(event: CalendarEvent, draft: EventDraft): boolean {
-  const saved = draftFromEvent(event);
+/** True when the draft differs from the saved event in a field the event save sends. */
+export function isEventFieldsDirty(event: CalendarEvent, draft: EventDraft): boolean {
+  const saved = draftFromEvent({ event, alertOffset: draft.alertOffset });
   return (
     draft.title.trim() !== saved.title ||
     draft.icon.trim() !== saved.icon ||
@@ -92,11 +102,16 @@ export function isEventDraftDirty(event: CalendarEvent, draft: EventDraft): bool
   );
 }
 
+/** True when a save has anything to send: an event field or the alert. */
+export function isEventDraftDirty(saved: SavedEvent, draft: EventDraft): boolean {
+  return isEventFieldsDirty(saved.event, draft) || draft.alertOffset !== saved.alertOffset;
+}
+
 /** Moves the fields the user hasn't edited onto the newly saved event and keeps the edited ones. */
 export function rebaseEventDraft(
   draft: EventDraft,
-  previous: CalendarEvent,
-  next: CalendarEvent
+  previous: SavedEvent,
+  next: SavedEvent
 ): EventDraft {
   const was = draftFromEvent(previous);
   const now = draftFromEvent(next);
@@ -111,5 +126,6 @@ export function rebaseEventDraft(
     startAt: draft.startAt === was.startAt ? now.startAt : draft.startAt,
     endAt: draft.endAt === was.endAt ? now.endAt : draft.endAt,
     colorState: sameColor ? now.colorState : draft.colorState,
+    alertOffset: draft.alertOffset === was.alertOffset ? now.alertOffset : draft.alertOffset,
   };
 }

@@ -8,9 +8,9 @@ import type {
 } from "@/lib/calendar-types";
 
 /**
- * Typed calls to the alert endpoints. The alert-setting control (a follow-up)
- * uses `createAlert` and `deleteAlert`; delivery uses `claimAlerts`. Each
- * rejects with the server's message on failure.
+ * Typed calls to the alert endpoints. `useAlerts` (the alert choice in the
+ * details panels) uses `fetchAlerts`, `createAlert` and `deleteAlert`;
+ * delivery uses `claimAlerts`. Each rejects with the server's message on failure.
  */
 
 export async function fetchAlerts(): Promise<CalendarAlert[]> {

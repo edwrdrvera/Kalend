@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
-import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { AlertOffset } from "@/lib/alerts";
+import type { CalendarEvent, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { branchesForSpace, branchesForSpaces, findBranch } from "@/lib/branch-stub";
 import type { InspectorNav } from "./InspectorParts";
@@ -37,6 +38,7 @@ import { useEventSelection } from "@/hooks/useEventSelection";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
 import { useAlertDelivery } from "@/hooks/useAlertDelivery";
 import { useAlertTray } from "@/hooks/useAlertTray";
+import { useAlerts } from "@/hooks/useAlerts";
 import { useAlertItemOpener } from "@/hooks/useAlertItemOpener";
 import AlertMessages from "./AlertMessages";
 import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
@@ -161,6 +163,7 @@ export default function Calendar() {
     onMissing: alerts.notify,
   });
   useAlertDelivery(alerts.dispatch, openAlertItem);
+  const itemAlerts = useAlerts(alerts.notify);
 
   // Open the Space editor in edit mode for a given Space id (used by the panel
   // overflow/footer and the rail context menu). No-op if the Space is gone.
@@ -247,9 +250,30 @@ export default function Calendar() {
     panel.close();
   };
 
-  const handleSaveEvent = async (event: CalendarEvent, values: EventFormValues) => {
+  // The item saves first: the server works out when the alert fires from the
+  // saved time. A false result keeps the draft so the user can retry.
+  const handleSaveEvent = async (
+    event: CalendarEvent,
+    values: EventFormValues | null,
+    alertOffset: AlertOffset | null
+  ) => {
     try {
-      await events.updateEvent(event.id, values);
+      if (values) await events.updateEvent(event.id, values);
+      await itemAlerts.syncAlert({ kind: "event", id: event.id }, alertOffset);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSaveTask = async (
+    task: CalendarTask,
+    patch: TaskPatchRequest,
+    alertOffset: AlertOffset | null
+  ) => {
+    if (Object.keys(patch).length > 0 && !(await tasks.updateTask(task, patch))) return false;
+    try {
+      await itemAlerts.syncAlert({ kind: "task", id: task.id }, alertOffset);
       return true;
     } catch {
       return false;
@@ -315,11 +339,12 @@ export default function Calendar() {
         <TaskInspector
           key={activeTask.id}
           task={activeTask}
+          alertOffset={itemAlerts.byItem.get(activeTask.id)?.offset_minutes ?? null}
           categories={categories.data}
           modal={modal}
           nav={inspectorNav(activeTask.category_id)}
           onClose={panel.close}
-          onSave={tasks.updateTask}
+          onSave={handleSaveTask}
           onToggleComplete={tasks.toggleComplete}
           onDelete={handleDeleteTask}
           onDirtyChange={panel.setEditorDirty}
@@ -334,6 +359,7 @@ export default function Calendar() {
         <EventInspector
           key={activeEvent.id}
           event={activeEvent}
+          alertOffset={itemAlerts.byItem.get(activeEvent.id)?.offset_minutes ?? null}
           categories={categories.data}
           modal={modal}
           nav={inspectorNav(activeEvent.category_id)}
@@ -367,6 +393,7 @@ export default function Calendar() {
           events={visibleEvents}
           tasksLoading={tasks.loading}
           eventsLoading={events.loading}
+          alertsByItem={itemAlerts.byItem}
           onToggleTaskComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
           onOpenAllTasks={panel.openAllTasks}

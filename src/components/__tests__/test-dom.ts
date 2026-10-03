@@ -24,6 +24,7 @@ const browserGlobals = [
   "KeyboardEvent",
   "HTMLButtonElement",
   "HTMLInputElement",
+  "HTMLSelectElement",
   "HTMLFormElement",
   "DOMRect",
 ] as const;
@@ -45,6 +46,12 @@ export function typeInto(input: HTMLInputElement, value: string) {
     value
   );
   input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/** Picks an option of a select the way a user would, firing the change event. */
+export function chooseOption(select: HTMLSelectElement, value: string) {
+  select.value = value;
+  select.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 // React DOM and Base UI detect DOM support while their modules are evaluated.

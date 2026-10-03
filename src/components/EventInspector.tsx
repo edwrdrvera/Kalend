@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
@@ -9,10 +10,13 @@ import {
   rebaseEventDraft,
   eventDraftValues,
   isEventDraftDirty,
+  isEventFieldsDirty,
   type EventDraft,
+  type SavedEvent,
 } from "@/lib/event-draft";
 import { useInspectorSave } from "@/hooks/useInspectorSave";
 import { APP_INPUT_CLS } from "./DateField";
+import AlertField from "./AlertField";
 import IconPicker from "./IconPicker";
 import PanelShell from "./PanelShell";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
@@ -26,12 +30,15 @@ import {
 
 interface EventInspectorProps {
   event: CalendarEvent;
+  /** The event's stored alert, which the draft is compared against. */
+  alertOffset: AlertOffset | null;
   categories: CalendarCategory[];
   modal: boolean;
   nav: InspectorNav;
   onClose: () => void;
-  /** Resolves false when the save failed, so the draft stays. */
-  onSave: (event: CalendarEvent, values: EventFormValues) => Promise<boolean>;
+  /** Resolves false when the save failed, so the draft stays. `values` is null
+   *  when only the alert changed. */
+  onSave: (event: CalendarEvent, values: EventFormValues | null, alertOffset: AlertOffset | null) => Promise<boolean>;
   onDelete: (event: CalendarEvent) => void;
   onDirtyChange: (dirty: boolean) => void;
   /** A navigation is waiting on the user's Save / Discard / Stay answer. */
@@ -46,6 +53,7 @@ const INPUT_CLS = cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:r
  *  each event gets a fresh draft. */
 export default function EventInspector({
   event,
+  alertOffset,
   categories,
   modal,
   nav,
@@ -57,18 +65,22 @@ export default function EventInspector({
   onProceed,
   onStay,
 }: EventInspectorProps) {
-  const [draft, setDraft] = useState<EventDraft>(() => draftFromEvent(event));
-  const [seenEvent, setSeenEvent] = useState(event);
-  if (seenEvent !== event) {
-    setSeenEvent(event);
-    setDraft((d) => rebaseEventDraft(d, seenEvent, event));
+  const saved: SavedEvent = { event, alertOffset };
+  const [draft, setDraft] = useState<EventDraft>(() => draftFromEvent(saved));
+  const [seen, setSeen] = useState(saved);
+  if (seen.event !== event || seen.alertOffset !== alertOffset) {
+    setSeen(saved);
+    setDraft((d) => rebaseEventDraft(d, seen, saved));
   }
-  const dirty = isEventDraftDirty(event, draft);
+  const dirty = isEventDraftDirty(saved, draft);
   const { values, error: invalidReason } = eventDraftValues(draft);
   const { saving, saveError, clearError, handleSubmit, saveAndProceed } = useInspectorSave({
     dirty,
     invalidReason,
-    persist: () => (values ? onSave(event, values) : Promise.resolve(false)),
+    persist: () =>
+      values
+        ? onSave(event, isEventFieldsDirty(event, draft) ? values : null, draft.alertOffset)
+        : Promise.resolve(false),
     onDirtyChange,
     onProceed,
     onStay,
@@ -140,6 +152,12 @@ export default function EventInspector({
             onChange={(colorState) => update({ colorState })}
           />
         </div>
+
+        <AlertField
+          id="event-inspector-alert"
+          value={draft.alertOffset}
+          onChange={(offset) => update({ alertOffset: offset })}
+        />
 
         <InspectorFooter
           noun="event"
