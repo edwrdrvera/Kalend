@@ -1,3 +1,4 @@
+import { MAX_DESCRIPTION_LENGTH, descriptionProblem, normalizeDescription } from "@/lib/description";
 import { isEventColor } from "@/lib/event-colors";
 import { isUuid } from "@/lib/uuid";
 
@@ -59,7 +60,17 @@ export function optionalText(value: unknown, field: string, max: number): ParseR
     : rejected(`${field} must be a string of at most ${max} characters`);
 }
 
-type Rules = Record<string, (value: unknown) => ParseResult<unknown>>;
+/** Stored trimmed; `null` and blank text both clear it. Length is checked after the trim. */
+export function description(value: unknown): ParseResult<string | null> {
+  if (value === null) return parsed(null);
+  if (typeof value !== "string") return rejected("description must be a string");
+  if (descriptionProblem(value)) {
+    return rejected(`description must be at most ${MAX_DESCRIPTION_LENGTH} characters`);
+  }
+  return parsed(normalizeDescription(value));
+}
+
+type Rules =Record<string, (value: unknown) => ParseResult<unknown>>;
 export type Parsed<R extends Rules> = {
   [K in keyof R]?: R[K] extends (value: unknown) => ParseResult<infer T> ? T : never;
 };

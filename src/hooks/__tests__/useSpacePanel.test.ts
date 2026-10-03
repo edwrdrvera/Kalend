@@ -9,7 +9,7 @@ import type { SpaceFocusAction } from "@/lib/space-focus";
 ensureDOM();
 
 const STORAGE_KEY = "kalend.branchPanel";
-const SCHOOL: CalendarCategory = { id: "space-1", name: "School", color: "blue" };
+const SCHOOL: CalendarCategory = { id: "space-1", name: "School", color: "blue", description: null };
 const SAVED = {
   active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
 };
@@ -42,7 +42,7 @@ describe("useSpacePanel", () => {
   it("shows no panel and applies no Space filter when the saved branch's Space is gone", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
-    const other: CalendarCategory = { id: "space-2", name: "Work", color: "red" };
+    const other: CalendarCategory = { id: "space-2", name: "Work", color: "red", description: null };
     const { result, act, unmount } = renderHook(() =>
       useSpacePanel([other], [], [], dispatchSpaceFocus)
     );

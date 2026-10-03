@@ -14,6 +14,7 @@ const EVENT: CalendarEvent = {
   category_id: "space-1",
   location: null,
   icon: null,
+  description: null,
 };
 const VALUES: EventFormValues = {
   title: "Lecture",

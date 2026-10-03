@@ -12,6 +12,7 @@ const eventRules = {
   category_id: field.categoryId,
   location: (value: unknown) => field.optionalText(value, "location", MAX_LOCATION_LENGTH),
   icon: (value: unknown) => field.optionalText(value, "icon", MAX_ICON_LENGTH),
+  description: field.description,
 };
 
 /** The fields an update sets. An absent key means "leave untouched". */

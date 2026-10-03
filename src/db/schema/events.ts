@@ -12,7 +12,8 @@ export const events = pgTable("events", {
   color_overridden: boolean("color_overridden").notNull().default(false),
   category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
   location: text("location"),
-  icon: text("icon")
+  icon: text("icon"),
+  description: text("description")
 }).enableRLS();
 
 // Drizzle inferred types (server-side, dates are Date objects). For

@@ -23,6 +23,7 @@ function makeCategory(overrides: Partial<CalendarCategory> = {}): CalendarCatego
     name: "Work",
     color: "green",
     ...overrides,
+    description: null,
   };
 }
 
@@ -38,6 +39,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     location: null,
     icon: null,
     ...overrides,
+    description: null,
   };
 }
 

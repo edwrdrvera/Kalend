@@ -12,12 +12,14 @@ const CAT_A: CalendarCategory = {
   id: "cat-1",
   name: "Homework",
   color: "blue",
+  description: null,
 };
 
 const CAT_B: CalendarCategory = {
   id: "cat-2",
   name: "Work",
   color: null,
+  description: null,
 };
 
 const DETACHED_EVENT: CalendarEvent = {
@@ -30,6 +32,7 @@ const DETACHED_EVENT: CalendarEvent = {
   category_id: null,
   location: null,
   icon: null,
+  description: null,
 };
 
 const DETACHED_TASK: CalendarTask = {
@@ -154,7 +157,7 @@ describe("useCategories", () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});
 
-    const newCat: CalendarCategory = { id: "cat-3", name: "Exams", color: "red" };
+    const newCat: CalendarCategory = { id: "cat-3", name: "Exams", color: "red", description: null };
     const resolve = deferredFetch({ success: true, data: newCat });
 
     const createPromise = result.current.createCategory("Exams", "red");

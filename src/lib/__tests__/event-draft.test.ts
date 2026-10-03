@@ -20,6 +20,7 @@ const EVENT: CalendarEvent = {
   category_id: null,
   location: null,
   icon: null,
+  description: null,
 };
 
 const saved = (event: CalendarEvent, alertOffset: AlertOffset | null = null): SavedEvent => ({

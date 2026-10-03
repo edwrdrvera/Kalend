@@ -88,7 +88,7 @@ export function useCategories(
   // surfaces the error on failure (same rollback approach as updateCategory).
   const createCategory = async (name: string, color: string): Promise<void> => {
     const tempId = crypto.randomUUID();
-    const optimisticCategory: CalendarCategory = { id: tempId, name, color };
+    const optimisticCategory: CalendarCategory = { id: tempId, name, color, description: null };
 
     setCategories((prev) => [...prev, optimisticCategory]);
 

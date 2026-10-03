@@ -87,6 +87,7 @@ const SHIFT_DAY: UpcomingDay = {
       category_id: "fixture-school",
       location: null,
       icon: null,
+      description: null,
     },
   ],
 };

@@ -15,6 +15,7 @@ function event(id: string, start: Date, hours = 1, category_id: string | null = 
     category_id,
     location: null,
     icon: null,
+    description: null,
   };
 }
 

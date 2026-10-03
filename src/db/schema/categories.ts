@@ -5,6 +5,7 @@ export const categories = pgTable("categories", {
   user_id: uuid("user_id").notNull(),
   name: text("name").notNull(),
   color: text("color").notNull().default("blue"),
+  description: text("description"),
   created_at: timestamp("created_at").defaultNow()
 }).enableRLS();
 

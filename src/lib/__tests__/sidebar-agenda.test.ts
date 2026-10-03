@@ -20,6 +20,7 @@ function event(
     category_id: null,
     location: null,
     icon: null,
+    description: null,
   };
 }
 

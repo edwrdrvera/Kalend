@@ -28,9 +28,22 @@ describe("parseEventCreate", () => {
     [{ ...validEvent, color: "plaid" }, "color must be a supported color"],
     [{ ...validEvent, category_id: "abc" }, "Space must be a valid identifier"],
     [{ ...validEvent, icon: "x".repeat(11) }, "icon must be a string of at most 10 characters"],
+    [{ ...validEvent, description: 5 }, "description must be a string"],
+    [{ ...validEvent, description: "x".repeat(2001) }, "description must be at most 2000 characters"],
     [[], "Request body must be an object"],
   ])("rejects %j", (body, error) => {
     expect(parseEventCreate(body)).toEqual({ ok: false, error });
+  });
+
+  it("trims a description and stores blank text as null", () => {
+    const parsed = (description: unknown) => {
+      const result = parseEventCreate({ ...validEvent, description });
+      return result.ok ? result.value.description : result.error;
+    };
+    expect(parsed("  Bring a pen \n")).toBe("Bring a pen");
+    expect(parsed("   ")).toBeNull();
+    expect(parsed(null)).toBeNull();
+    expect(parsed(` ${"x".repeat(2000)} `)).toBe("x".repeat(2000));
   });
 });
 
@@ -48,10 +61,19 @@ describe("parseEventPatch", () => {
     [{ title: 5 }, "title must be a string"],
     [{ start_at: 5 }, "start_at must be a valid date"],
     [{ color_overridden: "yes" }, "color_overridden must be a boolean"],
+    [{ description: ["a"] }, "description must be a string"],
+    [{ description: "x".repeat(2001) }, "description must be at most 2000 characters"],
     [{}, "No updatable fields provided"],
     [null, "Request body must be an object"],
   ])("rejects %j", (body, error) => {
     expect(parseEventPatch(body)).toEqual({ ok: false, error });
+  });
+
+  it("sets, clears, and leaves a description alone", () => {
+    expect(parseEventPatch({ description: " Lab 3 " })).toEqual({ ok: true, value: { description: "Lab 3" } });
+    expect(parseEventPatch({ description: "  " })).toEqual({ ok: true, value: { description: null } });
+    expect(parseEventPatch({ description: null })).toEqual({ ok: true, value: { description: null } });
+    expect(parseEventPatch({ title: "x" })).toEqual({ ok: true, value: { title: "x" } });
   });
 });
 

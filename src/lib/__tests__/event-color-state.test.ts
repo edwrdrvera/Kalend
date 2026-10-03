@@ -5,13 +5,14 @@ import type { CalendarEvent } from "../calendar-types";
 import { eventFormPayload } from "../event-form";
 
 const spaces = [
-  { id: "space-1", name: "Math", color: "green" },
-  { id: "space-2", name: "Physics", color: "purple" },
+  { id: "space-1", name: "Math", color: "green", description: null },
+  { id: "space-2", name: "Physics", color: "purple", description: null },
 ];
 const event: CalendarEvent = {
   id: "event-1", title: "Lecture", start_at: "2026-09-08T10:00:00Z",
   end_at: "2026-09-08T11:00:00Z", color: "blue", category_id: "space-1", color_overridden: false,
   location: null, icon: null,
+  description: null,
 };
 
 describe("event editor Space color transitions", () => {

@@ -8,7 +8,7 @@ import "./test-dom";
 const { createRoot } = await import("react-dom/client");
 const { default: TaskChip } = await import("../TaskChip");
 
-const categories = [{ id: "space-1", name: "Work", color: "green" }];
+const categories = [{ id: "space-1", name: "Work", color: "green", description: null }];
 
 const defaultTask: CalendarTask = {
   id: "task-1",

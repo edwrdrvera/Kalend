@@ -3,6 +3,7 @@ import { categories } from "@/db/schema/categories";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
+import * as field from "@/lib/api/parse-fields";
 import { isEventColor } from "@/lib/event-colors";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
@@ -15,6 +16,7 @@ interface RouteContext {
 interface UpdateCategoryBody {
   name?: unknown;
   color?: unknown;
+  description?: unknown;
 }
 
 const badRequest = (error: string) => fail(error, 400);
@@ -45,6 +47,12 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
       return fail("color must be a supported color", 400);
     }
     updates.color = body.color as string;
+  }
+
+  if (body.description !== undefined) {
+    const description = field.description(body.description);
+    if (!description.ok) return badRequest(description.error);
+    updates.description = description.value;
   }
 
   if (Object.keys(updates).length === 0) {

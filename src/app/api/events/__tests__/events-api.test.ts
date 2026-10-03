@@ -12,6 +12,7 @@ interface MockEvent {
   category_id?: string | null;
   location?: string | null;
   icon?: string | null;
+  description?: string | null;
   created_at?: Date;
 }
 
@@ -422,6 +423,69 @@ describe("Events API Endpoints", () => {
       expect(json.data.icon).toBeNull();
     });
 
+    describe("description", () => {
+      const post = (description: unknown) =>
+        POST(
+          new Request("http://localhost/api/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: "Physics Lab",
+              start_at: "2026-08-11T14:00:00Z",
+              end_at: "2026-08-11T16:00:00Z",
+              description,
+            }),
+          })
+        );
+
+      it("stores a trimmed description and returns it", async () => {
+        const response = await post("  Bring goggles\n");
+        expect(response.status).toBe(201);
+        expect((await response.json()).data.description).toBe("Bring goggles");
+      });
+
+      it("stores whitespace-only and null descriptions as null", async () => {
+        for (const description of ["   ", "", null]) {
+          const json = await (await post(description)).json();
+          expect(json.data.description).toBeNull();
+        }
+      });
+
+      it("stores null when no description is sent", async () => {
+        const response = await POST(
+          new Request("http://localhost/api/events", {
+            method: "POST",
+            body: JSON.stringify({ title: "Lab", start_at: "2026-08-11T14:00:00Z", end_at: "2026-08-11T16:00:00Z" }),
+          })
+        );
+        expect((await response.json()).data.description).toBeNull();
+      });
+
+      it("rejects a description over the limit without inserting", async () => {
+        const before = mockDbState.rows.length;
+        const response = await post("x".repeat(2001));
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("description must be at most 2000 characters");
+        expect(mockDbState.rows.length).toBe(before);
+      });
+
+      it("accepts exactly the limit", async () => {
+        expect((await post("x".repeat(2000))).status).toBe(201);
+      });
+
+      it("rejects a non-string description", async () => {
+        const response = await post(42);
+        expect(response.status).toBe(400);
+        expect((await response.json()).error).toBe("description must be a string");
+      });
+
+      it("returns a saved description from GET", async () => {
+        mockDbState.rows[0].description = "Room code 4821";
+        const json = await (await GET()).json();
+        expect(json.data[0].description).toBe("Room code 4821");
+      });
+    });
+
     it("returns 400 when location is not a string", async () => {
       const req = new Request("http://localhost/api/events", {
         method: "POST",
@@ -826,6 +890,47 @@ describe("Events API Endpoints", () => {
       const json = await response.json();
       expect(json.data.location).toBeNull();
       expect(json.data.icon).toBeNull();
+    });
+
+    describe("description", () => {
+      const patch = (id: string, body: unknown) =>
+        PATCH(
+          new Request(`http://localhost/api/events/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+          { params: Promise.resolve({ id }) }
+        );
+
+      it("sets a trimmed description", async () => {
+        const response = await patch("evt-uuid-1", { description: "  Bring ID " });
+        expect(response.status).toBe(200);
+        expect((await response.json()).data.description).toBe("Bring ID");
+      });
+
+      it("clears the description with null or blank text", async () => {
+        mockDbState.rows[0].description = "Old note";
+        expect((await (await patch("evt-uuid-1", { description: null })).json()).data.description).toBeNull();
+        mockDbState.rows[0].description = "Old note";
+        expect((await (await patch("evt-uuid-1", { description: "   " })).json()).data.description).toBeNull();
+      });
+
+      it("leaves the description alone when omitted", async () => {
+        mockDbState.rows[0].description = "Keep me";
+        const response = await patch("evt-uuid-1", { title: "Renamed" });
+        expect((await response.json()).data.description).toBe("Keep me");
+      });
+
+      it("rejects an over-long description and keeps the stored one", async () => {
+        mockDbState.rows[0].description = "Keep me";
+        const response = await patch("evt-uuid-1", { description: "x".repeat(2001) });
+        expect(response.status).toBe(400);
+        expect(mockDbState.rows[0].description).toBe("Keep me");
+      });
+
+      it("returns 404 for another user's event and leaves its description untouched", async () => {
+        mockDbState.rows[1].description = "Private";
+        const response = await patch("evt-uuid-other", { description: "Hacked" });
+        expect(response.status).toBe(404);
+        expect(mockDbState.rows[1].description).toBe("Private");
+      });
     });
 
     it("leaves location and icon unchanged when omitted", async () => {

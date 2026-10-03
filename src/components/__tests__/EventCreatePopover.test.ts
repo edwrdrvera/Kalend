@@ -10,8 +10,8 @@ const { createRoot } = await import("react-dom/client");
 const { default: EventCreatePopover } = await import("../EventCreatePopover");
 
 const categories: CalendarCategory[] = [
-  { id: "space-1", name: "Work", color: "green" },
-  { id: "space-2", name: "Personal", color: "purple" },
+  { id: "space-1", name: "Work", color: "green", description: null },
+  { id: "space-2", name: "Personal", color: "purple", description: null },
 ];
 
 const anchorRect: DOMRect = {

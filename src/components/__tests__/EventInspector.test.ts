@@ -11,8 +11,8 @@ const { createRoot } = await import("react-dom/client");
 const { default: EventInspector } = await import("../EventInspector");
 
 const CATEGORIES: CalendarCategory[] = [
-  { id: "space-1", name: "Work", color: "green" },
-  { id: "space-2", name: "Personal", color: "purple" },
+  { id: "space-1", name: "Work", color: "green", description: null },
+  { id: "space-2", name: "Personal", color: "purple", description: null },
 ];
 
 const EVENT: CalendarEvent = {
@@ -25,6 +25,7 @@ const EVENT: CalendarEvent = {
   category_id: "space-1",
   location: "Room 204",
   icon: "🧪",
+  description: null,
 };
 
 let root: Root | null = null;

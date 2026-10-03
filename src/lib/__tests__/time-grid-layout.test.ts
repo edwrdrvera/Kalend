@@ -20,6 +20,7 @@ function makeEvent(
     category_id: overrides.category_id ?? null,
     location: overrides.location ?? null,
     icon: overrides.icon ?? null,
+    description: null,
   };
 }
 
