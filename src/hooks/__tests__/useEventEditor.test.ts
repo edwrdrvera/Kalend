@@ -25,6 +25,7 @@ const VALUES: EventFormValues = {
   categoryId: "space-1",
   location: null,
   icon: null,
+  description: null,
 };
 const rect = { x: 0, y: 0, width: 10, height: 10 } as DOMRect;
 

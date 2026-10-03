@@ -161,6 +161,7 @@ describe("EventCreatePopover submitted values", () => {
       "categoryId",
       "color",
       "colorOverridden",
+      "description",
       "endAt",
       "icon",
       "location",

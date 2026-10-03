@@ -23,6 +23,8 @@ const EVENT: CalendarEvent = {
   description: null,
 };
 
+const WITH_NOTE: CalendarEvent = { ...EVENT, description: "Bring ID" };
+
 const saved = (event: CalendarEvent, alertOffset: AlertOffset | null = null): SavedEvent => ({
   event,
   alertOffset,
@@ -59,7 +61,43 @@ describe("event draft", () => {
       categoryId: null,
       location: null,
       icon: null,
+      description: null,
     });
+  });
+});
+
+describe("event draft description", () => {
+  it("starts empty for no description and holds the saved text otherwise", () => {
+    expect(draftFromEvent(saved(EVENT)).description).toBe("");
+    expect(draftFromEvent(saved(WITH_NOTE)).description).toBe("Bring ID");
+  });
+
+  it("whitespace-only edits stay clean, real edits and removals are dirty", () => {
+    const empty = draftFromEvent(saved(EVENT));
+    expect(isEventFieldsDirty(EVENT, { ...empty, description: "  \n" })).toBe(false);
+    expect(isEventFieldsDirty(EVENT, { ...empty, description: "Note" })).toBe(true);
+    const noted = draftFromEvent(saved(WITH_NOTE));
+    expect(isEventFieldsDirty(WITH_NOTE, { ...noted, description: " Bring ID " })).toBe(false);
+    expect(isEventFieldsDirty(WITH_NOTE, { ...noted, description: "" })).toBe(true);
+  });
+
+  it("saves trimmed text, and null for blank text", () => {
+    const draft = draftFromEvent(saved(EVENT));
+    expect(eventDraftValues({ ...draft, description: "  Note  " }).values?.description).toBe("Note");
+    expect(eventDraftValues({ ...draft, description: "   " }).values?.description).toBeNull();
+  });
+
+  it("refuses a description over the limit", () => {
+    const draft = draftFromEvent(saved(EVENT));
+    expect(eventDraftValues({ ...draft, description: "x".repeat(2000) }).error).toBeNull();
+    expect(eventDraftValues({ ...draft, description: "x".repeat(2001) }).error).toContain("too long");
+  });
+
+  it("keeps an edited description and follows an unedited one when the event is replaced", () => {
+    const edited = { ...draftFromEvent(saved(EVENT)), description: "Mine" };
+    expect(rebaseEventDraft(edited, saved(EVENT), saved(WITH_NOTE)).description).toBe("Mine");
+    const untouched = draftFromEvent(saved(EVENT));
+    expect(rebaseEventDraft(untouched, saved(EVENT), saved(WITH_NOTE)).description).toBe("Bring ID");
   });
 });
 

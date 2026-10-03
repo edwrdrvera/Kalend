@@ -2,6 +2,7 @@ import { format, isSameDay } from "date-fns";
 import type { AlertOffset } from "./alerts";
 import type { CalendarEvent } from "./calendar-types";
 import { initialEventColor, type EventColorState } from "./event-color-state";
+import { descriptionProblem, normalizeDescription } from "./description";
 import type { EventFormValues } from "./event-form";
 
 /** The editable fields of an event, as the create popover and the inspector hold them. */
@@ -9,6 +10,8 @@ export interface EventDraft {
   title: string;
   icon: string;
   location: string;
+  /** Free text; blank means none. */
+  description: string;
   /** Local "yyyy-MM-ddTHH:mm". */
   startAt: string;
   /** Local "yyyy-MM-ddTHH:mm". */
@@ -52,6 +55,7 @@ export function draftFromEvent({ event, alertOffset }: SavedEvent): EventDraft {
     title: event.title,
     icon: event.icon ?? "",
     location: event.location ?? "",
+    description: event.description ?? "",
     startAt: toDateTimeLocal(new Date(event.start_at)),
     endAt: toDateTimeLocal(new Date(event.end_at)),
     colorState: initialEventColor(event),
@@ -71,6 +75,8 @@ export function eventDraftValues(
     return { values: null, error: "Invalid date." };
   }
   if (start >= end) return { values: null, error: "Start must be before end." };
+  const descriptionError = descriptionProblem(draft.description);
+  if (descriptionError) return { values: null, error: descriptionError };
   const { color, colorOverridden, categoryId } = draft.colorState;
   return {
     values: {
@@ -82,6 +88,7 @@ export function eventDraftValues(
       categoryId,
       location: draft.location.trim() || null,
       icon: draft.icon.trim() || null,
+      description: normalizeDescription(draft.description),
     },
     error: null,
   };
@@ -94,6 +101,7 @@ export function isEventFieldsDirty(event: CalendarEvent, draft: EventDraft): boo
     draft.title.trim() !== saved.title ||
     draft.icon.trim() !== saved.icon ||
     draft.location.trim() !== saved.location ||
+    draft.description.trim() !== saved.description.trim() ||
     draft.startAt !== saved.startAt ||
     draft.endAt !== saved.endAt ||
     draft.colorState.color !== saved.colorState.color ||
@@ -123,6 +131,7 @@ export function rebaseEventDraft(
     title: draft.title.trim() === was.title ? now.title : draft.title,
     icon: draft.icon.trim() === was.icon ? now.icon : draft.icon,
     location: draft.location.trim() === was.location ? now.location : draft.location,
+    description: draft.description.trim() === was.description.trim() ? now.description : draft.description,
     startAt: draft.startAt === was.startAt ? now.startAt : draft.startAt,
     endAt: draft.endAt === was.endAt ? now.endAt : draft.endAt,
     colorState: sameColor ? now.colorState : draft.colorState,

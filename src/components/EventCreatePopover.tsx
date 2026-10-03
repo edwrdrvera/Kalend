@@ -66,6 +66,7 @@ export default function EventCreatePopover({
       title: "",
       icon: "",
       location: "",
+      description: "",
       startAt: toDateTimeLocal(start),
       endAt: toDateTimeLocal(initialEnd ?? new Date(start.getTime() + DEFAULT_DURATION_MS)),
       colorState: initialEventColor(null, initialSpaceId),
