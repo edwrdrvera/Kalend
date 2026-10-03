@@ -13,3 +13,4 @@ pr	date	tier	reviewer_version	finding	severity	outcome
 232	2026-10-02	high	809eef0	Clicking a reminder for an item not loaded in this tab did nothing; now refetches and opens it or says it is gone	medium	real-fixed
 232	2026-10-02	high	809eef0	Event and task edits now depend on the alerts table, so the migration must be applied before deploy; stated in the PR body	low	real-fixed
 232	2026-10-02	high	809eef0	Two where-matching engines coexist in the test mock; migrating the old tables is a separate cleanup	low	real-deferred
+233	2026-10-03	medium	809eef0	Failed delete during an alert offset switch left a duplicate alert, and Retry reported success without removing it	medium	real-fixed
