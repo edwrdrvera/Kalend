@@ -7,6 +7,10 @@ const personal: CalendarCategory = { id: "cat-personal", name: "Personal", color
 const noColor: CalendarCategory = { id: "cat-none", name: "Errands", color: null, description: null };
 
 describe("branchesForSpace", () => {
+  it("carries the Space's description onto its Branch", () => {
+    expect(branchesForSpace({ ...school, description: "Lecture room codes" })[0].description).toBe("Lecture room codes");
+  });
+
   it("maps a Space onto exactly one Branch with mirrored fields", () => {
     const branches = branchesForSpace(school);
     expect(branches).toHaveLength(1);

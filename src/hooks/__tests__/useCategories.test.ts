@@ -223,6 +223,43 @@ describe("useCategories", () => {
     unmount();
   });
 
+  it("updateCategory() sends a description, shows it at once, and resolves true", async () => {
+    const { result, act, unmount } = renderHook(() => useCategories());
+    await act(() => {});
+
+    const serverCat: CalendarCategory = { ...CAT_A, description: "Due Fridays" };
+    const resolve = deferredFetch({ success: true, data: serverCat });
+    let outcome: boolean | undefined;
+    const pending = result.current.updateCategory(CAT_A, { description: "Due Fridays" }).then((ok) => {
+      outcome = ok;
+    });
+    await act(() => {});
+    expect(result.current.data.find((c) => c.id === CAT_A.id)?.description).toBe("Due Fridays");
+
+    await act(async () => {
+      resolve();
+      await pending;
+    });
+    expect(outcome).toBe(true);
+    const patch = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "PATCH");
+    expect(JSON.parse((patch?.[1] as RequestInit).body as string)).toEqual({ description: "Due Fridays" });
+    unmount();
+  });
+
+  it("updateCategory() resolves false and restores the old description on failure", async () => {
+    const { result, act, unmount } = renderHook(() => useCategories());
+    await act(() => {});
+    stubFetch({ success: false, error: "Update failed" }, 500);
+
+    let outcome: boolean | undefined;
+    await act(async () => {
+      outcome = await result.current.updateCategory(CAT_A, { description: "Nope" });
+    });
+    expect(outcome).toBe(false);
+    expect(result.current.data.find((c) => c.id === CAT_A.id)?.description).toBeNull();
+    unmount();
+  });
+
   it("updateCategory() rolls back on failure", async () => {
     const { result, act, unmount } = renderHook(() => useCategories());
     await act(() => {});

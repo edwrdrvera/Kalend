@@ -55,15 +55,15 @@ function byLabel(label: string): HTMLElement | null {
 }
 
 describe("SpacePanelHeader", () => {
-  it("renders the space name, branch name, and description", async () => {
+  it("renders the space name and branch name, leaving the description to the body", async () => {
     await renderHeader();
 
     expect(container?.textContent).toContain("School");
     expect(container?.textContent).toContain("CS 340");
-    expect(container?.textContent).toContain("Databases & Information Systems. Wolfe 214.");
+    expect(container?.textContent).not.toContain("Databases & Information Systems");
   });
 
-  it("collapses the description line when null", async () => {
+  it("renders only the Space name and heading for a sparse branch", async () => {
     await renderHeader(FIXTURE_BRANCH_SPARSE);
 
     const heading = document.querySelector("h2");

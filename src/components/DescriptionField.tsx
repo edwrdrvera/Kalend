@@ -14,33 +14,15 @@ interface DescriptionFieldProps {
   className?: string;
 }
 
-/** An optional description. Empty and not being edited, it is a single
- *  "Add description" button instead of an empty box. It stays a box once
- *  opened, so clearing the text while typing doesn't make it vanish. */
-export default function DescriptionField({ id, value, onChange, className }: DescriptionFieldProps) {
-  const [open, setOpen] = useState(value !== "");
-  const [focusOnOpen, setFocusOnOpen] = useState(false);
+/** The labeled description box, with the too-long message under it. */
+export function DescriptionTextarea({
+  id,
+  value,
+  onChange,
+  autoFocus,
+  className,
+}: DescriptionFieldProps & { autoFocus?: boolean }) {
   const problem = descriptionProblem(value);
-
-  if (!open && value === "") {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setFocusOnOpen(true);
-          setOpen(true);
-        }}
-        className={cn(
-          "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          className
-        )}
-      >
-        <Plus className="size-3.5" />
-        Add description
-      </button>
-    );
-  }
-
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <label htmlFor={id} className={FIELD_LABEL_CLS}>
@@ -50,7 +32,7 @@ export default function DescriptionField({ id, value, onChange, className }: Des
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        autoFocus={focusOnOpen}
+        autoFocus={autoFocus}
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
@@ -63,4 +45,33 @@ export default function DescriptionField({ id, value, onChange, className }: Des
       )}
     </div>
   );
+}
+
+export const ADD_DESCRIPTION_CLS =
+  "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** An optional description. Empty and not being edited, it is a single
+ *  "Add description" button instead of an empty box. It stays a box once
+ *  opened, so clearing the text while typing doesn't make it vanish. */
+export default function DescriptionField({ id, value, onChange, className }: DescriptionFieldProps) {
+  const [open, setOpen] = useState(value !== "");
+  const [focusOnOpen, setFocusOnOpen] = useState(false);
+
+  if (!open && value === "") {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setFocusOnOpen(true);
+          setOpen(true);
+        }}
+        className={cn(ADD_DESCRIPTION_CLS, className)}
+      >
+        <Plus className="size-3.5" />
+        Add description
+      </button>
+    );
+  }
+
+  return <DescriptionTextarea id={id} value={value} onChange={onChange} autoFocus={focusOnOpen} className={className} />;
 }

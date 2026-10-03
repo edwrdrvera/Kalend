@@ -280,6 +280,11 @@ export default function Calendar() {
     }
   };
 
+  const handleSaveSpaceDescription = async (description: string | null) => {
+    const space = categories.data.find((c) => c.id === activeBranch?.spaceId);
+    return space ? categories.updateCategory(space, { description }) : false;
+  };
+
   const handleDeleteEvent = async (event: CalendarEvent) => {
     if (!(await events.deleteEvent(event))) return;
     panel.setEditorDirty(false);
@@ -317,6 +322,11 @@ export default function Calendar() {
           onCreateEvent={(anchor) => editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor)}
           onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
           onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
+          onSaveDescription={handleSaveSpaceDescription}
+          onDirtyChange={panel.setEditorDirty}
+          navigationPending={panel.navigationPending}
+          onProceed={panel.proceedNavigation}
+          onStay={panel.cancelNavigation}
         />
       );
     }

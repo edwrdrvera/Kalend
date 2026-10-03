@@ -29,7 +29,7 @@ export interface Branch {
   name: string;
   /** Inherited from the Space; drives the header color mark only. */
   color: EventColor;
-  /** Optional; header description line(s). Header collapses this line if empty. */
+  /** The Space's description. The panel shows no description section while it is empty. */
   description?: string | null;
 }
 

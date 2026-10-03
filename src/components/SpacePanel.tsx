@@ -9,6 +9,7 @@ import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { UpcomingDay } from "@/lib/space-overview";
 import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
+import SpacePanelDescription from "./SpacePanelDescription";
 import PanelUpcomingSection from "./PanelUpcomingSection";
 import PanelTasksSection from "./PanelTasksSection";
 import SpacePanelFooter from "./SpacePanelFooter";
@@ -30,6 +31,13 @@ interface SpacePanelProps {
   /** Opens the Space editor (rename / recolor / delete) for this branch's
    *  Space. Wired to both the header overflow button and the footer row. */
   onOpenSettings: () => void;
+  /** Saves the Space's description (null removes it). Resolves false when the save failed. */
+  onSaveDescription: (description: string | null) => Promise<boolean>;
+  onDirtyChange: (dirty: boolean) => void;
+  /** A navigation is waiting on the user's Save / Discard / Stay answer. */
+  navigationPending: boolean;
+  onProceed: () => void;
+  onStay: () => void;
 }
 
 const ADD_BUTTON_CLS =
@@ -47,6 +55,11 @@ export default function SpacePanel({
   onCreateEvent,
   onCreateTask,
   onOpenSettings,
+  onSaveDescription,
+  onDirtyChange,
+  navigationPending,
+  onProceed,
+  onStay,
 }: SpacePanelProps) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -80,6 +93,15 @@ export default function SpacePanel({
         key={branch.id}
         className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
       >
+        <SpacePanelDescription
+          key={branch.id}
+          description={branch.description ?? null}
+          onSave={onSaveDescription}
+          onDirtyChange={onDirtyChange}
+          navigationPending={navigationPending}
+          onProceed={onProceed}
+          onStay={onStay}
+        />
         <div className="px-4 py-3">
           <div className="flex gap-2">
             <button

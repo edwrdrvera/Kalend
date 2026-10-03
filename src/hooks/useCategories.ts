@@ -6,6 +6,7 @@ import type {
   CalendarEvent,
   CalendarTask,
   CategoriesApiResponse,
+  CategoryPatchRequest,
   CategoryDeleteApiResponse,
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
@@ -28,7 +29,8 @@ export interface UseCategoriesReturn {
   setError: (e: string | null) => void;
   retry: () => void;
   createCategory: (name: string, color: string) => Promise<void>;
-  updateCategory: (category: CalendarCategory, updates: { name?: string; color?: string }) => Promise<void>;
+  /** Resolves false when the server rejected the update and it was rolled back. */
+  updateCategory: (category: CalendarCategory, updates: CategoryPatchRequest) => Promise<boolean>;
   deleteCategory: (category: CalendarCategory) => Promise<void>;
 }
 
@@ -114,12 +116,12 @@ export function useCategories(
     }
   };
 
-  // Optimistic: applies the name/color change immediately, rolls back on
-  // failure so the UI doesn't flash stale data.
+  // Optimistic: applies the change immediately, rolls back on failure so the
+  // UI doesn't flash stale data.
   const updateCategory = async (
     category: CalendarCategory,
-    updates: { name?: string; color?: string }
-  ): Promise<void> => {
+    updates: CategoryPatchRequest
+  ): Promise<boolean> => {
     const previousCategory = category;
     const optimisticCategory: CalendarCategory = { ...category, ...updates };
 
@@ -143,11 +145,13 @@ export function useCategories(
       setCategories((prev) =>
         prev.map((c) => (c.id === savedCategory.id ? savedCategory : c))
       );
+      return true;
     } catch (err) {
       setCategories((prev) =>
         prev.map((c) => (c.id === category.id ? previousCategory : c))
       );
       setError(err instanceof Error ? err.message : "Failed to update Space");
+      return false;
     }
   };
 

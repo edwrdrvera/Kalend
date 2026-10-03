@@ -25,7 +25,7 @@ export function branchesForSpace(category: CalendarCategory): Branch[] {
       spaceName: category.name,
       name: category.name,
       color: isEventColor(category.color) ? category.color : DEFAULT_EVENT_COLOR,
-      description: null,
+      description: category.description,
     },
   ];
 }
