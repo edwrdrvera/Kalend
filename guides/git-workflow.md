@@ -1,9 +1,9 @@
 # Git & Workflow Strategy
 
 - **Base Branch:** `develop` (all feature work targets or branches off `develop`).
-- **Feature Branches:** Create off `develop` using `feature/<feature-name>`.
+- **Branches:** Create off `develop` using `<type>/<name>`, where `<type>` is a conventional-commit type (`feature`, `feat`, `fix`, `chore`, `docs`, `refactor`, `test`) and `<name>` is a short kebab-case description (e.g. `fix/space-panel-escape`).
 - **Primary Branch:** Do not commit directly to `main`.
-- **PR Required:** Every feature branch must be opened as a PR into `develop` (via `gh pr create`) once its work is done. Do not merge locally with `git merge`.
+- **PR Required:** Every branch must be opened as a PR into `develop` (via `gh pr create`) once its work is done. Do not merge locally with `git merge`.
 - **Releases to `main`:** `main` is updated via occasional batch release PRs (`develop` → `main`), not per task, e.g. after a `TASKS.md` phase wraps up, or whenever a release is explicitly requested. GitHub only allows one open PR per head→base pair, so a `develop`→`main` PR per task isn't viable anyway: each one would just contain everything the last one did, plus more, forcing them to be merged in strict sequence with no real review value over merging directly.
 - **No `TASKS.md` references in GitHub-facing text:** never mention `TASKS.md` or its task numbers (e.g. "task 19") in issue titles/bodies, PR titles/bodies, or commit messages. It's a local, gitignored planning doc, meaningless to anyone reading the repo on GitHub.
 
@@ -22,7 +22,7 @@
 
 ### Example Micro-Commit Workflow
 
-When implementing a feature branch like `feature/render-events-on-grid`:
+When implementing a branch like `feature/render-events-on-grid`:
 
 1. Add event fetch hooks and state management to `src/components/Calendar.tsx`
    → Commit: `feat(calendar): add event fetching state`

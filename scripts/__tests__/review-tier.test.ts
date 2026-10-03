@@ -29,6 +29,9 @@ describe("tierOf", () => {
     ".github/workflows/ci.yml",
     "scripts/review-tier.ts",
     ".claude/skills/code-review/SKILL.md",
+    "src/components/Calendar.tsx",
+    "src/components/TimeGrid.tsx",
+    "src/app/globals.css",
   ])("%s is medium", (file) => {
     expect(tierOf(file)).toBe("medium");
   });
@@ -36,7 +39,7 @@ describe("tierOf", () => {
   test.each([
     "src/components/TaskList.tsx",
     "src/components/__tests__/TaskList.test.tsx",
-    "src/app/globals.css",
+    "src/components/WeekGrid.tsx",
     "docs/code-style.md",
     "public/logo.svg",
     "CLAUDE.md",

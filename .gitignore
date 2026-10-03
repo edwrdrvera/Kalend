@@ -58,7 +58,6 @@ next-env.d.ts
 .agents/
 
 # Local coding-agent hand-off notes
-/CONTEXT.md
 /HANDOFF*.md
 /TASKS.md
 /RESUME_NOTES.md
