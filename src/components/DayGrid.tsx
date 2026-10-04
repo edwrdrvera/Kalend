@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
+import type { SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
@@ -16,6 +17,7 @@ interface DayGridProps {
   events: CalendarEvent[];
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  spaceFocus: SpaceFocus;
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
@@ -74,6 +76,7 @@ export default function DayGrid({
   events,
   tasks,
   categories,
+  spaceFocus,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
@@ -123,12 +126,14 @@ export default function DayGrid({
             onEventClick={onEventClick}
             onTaskOpen={onTaskOpen}
             onTaskToggle={onTaskToggle}
+            spaceFocus={spaceFocus}
           />
         </div>
         <TimeGrid
           days={days}
           events={timedEvents}
           categories={categories}
+          spaceFocus={spaceFocus}
           onEventClick={onEventClick}
           onEventShiftClick={onEventShiftClick}
           onEventContextMenu={onEventContextMenu}

@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarEvent } from "@/lib/calendar-types";
+import { initialSpaceFocus, type SpaceFocus } from "@/lib/space-focus";
 import "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -48,7 +49,7 @@ interface Handlers {
   creates: Array<{ start: Date; end: Date }>;
 }
 
-async function renderGrid(): Promise<Handlers> {
+async function renderGrid(spaceFocus: SpaceFocus = initialSpaceFocus): Promise<Handlers> {
   const handlers: Handlers = { moves: [], resizes: [], creates: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -60,6 +61,7 @@ async function renderGrid(): Promise<Handlers> {
         days: [DAY],
         events: [makeEvent()],
         categories: [],
+        spaceFocus,
         onEventMove: (event, start, end) => handlers.moves.push({ event, start, end }),
         onEventResize: (event, start, end) => handlers.resizes.push({ event, start, end }),
         onSlotDragCreate: (start, end) => handlers.creates.push({ start, end }),
@@ -154,5 +156,24 @@ describe("TimeGrid create-drag", () => {
     const { start, end } = handlers.creates[0]!;
     expect(start.getHours()).toBe(2);
     expect(end.getHours()).toBe(4);
+  });
+});
+
+describe("TimeGrid Space emphasis", () => {
+  it("dims an event outside the selected Space and still lets it be dragged", async () => {
+    const handlers = await renderGrid({ selectedSpaceId: "other" });
+    const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
+    expect(block?.className).toContain("opacity-50");
+
+    await act(async () => pointer("pointerdown", 100, block!));
+    await windowPointer("pointermove", 100 + PX_PER_HOUR);
+    await windowPointer("pointerup", 100 + PX_PER_HOUR);
+    expect(handlers.moves.length).toBe(1);
+  });
+
+  it("keeps full strength when no Space is selected", async () => {
+    await renderGrid();
+    const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
+    expect(block?.className).not.toContain("opacity-50");
   });
 });

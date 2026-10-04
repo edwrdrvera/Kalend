@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "../space-focus";
+import { DIMMED_ITEM_CLASS, dimClass, isEmphasized, initialSpaceFocus, spaceFocusReducer } from "../space-focus";
 
 const items = [
   { id: "work-event", category_id: "work" },
@@ -13,23 +13,31 @@ const tasks = [
 ];
 
 describe("Space focus", () => {
-  it("starts in All Spaces including unassigned items and undated Tasks", () => {
+  it("starts in All Spaces with every item at full strength", () => {
     expect(initialSpaceFocus.selectedSpaceId).toBeNull();
-    expect(filterBySpace(items, initialSpaceFocus)).toEqual(items);
-    expect(filterBySpace(tasks, initialSpaceFocus)).toEqual(tasks);
+    for (const item of [...items, ...tasks]) {
+      expect(isEmphasized(item, initialSpaceFocus)).toBe(true);
+    }
   });
 
-  it("exclusively filters both Events and dated/undated Tasks to the selected Space", () => {
+  it("emphasizes only the selected Space's Events and Tasks, dated or undated", () => {
     const focus = spaceFocusReducer(initialSpaceFocus, { type: "select", spaceId: "work" });
-    expect(filterBySpace(items, focus)).toEqual([items[0]]);
-    expect(filterBySpace(tasks, focus)).toEqual(tasks.slice(0, 2));
+    expect(items.map((item) => isEmphasized(item, focus))).toEqual([true, false, false]);
+    expect(tasks.map((task) => isEmphasized(task, focus))).toEqual([true, true, false]);
+  });
+
+  it("gives the dim class only to items outside the selected Space", () => {
+    const focus = spaceFocusReducer(initialSpaceFocus, { type: "select", spaceId: "work" });
+    expect(dimClass(items[0], focus)).toBe("");
+    expect(dimClass(items[1], focus)).toBe(DIMMED_ITEM_CLASS);
+    expect(dimClass(items[1], initialSpaceFocus)).toBe("");
   });
 
   it("selecting null returns to All Spaces", () => {
     const selected = spaceFocusReducer(initialSpaceFocus, { type: "select", spaceId: "work" });
     const all = spaceFocusReducer(selected, { type: "select", spaceId: null });
     expect(all).toEqual(initialSpaceFocus);
-    expect(filterBySpace(items, all)).toEqual(items);
+    expect(items.every((item) => isEmphasized(item, all))).toBe(true);
   });
 
   it("deleting the active Space falls back to All Spaces; deleting another leaves selection", () => {
