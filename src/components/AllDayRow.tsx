@@ -3,7 +3,7 @@
 import { isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
-import { DIMMED_ITEM_CLASS, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
+import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { layoutAllDayEvents } from "@/lib/time-grid-layout";
 import TaskChip from "./TaskChip";
 
@@ -96,7 +96,7 @@ export default function AllDayRow({
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
                   gridRow: lane + 1,
                 }}
-                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))} ${isEmphasized(event, spaceFocus) ? "" : DIMMED_ITEM_CLASS}`}
+                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))} ${dimClass(event, spaceFocus)}`}
               >
                 {event.icon && <span className="mr-1">{event.icon}</span>}
                 {event.title}

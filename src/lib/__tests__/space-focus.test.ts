@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isEmphasized, initialSpaceFocus, spaceFocusReducer } from "../space-focus";
+import { DIMMED_ITEM_CLASS, dimClass, isEmphasized, initialSpaceFocus, spaceFocusReducer } from "../space-focus";
 
 const items = [
   { id: "work-event", category_id: "work" },
@@ -24,6 +24,13 @@ describe("Space focus", () => {
     const focus = spaceFocusReducer(initialSpaceFocus, { type: "select", spaceId: "work" });
     expect(items.map((item) => isEmphasized(item, focus))).toEqual([true, false, false]);
     expect(tasks.map((task) => isEmphasized(task, focus))).toEqual([true, true, false]);
+  });
+
+  it("gives the dim class only to items outside the selected Space", () => {
+    const focus = spaceFocusReducer(initialSpaceFocus, { type: "select", spaceId: "work" });
+    expect(dimClass(items[0], focus)).toBe("");
+    expect(dimClass(items[1], focus)).toBe(DIMMED_ITEM_CLASS);
+    expect(dimClass(items[1], initialSpaceFocus)).toBe("");
   });
 
   it("selecting null returns to All Spaces", () => {

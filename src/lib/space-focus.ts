@@ -29,3 +29,7 @@ export function isEmphasized(item: { category_id: string | null }, focus: SpaceF
 /** Quiet de-emphasis that keeps color and layout. Full strength returns on hover and keyboard focus. */
 export const DIMMED_ITEM_CLASS =
   "opacity-50 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-within:opacity-100";
+
+export function dimClass(item: { category_id: string | null }, focus: SpaceFocus): string {
+  return isEmphasized(item, focus) ? "" : DIMMED_ITEM_CLASS;
+}

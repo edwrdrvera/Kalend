@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
-import { DIMMED_ITEM_CLASS, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
+import { dimClass, type SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import {
   EVENT_COLOR_SWATCH_CLASSES,
@@ -316,7 +316,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : isEmphasized(event, spaceFocus) ? "" : DIMMED_ITEM_CLASS} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
+                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
                   >
                     {/* Floating inset accent bar, hugging the left edge. */}
                     <span
