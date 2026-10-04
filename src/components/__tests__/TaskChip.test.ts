@@ -23,7 +23,7 @@ const defaultTask: CalendarTask = {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderTask(task: CalendarTask) {
+async function renderTask(task: CalendarTask, dimmed = false) {
   const calls = { opened: [] as string[], toggled: [] as string[] };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -33,6 +33,7 @@ async function renderTask(task: CalendarTask) {
       createElement(TaskChip, {
         task,
         categories,
+        dimmed,
         onOpen: (t) => calls.opened.push(t.id),
         onToggleComplete: (t) => calls.toggled.push(t.id),
       })
@@ -103,5 +104,20 @@ describe("TaskChip", () => {
     await act(() => checkbox.click());
 
     expect(parentClicks).toBe(0);
+  });
+
+  it("dims a task outside the selected Space but keeps it clickable", async () => {
+    const full = await renderTask(defaultTask);
+    expect(full.chip.className).not.toContain("opacity-50");
+
+    await act(() => root?.unmount());
+    container?.remove();
+
+    const dimmed = await renderTask(defaultTask, true);
+    expect(dimmed.chip.className).toContain("opacity-50");
+    await act(() => dimmed.title.click());
+    await act(() => dimmed.checkbox.click());
+    expect(dimmed.calls.opened).toEqual([defaultTask.id]);
+    expect(dimmed.calls.toggled).toEqual([defaultTask.id]);
   });
 });

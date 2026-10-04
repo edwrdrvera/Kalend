@@ -3,6 +3,7 @@
 import { isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { layoutAllDayEvents } from "@/lib/time-grid-layout";
 import TaskChip from "./TaskChip";
 
@@ -18,6 +19,7 @@ interface AllDayRowProps {
   onEventClick?: (event: CalendarEvent, anchorRect: DOMRect) => void;
   onTaskOpen: (task: CalendarTask) => void;
   onTaskToggle: (task: CalendarTask) => void;
+  spaceFocus: SpaceFocus;
 }
 
 /** One shared band above `TimeGrid` for both due tasks and all-/multi-day
@@ -31,6 +33,7 @@ export default function AllDayRow({
   onEventClick,
   onTaskOpen,
   onTaskToggle,
+  spaceFocus,
 }: AllDayRowProps) {
   const blocks = layoutAllDayEvents(days, events);
   const laneCount = blocks.length > 0 ? Math.max(...blocks.map((block) => block.lane)) + 1 : 0;
@@ -67,6 +70,7 @@ export default function AllDayRow({
                     categories={categories}
                     onOpen={onTaskOpen}
                     onToggleComplete={onTaskToggle}
+                    dimmed={!isEmphasized(task, spaceFocus)}
                   />
                 ))}
               </div>
@@ -92,7 +96,7 @@ export default function AllDayRow({
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
                   gridRow: lane + 1,
                 }}
-                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))}`}
+                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))} ${dimClass(event, spaceFocus)}`}
               >
                 {event.icon && <span className="mr-1">{event.icon}</span>}
                 {event.title}

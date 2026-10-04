@@ -17,6 +17,7 @@ import {
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { tasksDueOn } from "@/lib/day-agenda";
 import { cn } from "@/lib/utils";
+import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
@@ -28,6 +29,7 @@ interface MonthGridProps {
   events: CalendarEvent[];
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  spaceFocus: SpaceFocus;
   onDateSelect: (date: Date) => void;
   onViewDateChange: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
@@ -138,6 +140,15 @@ function getGridDays(viewDate: Date): Date[] {
   return days;
 }
 
+/** The cell shows only the first few events, so the selected Space's events
+ *  go first. Order within each group is unchanged. */
+function emphasizedFirst(events: CalendarEvent[], focus: SpaceFocus): CalendarEvent[] {
+  return [
+    ...events.filter((event) => isEmphasized(event, focus)),
+    ...events.filter((event) => !isEmphasized(event, focus)),
+  ];
+}
+
 function DayCell({
   day,
   monthStart,
@@ -145,6 +156,7 @@ function DayCell({
   events,
   tasks,
   categories,
+  spaceFocus,
   onDateSelect,
   onCreateEvent,
   onEventClick,
@@ -159,6 +171,7 @@ function DayCell({
   events: CalendarEvent[];
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  spaceFocus: SpaceFocus;
   onDateSelect: (date: Date) => void;
   onCreateEvent: (day: Date, anchorRect: DOMRect) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
@@ -167,7 +180,7 @@ function DayCell({
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
   selectedEventIds?: Set<string>;
 }) {
-  const dayEvents = getEventsForDay(day, events);
+  const dayEvents = emphasizedFirst(getEventsForDay(day, events), spaceFocus);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
@@ -235,7 +248,8 @@ function DayCell({
             className={cn(
               "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[10px] font-semibold transition-transform active:scale-[0.98]",
               getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
-              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1"
+              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1",
+              dimClass(event, spaceFocus)
             )}
           >
             {/* Month cells are too narrow for a location line, so only the
@@ -267,6 +281,7 @@ export default function MonthGrid({
   events,
   tasks,
   categories,
+  spaceFocus,
   onDateSelect,
   onViewDateChange,
   onCreateEvent,
@@ -302,6 +317,7 @@ export default function MonthGrid({
             events={events}
             tasks={tasks}
             categories={categories}
+            spaceFocus={spaceFocus}
             onDateSelect={onDateSelect}
             onCreateEvent={onCreateEvent}
             onEventClick={onEventClick}

@@ -41,7 +41,7 @@ import { useAlertTray } from "@/hooks/useAlertTray";
 import { useAlerts } from "@/hooks/useAlerts";
 import { useAlertItemOpener } from "@/hooks/useAlertItemOpener";
 import AlertMessages from "./AlertMessages";
-import { filterBySpace, initialSpaceFocus, spaceFocusReducer } from "@/lib/space-focus";
+import { initialSpaceFocus, isEmphasized, spaceFocusReducer } from "@/lib/space-focus";
 
 function ErrorToast({
   message,
@@ -233,8 +233,10 @@ export default function Calendar() {
 
   if (!mounted) return null;
 
-  const visibleEvents = filterBySpace(events.data, spaceFocus);
-  const visibleTasks = filterBySpace(tasks.data, spaceFocus);
+  // The sidebar agenda stays scoped to the selected Space. The grids get every
+  // item and dim the ones outside it.
+  const agendaEvents = events.data.filter((event) => isEmphasized(event, spaceFocus));
+  const agendaTasks = tasks.data.filter((task) => isEmphasized(task, spaceFocus));
 
   // All branches, for the agenda list.
   const branches = branchesForSpaces(categories.data);
@@ -399,8 +401,8 @@ export default function Calendar() {
           currentDate={selectedDate}
           viewDate={viewDate}
           onDateSelect={handleDateSelect}
-          tasks={visibleTasks}
-          events={visibleEvents}
+          tasks={agendaTasks}
+          events={agendaEvents}
           tasksLoading={tasks.loading}
           eventsLoading={events.loading}
           alertsByItem={itemAlerts.byItem}
@@ -452,9 +454,10 @@ export default function Calendar() {
               <MonthGrid
                 selectedDate={selectedDate}
                 viewDate={viewDate}
-                events={visibleEvents}
-                tasks={visibleTasks}
+                events={events.data}
+                tasks={tasks.data}
                 categories={categories.data}
+                spaceFocus={spaceFocus}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={editor.openCreate}
@@ -471,9 +474,10 @@ export default function Calendar() {
               <WeekGrid
                 selectedDate={selectedDate}
                 viewDate={viewDate}
-                events={visibleEvents}
-                tasks={visibleTasks}
+                events={events.data}
+                tasks={tasks.data}
                 categories={categories.data}
+                spaceFocus={spaceFocus}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={editor.openCreate}
@@ -496,9 +500,10 @@ export default function Calendar() {
               <DayGrid
                 viewDate={viewDate}
                 selectedDate={selectedDate}
-                events={visibleEvents}
-                tasks={visibleTasks}
+                events={events.data}
+                tasks={tasks.data}
                 categories={categories.data}
+                spaceFocus={spaceFocus}
                 onDateSelect={handleDateSelect}
                 onViewDateChange={setViewDate}
                 onCreateEvent={editor.openCreate}

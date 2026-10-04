@@ -3,6 +3,7 @@
 import { isPast } from "date-fns";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
 import {
   EVENT_COLOR_SWATCH_CLASSES,
   isEventColor,
@@ -15,6 +16,8 @@ interface TaskChipProps {
   categories: CalendarCategory[];
   onOpen: (task: CalendarTask) => void;
   onToggleComplete: (task: CalendarTask) => void;
+  /** Outside the selected Space: rendered quieter, still fully interactive. */
+  dimmed?: boolean;
   className?: string;
 }
 
@@ -27,6 +30,7 @@ export default function TaskChip({
   categories,
   onOpen,
   onToggleComplete,
+  dimmed,
   className,
 }: TaskChipProps) {
   const overdue = !task.completed && task.due_at && isPast(new Date(task.due_at));
@@ -48,6 +52,7 @@ export default function TaskChip({
           : overdue
             ? "text-destructive"
             : "text-foreground",
+        dimmed && DIMMED_ITEM_CLASS,
         className
       )}
     >
