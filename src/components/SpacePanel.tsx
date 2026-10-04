@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
-import type { Branch } from "@/lib/branch-types";
+import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { UpcomingDay } from "@/lib/space-overview";
 import PanelShell from "./PanelShell";
@@ -15,7 +15,7 @@ import PanelTasksSection from "./PanelTasksSection";
 import SpacePanelFooter from "./SpacePanelFooter";
 
 interface SpacePanelProps {
-  branch: Branch;
+  subject: PanelSubject;
   tasks: CalendarTask[];
   upcoming: UpcomingDay[];
   /** Modal dialog in overlay/full-screen modes; see PanelShell. */
@@ -26,10 +26,10 @@ interface SpacePanelProps {
   onOpenEvent: (event: CalendarEvent) => void;
   /** Opens the event editor, anchored to the clicked button. */
   onCreateEvent: (anchor: DOMRect) => void;
-  /** Creates a task in this branch's Space (title only; date/Space implied). */
+  /** Creates a task in the open Space or Group (title only; date and membership implied). */
   onCreateTask: (title: string) => Promise<void>;
-  /** Opens the Space editor (rename / recolor / delete) for this branch's
-   *  Space. Wired to both the header overflow button and the footer row. */
+  /** Opens the editor for the open Space or Group. Wired to both the header
+   *  overflow button and the footer row. */
   onOpenSettings: () => void;
   /** Saves the Space's description (null removes it). Resolves false when the save failed. */
   onSaveDescription: (description: string | null) => Promise<boolean>;
@@ -44,7 +44,7 @@ const ADD_BUTTON_CLS =
   "flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function SpacePanel({
-  branch,
+  subject,
   tasks,
   upcoming,
   modal,
@@ -64,11 +64,12 @@ export default function SpacePanel({
   const [composerOpen, setComposerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
-  // Reset the task composer when the panel swaps to a different branch — the
-  // recommended "adjust state during render" pattern, not an effect.
-  const [renderedBranchId, setRenderedBranchId] = useState(branch.id);
-  if (renderedBranchId !== branch.id) {
-    setRenderedBranchId(branch.id);
+  // Reset the task composer when the panel swaps to a different Space or Group
+  // — the recommended "adjust state during render" pattern, not an effect.
+  const key = subjectKey(subject);
+  const [renderedKey, setRenderedKey] = useState(key);
+  if (renderedKey !== key) {
+    setRenderedKey(key);
     setComposerOpen(false);
     setNewTitle("");
   }
@@ -83,25 +84,31 @@ export default function SpacePanel({
   }
 
   return (
-    <PanelShell label={`${branch.spaceName}, ${branch.name}`} modal={modal} onClose={onClose}>
-      <SpacePanelHeader branch={branch} onClose={onClose} onOverflow={onOpenSettings} />
+    <PanelShell
+      label={subject.kind === "group" ? `${subject.spaceName}, ${subject.name}` : subject.name}
+      modal={modal}
+      onClose={onClose}
+    >
+      <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings} />
 
       {/* Body: scrolls independently; sections self-omit when empty, and
           divide-y draws a hairline only between the sections that render.
-          Keyed on branch.id so swapping branches cross-fades the body. */}
+          Keyed on the subject so swapping Spaces and Groups cross-fades the body. */}
       <div
-        key={branch.id}
+        key={key}
         className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
       >
-        <SpacePanelDescription
-          key={branch.id}
-          description={branch.description ?? null}
-          onSave={onSaveDescription}
-          onDirtyChange={onDirtyChange}
-          navigationPending={navigationPending}
-          onProceed={onProceed}
-          onStay={onStay}
-        />
+        {subject.kind === "space" && (
+          <SpacePanelDescription
+            key={key}
+            description={subject.description}
+            onSave={onSaveDescription}
+            onDirtyChange={onDirtyChange}
+            navigationPending={navigationPending}
+            onProceed={onProceed}
+            onStay={onStay}
+          />
+        )}
         <div className="px-4 py-3">
           <div className="flex gap-2">
             <button
@@ -143,7 +150,7 @@ export default function SpacePanel({
         </div>
         {upcoming.length === 0 && tasks.length === 0 && !composerOpen ? (
           <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
-            Nothing coming up in {branch.name}. Events and tasks you add here show up in this panel.
+            Nothing coming up in {subject.name}. Events and tasks you add here show up in this panel.
           </p>
         ) : null}
         <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} />
@@ -154,7 +161,10 @@ export default function SpacePanel({
         />
       </div>
 
-      <SpacePanelFooter onOpenSettings={onOpenSettings} />
+      <SpacePanelFooter
+        label={subject.kind === "group" ? "Group settings" : "Space settings"}
+        onOpenSettings={onOpenSettings}
+      />
     </PanelShell>
   );
 }

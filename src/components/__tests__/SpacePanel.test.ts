@@ -5,8 +5,7 @@ import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarTask } from "@/lib/calendar-types";
-import { FIXTURE_BRANCH_FULL } from "@/lib/branch-fixtures";
-import type { Branch } from "@/lib/branch-types";
+import type { PanelSubject } from "@/lib/panel-subject";
 import type { UpcomingDay } from "@/lib/space-overview";
 
 // DOM globals must be installed (test-dom above) before importing react-dom.
@@ -37,7 +36,7 @@ interface Handlers {
 }
 
 async function render(
-  branch: Branch,
+  subject: PanelSubject,
   tasks: CalendarTask[] = [],
   upcoming: UpcomingDay[] = [],
   navigationPending = false
@@ -58,7 +57,7 @@ async function render(
   await act(() =>
     root?.render(
       createElement(SpacePanel, {
-        branch,
+        subject,
         tasks,
         upcoming,
         modal: false,
@@ -131,7 +130,22 @@ const SHIFT_DAY: UpcomingDay = {
 const descriptionBox = () => document.querySelector<HTMLTextAreaElement>("#space-description");
 const typeDescription = (value: string) => act(async () => typeIntoTextarea(descriptionBox()!, value));
 const alertText = () => document.querySelector('[role="alert"]')?.textContent ?? "";
-const NO_DESCRIPTION: Branch = { ...FIXTURE_BRANCH_FULL, description: null };
+const SPACE: PanelSubject = {
+  kind: "space",
+  spaceId: "fixture-school",
+  name: "School",
+  color: "blue",
+  description: "Databases & Information Systems. Wolfe 214.",
+};
+const GROUP: PanelSubject = {
+  kind: "group",
+  groupId: "fixture-cs340",
+  name: "CS 340",
+  spaceId: "fixture-school",
+  spaceName: "School",
+  color: "blue",
+};
+const NO_DESCRIPTION: PanelSubject = { ...SPACE, description: null };
 
 describe("SpacePanel description", () => {
   it("shows no description section for a Space without one, only a way to add it", async () => {
@@ -143,7 +157,7 @@ describe("SpacePanel description", () => {
   });
 
   it("shows a saved description as text with an edit button", async () => {
-    await render(FIXTURE_BRANCH_FULL);
+    await render(SPACE);
     expect(container?.textContent).toContain("Databases & Information Systems. Wolfe 214.");
     expect(descriptionBox()).toBeNull();
     expect(buttonWithText("Edit description")).toBeDefined();
@@ -163,7 +177,7 @@ describe("SpacePanel description", () => {
   });
 
   it("edits an existing description starting from its text", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+    const handlers = await render(SPACE);
     await act(() => buttonWithText("Edit description")?.click());
     expect(descriptionBox()?.value).toBe("Databases & Information Systems. Wolfe 214.");
     await typeDescription("Wolfe 301");
@@ -172,7 +186,7 @@ describe("SpacePanel description", () => {
   });
 
   it("removes the description by saving blank text as null", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+    const handlers = await render(SPACE);
     await act(() => buttonWithText("Edit description")?.click());
     await typeDescription("   ");
     await act(() => buttonWithText("Save")?.click());
@@ -205,7 +219,7 @@ describe("SpacePanel description", () => {
   });
 
   it("Cancel drops the edit without saving", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+    const handlers = await render(SPACE);
     await act(() => buttonWithText("Edit description")?.click());
     await typeDescription("Changed my mind");
     await act(() => buttonWithText("Cancel")?.click());
@@ -227,9 +241,28 @@ describe("SpacePanel description", () => {
   });
 });
 
+describe("SpacePanel for a Group", () => {
+  it("has no description section, because Groups have none", async () => {
+    await render(GROUP);
+    expect(buttonWithText("Add description")).toBeUndefined();
+    expect(descriptionBox()).toBeNull();
+  });
+
+  it("offers Group settings in the footer", async () => {
+    await render(GROUP);
+    expect(document.querySelector('[aria-label="Group settings"]')).not.toBeNull();
+    expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
+  });
+
+  it("says nothing is coming up in the Group's own name", async () => {
+    await render(GROUP);
+    expect(container?.textContent).toContain("Nothing coming up in CS 340");
+  });
+});
+
 describe("SpacePanel", () => {
-  it("shows the Space label and branch heading, with no placeholder sections", async () => {
-    await render(FIXTURE_BRANCH_FULL);
+  it("shows the Space label and Group heading, with no placeholder sections", async () => {
+    await render(GROUP);
     const text = container?.textContent ?? "";
     expect(text).toContain("School");
     expect(text).toContain("CS 340");
@@ -239,22 +272,22 @@ describe("SpacePanel", () => {
   });
 
   it("shows an empty state with both add actions when the Space has nothing", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
-    expect(container?.textContent).toContain("Nothing coming up in CS 340");
+    const handlers = await render(SPACE);
+    expect(container?.textContent).toContain("Nothing coming up in School");
     expect(container?.textContent).not.toContain("Open tasks");
     await act(() => buttonWithText("Add event")?.click());
     expect(handlers.eventCreates).toBe(1);
   });
 
   it("hides the empty state while the task composer is open", async () => {
-    await render(FIXTURE_BRANCH_FULL);
+    await render(SPACE);
     await act(() => buttonWithText("Add task")?.click());
     expect(document.querySelector('[aria-label="New task title"]')).not.toBeNull();
     expect(container?.textContent).not.toContain("Nothing coming up");
   });
 
   it("shows only upcoming events for a Space with events and no tasks", async () => {
-    await render(FIXTURE_BRANCH_FULL, [], [SHIFT_DAY]);
+    await render(SPACE, [], [SHIFT_DAY]);
     const text = container?.textContent ?? "";
     expect(text).toContain("Morning shift");
     expect(text).not.toContain("Open tasks");
@@ -262,7 +295,7 @@ describe("SpacePanel", () => {
   });
 
   it("drops the empty state once the Space has a task", async () => {
-    await render(FIXTURE_BRANCH_FULL, [TASK]);
+    await render(SPACE, [TASK]);
     const text = container?.textContent ?? "";
     expect(text).toContain("Submit timesheet");
     expect(text).not.toContain("Nothing coming up");
@@ -270,7 +303,7 @@ describe("SpacePanel", () => {
   });
 
   it("closes on Escape when focus is inside the panel", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+    const handlers = await render(SPACE);
     const panel = container?.querySelector<HTMLElement>('[role="complementary"]');
     await act(() => {
       panel?.dispatchEvent(
@@ -281,7 +314,7 @@ describe("SpacePanel", () => {
   });
 
   it("closes only the task composer on Escape, leaving the panel open", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+    const handlers = await render(SPACE);
     await act(() => buttonWithText("Add task")?.click());
     const input = document.querySelector<HTMLInputElement>('[aria-label="New task title"]');
     await act(() => {
@@ -291,8 +324,8 @@ describe("SpacePanel", () => {
     expect(handlers.closes).toBe(0);
   });
 
-  it("reveals a composer from + Add and creates a task in the branch", async () => {
-    const handlers = await render(FIXTURE_BRANCH_FULL);
+  it("reveals a composer from + Add and creates a task from the open panel", async () => {
+    const handlers = await render(SPACE);
     const add = buttonWithText("Add task");
     await act(() => add?.click());
 

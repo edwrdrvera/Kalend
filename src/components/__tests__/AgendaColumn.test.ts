@@ -8,7 +8,6 @@ import type {
   CalendarEvent,
   CalendarTask,
 } from "@/lib/calendar-types";
-import type { Branch } from "@/lib/branch-types";
 
 // Install DOM globals before importing React DOM (see test-dom.ts).
 await import("./test-dom");
@@ -86,8 +85,6 @@ interface RenderOptions {
   loading?: boolean;
   /** Ids of the events and tasks that have an alert. */
   alertedIds?: string[];
-  branches?: Branch[];
-  activeBranchId?: string | null;
   date?: Date;
 }
 
@@ -124,9 +121,7 @@ async function renderColumn(options: RenderOptions = {}) {
           interactions.taskToggles.push(task.id),
         onOpenTask: (task) => interactions.taskOpens.push(task.id),
         onEventClick: (event) => interactions.eventClicks.push(event.id),
-        branches: options.branches ?? [],
-        activeBranchId: options.activeBranchId ?? null,
-        onOpenBranch: () => {},
+        groupNav: null,
         onOpenAllTasks: () => interactions.allTasksOpens++,
       })
     )

@@ -72,7 +72,7 @@ async function renderInspector(initialAlert: AlertOffset | null = null, base: Ca
           alertOffset,
           categories: CATEGORIES,
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (e, values, wantedAlert) => {
             harness.saves.push(values);

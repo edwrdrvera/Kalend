@@ -8,8 +8,9 @@ import AgendaColumn from "./AgendaColumn";
 import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
-import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import type { Branch } from "@/lib/branch-types";
+import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
+import { spaceColor, type PanelSubject } from "@/lib/panel-subject";
+import { groupsOfSpace } from "@/lib/group-state";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -29,9 +30,12 @@ interface CalendarSidebarProps {
   onSelectSpace: (spaceId: string | null) => void;
   onCreateSpace: () => void;
   onEditSpace: (category: CalendarCategory) => void;
-  branches: Branch[];
-  activeBranchId: string | null;
-  onOpenBranch: (branch: Branch) => void;
+  groups: CalendarGroup[];
+  activeSubject: PanelSubject | null;
+  onOpenSpace: (spaceId: string) => void;
+  onOpenGroup: (group: CalendarGroup) => void;
+  onCreateGroup: (spaceId: string) => void;
+  onEditGroup: (group: CalendarGroup) => void;
   /** Account menu element for the desktop rail, composed by the state owner. */
   accountMenu?: ReactNode;
   /** Account menu element for the mobile slide-out (light-surface styling). */
@@ -56,9 +60,12 @@ export default function CalendarSidebar({
   onSelectSpace,
   onCreateSpace,
   onEditSpace,
-  branches,
-  activeBranchId,
-  onOpenBranch,
+  groups,
+  activeSubject,
+  onOpenSpace,
+  onOpenGroup,
+  onCreateGroup,
+  onEditGroup,
   accountMenu,
   mobileAccountMenu,
 }: CalendarSidebarProps) {
@@ -75,11 +82,19 @@ export default function CalendarSidebar({
     saveSidebarCollapsed(next);
   };
 
-  // The agenda's branch list shows only the active Space's branches; the rail
-  // flyouts use the full list.
-  const spaceBranches = selectedSpaceId
-    ? branches.filter((b) => b.spaceId === selectedSpaceId)
-    : [];
+  // The agenda's list shows the selected Space and its Groups.
+  const selectedSpace = categories.find((c) => c.id === selectedSpaceId);
+  const groupNav = selectedSpace
+    ? {
+        space: { id: selectedSpace.id, name: selectedSpace.name, color: spaceColor(selectedSpace) },
+        groups: groupsOfSpace(groups, selectedSpace.id),
+        activeSubject,
+        onOpenSpace,
+        onOpenGroup,
+        onCreateGroup,
+        onEditGroup,
+      }
+    : null;
 
   const agendaProps = {
     selectedDate: currentDate,
@@ -91,9 +106,7 @@ export default function CalendarSidebar({
     onToggleTaskComplete,
     onOpenTask,
     onEventClick,
-    branches: spaceBranches,
-    activeBranchId,
-    onOpenBranch,
+    groupNav,
   } as const;
 
   const miniCalProps = {

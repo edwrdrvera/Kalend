@@ -1,5 +1,6 @@
 import { addDays, isSameDay, startOfDay } from "date-fns";
 import type { CalendarEvent } from "./calendar-types";
+import { inSubject, type PanelSubject } from "./panel-subject";
 
 export const UPCOMING_DAYS = 14;
 export const UPCOMING_LIMIT = 10;
@@ -9,17 +10,17 @@ export interface UpcomingDay {
   events: CalendarEvent[];
 }
 
-/** In-progress events count as upcoming: they matter until they end. */
+/** The subject's events that have not ended and start soon. In-progress events count: they matter until they end. */
 export function upcomingEventsByDay(
   events: CalendarEvent[],
-  spaceId: string,
+  subject: PanelSubject,
   now: Date
 ): UpcomingDay[] {
   const horizon = addDays(startOfDay(now), UPCOMING_DAYS);
   const upcoming = events
     .filter(
       (e) =>
-        e.category_id === spaceId &&
+        inSubject(subject, e) &&
         new Date(e.end_at) > now &&
         new Date(e.start_at) < horizon
     )

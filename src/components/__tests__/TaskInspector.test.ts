@@ -64,7 +64,7 @@ async function renderInspector(initial: { task?: CalendarTask; alertOffset?: Ale
           alertOffset,
           categories: [],
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (t, patch, wantedAlert) => {
             harness.saves.push(patch);
@@ -242,7 +242,7 @@ describe("TaskInspector", () => {
           alertOffset: null,
           categories: [],
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => {},
           onSave: async (_t, patch) => {
             saves.push(patch);

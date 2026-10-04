@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowLeft, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -9,10 +9,11 @@ export const ICON_BUTTON_CLS =
 
 export const FIELD_LABEL_CLS = "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
 
-/** Where an inspector sits: its Space (a link to the Space's overview) and
+/** Where an inspector sits: its Space and Group (links to their overviews) and
  *  the overview Back returns to. */
 export interface InspectorNav {
   space: { name: string; onOpen: () => void } | null;
+  group: { name: string; onOpen: () => void } | null;
   back: { label: string; onBack: () => void } | null;
 }
 
@@ -27,7 +28,7 @@ export function InspectorHeader({
   nav: InspectorNav;
   onClose: () => void;
 }) {
-  const { space, back } = nav;
+  const { space, group, back } = nav;
   return (
     <header className="flex flex-col gap-2 border-b border-border px-4 py-4">
       <div className="flex items-center justify-between gap-3">
@@ -45,19 +46,22 @@ export function InspectorHeader({
       </div>
       <nav aria-label="Breadcrumb">
         <ol className="flex min-w-0 items-center gap-1 text-[12px] text-muted-foreground">
-          {space && (
-            <>
-              <li className="min-w-0">
-                <button
-                  type="button"
-                  onClick={space.onOpen}
-                  className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {space.name}
-                </button>
-              </li>
-              <li aria-hidden="true">/</li>
-            </>
+          {[space, group].map(
+            (crumb, index) =>
+              crumb && (
+                <Fragment key={index}>
+                  <li className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={crumb.onOpen}
+                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {crumb.name}
+                    </button>
+                  </li>
+                  <li aria-hidden="true">/</li>
+                </Fragment>
+              )
           )}
           <li aria-current="page" className="min-w-0 truncate text-foreground">
             {itemTitle}

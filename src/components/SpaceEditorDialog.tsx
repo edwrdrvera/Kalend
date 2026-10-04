@@ -17,7 +17,7 @@ import {
   isEventColor,
   type EventColor,
 } from "@/lib/event-colors";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 
 /**
  * Create or edit one Space (name + color), with delete in edit mode. A single
@@ -35,6 +35,8 @@ export interface SpaceEditorTarget {
 interface SpaceEditorDialogProps {
   /** The open target, or null when the dialog is closed. */
   target: SpaceEditorTarget | null;
+  /** All Groups, so the delete confirmation can say how many go with the Space. */
+  groups: CalendarGroup[];
   onOpenChange: (open: boolean) => void;
   onCreate: (name: string, color: string) => Promise<void>;
   onUpdate: (
@@ -46,6 +48,7 @@ interface SpaceEditorDialogProps {
 
 export default function SpaceEditorDialog({
   target,
+  groups,
   onOpenChange,
   onCreate,
   onUpdate,
@@ -120,6 +123,10 @@ export default function SpaceEditorDialog({
     }
   };
 
+  const groupCount = target?.category
+    ? groups.filter((g) => g.category_id === target.category?.id).length
+    : 0;
+
   if (target !== null && confirmingDelete && target.category) {
     return (
       <Dialog open onOpenChange={onOpenChange}>
@@ -129,6 +136,7 @@ export default function SpaceEditorDialog({
           </DialogHeader>
 
           <p className="text-[13px] text-muted-foreground">
+            {groupCount > 0 && `Its ${groupCount} ${groupCount === 1 ? "Group is" : "Groups are"} deleted. `}
             Its events and tasks stay, but become unassigned. This can&apos;t be undone.
           </p>
 
