@@ -140,6 +140,15 @@ function getGridDays(viewDate: Date): Date[] {
   return days;
 }
 
+/** The cell shows only the first few events, so the selected Space's events
+ *  go first. Order within each group is unchanged. */
+function emphasizedFirst(events: CalendarEvent[], focus: SpaceFocus): CalendarEvent[] {
+  return [
+    ...events.filter((event) => isEmphasized(event, focus)),
+    ...events.filter((event) => !isEmphasized(event, focus)),
+  ];
+}
+
 function DayCell({
   day,
   monthStart,
@@ -171,7 +180,7 @@ function DayCell({
   onEventContextMenu?: (event: CalendarEvent, x: number, y: number) => void;
   selectedEventIds?: Set<string>;
 }) {
-  const dayEvents = getEventsForDay(day, events);
+  const dayEvents = emphasizedFirst(getEventsForDay(day, events), spaceFocus);
   const visibleEvents = dayEvents.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayEvents.length - visibleEvents.length;
 
