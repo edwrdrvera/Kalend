@@ -40,7 +40,7 @@ interface SpaceEditorDialogProps {
   onUpdate: (
     category: CalendarCategory,
     updates: { name?: string; color?: string }
-  ) => Promise<unknown>;
+  ) => Promise<boolean>;
   onDelete: (category: CalendarCategory) => Promise<void>;
 }
 
