@@ -77,7 +77,7 @@ export function eventDraftValues(
   if (start >= end) return { values: null, error: "Start must be before end." };
   const descriptionError = descriptionProblem(draft.description);
   if (descriptionError) return { values: null, error: descriptionError };
-  const { color, colorOverridden, categoryId } = draft.colorState;
+  const { color, colorOverridden, categoryId, groupId } = draft.colorState;
   return {
     values: {
       title,
@@ -86,6 +86,7 @@ export function eventDraftValues(
       color,
       colorOverridden,
       categoryId,
+      groupId,
       location: draft.location.trim() || null,
       icon: draft.icon.trim() || null,
       description: normalizeDescription(draft.description),
@@ -106,7 +107,8 @@ export function isEventFieldsDirty(event: CalendarEvent, draft: EventDraft): boo
     draft.endAt !== saved.endAt ||
     draft.colorState.color !== saved.colorState.color ||
     draft.colorState.colorOverridden !== saved.colorState.colorOverridden ||
-    draft.colorState.categoryId !== saved.colorState.categoryId
+    draft.colorState.categoryId !== saved.colorState.categoryId ||
+    draft.colorState.groupId !== saved.colorState.groupId
   );
 }
 
@@ -126,7 +128,8 @@ export function rebaseEventDraft(
   const sameColor =
     draft.colorState.color === was.colorState.color &&
     draft.colorState.colorOverridden === was.colorState.colorOverridden &&
-    draft.colorState.categoryId === was.colorState.categoryId;
+    draft.colorState.categoryId === was.colorState.categoryId &&
+    draft.colorState.groupId === was.colorState.groupId;
   return {
     title: draft.title.trim() === was.title ? now.title : draft.title,
     icon: draft.icon.trim() === was.icon ? now.icon : draft.icon,

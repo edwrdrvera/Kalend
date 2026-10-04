@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { typeInto } from "./test-dom";
 
@@ -12,6 +12,11 @@ const { default: EventCreatePopover } = await import("../EventCreatePopover");
 const categories: CalendarCategory[] = [
   { id: "space-1", name: "Work", color: "green", description: null },
   { id: "space-2", name: "Personal", color: "purple", description: null },
+];
+
+const groups: CalendarGroup[] = [
+  { id: "group-site", category_id: "space-1", name: "Website" },
+  { id: "group-trip", category_id: "space-2", name: "Trip" },
 ];
 
 const anchorRect: DOMRect = {
@@ -40,11 +45,13 @@ afterEach(async () => {
 
 interface RenderOptions {
   initialSpaceId?: string | null;
+  initialGroupId?: string | null;
   onSubmit?: (values: EventFormValues) => void;
 }
 
 async function renderPopover({
   initialSpaceId = null,
+  initialGroupId = null,
   onSubmit = () => {},
 }: RenderOptions = {}) {
   container = document.createElement("div");
@@ -57,7 +64,9 @@ async function renderPopover({
         side: "right",
         initialStart: new Date("2026-09-09T10:00:00"),
         initialSpaceId,
+        initialGroupId,
         categories,
+        groups,
         onSubmit,
         onClose: () => {},
       })
@@ -114,6 +123,7 @@ describe("EventCreatePopover Space membership", () => {
           initialStart: new Date("2026-09-09T10:00:00"),
           initialSpaceId,
           categories,
+          groups: [],
           onSubmit: (values: EventFormValues) => {
             submitted = values;
           },
@@ -135,6 +145,92 @@ describe("EventCreatePopover Space membership", () => {
 
     const values = submitted as EventFormValues | null;
     expect(values?.categoryId).toBe("space-1");
+  });
+});
+
+describe("EventCreatePopover Group membership", () => {
+  it("starts in the Group it was opened from, and submits both the Space and the Group", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      initialSpaceId: "space-1",
+      initialGroupId: "group-site",
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+    expect(spaceTriggerLabel()).toBe("Space: Work / Website");
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    await act(() => typeInto(titleInput as HTMLInputElement, "Client call"));
+    await submitForm();
+    const values = submitted as EventFormValues | null;
+    expect(values?.categoryId).toBe("space-1");
+    expect(values?.groupId).toBe("group-site");
+  });
+
+  it("lets the user pick another Group, which brings its Space", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      initialSpaceId: "space-1",
+      initialGroupId: "group-site",
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+    await openSpaceDropdown();
+    await act(() => spaceOption("Trip")?.click());
+    expect(spaceTriggerLabel()).toBe("Space: Personal / Trip");
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    await act(() => typeInto(titleInput as HTMLInputElement, "Flight"));
+    await submitForm();
+    const values = submitted as EventFormValues | null;
+    expect(values?.categoryId).toBe("space-2");
+    expect(values?.groupId).toBe("group-trip");
+  });
+
+  it("choosing the Space row leaves the Group but stays in the Space", async () => {
+    let submitted: EventFormValues | null = null;
+    await renderPopover({
+      initialSpaceId: "space-1",
+      initialGroupId: "group-site",
+      onSubmit: (values) => {
+        submitted = values;
+      },
+    });
+    await openSpaceDropdown();
+    await act(() => spaceOption("Work")?.click());
+    expect(spaceTriggerLabel()).toBe("Space: Work");
+
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    await act(() => typeInto(titleInput as HTMLInputElement, "Offsite"));
+    await submitForm();
+    const values = submitted as EventFormValues | null;
+    expect(values?.categoryId).toBe("space-1");
+    expect(values?.groupId).toBeNull();
+  });
+
+  it("keeps the snapshotted Group when the selection elsewhere changes while the draft is open", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const render = (initialGroupId: string | null) =>
+      root?.render(
+        createElement(EventCreatePopover, {
+          anchorRect,
+          side: "right",
+          initialStart: new Date("2026-09-09T10:00:00"),
+          initialSpaceId: "space-1",
+          initialGroupId,
+          categories,
+          groups,
+          onSubmit: () => {},
+          onClose: () => {},
+        })
+      );
+    await act(() => render("group-site"));
+    await act(() => render(null));
+    expect(spaceTriggerLabel()).toBe("Space: Work / Website");
   });
 });
 
@@ -163,6 +259,7 @@ describe("EventCreatePopover submitted values", () => {
       "colorOverridden",
       "description",
       "endAt",
+      "groupId",
       "icon",
       "location",
       "startAt",

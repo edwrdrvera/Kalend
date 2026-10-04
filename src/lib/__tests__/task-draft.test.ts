@@ -84,3 +84,40 @@ describe("rebaseTaskDraft", () => {
     expect(next).toEqual(draftFromTask(saved(moved)));
   });
 });
+
+describe("task draft membership", () => {
+  const IN_BIO: CalendarTask = { ...TASK, category_id: "school", group_id: "bio" };
+
+  test("starts from the saved Space and Group and is clean", () => {
+    const draft = draftFromTask(saved(IN_BIO));
+    expect([draft.categoryId, draft.groupId]).toEqual(["school", "bio"]);
+    expect(isTaskDraftDirty(saved(IN_BIO), draft)).toBe(false);
+    expect(draftPatch(IN_BIO, draft)).toEqual({});
+  });
+
+  test("joining a Group sends the Space and the Group together", () => {
+    const draft = { ...draftFromTask(saved(TASK)), categoryId: "school", groupId: "bio" };
+    expect(draftPatch(TASK, draft)).toEqual({ category_id: "school", group_id: "bio" });
+  });
+
+  test("leaving the Group but not the Space sends group_id null with the same Space", () => {
+    const draft = { ...draftFromTask(saved(IN_BIO)), groupId: null };
+    expect(draftPatch(IN_BIO, draft)).toEqual({ category_id: "school", group_id: null });
+    expect(isTaskDraftDirty(saved(IN_BIO), draft)).toBe(true);
+  });
+
+  test("moving to another Space sends no Group", () => {
+    const draft = { ...draftFromTask(saved(IN_BIO)), categoryId: "work", groupId: null };
+    expect(draftPatch(IN_BIO, draft)).toEqual({ category_id: "work", group_id: null });
+  });
+
+  test("an unedited membership follows the newly saved task, and an edited one is kept", () => {
+    const moved: CalendarTask = { ...IN_BIO, category_id: "work", group_id: null };
+    const followed = rebaseTaskDraft(draftFromTask(saved(IN_BIO)), saved(IN_BIO), saved(moved));
+    expect([followed.categoryId, followed.groupId]).toEqual(["work", null]);
+
+    const edited = { ...draftFromTask(saved(IN_BIO)), groupId: "hist" };
+    const kept = rebaseTaskDraft(edited, saved(IN_BIO), saved(moved));
+    expect([kept.categoryId, kept.groupId]).toEqual(["school", "hist"]);
+  });
+});

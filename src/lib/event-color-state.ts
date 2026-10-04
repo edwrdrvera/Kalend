@@ -4,16 +4,19 @@ import { DEFAULT_EVENT_COLOR, isEventColor, resolveDisplayColor, type EventColor
 export interface EventColorState {
   color: EventColor;
   categoryId: string | null;
+  groupId: string | null;
   colorOverridden: boolean;
 }
 
 export function initialEventColor(
   event?: CalendarEvent | null,
-  initialSpaceId: string | null = null
+  initialSpaceId: string | null = null,
+  initialGroupId: string | null = null
 ): EventColorState {
   return {
     color: isEventColor(event?.color) ? event.color : DEFAULT_EVENT_COLOR,
     categoryId: event ? event.category_id : initialSpaceId,
+    groupId: event ? event.group_id : initialGroupId,
     colorOverridden: event?.color_overridden ?? false,
   };
 }
@@ -21,7 +24,10 @@ export function initialEventColor(
 export type EventColorAction =
   | { type: "pick"; color: EventColor }
   | { type: "inherit" }
-  | { type: "space"; categoryId: string | null; categories: readonly CalendarCategory[] };
+  /** Directly in a Space, or in no Space. Leaves any Group. */
+  | { type: "space"; categoryId: string | null; categories: readonly CalendarCategory[] }
+  /** In a Group, which brings its Space with it. */
+  | { type: "group"; groupId: string; categoryId: string; categories: readonly CalendarCategory[] };
 
 // Store the personal color separately from the live Space color. Only
 // detaching needs to snapshot the visible color before the link disappears.
@@ -32,6 +38,7 @@ export function eventColorReducer(state: EventColorState, action: EventColorActi
   return {
     ...state,
     categoryId: action.categoryId,
+    groupId: action.type === "group" ? action.groupId : null,
     color: action.categoryId === null && isEventColor(visible) ? visible : state.color,
   };
 }

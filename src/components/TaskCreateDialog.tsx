@@ -12,8 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { APP_INPUT_CLS } from "./DateField";
-import CategorySelect from "./CategorySelect";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import MembershipSelect from "./MembershipSelect";
+import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { spaceMembership, type Membership } from "@/lib/membership";
 
 /** Quick task creation seeded with a due date, opened from the calendar's
@@ -22,6 +22,7 @@ interface TaskCreateDialogProps {
   /** The day the task is due, or null when closed. */
   day: Date | null;
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   initialSpaceId: string | null;
   onCreate: (
     title: string,
@@ -34,12 +35,13 @@ interface TaskCreateDialogProps {
 export default function TaskCreateDialog({
   day,
   categories,
+  groups,
   initialSpaceId,
   onCreate,
   onOpenChange,
 }: TaskCreateDialogProps) {
   const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(initialSpaceId);
+  const [membership, setMembership] = useState<Membership>(spaceMembership(initialSpaceId));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +50,7 @@ export default function TaskCreateDialog({
   useEffect(() => {
     if (!day) return;
     setTitle("");
-    setCategoryId(initialSpaceId);
+    setMembership(spaceMembership(initialSpaceId));
     setError(null);
     setSubmitting(false);
     inputRef.current?.focus({ preventScroll: true });
@@ -64,7 +66,7 @@ export default function TaskCreateDialog({
     try {
       const due = new Date(day);
       due.setHours(23, 59, 0, 0);
-      await onCreate(trimmed, due.toISOString(), spaceMembership(categoryId));
+      await onCreate(trimmed, due.toISOString(), membership);
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
@@ -92,10 +94,11 @@ export default function TaskCreateDialog({
 
           <div className="flex items-center justify-between gap-2 text-[12px] text-muted-foreground">
             <span>Due {day ? format(day, "EEE, MMM d") : ""}</span>
-            <CategorySelect
+            <MembershipSelect
               categories={categories}
-              categoryId={categoryId}
-              onChange={setCategoryId}
+              groups={groups}
+              membership={membership}
+              onChange={setMembership}
             />
           </div>
 

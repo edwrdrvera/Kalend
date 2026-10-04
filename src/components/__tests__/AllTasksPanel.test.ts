@@ -51,6 +51,7 @@ async function renderPanel(tasks: CalendarTask[]) {
       createElement(AllTasksPanel, {
         tasks,
         categories: [],
+        groups: [],
         selectedSpaceId: "cat-1",
         modal: false,
         onClose: () => calls.closes++,

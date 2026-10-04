@@ -353,7 +353,9 @@ export default function Calendar() {
           onToggleComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
           onOpenEvent={panel.openEvent}
-          onCreateEvent={(anchor) => editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor)}
+          onCreateEvent={(anchor) =>
+            editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor, membershipForSubject(subject))
+          }
           onCreateTask={(title) => tasks.createTask(title, undefined, membershipForSubject(subject))}
           onOpenSettings={() => {
             if (subject.kind === "space") handleEditSpaceById(subject.spaceId);
@@ -375,6 +377,7 @@ export default function Calendar() {
         <AllTasksPanel
           tasks={tasks.data}
           categories={categories.data}
+          groups={groups.data}
           selectedSpaceId={selectedSpaceId}
           modal={modal}
           onClose={panel.close}
@@ -391,6 +394,7 @@ export default function Calendar() {
           task={activeTask}
           alertOffset={itemAlerts.byItem.get(activeTask.id)?.offset_minutes ?? null}
           categories={categories.data}
+          groups={groups.data}
           modal={modal}
           nav={inspectorNav(activeTask.category_id, activeTask.group_id)}
           onClose={panel.close}
@@ -411,6 +415,7 @@ export default function Calendar() {
           event={activeEvent}
           alertOffset={itemAlerts.byItem.get(activeEvent.id)?.offset_minutes ?? null}
           categories={categories.data}
+          groups={groups.data}
           modal={modal}
           nav={inspectorNav(activeEvent.category_id, activeEvent.group_id)}
           onClose={panel.close}
@@ -609,7 +614,9 @@ export default function Calendar() {
           initialStart={editor.target.start}
           initialEnd={editor.target.end ?? undefined}
           initialSpaceId={editor.target.initialSpaceId}
+          initialGroupId={editor.target.initialGroupId}
           categories={categories.data}
+          groups={groups.data}
           onSubmit={editor.submit}
           onClose={editor.close}
           submitting={editor.submitting}
@@ -641,6 +648,7 @@ export default function Calendar() {
       <TaskCreateDialog
         day={taskCreateDay}
         categories={categories.data}
+        groups={groups.data}
         initialSpaceId={selectedSpaceId}
         onCreate={tasks.createTask}
         onOpenChange={(open) => {

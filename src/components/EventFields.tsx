@@ -5,9 +5,10 @@ import { DateField, SMALL_INPUT_CLS } from "@/components/DateField";
 import { DEFAULT_EVENT_COLOR, isEventColor, resolveDisplayColor } from "@/lib/event-colors";
 import { eventColorReducer, type EventColorState } from "@/lib/event-color-state";
 import { joinDateTimeLocal, splitDateTimeLocal } from "@/lib/event-draft";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import { membershipOf } from "@/lib/membership";
+import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import ColorSwatchPicker from "./ColorSwatchPicker";
-import CategorySelect from "./CategorySelect";
+import MembershipSelect from "./MembershipSelect";
 
 /** Start and end date/time pickers over local "yyyy-MM-ddTHH:mm" values. */
 export function EventTimeFields({
@@ -67,13 +68,15 @@ export function EventTimeFields({
 export function EventColorSpaceFields({
   colorState,
   categories,
+  groups,
   onChange,
 }: {
   colorState: EventColorState;
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   onChange: (next: EventColorState) => void;
 }) {
-  const { color, categoryId, colorOverridden } = colorState;
+  const { color, categoryId, groupId, colorOverridden } = colorState;
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
   const swatchColor = isEventColor(visibleColor) ? visibleColor : DEFAULT_EVENT_COLOR;
@@ -85,11 +88,16 @@ export function EventColorSpaceFields({
           color={swatchColor}
           onColorChange={(nextColor) => onChange(eventColorReducer(colorState, { type: "pick", color: nextColor }))}
         />
-        <CategorySelect
+        <MembershipSelect
           categories={categories}
-          categoryId={categoryId}
-          onChange={(nextId) =>
-            onChange(eventColorReducer(colorState, { type: "space", categoryId: nextId, categories }))
+          groups={groups}
+          membership={membershipOf({ category_id: categoryId, group_id: groupId })}
+          onChange={(next) =>
+            onChange(
+              next.group_id
+                ? eventColorReducer(colorState, { type: "group", groupId: next.group_id, categoryId: next.category_id, categories })
+                : eventColorReducer(colorState, { type: "space", categoryId: next.category_id, categories })
+            )
           }
         />
       </div>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AlertOffset } from "@/lib/alerts";
-import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarEvent, CalendarGroup } from "@/lib/calendar-types";
 import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   draftFromEvent,
@@ -34,6 +34,7 @@ interface EventInspectorProps {
   /** The event's stored alert, which the draft is compared against. */
   alertOffset: AlertOffset | null;
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   modal: boolean;
   nav: InspectorNav;
   onClose: () => void;
@@ -56,6 +57,7 @@ export default function EventInspector({
   event,
   alertOffset,
   categories,
+  groups,
   modal,
   nav,
   onClose,
@@ -156,6 +158,7 @@ export default function EventInspector({
           <EventColorSpaceFields
             colorState={draft.colorState}
             categories={categories}
+            groups={groups}
             onChange={(colorState) => update({ colorState })}
           />
         </div>

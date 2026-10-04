@@ -573,6 +573,32 @@ describe("Calendar behavior", () => {
       });
     });
 
+    it("creating an event from a Group's panel starts in that Group, and the choice can change", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await click(buttonByText("Add event")!);
+      const trigger = () => createPopover()?.querySelector("[aria-label^='Space: ']")?.getAttribute("aria-label");
+      expect(trigger()).toBe("Space: School / BIO 102");
+
+      await click(createPopover()!.querySelector("[aria-label^='Space: ']")!);
+      await click(buttonByText("No Space")!);
+      expect(trigger()).toBe("Space: No Space");
+    });
+
+    it("adding a task from a Group's panel creates it in that Group", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await click(buttonByText("Add task")!);
+      const input = document.querySelector<HTMLInputElement>("[aria-label='New task title']")!;
+      await act(async () => typeInto(input, "Read chapter 4"));
+      await act(async () => {
+        document.querySelector("[role='complementary'] form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+      await settle();
+      const post = calls.find((c) => c.method === "POST" && c.url === "/api/tasks");
+      expect(post?.body).toMatchObject({ title: "Read chapter 4", category_id: "space-1", group_id: "group-bio" });
+    });
+
     it("the breadcrumb names the Space, the Group and the item", async () => {
       await mount();
       await click(eventBlock("Lecture"));

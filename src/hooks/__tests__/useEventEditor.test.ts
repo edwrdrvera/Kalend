@@ -24,6 +24,7 @@ const VALUES: EventFormValues = {
   color: "blue",
   colorOverridden: false,
   categoryId: "space-1",
+  groupId: null,
   location: null,
   icon: null,
   description: null,

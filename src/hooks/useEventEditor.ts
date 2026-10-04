@@ -2,6 +2,7 @@ import { useState, type RefObject } from "react";
 import type { EventFormValues } from "@/lib/event-form";
 import type { UseCalendarEventsReturn } from "@/hooks/useCalendarEvents";
 import { computePopoverSide } from "@/lib/popover-position";
+import type { Membership } from "@/lib/membership";
 
 type EventWrites = Pick<UseCalendarEventsReturn, "createEvent">;
 
@@ -11,6 +12,7 @@ interface EventEditorTarget {
   start: Date;
   end: Date | null;
   initialSpaceId: string | null;
+  initialGroupId: string | null;
 }
 
 export function useEventEditor(
@@ -34,11 +36,19 @@ export function useEventEditor(
     setKey((k) => k + 1);
   };
 
-  const openCreate = (day: Date, rect: DOMRect) =>
-    open({ rect, start: day, end: null, initialSpaceId: selectedSpaceId });
+  // `initial` places the new event: a Group's panel passes its own membership.
+  // Without it the event starts in the focused Space.
+  const openCreate = (day: Date, rect: DOMRect, initial?: Membership) =>
+    open({
+      rect,
+      start: day,
+      end: null,
+      initialSpaceId: initial ? initial.category_id : selectedSpaceId,
+      initialGroupId: initial ? initial.group_id : null,
+    });
 
   const openCreateRange = (start: Date, end: Date, rect: DOMRect) => {
-    open({ rect, start, end, initialSpaceId: selectedSpaceId });
+    open({ rect, start, end, initialSpaceId: selectedSpaceId, initialGroupId: null });
     setPendingRange({ start, end });
   };
 
