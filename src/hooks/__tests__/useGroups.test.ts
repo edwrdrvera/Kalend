@@ -106,7 +106,7 @@ describe("useGroups", () => {
   });
 
   it("deleteGroup() reports the released items, then removes the Group", async () => {
-    const released = mock((..._args: unknown[]) => {});
+    const released = mock();
     const { result, act, unmount } = renderHook(() => useGroups(released));
     await act(() => {});
     stubFetch({ success: true, data: BIO, events: [{ id: "e1" }], tasks: [{ id: "t1" }] });
@@ -121,7 +121,7 @@ describe("useGroups", () => {
   });
 
   it("deleteGroup() leaves everything in place when the server fails", async () => {
-    const released = mock((..._args: unknown[]) => {});
+    const released = mock();
     const { result, act, unmount } = renderHook(() => useGroups(released));
     await act(() => {});
     stubFetch({ success: false, error: "Group not found" }, 404);
@@ -138,7 +138,7 @@ describe("useGroups", () => {
   });
 
   it("deleteGroup() refuses a response without the released items", async () => {
-    const released = mock((..._args: unknown[]) => {});
+    const released = mock();
     const { result, act, unmount } = renderHook(() => useGroups(released));
     await act(() => {});
     stubFetch({ success: true, data: BIO });
