@@ -21,6 +21,7 @@ function makeEvent(id: string, categoryId: string): CalendarEvent {
     category_id: categoryId,
     location: null,
     icon: null,
+    description: null,
   };
 }
 

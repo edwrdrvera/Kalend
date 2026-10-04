@@ -1,5 +1,5 @@
 import "./test-dom";
-import { typeInto } from "./test-dom";
+import { typeInto, typeIntoTextarea } from "./test-dom";
 import { afterEach, describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { act } from "react";
@@ -28,10 +28,30 @@ interface Handlers {
   closes: number;
   created: string[];
   eventCreates: number;
+  /** Each description save, as the panel sent it. */
+  descriptionSaves: (string | null)[];
+  saveResult: boolean;
+  dirty: boolean[];
+  proceeds: number;
+  stays: number;
 }
 
-async function render(branch: Branch, tasks: CalendarTask[] = [], upcoming: UpcomingDay[] = []) {
-  const handlers: Handlers = { closes: 0, created: [], eventCreates: 0 };
+async function render(
+  branch: Branch,
+  tasks: CalendarTask[] = [],
+  upcoming: UpcomingDay[] = [],
+  navigationPending = false
+) {
+  const handlers: Handlers = {
+    closes: 0,
+    created: [],
+    eventCreates: 0,
+    descriptionSaves: [],
+    saveResult: true,
+    dirty: [],
+    proceeds: 0,
+    stays: 0,
+  };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -55,6 +75,20 @@ async function render(branch: Branch, tasks: CalendarTask[] = [], upcoming: Upco
           handlers.created.push(title);
         },
         onOpenSettings: () => {},
+        onSaveDescription: async (description: string | null) => {
+          handlers.descriptionSaves.push(description);
+          return handlers.saveResult;
+        },
+        onDirtyChange: (dirty: boolean) => {
+          handlers.dirty.push(dirty);
+        },
+        navigationPending,
+        onProceed: () => {
+          handlers.proceeds++;
+        },
+        onStay: () => {
+          handlers.stays++;
+        },
       })
     )
   );
@@ -87,9 +121,109 @@ const SHIFT_DAY: UpcomingDay = {
       category_id: "fixture-school",
       location: null,
       icon: null,
+      description: null,
     },
   ],
 };
+
+const descriptionBox = () => document.querySelector<HTMLTextAreaElement>("#space-description");
+const typeDescription = (value: string) => act(async () => typeIntoTextarea(descriptionBox()!, value));
+const alertText = () => document.querySelector('[role="alert"]')?.textContent ?? "";
+const NO_DESCRIPTION: Branch = { ...FIXTURE_BRANCH_FULL, description: null };
+
+describe("SpacePanel description", () => {
+  it("shows no description section for a Space without one, only a way to add it", async () => {
+    await render(NO_DESCRIPTION);
+    expect(descriptionBox()).toBeNull();
+    expect(container?.textContent).not.toContain("Description");
+    expect(buttonWithText("Add description")).toBeDefined();
+    expect(buttonWithText("Edit description")).toBeUndefined();
+  });
+
+  it("shows a saved description as text with an edit button", async () => {
+    await render(FIXTURE_BRANCH_FULL);
+    expect(container?.textContent).toContain("Databases & Information Systems. Wolfe 214.");
+    expect(descriptionBox()).toBeNull();
+    expect(buttonWithText("Edit description")).toBeDefined();
+  });
+
+  it("adds a description: trims it, saves, and goes back to reading", async () => {
+    const handlers = await render(NO_DESCRIPTION);
+    await act(() => buttonWithText("Add description")?.click());
+    expect(buttonWithText("Save")?.disabled).toBe(true);
+    await typeDescription("  Lab sections on Tuesday\n");
+    expect(handlers.dirty.at(-1)).toBe(true);
+    await act(() => buttonWithText("Save")?.click());
+
+    expect(handlers.descriptionSaves).toEqual(["Lab sections on Tuesday"]);
+    expect(descriptionBox()).toBeNull();
+    expect(handlers.dirty.at(-1)).toBe(false);
+  });
+
+  it("edits an existing description starting from its text", async () => {
+    const handlers = await render(FIXTURE_BRANCH_FULL);
+    await act(() => buttonWithText("Edit description")?.click());
+    expect(descriptionBox()?.value).toBe("Databases & Information Systems. Wolfe 214.");
+    await typeDescription("Wolfe 301");
+    await act(() => buttonWithText("Save")?.click());
+    expect(handlers.descriptionSaves).toEqual(["Wolfe 301"]);
+  });
+
+  it("removes the description by saving blank text as null", async () => {
+    const handlers = await render(FIXTURE_BRANCH_FULL);
+    await act(() => buttonWithText("Edit description")?.click());
+    await typeDescription("   ");
+    await act(() => buttonWithText("Save")?.click());
+    expect(handlers.descriptionSaves).toEqual([null]);
+  });
+
+  it("keeps what was typed and offers a retry when the save fails", async () => {
+    const handlers = await render(NO_DESCRIPTION);
+    handlers.saveResult = false;
+    await act(() => buttonWithText("Add description")?.click());
+    await typeDescription("Exam room 12");
+    await act(() => buttonWithText("Save")?.click());
+
+    expect(descriptionBox()?.value).toBe("Exam room 12");
+    expect(alertText()).toContain("Couldn't save");
+
+    handlers.saveResult = true;
+    await act(() => buttonWithText("Retry")?.click());
+    expect(handlers.descriptionSaves).toEqual(["Exam room 12", "Exam room 12"]);
+    expect(descriptionBox()).toBeNull();
+  });
+
+  it("rejects an over-long description with a message and does not save", async () => {
+    const handlers = await render(NO_DESCRIPTION);
+    await act(() => buttonWithText("Add description")?.click());
+    await typeDescription("x".repeat(2001));
+    await act(() => buttonWithText("Save")?.click());
+    expect(handlers.descriptionSaves).toEqual([]);
+    expect(alertText()).toContain("Description is too long");
+  });
+
+  it("Cancel drops the edit without saving", async () => {
+    const handlers = await render(FIXTURE_BRANCH_FULL);
+    await act(() => buttonWithText("Edit description")?.click());
+    await typeDescription("Changed my mind");
+    await act(() => buttonWithText("Cancel")?.click());
+    expect(handlers.descriptionSaves).toEqual([]);
+    expect(descriptionBox()).toBeNull();
+    expect(handlers.dirty.at(-1)).toBe(false);
+    expect(container?.textContent).toContain("Wolfe 214");
+  });
+
+  it("asks what to do with an unsaved description when a navigation is held", async () => {
+    const handlers = await render(NO_DESCRIPTION, [], [], true);
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
+    await act(() => buttonWithText("Add description")?.click());
+    await typeDescription("Unsaved");
+    await act(() => buttonWithText("Stay")?.click());
+    expect(handlers.stays).toBe(1);
+    await act(() => buttonWithText("Discard")?.click());
+    expect(handlers.proceeds).toBe(1);
+  });
+});
 
 describe("SpacePanel", () => {
   it("shows the Space label and branch heading, with no placeholder sections", async () => {

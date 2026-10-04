@@ -5,14 +5,14 @@ import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
-import { chooseOption, typeInto } from "./test-dom";
+import { chooseOption, typeInto, typeIntoTextarea } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: EventInspector } = await import("../EventInspector");
 
 const CATEGORIES: CalendarCategory[] = [
-  { id: "space-1", name: "Work", color: "green" },
-  { id: "space-2", name: "Personal", color: "purple" },
+  { id: "space-1", name: "Work", color: "green", description: null },
+  { id: "space-2", name: "Personal", color: "purple", description: null },
 ];
 
 const EVENT: CalendarEvent = {
@@ -25,6 +25,7 @@ const EVENT: CalendarEvent = {
   category_id: "space-1",
   location: "Room 204",
   icon: "🧪",
+  description: null,
 };
 
 let root: Root | null = null;
@@ -45,11 +46,11 @@ interface Harness {
   setEvent: (event: CalendarEvent) => void;
 }
 
-async function renderInspector(initialAlert: AlertOffset | null = null) {
+async function renderInspector(initialAlert: AlertOffset | null = null, base: CalendarEvent = EVENT) {
   const harness: Harness = { saves: [], alertSaves: [], deletes: [], saveResult: true, setEvent: () => {} };
 
   function App() {
-    const [event, setEvent] = useState(EVENT);
+    const [event, setEvent] = useState(base);
     const [alertOffset, setAlertOffset] = useState<AlertOffset | null>(initialAlert);
     useEffect(() => {
       harness.setEvent = setEvent;
@@ -85,6 +86,7 @@ async function renderInspector(initialAlert: AlertOffset | null = null) {
                   category_id: values.categoryId,
                   location: values.location,
                   icon: values.icon,
+                  description: values.description,
                 });
               }
               setAlertOffset(wantedAlert);
@@ -128,6 +130,75 @@ async function editTitle(value: string) {
   await act(() => typeInto(titleInput(), value));
 }
 
+const descriptionBox = () => document.querySelector<HTMLTextAreaElement>("#event-inspector-description");
+const editDescription = (value: string) => act(async () => typeIntoTextarea(descriptionBox()!, value));
+
+describe("EventInspector description", () => {
+  it("shows no description box for an event without one, only a way to add it", async () => {
+    await renderInspector();
+    expect(descriptionBox()).toBeNull();
+    expect(button("Add description")).toBeDefined();
+  });
+
+  it("opens an empty box on Add description and saves the trimmed text", async () => {
+    const harness = await renderInspector();
+    await click("Add description");
+    expect(descriptionBox()?.value).toBe("");
+    expect(button("Save")?.disabled).toBe(true);
+
+    await editDescription("  Room code 4821\n");
+    await click("Save");
+    expect(harness.saves[0]?.description).toBe("Room code 4821");
+    expect(button("Save")?.disabled).toBe(true);
+  });
+
+  it("shows a stored description in the box without clicking anything", async () => {
+    await renderInspector(null, { ...EVENT, description: "Bring ID" });
+    expect(descriptionBox()?.value).toBe("Bring ID");
+    expect(button("Add description")).toBeUndefined();
+  });
+
+  it("removes a description by clearing the box, which saves null", async () => {
+    const harness = await renderInspector(null, { ...EVENT, description: "Bring ID" });
+    await editDescription("   ");
+    await click("Save");
+    expect(harness.saves[0]?.description).toBeNull();
+  });
+
+  it("keeps the typed description and offers a retry when the save fails", async () => {
+    const harness = await renderInspector();
+    harness.saveResult = false;
+    await click("Add description");
+    await editDescription("Lab checklist");
+    await click("Save");
+    expect(descriptionBox()?.value).toBe("Lab checklist");
+    expect(alertText()).toContain("Couldn't save");
+
+    harness.saveResult = true;
+    await click("Retry");
+    expect(harness.saves.map((v) => v?.description)).toEqual(["Lab checklist", "Lab checklist"]);
+    expect(alertText()).toBe("");
+  });
+
+  it("rejects a description that is too long with a clear message and does not save", async () => {
+    const harness = await renderInspector();
+    await click("Add description");
+    await editDescription("x".repeat(2001));
+    await click("Save");
+    expect(harness.saves).toEqual([]);
+    expect(alertText()).toContain("Description is too long");
+  });
+
+  it("counts an unsaved description as an unsaved edit", async () => {
+    await renderInspector();
+    await click("Add description");
+    await editDescription("Draft note");
+    await click("Outside close");
+    expect(panelState()).toBe("open");
+    expect(prompt()?.textContent).toContain("unsaved changes");
+  });
+});
+
 describe("EventInspector", () => {
   it("shows the event's own fields and Space", async () => {
     await renderInspector();
@@ -163,6 +234,7 @@ describe("EventInspector", () => {
         categoryId: "space-1",
         location: "Room 204",
         icon: "🧪",
+        description: null,
       },
     ]);
     expect(button("Save")?.disabled).toBe(true);

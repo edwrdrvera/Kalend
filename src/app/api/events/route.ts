@@ -43,6 +43,7 @@ export const POST = withUser(async (request, _context, user) => {
         category_id: body.category_id ?? null,
         location: body.location ?? null,
         icon: body.icon ?? null,
+        description: body.description ?? null,
       })
       .returning();
     return newEvent;

@@ -12,6 +12,7 @@ export interface EventFormValues {
   categoryId: string | null;
   location: string | null;
   icon: string | null;
+  description: string | null;
 }
 
 export function eventFormPayload(values: EventFormValues) {
@@ -24,5 +25,6 @@ export function eventFormPayload(values: EventFormValues) {
     category_id: values.categoryId,
     location: values.location,
     icon: values.icon,
+    description: values.description,
   };
 }

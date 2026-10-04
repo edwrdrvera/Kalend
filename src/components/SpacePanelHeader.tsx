@@ -55,12 +55,6 @@ export default function SpacePanelHeader({
           {branch.name}
         </h2>
       </div>
-
-      {branch.description ? (
-        <p className="mt-2 text-[13px] leading-relaxed text-foreground/75">
-          {branch.description}
-        </p>
-      ) : null}
     </header>
   );
 }

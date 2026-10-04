@@ -17,7 +17,7 @@ const { ThemeProvider } = await import("@/lib/theme");
 // Behavioral pin for Calendar's own wiring (editor popover, multi-select
 // delete, Space panel), held across the feature-hook extraction.
 
-const SPACE: CalendarCategory = { id: "space-1", name: "School", color: "blue" };
+const SPACE: CalendarCategory = { id: "space-1", name: "School", color: "blue", description: null };
 
 function todayAt(hour: number) {
   const d = new Date();
@@ -36,6 +36,7 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
     category_id: SPACE.id,
     location: null,
     icon: null,
+    description: null,
   };
 }
 

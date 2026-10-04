@@ -17,6 +17,7 @@ import {
 import { useInspectorSave } from "@/hooks/useInspectorSave";
 import { APP_INPUT_CLS } from "./DateField";
 import AlertField from "./AlertField";
+import DescriptionField from "./DescriptionField";
 import IconPicker from "./IconPicker";
 import PanelShell from "./PanelShell";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
@@ -143,6 +144,12 @@ export default function EventInspector({
             className={INPUT_CLS}
           />
         </label>
+
+        <DescriptionField
+          id="event-inspector-description"
+          value={draft.description}
+          onChange={(description) => update({ description })}
+        />
 
         <div className="flex flex-col gap-1.5">
           <span className={FIELD_LABEL_CLS}>Space</span>

@@ -14,6 +14,7 @@ export interface CalendarEvent {
   category_id: string | null;
   location: string | null;
   icon: string | null;
+  description: string | null;
 }
 
 export interface EventsApiResponse {
@@ -56,6 +57,14 @@ export interface CalendarCategory {
   id: string;
   name: string;
   color: string | null;
+  description: string | null;
+}
+
+/** A PATCH /api/categories/<id> body. */
+export interface CategoryPatchRequest {
+  name?: string;
+  color?: string;
+  description?: string | null;
 }
 
 export interface CategoriesApiResponse {

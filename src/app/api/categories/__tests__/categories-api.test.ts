@@ -6,6 +6,7 @@ interface MockCategory {
   name: string;
   user_id: string;
   color?: string;
+  description?: string | null;
   created_at?: Date;
 }
 
@@ -256,6 +257,36 @@ describe("Categories API Endpoints", () => {
       expect(json.data.color).toBe("blue");
     });
 
+    describe("description", () => {
+      const post = (description: unknown) =>
+        POST(
+          new Request("http://localhost/api/categories", {
+            method: "POST",
+            body: JSON.stringify({ name: "Chem", description }),
+          })
+        );
+
+      it("stores a trimmed description", async () => {
+        const json = await (await post("  Lab sections and exam dates ")).json();
+        expect(json.data.description).toBe("Lab sections and exam dates");
+      });
+
+      it("stores whitespace-only and null as null", async () => {
+        for (const description of ["  ", null]) {
+          expect((await (await post(description)).json()).data.description).toBeNull();
+        }
+      });
+
+      it("rejects an over-long or non-string description without inserting", async () => {
+        const before = mockDbState.rows.length;
+        const tooLong = await post("x".repeat(2001));
+        expect(tooLong.status).toBe(400);
+        expect((await tooLong.json()).error).toBe("description must be at most 2000 characters");
+        expect((await post(7)).status).toBe(400);
+        expect(mockDbState.rows.length).toBe(before);
+      });
+    });
+
     it("returns 500 when database insert fails", async () => {
       mockDbState.shouldFail = true;
       const req = new Request("http://localhost/api/categories", {
@@ -398,6 +429,43 @@ describe("Categories API Endpoints", () => {
       const json = await response.json();
       expect(json.success).toBe(false);
       expect(json.error).toBe("Space not found");
+    });
+
+    describe("description", () => {
+      const patch = (id: string, body: unknown) =>
+        PATCH(
+          new Request(`http://localhost/api/categories/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+          { params: Promise.resolve({ id }) }
+        );
+
+      it("sets a trimmed description on its own, without a name", async () => {
+        const response = await patch("category-uuid-1", { description: "  Mon/Wed lectures " });
+        expect(response.status).toBe(200);
+        const json = await response.json();
+        expect(json.data.description).toBe("Mon/Wed lectures");
+        expect(json.data.name).toBe("CS 101");
+      });
+
+      it("clears the description with null or blank text", async () => {
+        mockDbState.rows[0].description = "Old";
+        expect((await (await patch("category-uuid-1", { description: null })).json()).data.description).toBeNull();
+        mockDbState.rows[0].description = "Old";
+        expect((await (await patch("category-uuid-1", { description: " " })).json()).data.description).toBeNull();
+      });
+
+      it("rejects an over-long description and keeps the stored one", async () => {
+        mockDbState.rows[0].description = "Keep";
+        const response = await patch("category-uuid-1", { description: "x".repeat(2001) });
+        expect(response.status).toBe(400);
+        expect(mockDbState.rows[0].description).toBe("Keep");
+      });
+
+      it("returns 404 for another user's Space and leaves its description untouched", async () => {
+        mockDbState.rows[1].description = "Private";
+        const response = await patch("category-uuid-other", { description: "Hacked" });
+        expect(response.status).toBe(404);
+        expect(mockDbState.rows[1].description).toBe("Private");
+      });
     });
 
     it("returns 200 with updated category data when owned by user, recoloring in place", async () => {

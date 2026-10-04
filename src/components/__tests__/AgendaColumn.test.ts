@@ -29,6 +29,7 @@ function makeCategory(
     name: "School",
     color: "blue",
     ...overrides,
+    description: null,
   };
 }
 
@@ -46,6 +47,7 @@ function makeEvent(
     location: null,
     icon: null,
     ...overrides,
+    description: null,
   };
 }
 

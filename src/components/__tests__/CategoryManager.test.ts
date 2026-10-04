@@ -9,16 +9,16 @@ const { createRoot } = await import("react-dom/client");
 const { default: CategoryManager } = await import("../CategoryManager");
 
 const categories: CalendarCategory[] = [
-  { id: "space-1", name: "Work", color: "green" },
-  { id: "space-2", name: "Personal", color: "purple" },
+  { id: "space-1", name: "Work", color: "green", description: null },
+  { id: "space-2", name: "Personal", color: "purple", description: null },
 ];
 
 const manyCategories: CalendarCategory[] = [
-  { id: "space-1", name: "Work", color: "green" },
-  { id: "space-2", name: "Personal", color: "purple" },
-  { id: "space-3", name: "School", color: "blue" },
-  { id: "space-4", name: "Fitness", color: "red" },
-  { id: "space-5", name: "Side Project", color: "yellow" },
+  { id: "space-1", name: "Work", color: "green", description: null },
+  { id: "space-2", name: "Personal", color: "purple", description: null },
+  { id: "space-3", name: "School", color: "blue", description: null },
+  { id: "space-4", name: "Fitness", color: "red", description: null },
+  { id: "space-5", name: "Side Project", color: "yellow", description: null },
 ];
 
 /** `CategoryManager` gates deletion on the global `window.confirm`. happy-dom

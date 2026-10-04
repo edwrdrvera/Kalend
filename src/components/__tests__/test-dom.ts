@@ -48,6 +48,15 @@ export function typeInto(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+/** Like `typeInto`, for a textarea. */
+export function typeIntoTextarea(textarea: HTMLTextAreaElement, value: string) {
+  Object.getOwnPropertyDescriptor(testWindow.HTMLTextAreaElement.prototype, "value")?.set?.call(
+    textarea,
+    value
+  );
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 /** Picks an option of a select the way a user would, firing the change event. */
 export function chooseOption(select: HTMLSelectElement, value: string) {
   select.value = value;

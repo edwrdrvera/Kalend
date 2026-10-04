@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
+import * as field from "@/lib/api/parse-fields";
 import { isEventColor } from "@/lib/event-colors";
 import { eq } from "drizzle-orm";
 
@@ -16,6 +17,7 @@ export const GET = withUser(async (_request, _context, user) => {
 interface CreateCategoryBody {
   name?: unknown;
   color?: unknown;
+  description?: unknown;
 }
 
 export const POST = withUser(async (request, _context, user) => {
@@ -37,6 +39,8 @@ export const POST = withUser(async (request, _context, user) => {
   if (body.color !== undefined && (typeof body.color !== "string" || !isEventColor(body.color))) {
     return fail("color must be a supported color", 400);
   }
+  const description = field.description(body.description ?? null);
+  if (!description.ok) return fail(description.error, 400);
 
   const [newCategory] = await db
     .insert(categories)
@@ -44,6 +48,7 @@ export const POST = withUser(async (request, _context, user) => {
       name: body.name.trim(),
       user_id: user.id,
       color: body.color as string | undefined,
+      description: description.value,
     })
     .returning();
 

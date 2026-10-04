@@ -2,11 +2,15 @@ import { describe, expect, it } from "bun:test";
 import { branchesForSpace, branchesForSpaces, findBranch } from "../branch-stub";
 import type { CalendarCategory } from "../calendar-types";
 
-const school: CalendarCategory = { id: "cat-school", name: "School", color: "blue" };
-const personal: CalendarCategory = { id: "cat-personal", name: "Personal", color: "invalid-color" };
-const noColor: CalendarCategory = { id: "cat-none", name: "Errands", color: null };
+const school: CalendarCategory = { id: "cat-school", name: "School", color: "blue", description: null };
+const personal: CalendarCategory = { id: "cat-personal", name: "Personal", color: "invalid-color", description: null };
+const noColor: CalendarCategory = { id: "cat-none", name: "Errands", color: null, description: null };
 
 describe("branchesForSpace", () => {
+  it("carries the Space's description onto its Branch", () => {
+    expect(branchesForSpace({ ...school, description: "Lecture room codes" })[0].description).toBe("Lecture room codes");
+  });
+
   it("maps a Space onto exactly one Branch with mirrored fields", () => {
     const branches = branchesForSpace(school);
     expect(branches).toHaveLength(1);

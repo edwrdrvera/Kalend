@@ -8,7 +8,7 @@ import type { CategoryDeleteApiResponse } from "../calendar-types";
 
 const response: CategoryDeleteApiResponse = {
   success: true,
-  data: { id: "space-1", name: "Math", color: "green" },
+  data: { id: "space-1", name: "Math", color: "green", description: null },
   events: [{
     id: "event-1",
     title: "Lecture",
@@ -19,6 +19,7 @@ const response: CategoryDeleteApiResponse = {
     category_id: null,
     location: null,
     icon: null,
+    description: null,
   }],
   tasks: [{
     id: "task-1",

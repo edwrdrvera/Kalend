@@ -18,6 +18,7 @@ function makeCategory(overrides: Partial<CalendarCategory> = {}): CalendarCatego
     name: "Work",
     color: "green",
     ...overrides,
+    description: null,
   };
 }
 

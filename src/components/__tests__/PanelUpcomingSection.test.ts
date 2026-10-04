@@ -30,6 +30,7 @@ function event(id: string, start: Date): CalendarEvent {
     category_id: "work",
     location: null,
     icon: null,
+    description: null,
   };
 }
 
