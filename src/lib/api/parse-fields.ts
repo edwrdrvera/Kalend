@@ -1,5 +1,6 @@
 import { MAX_DESCRIPTION_LENGTH, descriptionProblem, normalizeDescription } from "@/lib/description";
 import { isEventColor } from "@/lib/event-colors";
+import { MAX_GROUP_NAME_LENGTH, groupNameProblem } from "@/lib/group-name";
 import { isUuid } from "@/lib/uuid";
 
 /**
@@ -50,6 +51,23 @@ export function categoryId(value: unknown): ParseResult<string | null> {
   return typeof value === "string" && isUuid(value)
     ? parsed(value)
     : rejected("Space must be a valid identifier");
+}
+
+/** `null` leaves the Group; a string must be a UUID. */
+export function groupId(value: unknown): ParseResult<string | null> {
+  if (value === null) return parsed(null);
+  return typeof value === "string" && isUuid(value)
+    ? parsed(value)
+    : rejected("Group must be a valid identifier");
+}
+
+/** A Group name is stored trimmed and must be non-blank and at most MAX_GROUP_NAME_LENGTH characters. */
+export function groupName(value: unknown): ParseResult<string> {
+  if (typeof value !== "string") return rejected("name must be a string");
+  const problem = groupNameProblem(value);
+  if (problem === "blank") return rejected("name is required");
+  if (problem === "too_long") return rejected(`name must be at most ${MAX_GROUP_NAME_LENGTH} characters`);
+  return parsed(value.trim());
 }
 
 /** `null` clears the field; a string may be at most `max` characters. */

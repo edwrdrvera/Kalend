@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { MAX_GROUP_NAME_LENGTH } from "../../lib/group-name";
 import { categories } from "./categories";
 
 // An optional grouping of related events and tasks inside one Space. One level
@@ -23,7 +24,10 @@ export const groups = pgTable(
       columns: [table.category_id, table.user_id],
       foreignColumns: [categories.id, categories.user_id]
     }).onDelete("cascade"),
-    check("groups_name_not_blank", sql`btrim(${table.name}) <> '' and char_length(${table.name}) <= 100`),
+    check(
+      "groups_name_not_blank",
+      sql`btrim(${table.name}) <> '' and char_length(${table.name}) <= ${sql.raw(String(MAX_GROUP_NAME_LENGTH))}`
+    ),
     index("groups_user_space_idx").on(table.user_id, table.category_id)
   ]
 ).enableRLS();

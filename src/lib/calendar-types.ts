@@ -73,10 +73,50 @@ export interface CategoriesApiResponse {
   error?: string;
 }
 
-/** Successful category deletion also returns items detached by the server. */
+/** Successful category deletion also returns items detached by the server and the Groups removed with the Space. */
 export interface CategoryDeleteApiResponse {
   success: boolean;
   data?: CalendarCategory;
+  events?: CalendarEvent[];
+  tasks?: CalendarTask[];
+  groups?: CalendarGroup[];
+  error?: string;
+}
+
+/** An optional grouping inside a Space. `category_id` is its Space and never changes. */
+export interface CalendarGroup {
+  id: string;
+  category_id: string;
+  name: string;
+}
+
+/** A PATCH /api/groups/<id> body. A Group cannot move to another Space. */
+export interface GroupPatchRequest {
+  name?: string;
+}
+
+/** A POST /api/groups body. */
+export interface GroupCreateRequest {
+  category_id: string;
+  name: string;
+}
+
+export interface GroupsApiResponse {
+  success: boolean;
+  data?: CalendarGroup[];
+  error?: string;
+}
+
+export interface GroupApiResponse {
+  success: boolean;
+  data?: CalendarGroup;
+  error?: string;
+}
+
+/** Successful Group deletion also returns the items it released, now directly in the Space. */
+export interface GroupDeleteApiResponse {
+  success: boolean;
+  data?: CalendarGroup;
   events?: CalendarEvent[];
   tasks?: CalendarTask[];
   error?: string;
