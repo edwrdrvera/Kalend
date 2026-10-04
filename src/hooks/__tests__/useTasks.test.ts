@@ -12,6 +12,7 @@ const TASK_A: CalendarTask = {
   color: "blue",
   color_overridden: false,
   category_id: null,
+  group_id: null,
 };
 
 const TASK_B: CalendarTask = {
@@ -22,6 +23,7 @@ const TASK_B: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: "cat-1",
+  group_id: null,
 };
 
 // ── Fetch mock ─────────────────────────────────────────────────────────
@@ -151,6 +153,7 @@ describe("useTasks", () => {
       color: null,
       color_overridden: false,
       category_id: "cat-1",
+      group_id: null,
     };
 
     const resolve = deferredFetch({ success: true, data: newTask });

@@ -60,6 +60,7 @@ describe("useSpacePanel", () => {
     color: null,
     color_overridden: false,
     category_id: null,
+    group_id: null,
   };
 
   it("shows a task's details, and nothing once that task is deleted", async () => {

@@ -10,6 +10,7 @@ const taskRules = {
   color: field.color,
   color_overridden: (value: unknown) => field.boolean(value, "color_overridden"),
   category_id: field.categoryId,
+  group_id: field.groupId,
 } satisfies Record<keyof TaskPatchRequest, (value: unknown) => ParseResult<unknown>>;
 
 /** The fields an update sets. An absent key means "leave untouched". */

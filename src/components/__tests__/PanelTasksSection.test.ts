@@ -30,6 +30,7 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
     color: "blue",
     color_overridden: false,
     category_id: null,
+    group_id: null,
     ...overrides,
   };
 }

@@ -19,6 +19,7 @@ function makeEvent(id: string, categoryId: string): CalendarEvent {
     color: "blue",
     color_overridden: true,
     category_id: categoryId,
+    group_id: null,
     location: null,
     icon: null,
     description: null,

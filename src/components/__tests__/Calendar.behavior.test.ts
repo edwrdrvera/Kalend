@@ -34,6 +34,7 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
     color: null,
     color_overridden: false,
     category_id: SPACE.id,
+    group_id: null,
     location: null,
     icon: null,
     description: null,
@@ -54,6 +55,7 @@ const ESSAY: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: SPACE.id,
+  group_id: null,
 };
 let tasks: CalendarTask[] = [];
 

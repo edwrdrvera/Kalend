@@ -1,10 +1,11 @@
 import { db } from "@/db";
 import { events } from "@/db/schema/events";
-import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseEventCreate } from "@/lib/api/event-body";
+import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
+import { UNASSIGNED } from "@/lib/membership";
 import { retryTransaction } from "@/lib/transaction-retry";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export const GET = withUser(async (_request, _context, user) => {
   const userEvents = await db
@@ -21,15 +22,11 @@ export const POST = withUser(async (request, _context, user) => {
   const body = parsed.value;
 
   const result = await retryTransaction(() => db.transaction(async (tx) => {
-    let category = null;
-    if (body.category_id) {
-      [category] = await tx
-        .select()
-        .from(categories)
-        .where(and(eq(categories.id, body.category_id), eq(categories.user_id, user.id)))
-        .for("update");
-      if (!category) return null;
-    }
+    const resolved = await resolveItemMembership(tx, user, UNASSIGNED, {
+      category_id: body.category_id,
+      group_id: body.group_id,
+    });
+    if (!resolved.ok) return resolved;
 
     const [newEvent] = await tx
       .insert(events)
@@ -40,17 +37,16 @@ export const POST = withUser(async (request, _context, user) => {
         user_id: user.id,
         color: body.color,
         color_overridden: body.color_overridden ?? false,
-        category_id: body.category_id ?? null,
+        category_id: resolved.membership.category_id,
+        group_id: resolved.membership.group_id,
         location: body.location ?? null,
         icon: body.icon ?? null,
         description: body.description ?? null,
       })
       .returning();
-    return newEvent;
+    return { ok: true, event: newEvent } as const;
   }));
-  if (!result) {
-    return fail("The selected Space is unavailable", 400);
-  }
+  if (!result.ok) return fail(membershipErrorMessage(result.error), 400);
 
-  return ok(result, { status: 201 });
+  return ok(result.event, { status: 201 });
 });

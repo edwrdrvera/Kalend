@@ -93,6 +93,7 @@ export function useTasks(): UseTasksReturn {
       color: null,
       color_overridden: false,
       category_id: categoryId ?? null,
+      group_id: null,
     };
 
     setTasks((prev) => [...prev, optimisticTask]);

@@ -106,6 +106,7 @@ const TASK: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: "fixture-school",
+  group_id: null,
 };
 
 const SHIFT_DAY: UpcomingDay = {
@@ -119,6 +120,7 @@ const SHIFT_DAY: UpcomingDay = {
       color: null,
       color_overridden: false,
       category_id: "fixture-school",
+      group_id: null,
       location: null,
       icon: null,
       description: null,

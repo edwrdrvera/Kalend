@@ -17,6 +17,7 @@ const TASK: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: null,
+  group_id: null,
 };
 
 let root: Root | null = null;

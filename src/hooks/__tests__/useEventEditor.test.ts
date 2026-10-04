@@ -12,6 +12,7 @@ const EVENT: CalendarEvent = {
   color: null,
   color_overridden: false,
   category_id: "space-1",
+  group_id: null,
   location: null,
   icon: null,
   description: null,

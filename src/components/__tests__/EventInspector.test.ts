@@ -23,6 +23,7 @@ const EVENT: CalendarEvent = {
   color: "blue",
   color_overridden: false,
   category_id: "space-1",
+  group_id: null,
   location: "Room 204",
   icon: "🧪",
   description: null,

@@ -3,6 +3,8 @@ import { events } from "@/db/schema/events";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseEventPatch } from "@/lib/api/event-body";
+import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
+import { membershipOf, touchesMembership } from "@/lib/membership";
 import { rescheduleAlerts } from "@/lib/api/alert-sync";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
@@ -19,12 +21,12 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const result = await retryTransaction(() => db.transaction(async (tx) => {
     const [existing] = await tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for("update");
     if (!existing) return null;
-    const targetCategoryId = body.category_id === undefined ? existing.category_id : body.category_id;
-    let targetCategory = null;
-    if (targetCategoryId) {
-      [targetCategory] = await tx.select().from(categories).where(and(eq(categories.id, targetCategoryId), eq(categories.user_id, user.id))).for("update");
-      if (!targetCategory) return { categoryError: true } as const;
-    }
+    const resolved = await resolveItemMembership(tx, user, membershipOf(existing), {
+      category_id: body.category_id,
+      group_id: body.group_id,
+    });
+    if (!resolved.ok) return { membershipError: resolved.error } as const;
+    const targetCategory = resolved.category;
     let visibleColor = existing.color;
     if (existing.category_id && !existing.color_overridden) {
       const [oldCategory] = await tx.select().from(categories).where(and(eq(categories.id, existing.category_id), eq(categories.user_id, user.id)));
@@ -32,6 +34,10 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
     }
     // The parsed body holds only the fields that were sent, keyed by column.
     const updates: Partial<typeof events.$inferInsert> = { ...body };
+    if (touchesMembership(body)) {
+      updates.category_id = resolved.membership.category_id;
+      updates.group_id = resolved.membership.group_id;
+    }
     if (body.color === undefined && (body.category_id === null || (body.color_overridden === false && !targetCategory))) updates.color = visibleColor;
     if ((body.start_at ?? existing.start_at) >= (body.end_at ?? existing.end_at)) return { timeError: true } as const;
     const [updated] = await tx.update(events).set(updates).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning();
@@ -41,7 +47,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
     return { updated } as const;
   }));
   if (!result) return fail("Event not found", 404);
-  if ("categoryError" in result) return badRequest("The selected Space is unavailable");
+  if (result.membershipError) return badRequest(membershipErrorMessage(result.membershipError));
   if ("timeError" in result) return badRequest("start_at must be before end_at");
   return ok(result.updated);
 });

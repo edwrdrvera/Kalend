@@ -14,6 +14,7 @@ interface MockEventRow {
   id: string;
   user_id: string;
   category_id: string | null;
+  group_id: string | null;
   color: string;
   color_overridden: boolean;
 }
@@ -22,6 +23,7 @@ interface MockTaskRow {
   id: string;
   user_id: string;
   category_id: string | null;
+  group_id: string | null;
   color: string;
   color_overridden: boolean;
   title: string;
@@ -38,6 +40,8 @@ const mockDbState: MockDbState<MockCategory> = {
 };
 const mockEventState: MockDbState<MockEventRow> = { rows: [], shouldFail: false };
 const mockTaskState: MockDbState<MockTaskRow> = { rows: [], shouldFail: false };
+interface MockGroupRow { id: string; user_id: string; category_id: string; name: string }
+const mockGroupState: MockDbState<MockGroupRow> = { rows: [], shouldFail: false, evaluateWhere: true };
 
 // filterUndefined: true mirrors real Drizzle/postgres-js behavior where a
 // key present with an `undefined` value falls back to the column default.
@@ -48,7 +52,7 @@ setupMockDb(
   { color: "blue" } as Partial<MockCategory>,
   true,
   () => [],
-  { events: mockEventState, tasks: mockTaskState }
+  { events: mockEventState, tasks: mockTaskState, groups: mockGroupState }
 );
 
 // Import route handlers after mock setup
@@ -80,19 +84,26 @@ describe("Categories API Endpoints", () => {
     mockDbState.transactionCount = 0;
     mockDbState.lockCount = 0;
     mockEventState.rows = [
-      { id: "evt-linked-inherited", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "purple", color_overridden: false },
-      { id: "evt-linked-override", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "red", color_overridden: true },
-      { id: "evt-other-space", user_id: "user-uuid-123", category_id: "category-other", color: "teal", color_overridden: false },
-      { id: "evt-foreign", user_id: "other-user-456", category_id: "category-uuid-1", color: "pink", color_overridden: false },
+      { id: "evt-linked-inherited", user_id: "user-uuid-123", category_id: "category-uuid-1", group_id: null, color: "purple", color_overridden: false },
+      { id: "evt-linked-override", user_id: "user-uuid-123", category_id: "category-uuid-1", group_id: null, color: "red", color_overridden: true },
+      { id: "evt-other-space", user_id: "user-uuid-123", category_id: "category-other", group_id: null, color: "teal", color_overridden: false },
+      { id: "evt-foreign", user_id: "other-user-456", category_id: "category-uuid-1", group_id: null, color: "pink", color_overridden: false },
     ];
     mockEventState.shouldFail = false;
     mockTaskState.rows = [
-      { id: "task-linked-inherited", title: "Inherited task", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "purple", color_overridden: false },
-      { id: "task-linked-override", title: "Override task", user_id: "user-uuid-123", category_id: "category-uuid-1", color: "red", color_overridden: true },
-      { id: "task-other-space", title: "Other task", user_id: "user-uuid-123", category_id: "category-other", color: "teal", color_overridden: false },
-      { id: "task-foreign", title: "Foreign task", user_id: "other-user-456", category_id: "category-uuid-1", color: "pink", color_overridden: false },
+      { id: "task-linked-inherited", title: "Inherited task", user_id: "user-uuid-123", category_id: "category-uuid-1", group_id: null, color: "purple", color_overridden: false },
+      { id: "task-linked-override", title: "Override task", user_id: "user-uuid-123", category_id: "category-uuid-1", group_id: null, color: "red", color_overridden: true },
+      { id: "task-other-space", title: "Other task", user_id: "user-uuid-123", category_id: "category-other", group_id: null, color: "teal", color_overridden: false },
+      { id: "task-foreign", title: "Foreign task", user_id: "other-user-456", category_id: "category-uuid-1", group_id: null, color: "pink", color_overridden: false },
     ];
     mockTaskState.shouldFail = false;
+    mockGroupState.rows = [
+      { id: "group-bio", user_id: "user-uuid-123", category_id: "category-uuid-1", name: "BIO 102" },
+      { id: "group-hist", user_id: "user-uuid-123", category_id: "category-uuid-1", name: "HIST 201" },
+      { id: "group-other-space", user_id: "user-uuid-123", category_id: "category-other", name: "Elsewhere" },
+      { id: "group-foreign", user_id: "other-user-456", category_id: "category-uuid-1", name: "Foreign" },
+    ];
+    mockGroupState.shouldFail = false;
   });
 
   describe("GET /api/categories", () => {
@@ -544,6 +555,57 @@ describe("Categories API Endpoints", () => {
       expect(mockTaskState.rows.find((task) => task.id === "task-other-space")?.category_id).toBe("category-other");
       expect(mockTaskState.rows.find((task) => task.id === "task-foreign")?.category_id).toBe("category-uuid-1");
       expect(mockDbState.lockCount).toBeGreaterThanOrEqual(3);
+    });
+
+    describe("Groups", () => {
+      const deleteSpace = () =>
+        DELETE(new Request("http://localhost/api/categories/category-uuid-1", { method: "DELETE" }), {
+          params: Promise.resolve({ id: "category-uuid-1" }),
+        });
+
+      beforeEach(() => {
+        const inGroup = (id: string, group_id: string) => {
+          const row = [...mockEventState.rows, ...mockTaskState.rows].find((r) => r.id === id);
+          if (row) row.group_id = group_id;
+        };
+        inGroup("evt-linked-inherited", "group-bio");
+        inGroup("evt-linked-override", "group-hist");
+        inGroup("task-linked-inherited", "group-bio");
+        inGroup("evt-foreign", "group-foreign");
+      });
+
+      it("takes grouped items out of their Groups and the Space in one write, keeping their colors", async () => {
+        const json = await (await deleteSpace()).json();
+        expect(json.events.find((e: MockEventRow) => e.id === "evt-linked-inherited")).toMatchObject({ category_id: null, group_id: null, color: "blue" });
+        expect(json.events.find((e: MockEventRow) => e.id === "evt-linked-override")).toMatchObject({ category_id: null, group_id: null, color: "red" });
+        expect(json.tasks.find((t: MockTaskRow) => t.id === "task-linked-inherited")).toMatchObject({ category_id: null, group_id: null, color: "blue" });
+        expect(mockEventState.rows.filter((e) => e.user_id === "user-uuid-123").every((e) => e.group_id === null)).toBe(true);
+      });
+
+      it("deletes the Space's Groups and returns them", async () => {
+        const json = await (await deleteSpace()).json();
+        expect(json.groups.map((g: MockGroupRow) => g.id).sort()).toEqual(["group-bio", "group-hist"]);
+        expect(mockGroupState.rows.map((g) => g.id).sort()).toEqual(["group-foreign", "group-other-space"]);
+      });
+
+      it("leaves another user's Group and its item alone", async () => {
+        await deleteSpace();
+        expect(mockEventState.rows.find((e) => e.id === "evt-foreign")).toMatchObject({ category_id: "category-uuid-1", group_id: "group-foreign" });
+      });
+
+      it("keeps the Groups when the delete fails", async () => {
+        mockDbState.shouldFailOnDelete = true;
+        const before = mockGroupState.rows.map((g) => ({ ...g }));
+        expect((await deleteSpace()).status).toBe(500);
+        expect(mockGroupState.rows).toEqual(before);
+      });
+
+      it("returns no Groups when the Space has none", async () => {
+        mockGroupState.rows = mockGroupState.rows.filter((g) => g.category_id !== "category-uuid-1");
+        mockEventState.rows.forEach((e) => { e.group_id = null; });
+        mockTaskState.rows.forEach((t) => { t.group_id = null; });
+        expect((await (await deleteSpace()).json()).groups).toEqual([]);
+      });
     });
 
     it("returns empty events and tasks arrays when the deleted Space has no linked items", async () => {

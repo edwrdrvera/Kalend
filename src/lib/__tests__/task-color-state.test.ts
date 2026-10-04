@@ -10,6 +10,7 @@ const task: CalendarTask = {
   color: "blue",
   color_overridden: false,
   category_id: "space-1",
+  group_id: null,
 };
 
 describe("Space deletion task reconciliation", () => {

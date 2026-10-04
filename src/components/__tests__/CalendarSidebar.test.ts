@@ -36,6 +36,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     location: null,
     icon: null,
     ...overrides,
@@ -52,6 +53,7 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     ...overrides,
   };
 }

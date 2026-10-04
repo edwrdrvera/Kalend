@@ -28,6 +28,7 @@ function event(id: string, start: Date): CalendarEvent {
     color: null,
     color_overridden: false,
     category_id: "work",
+    group_id: null,
     location: null,
     icon: null,
     description: null,

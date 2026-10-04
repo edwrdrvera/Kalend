@@ -12,6 +12,7 @@ export interface CalendarEvent {
   color: string | null;
   color_overridden: boolean;
   category_id: string | null;
+  group_id: string | null;
   location: string | null;
   icon: string | null;
   description: string | null;
@@ -31,6 +32,7 @@ export interface CalendarTask {
   color: string | null;
   color_overridden: boolean;
   category_id: string | null;
+  group_id: string | null;
 }
 
 /** A PATCH /api/tasks/<id> body. The server's parser rules are keyed by
@@ -42,6 +44,7 @@ export interface TaskPatchRequest {
   color?: string;
   color_overridden?: boolean;
   category_id?: string | null;
+  group_id?: string | null;
 }
 
 /** A POST /api/tasks body. */

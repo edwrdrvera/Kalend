@@ -19,6 +19,7 @@ const TASK: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: null,
+  group_id: null,
 };
 
 const saved = (task: CalendarTask, alertOffset: AlertOffset | null = null): SavedTask => ({ task, alertOffset });

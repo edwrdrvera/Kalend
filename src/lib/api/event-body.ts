@@ -10,6 +10,7 @@ const eventRules = {
   color: field.color,
   color_overridden: (value: unknown) => field.boolean(value, "color_overridden"),
   category_id: field.categoryId,
+  group_id: field.groupId,
   location: (value: unknown) => field.optionalText(value, "location", MAX_LOCATION_LENGTH),
   icon: (value: unknown) => field.optionalText(value, "icon", MAX_ICON_LENGTH),
   description: field.description,

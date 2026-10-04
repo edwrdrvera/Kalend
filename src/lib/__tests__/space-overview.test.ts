@@ -13,6 +13,7 @@ function event(id: string, start: Date, hours = 1, category_id: string | null = 
     color: null,
     color_overridden: false,
     category_id,
+    group_id: null,
     location: null,
     icon: null,
     description: null,
