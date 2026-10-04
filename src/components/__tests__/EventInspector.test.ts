@@ -4,7 +4,7 @@ import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
-import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
+import { panelReducer, initialPanelState } from "@/lib/panel-state";
 import { chooseOption, typeInto, typeIntoTextarea } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -56,8 +56,8 @@ async function renderInspector(initialAlert: AlertOffset | null = null, base: Ca
     useEffect(() => {
       harness.setEvent = setEvent;
     }, []);
-    const [panel, dispatch] = useReducer(branchPanelReducer, {
-      ...initialBranchPanelState,
+    const [panel, dispatch] = useReducer(panelReducer, {
+      ...initialPanelState,
       active: { kind: "event", eventId: EVENT.id, from: null },
     });
     return createElement(

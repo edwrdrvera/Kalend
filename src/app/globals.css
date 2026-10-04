@@ -320,7 +320,7 @@
   --kal-tile-ink: #171310;
 }
 
-/* Cross-fade for the Space Panel body when swapping branches. */
+/* Cross-fade for the Space Panel body when swapping Spaces and Groups. */
 @keyframes fadeIn {
   from {
     opacity: 0;

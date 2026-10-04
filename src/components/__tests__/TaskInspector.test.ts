@@ -3,7 +3,7 @@ import { act, createElement, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
-import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
+import { panelReducer, initialPanelState } from "@/lib/panel-state";
 import { chooseOption, typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -48,8 +48,8 @@ async function renderInspector(initial: { task?: CalendarTask; alertOffset?: Ale
   function App() {
     const [task, setTask] = useState(initial.task ?? TASK);
     const [alertOffset, setAlertOffset] = useState<AlertOffset | null>(initial.alertOffset ?? null);
-    const [panel, dispatch] = useReducer(branchPanelReducer, {
-      ...initialBranchPanelState,
+    const [panel, dispatch] = useReducer(panelReducer, {
+      ...initialPanelState,
       active: { kind: "task", taskId: TASK.id, from: null },
     });
     return createElement(
