@@ -46,6 +46,7 @@ export function reconcileDetachedEvents(current: CalendarEvent[], detached: Cale
       ...event,
       color: saved.color,
       category_id: saved.category_id,
+      group_id: saved.group_id,
       color_overridden: saved.color_overridden,
     } : event;
   });

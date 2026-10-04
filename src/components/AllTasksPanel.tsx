@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks, type TaskBucketKey } from "@/lib/task-buckets";
 import { dueAtFromDate } from "@/lib/task-draft";
+import { spaceMembership, type Membership } from "@/lib/membership";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import CategorySelect from "./CategorySelect";
 import PanelShell from "./PanelShell";
@@ -20,7 +21,7 @@ interface AllTasksPanelProps {
   selectedSpaceId: string | null;
   modal: boolean;
   onClose: () => void;
-  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
+  onCreateTask: (title: string, dueAt?: string, membership?: Membership) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
 }
@@ -92,7 +93,7 @@ function InlineTaskComposer({
 
     try {
       const dueAt = draft.dueDate ? dueAtFromDate(draft.dueDate) : undefined;
-      await onCreateTask(draft.title.trim(), dueAt, draft.categoryId);
+      await onCreateTask(draft.title.trim(), dueAt, spaceMembership(draft.categoryId));
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");

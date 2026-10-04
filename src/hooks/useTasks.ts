@@ -9,6 +9,8 @@ import type {
 } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
 import { reconcileDetachedTasks } from "@/lib/task-color-state";
+import { releaseGroup } from "@/lib/group-state";
+import { UNASSIGNED, type Membership } from "@/lib/membership";
 
 export interface UseTasksReturn {
   data: CalendarTask[];
@@ -16,13 +18,14 @@ export interface UseTasksReturn {
   error: string | null;
   setError: (e: string | null) => void;
   retry: () => void;
-  createTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
+  createTask: (title: string, dueAt?: string, membership?: Membership) => Promise<void>;
   toggleComplete: (task: CalendarTask) => Promise<void>;
   /** Resolves false on failure without raising the shared error toast, so
    *  the caller can keep its draft and show the error beside its own Save. */
   updateTask: (task: CalendarTask, patch: TaskPatchRequest) => Promise<boolean>;
   deleteTask: (task: CalendarTask) => Promise<boolean>;
   reconcileSpaceRemoval: (detachedTasks: CalendarTask[], categoryId: string) => void;
+  reconcileGroupRemoval: (groupId: string) => void;
 }
 
 export function useTasks(): UseTasksReturn {
@@ -82,7 +85,7 @@ export function useTasks(): UseTasksReturn {
   const createTask = async (
     title: string,
     dueAt?: string,
-    categoryId?: string | null
+    membership: Membership = UNASSIGNED
   ): Promise<void> => {
     const tempId = crypto.randomUUID();
     const optimisticTask: CalendarTask = {
@@ -92,8 +95,8 @@ export function useTasks(): UseTasksReturn {
       completed: false,
       color: null,
       color_overridden: false,
-      category_id: categoryId ?? null,
-      group_id: null,
+      category_id: membership.category_id,
+      group_id: membership.group_id,
     };
 
     setTasks((prev) => [...prev, optimisticTask]);
@@ -102,7 +105,12 @@ export function useTasks(): UseTasksReturn {
       const json = await mutateResource<CalendarTask>(
         "/api/tasks",
         "POST",
-        { title, due_at: dueAt, category_id: categoryId } satisfies TaskCreateRequest,
+        {
+          title,
+          due_at: dueAt,
+          category_id: membership.category_id,
+          group_id: membership.group_id,
+        } satisfies TaskCreateRequest,
         "Failed to create task"
       );
 
@@ -209,6 +217,10 @@ export function useTasks(): UseTasksReturn {
     );
   };
 
+  const reconcileGroupRemoval = (groupId: string): void => {
+    setTasks((current) => releaseGroup(current, groupId));
+  };
+
   return {
     data: tasks,
     loading,
@@ -220,5 +232,6 @@ export function useTasks(): UseTasksReturn {
     updateTask,
     deleteTask,
     reconcileSpaceRemoval,
+    reconcileGroupRemoval,
   };
 }

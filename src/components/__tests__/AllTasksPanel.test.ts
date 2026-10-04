@@ -55,7 +55,7 @@ async function renderPanel(tasks: CalendarTask[]) {
         modal: false,
         onClose: () => calls.closes++,
         onCreateTask: async (title, _dueAt, categoryId) => {
-          calls.created.push({ title, categoryId });
+          calls.created.push({ title, categoryId: categoryId?.category_id });
         },
         onToggleTaskComplete: (task) => calls.toggled.push(task.id),
         onOpenTask: (task) => calls.opened.push(task.id),

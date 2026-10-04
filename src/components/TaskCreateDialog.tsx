@@ -14,6 +14,7 @@ import {
 import { APP_INPUT_CLS } from "./DateField";
 import CategorySelect from "./CategorySelect";
 import type { CalendarCategory } from "@/lib/calendar-types";
+import { spaceMembership, type Membership } from "@/lib/membership";
 
 /** Quick task creation seeded with a due date, opened from the calendar's
  *  right-click menu. Title + Space, with the due date fixed to the clicked day. */
@@ -25,7 +26,7 @@ interface TaskCreateDialogProps {
   onCreate: (
     title: string,
     dueAt?: string,
-    categoryId?: string | null
+    membership?: Membership
   ) => Promise<void>;
   onOpenChange: (open: boolean) => void;
 }
@@ -63,7 +64,7 @@ export default function TaskCreateDialog({
     try {
       const due = new Date(day);
       due.setHours(23, 59, 0, 0);
-      await onCreate(trimmed, due.toISOString(), categoryId);
+      await onCreate(trimmed, due.toISOString(), spaceMembership(categoryId));
       onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");

@@ -42,6 +42,7 @@ import { useAlerts } from "@/hooks/useAlerts";
 import { useAlertItemOpener } from "@/hooks/useAlertItemOpener";
 import AlertMessages from "./AlertMessages";
 import { initialSpaceFocus, isEmphasized, spaceFocusReducer } from "@/lib/space-focus";
+import { spaceMembership } from "@/lib/membership";
 
 function ErrorToast({
   message,
@@ -322,7 +323,7 @@ export default function Calendar() {
           onOpenTask={panel.openTask}
           onOpenEvent={panel.openEvent}
           onCreateEvent={(anchor) => editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor)}
-          onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
+          onCreateTask={(title) => tasks.createTask(title, undefined, spaceMembership(activeBranch.spaceId))}
           onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}

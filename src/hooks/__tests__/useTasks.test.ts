@@ -161,7 +161,7 @@ describe("useTasks", () => {
     const createPromise = result.current.createTask(
       "New task",
       "2026-09-15T12:00:00Z",
-      "cat-1"
+      { category_id: "cat-1", group_id: null }
     );
     await act(() => {});
 
@@ -184,6 +184,7 @@ describe("useTasks", () => {
         title: "New task",
         due_at: "2026-09-15T12:00:00Z",
         category_id: "cat-1",
+        group_id: null,
       }),
     });
     // The temp entry is replaced by the server's row (real id).
@@ -199,14 +200,44 @@ describe("useTasks", () => {
     stubFetch({ success: true, data: { ...TASK_A, id: "task-3", due_at: null } });
 
     await act(async () => {
-      await result.current.createTask("Finish problem set", undefined, null);
+      await result.current.createTask("Finish problem set", undefined, { category_id: null, group_id: null });
     });
 
     expect(fetchMock).toHaveBeenCalledWith("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Finish problem set", category_id: null }),
+      body: JSON.stringify({ title: "Finish problem set", category_id: null, group_id: null }),
     });
+    unmount();
+  });
+
+  it("createTask() puts the task in the Group and sends both the Space and the Group", async () => {
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+
+    const resolve = deferredFetch({ success: true, data: { ...TASK_A, id: "task-3", category_id: "cat-1", group_id: "group-1" } });
+    const pending = result.current.createTask("Read chapter 4", undefined, { category_id: "cat-1", group_id: "group-1" });
+    await act(() => {});
+
+    expect(result.current.data[2]).toMatchObject({ category_id: "cat-1", group_id: "group-1" });
+    await act(async () => {
+      resolve();
+      await pending;
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ title: "Read chapter 4", category_id: "cat-1", group_id: "group-1" });
+    unmount();
+  });
+
+  it("reconcileGroupRemoval() takes that Group's tasks out of it and keeps their Space", async () => {
+    stubFetch({ success: true, data: [{ ...TASK_A, category_id: "cat-1", group_id: "group-1" }, { ...TASK_B, category_id: "cat-1", group_id: "group-2" }] });
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    await act(() => {
+      result.current.reconcileGroupRemoval("group-1");
+    });
+    expect(result.current.data.map((t) => [t.category_id, t.group_id])).toEqual([["cat-1", null], ["cat-1", "group-2"]]);
     unmount();
   });
 

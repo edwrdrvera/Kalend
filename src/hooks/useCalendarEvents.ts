@@ -5,6 +5,7 @@ import type { CalendarEvent, EventsApiResponse } from "@/lib/calendar-types";
 import { mutateResource } from "@/lib/api";
 import { eventFormPayload, type EventFormValues } from "@/lib/event-form";
 import { reconcileDetachedEvents } from "@/lib/event-color-state";
+import { releaseGroup } from "@/lib/group-state";
 
 export interface UseCalendarEventsReturn {
   data: CalendarEvent[];
@@ -14,6 +15,7 @@ export interface UseCalendarEventsReturn {
   setError: (e: string | null) => void;
   retry: () => void;
   reconcileSpaceRemoval: (detached: CalendarEvent[], categoryId: string) => void;
+  reconcileGroupRemoval: (groupId: string) => void;
   createEvent: (values: EventFormValues) => Promise<CalendarEvent>;
   updateEvent: (id: string, values: EventFormValues) => Promise<CalendarEvent>;
   /** Resolves false when the server rejected the delete and the event came back. */
@@ -196,6 +198,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     setError,
     retry,
     reconcileSpaceRemoval: (detached, categoryId) => setEvents((current) => reconcileDetachedEvents(current, detached, categoryId)),
+    reconcileGroupRemoval: (groupId) => setEvents((current) => releaseGroup(current, groupId)),
     createEvent,
     updateEvent,
     deleteEvent,

@@ -66,3 +66,7 @@ export function reconcileMembership(
 /** True when the patch names a membership field, so the server must resolve it. */
 export const touchesMembership = (patch: MembershipPatch): boolean =>
   patch.category_id !== undefined || patch.group_id !== undefined;
+
+/** Directly in a Space, or unassigned when there is none. */
+export const spaceMembership = (categoryId: string | null): Membership =>
+  categoryId === null ? UNASSIGNED : { category_id: categoryId, group_id: null };
