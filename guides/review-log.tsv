@@ -14,3 +14,4 @@ pr	date	tier	reviewer_version	finding	severity	outcome
 232	2026-10-02	high	809eef0	Event and task edits now depend on the alerts table, so the migration must be applied before deploy; stated in the PR body	low	real-fixed
 232	2026-10-02	high	809eef0	Two where-matching engines coexist in the test mock; migrating the old tables is a separate cleanup	low	real-deferred
 233	2026-10-03	medium	809eef0	Failed delete during an alert offset switch left a duplicate alert, and Retry reported success without removing it	medium	real-fixed
+241	2026-10-06	high	809eef0	Item update and Group delete locked the Space and Group in opposite order and could deadlock; item update now locks the Space first	medium	real-fixed
