@@ -65,7 +65,7 @@ export default function SpacePanel({
   const [newTitle, setNewTitle] = useState("");
 
   // Reset the task composer when the panel swaps to a different Space or Group
-  // — the recommended "adjust state during render" pattern, not an effect.
+  // (the recommended "adjust state during render" pattern, not an effect).
   const key = subjectKey(subject);
   const [renderedKey, setRenderedKey] = useState(key);
   if (renderedKey !== key) {
