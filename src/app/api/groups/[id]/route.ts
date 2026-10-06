@@ -6,6 +6,7 @@ import { tasks } from "@/db/schema/tasks";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseGroupPatch } from "@/lib/api/group-body";
 import { retryTransaction } from "@/lib/transaction-retry";
+import { isUuid } from "@/lib/uuid";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -17,6 +18,8 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const { id } = await params;
   const parsed = parseGroupPatch(await request.json());
   if (!parsed.ok) return fail(parsed.error, 400);
+  // Postgres rejects a malformed uuid with an error, which would surface as a 500.
+  if (!isUuid(id)) return fail("Group not found", 404);
 
   const [updated] = await db
     .update(groups)
@@ -30,6 +33,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
 
 export const DELETE = withUser(async (_request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Group not found", 404);
 
   const result = await retryTransaction(() => db.transaction(async (tx) => {
     // Space first, then Group, then items: the order a Space delete takes, so

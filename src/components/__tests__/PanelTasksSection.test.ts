@@ -40,7 +40,7 @@ interface Interactions {
   opened: string[];
 }
 
-async function render(tasks: CalendarTask[]) {
+async function render(tasks: CalendarTask[], scope: "Space" | "Group" = "Space") {
   const interactions: Interactions = { toggled: [], opened: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -50,6 +50,7 @@ async function render(tasks: CalendarTask[]) {
     root?.render(
       createElement(PanelTasksSection, {
         tasks,
+        scope,
         onToggleComplete: (task: CalendarTask) => interactions.toggled.push(task.id),
         onOpenTask: (task: CalendarTask) => interactions.opened.push(task.id),
       })
@@ -63,6 +64,14 @@ describe("PanelTasksSection when empty", () => {
     await render([]);
 
     expect(container?.textContent).toBe("");
+  });
+});
+
+describe("PanelTasksSection caption", () => {
+  it("names the Space or the Group the list is scoped to", async () => {
+    await render([makeTask({ id: "a" })], "Group");
+    expect(container?.textContent).toContain("Everything open in this Group");
+    expect(container?.textContent).not.toContain("this Space");
   });
 });
 

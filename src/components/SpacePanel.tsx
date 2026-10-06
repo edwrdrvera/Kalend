@@ -156,6 +156,7 @@ export default function SpacePanel({
         <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} />
         <PanelTasksSection
           tasks={tasks}
+          scope={subject.kind === "group" ? "Group" : "Space"}
           onToggleComplete={onToggleComplete}
           onOpenTask={onOpenTask}
         />
