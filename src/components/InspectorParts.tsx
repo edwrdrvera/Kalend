@@ -36,7 +36,7 @@ export function DetailRow({
   );
 }
 
-export const FIELD_LABEL_CLS = "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+export const FIELD_LABEL_CLS = "text-[13px] font-medium text-muted-foreground";
 
 /** Where an inspector sits: its Space and Group (links to their overviews) and
  *  the overview Back returns to. */

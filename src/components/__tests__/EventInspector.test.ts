@@ -139,12 +139,12 @@ describe("EventInspector description", () => {
   it("shows no description box for an event without one, only a way to add it", async () => {
     await renderInspector();
     expect(descriptionBox()).toBeNull();
-    expect(button("Add description")).toBeDefined();
+    expect(button("Add notes")).toBeDefined();
   });
 
-  it("opens an empty box on Add description and saves the trimmed text", async () => {
+  it("opens an empty box on Add notes and saves the trimmed text", async () => {
     const harness = await renderInspector();
-    await click("Add description");
+    await click("Add notes");
     expect(descriptionBox()?.value).toBe("");
     expect(button("Save")?.disabled).toBe(true);
 
@@ -157,7 +157,7 @@ describe("EventInspector description", () => {
   it("shows a stored description in the box without clicking anything", async () => {
     await renderInspector(null, { ...EVENT, description: "Bring ID" });
     expect(descriptionBox()?.value).toBe("Bring ID");
-    expect(button("Add description")).toBeUndefined();
+    expect(button("Add notes")).toBeUndefined();
   });
 
   it("removes a description by clearing the box, which saves null", async () => {
@@ -170,7 +170,7 @@ describe("EventInspector description", () => {
   it("keeps the typed description and offers a retry when the save fails", async () => {
     const harness = await renderInspector();
     harness.saveResult = false;
-    await click("Add description");
+    await click("Add notes");
     await editDescription("Lab checklist");
     await click("Save");
     expect(descriptionBox()?.value).toBe("Lab checklist");
@@ -184,7 +184,7 @@ describe("EventInspector description", () => {
 
   it("rejects a description that is too long with a clear message and does not save", async () => {
     const harness = await renderInspector();
-    await click("Add description");
+    await click("Add notes");
     await editDescription("x".repeat(2001));
     await click("Save");
     expect(harness.saves).toEqual([]);
@@ -193,7 +193,7 @@ describe("EventInspector description", () => {
 
   it("counts an unsaved description as an unsaved edit", async () => {
     await renderInspector();
-    await click("Add description");
+    await click("Add notes");
     await editDescription("Draft note");
     await click("Outside close");
     expect(panelState()).toBe("open");

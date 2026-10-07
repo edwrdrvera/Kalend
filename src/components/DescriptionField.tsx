@@ -12,6 +12,8 @@ interface DescriptionFieldProps {
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  /** What the box is called, e.g. "Notes". */
+  label?: string;
 }
 
 /** The labeled description box, with the too-long message under it. */
@@ -21,12 +23,13 @@ export function DescriptionTextarea({
   onChange,
   autoFocus,
   className,
+  label = "Description",
 }: DescriptionFieldProps & { autoFocus?: boolean }) {
   const problem = descriptionProblem(value);
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <label htmlFor={id} className={FIELD_LABEL_CLS}>
-        Description
+        {label}
       </label>
       <textarea
         id={id}
@@ -36,7 +39,7 @@ export function DescriptionTextarea({
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y focus-visible:ring-2 focus-visible:ring-ring")}
+        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed focus-visible:ring-2 focus-visible:ring-ring")}
       />
       {problem && (
         <p id={`${id}-problem`} className="text-[12px] text-destructive">
@@ -53,7 +56,7 @@ export const ADD_DESCRIPTION_CLS =
 /** An optional description. Empty and not being edited, it is a single
  *  "Add description" button instead of an empty box. It stays a box once
  *  opened, so clearing the text while typing doesn't make it vanish. */
-export default function DescriptionField({ id, value, onChange, className }: DescriptionFieldProps) {
+export default function DescriptionField({ id, value, onChange, className, label = "Description" }: DescriptionFieldProps) {
   const [open, setOpen] = useState(value !== "");
   const [focusOnOpen, setFocusOnOpen] = useState(false);
 
@@ -68,10 +71,17 @@ export default function DescriptionField({ id, value, onChange, className }: Des
         className={cn(ADD_DESCRIPTION_CLS, className)}
       >
         <Plus className="size-3.5" />
-        Add description
+        Add {label.toLowerCase()}
       </button>
     );
   }
 
-  return <DescriptionTextarea id={id} value={value} onChange={onChange} autoFocus={focusOnOpen} className={className} />;
+  return <DescriptionTextarea
+      id={id}
+      value={value}
+      onChange={onChange}
+      autoFocus={focusOnOpen}
+      className={className}
+      label={label}
+    />;
 }
