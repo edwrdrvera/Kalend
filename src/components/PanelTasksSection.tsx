@@ -135,9 +135,8 @@ export default function PanelTasksSection({
           >
             <span
               className={cn(
-                "block truncate text-[13px]",
-                task.completed ? "text-muted-foreground line-through" : "text-foreground",
-                "transition-colors duration-150"
+                "block truncate text-[13px] transition-colors duration-150",
+                task.completed ? "text-muted-foreground line-through" : "text-foreground"
               )}
             >
               {task.title}
@@ -157,7 +156,7 @@ export default function PanelTasksSection({
           </span>
         </div>
         {expanded && (
-          <div className="ml-6 mt-2 rounded-xl border border-border bg-muted/30 p-2.5 motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]">
+          <div className="ml-6 mt-2 rounded-xl border border-border bg-muted/30 p-2.5 animate-reveal-down">
             <div className="flex flex-wrap gap-1.5">
               {dueChoices.map(({ label, day }) => {
                 const on = day
@@ -268,7 +267,7 @@ export default function PanelTasksSection({
             {showCompleted ? "Hide" : "Show"} completed ({completed.length})
           </button>
           {showCompleted && (
-            <div className="motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]">
+            <div className="animate-reveal-down">
               {completed.map(renderRow)}
             </div>
           )}

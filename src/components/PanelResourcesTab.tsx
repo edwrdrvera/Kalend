@@ -36,7 +36,6 @@ const REMOVE_BTN = cn(
   "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
-const ROW_IN_CLS = "motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]";
 
 export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "Group" }) {
   const [links, setLinks] = useState<ResourceLink[]>([]);
@@ -117,7 +116,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
         )}
         <ul className="mt-1.5">
           {links.map((link) => (
-            <li key={link.id} className={cn("flex items-center gap-2.5 py-1", ROW_IN_CLS)}>
+            <li key={link.id} className="flex animate-reveal-down items-center gap-2.5 py-1">
               <a
                 href={link.url}
                 target="_blank"
@@ -163,7 +162,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
         )}
         <ul className="mt-1.5">
           {files.map((file) => (
-            <li key={file.id} className={cn("flex items-center gap-2.5 py-1", ROW_IN_CLS)}>
+            <li key={file.id} className="flex animate-reveal-down items-center gap-2.5 py-1">
               <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1">
                 <span
                   aria-hidden="true"

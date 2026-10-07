@@ -337,11 +337,20 @@
   }
 }
 
-/* A task row's inline editor drops in from just under the row. */
+/* Something opened in place (a row editor, a new list row) drops in from
+ * just above; with reduced motion it only fades. */
 @keyframes revealDown {
   from {
     opacity: 0;
     transform: translateY(-4px);
+  }
+}
+.animate-reveal-down {
+  animation: revealDown 180ms var(--ease-snappy);
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-reveal-down {
+    animation: fadeIn 120ms ease-out;
   }
 }
 
