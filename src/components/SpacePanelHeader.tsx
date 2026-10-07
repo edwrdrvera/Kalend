@@ -103,7 +103,7 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
       </div>
       {failed && (
         <p role="alert" className="mt-1 text-[11.5px] text-destructive">
-          Couldn&apos;t rename. Check your connection and try again.
+          Couldn&apos;t rename. Try again.
         </p>
       )}
       {children}
