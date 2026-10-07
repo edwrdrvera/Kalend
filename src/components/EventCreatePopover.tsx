@@ -6,7 +6,7 @@ import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { initialEventColor } from "@/lib/event-color-state";
-import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
+import { MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   eventDraftValues,
   formatTimeRangeSummary,
@@ -14,7 +14,6 @@ import {
   type EventDraft,
 } from "@/lib/event-draft";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
-import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH, clampPopoverTop } from "@/lib/popover-position";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 
@@ -202,12 +201,7 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
-          {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="new-event-icon" className="sr-only">
-              Event icon
-            </label>
-            <IconPicker value={draft.icon} onChange={(icon) => update({ icon })} maxLength={MAX_ICON_LENGTH} />
             <label htmlFor="new-event-title" className="sr-only">
               Event title
             </label>

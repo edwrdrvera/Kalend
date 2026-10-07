@@ -207,7 +207,7 @@ describe("EventInspector", () => {
   it("shows the event's own fields and Space", async () => {
     await renderInspector();
     expect(titleInput().value).toBe("Standup");
-    expect(input("event-inspector-icon").value).toBe("🧪");
+    expect(document.querySelector("#event-inspector-icon")).toBeNull();
     expect(document.querySelector<HTMLInputElement>('[aria-label="Start time"]')).not.toBeNull();
     expect([...document.querySelectorAll("input")].some((i) => i.value === "Room 204")).toBe(true);
     expect(spaceLabel()).toBe("Space: Work");

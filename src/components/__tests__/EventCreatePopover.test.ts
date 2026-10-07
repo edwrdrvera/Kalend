@@ -302,16 +302,16 @@ describe("EventCreatePopover submitted values", () => {
   });
 });
 
-describe("EventCreatePopover location and icon", () => {
-  it("starts a new Event with an empty icon and the location input behind a chip", async () => {
+describe("EventCreatePopover location", () => {
+  it("starts a new Event with no icon box and the location input behind a chip", async () => {
     await renderPopover();
     expect(document.querySelector("#new-event-location")).toBeNull();
     await openLocation();
     expect(document.querySelector<HTMLInputElement>("#new-event-location")?.value).toBe("");
-    expect(document.querySelector<HTMLInputElement>("#new-event-icon")?.value).toBe("");
+    expect(document.querySelector("#new-event-icon")).toBeNull();
   });
 
-  it("submits the typed location and icon", async () => {
+  it("submits the typed location", async () => {
     let submitted: EventFormValues | null = null;
     await renderPopover({
       onSubmit: (values) => {
@@ -322,16 +322,13 @@ describe("EventCreatePopover location and icon", () => {
     await openLocation();
     const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
     const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
-    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
-    if (!titleInput || !locationInput || !iconInput) throw new Error("Expected fields were not rendered");
+    if (!titleInput || !locationInput) throw new Error("Expected fields were not rendered");
     await act(() => typeInto(titleInput, "Study session"));
     await act(() => typeInto(locationInput, "Library, 2nd floor"));
-    await act(() => typeInto(iconInput, "📚"));
     await submitForm();
 
     const values = submitted as EventFormValues | null;
     expect(values?.location).toBe("Library, 2nd floor");
-    expect(values?.icon).toBe("📚");
   });
 
   it("submits null for location and icon when left blank", async () => {
