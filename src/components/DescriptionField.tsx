@@ -44,7 +44,7 @@ export function DescriptionTextarea({
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed focus-visible:ring-2 focus-visible:ring-ring")}
+        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed")}
       />
       {problem && (
         <p id={`${id}-problem`} className="text-[12px] text-destructive">
@@ -56,7 +56,7 @@ export function DescriptionTextarea({
 }
 
 export const ADD_DESCRIPTION_CLS =
-  "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
 
 /** An optional description. Empty and not being edited, it is a single
  *  "Add description" button instead of an empty box. It stays a box once
@@ -111,7 +111,7 @@ export default function DescriptionField({
           onKeyDown={(e) => {
             if (e.key === "Enter" && e.target === e.currentTarget) startEditing();
           }}
-          className="cursor-text rounded-sm border border-transparent px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-input focus-visible:ring-2 focus-visible:ring-ring"
+          className="cursor-text rounded-sm border border-transparent px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-input focus-visible:border-foreground/30"
         >
           <NotesView value={value} />
         </div>

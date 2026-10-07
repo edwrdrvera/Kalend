@@ -56,15 +56,15 @@ function dueState(task: CalendarTask, now: Date): DueState {
 const BUCKET_LABELS: Partial<Record<string, string>> = { month: "Later", unscheduled: "No date" };
 
 const PILL_CLS = cn(
-  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 const TEXT_BTN_CLS = cn(
-  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 const LINK_BTN_CLS =
-  "rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
 
 export default function PanelTasksSection({
   tasks,
@@ -112,7 +112,7 @@ export default function PanelTasksSection({
             aria-pressed={task.completed}
             aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
             className={cn(
-              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-[background-color,border-color,transform] duration-150 ease-snappy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:active:scale-90",
+              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-[background-color,border-color,transform] duration-150 ease-snappy focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60 motion-safe:active:scale-90",
               task.completed
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border hover:border-muted-foreground"
@@ -131,7 +131,7 @@ export default function PanelTasksSection({
             aria-expanded={expanded}
             aria-label={`Edit task ${task.title}`}
             onClick={() => setExpandedId(expanded ? null : task.id)}
-            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
           >
             <span
               className={cn(
@@ -226,7 +226,7 @@ export default function PanelTasksSection({
           aria-label="Add task"
           onClick={onAddTask}
           className={cn(
-            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
             PRESS_CLS
           )}
         >

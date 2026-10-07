@@ -54,7 +54,7 @@ interface EventInspectorProps {
 
 const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-md px-2 text-xs";
 
-const INPUT_CLS = cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:ring-ring");
+const INPUT_CLS = cn(APP_INPUT_CLS, "w-full");
 
 /** An event's details in the right panel. Mount it with `key={event.id}` so
  *  each event gets a fresh draft. */
@@ -110,7 +110,7 @@ export default function EventInspector({
         <UnsavedChangesPrompt noun="event" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />
       )}
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
         <div className="flex flex-col gap-2">
           <label htmlFor="event-inspector-title" className="sr-only">
             Title
@@ -174,7 +174,7 @@ export default function EventInspector({
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus-visible:ring-2 focus-visible:ring-ring")}
+              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus:border-input")}
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">

@@ -15,7 +15,7 @@ export interface PanelGroupNav {
 }
 
 const CHIP_CLS = cn(
-  "h-[26px] rounded-full border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "h-[26px] rounded-full border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 
@@ -57,7 +57,7 @@ export default function PanelGroupChips({
         aria-label="New Group"
         onClick={() => nav.onCreateGroup(subject.spaceId)}
         className={cn(
-          "grid h-[26px] w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "grid h-[26px] w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
           PRESS_CLS
         )}
       >

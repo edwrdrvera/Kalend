@@ -29,11 +29,11 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
 ];
 
 const HEADER_BTN = cn(
-  "flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 const REMOVE_BTN = cn(
-  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 const ROW_IN_CLS = "motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]";
@@ -122,7 +122,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
               >
                 <span
                   aria-hidden="true"

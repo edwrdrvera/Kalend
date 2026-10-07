@@ -65,7 +65,7 @@ export default function TaskChip({
         aria-pressed={task.completed}
         aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
         className={cn(
-          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring/60",
           task.completed
             ? "border-muted-foreground bg-muted-foreground text-background"
             : overdue
@@ -93,7 +93,7 @@ export default function TaskChip({
         }}
         aria-label={`Open task ${task.title}`}
         className={cn(
-          "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
           task.completed && "line-through"
         )}
       >

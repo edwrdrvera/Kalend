@@ -21,7 +21,7 @@ export default function PanelTabs<T extends string>({ tabs, value, onChange }: P
           aria-selected={value === id}
           onClick={() => onChange(id)}
           className={cn(
-            "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
             PRESS_CLS,
             value === id
               ? "border-primary text-foreground"
