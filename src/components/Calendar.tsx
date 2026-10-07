@@ -154,7 +154,7 @@ export default function Calendar() {
   // popover side computation.
   const calendarContentRef = useRef<HTMLDivElement>(null);
 
-  const editor = useEventEditor(events, selectedSpaceId, calendarContentRef);
+  const editor = useEventEditor(events, selectedSpaceId, calendarContentRef, panel.openEvent);
 
   const handleEventClick = (event: CalendarEvent) => {
     selection.clear();

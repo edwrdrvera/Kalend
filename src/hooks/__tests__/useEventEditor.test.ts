@@ -33,9 +33,10 @@ const rect = { x: 0, y: 0, width: 10, height: 10 } as DOMRect;
 
 async function setup(createEvent: ReturnType<typeof mock> = mock(async () => EVENT)) {
   const events = { createEvent };
-  const hook = renderHook(() => useEventEditor(events, "space-9", { current: null }));
+  const onOpenCreated = mock((_event: CalendarEvent) => {});
+  const hook = renderHook(() => useEventEditor(events, "space-9", { current: null }, onOpenCreated));
   await hook.act(() => {});
-  return { events, ...hook };
+  return { events, onOpenCreated, ...hook };
 }
 
 describe("useEventEditor", () => {
@@ -65,6 +66,21 @@ describe("useEventEditor", () => {
     await act(() => result.current.submit(VALUES));
     expect(events.createEvent).toHaveBeenCalledWith(VALUES);
     expect(result.current.target).toBeNull();
+  });
+
+  it("submitting with openDetails hands the saved event to the panel", async () => {
+    const { result, act, onOpenCreated } = await setup();
+    await act(() => result.current.openCreate(new Date(), rect));
+    await act(() => result.current.submit(VALUES, true));
+    expect(onOpenCreated).toHaveBeenCalledWith(EVENT);
+    expect(result.current.target).toBeNull();
+  });
+
+  it("a plain submit does not open the panel", async () => {
+    const { result, act, onOpenCreated } = await setup();
+    await act(() => result.current.openCreate(new Date(), rect));
+    await act(() => result.current.submit(VALUES));
+    expect(onOpenCreated).not.toHaveBeenCalled();
   });
 
   it("a failed submit keeps the editor open with the error", async () => {
