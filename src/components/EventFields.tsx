@@ -70,11 +70,16 @@ export function EventColorSpaceFields({
   categories,
   groups,
   onChange,
+  swatchClassName,
+  spaceClassName,
 }: {
   colorState: EventColorState;
   categories: CalendarCategory[];
   groups: CalendarGroup[];
   onChange: (next: EventColorState) => void;
+  /** Restyle the swatch and Space trigger, for editors that show them as chips. */
+  swatchClassName?: string;
+  spaceClassName?: string;
 }) {
   const { color, categoryId, groupId, colorOverridden } = colorState;
   const selectedCategory = categories.find((c) => c.id === categoryId);
@@ -86,11 +91,13 @@ export function EventColorSpaceFields({
       <div className="flex items-center gap-2">
         <ColorSwatchPicker
           color={swatchColor}
+          className={swatchClassName}
           onColorChange={(nextColor) => onChange(eventColorReducer(colorState, { type: "pick", color: nextColor }))}
         />
         <MembershipSelect
           categories={categories}
           groups={groups}
+          className={spaceClassName}
           membership={membershipOf({ category_id: categoryId, group_id: groupId })}
           onChange={(next) =>
             onChange(

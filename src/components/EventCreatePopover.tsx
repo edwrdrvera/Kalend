@@ -22,7 +22,8 @@ const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 const CHIP_CLS =
-  "flex h-6 items-center gap-1.5 rounded-full border px-2.5 text-xs transition-colors hover:bg-muted";
+  "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-muted";
+const DASHED_CHIP_CLS = "border-dashed border-muted-foreground/40 text-muted-foreground";
 /** Used for vertical centering; approximate — exact height varies with content. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
 
@@ -156,7 +157,7 @@ export default function EventCreatePopover({
         }}
         className="animate-in fade-in-0 zoom-in-95 duration-100"
       >
-      <div className="relative rounded-md border border-border bg-popover text-popover-foreground">
+      <div className="relative rounded-xl border border-border bg-popover text-popover-foreground">
         {!wasClamped && (
           <svg
             aria-hidden="true"
@@ -180,7 +181,7 @@ export default function EventCreatePopover({
             />
           </svg>
         )}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
           {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
             <label htmlFor="new-event-icon" className="sr-only">
@@ -208,7 +209,7 @@ export default function EventCreatePopover({
               type="button"
               aria-expanded={timeExpanded}
               onClick={() => setTimeExpanded((open) => !open)}
-              className={cn(CHIP_CLS, "border-border bg-muted/50 text-foreground")}
+              className={cn(CHIP_CLS, "border-border bg-muted text-foreground")}
             >
               <Clock className="size-3 shrink-0 text-muted-foreground" />
               {formatTimeRangeSummary(draft.startAt, draft.endAt)}
@@ -226,19 +227,27 @@ export default function EventCreatePopover({
                   maxLength={MAX_LOCATION_LENGTH}
                   placeholder="Location"
                   autoFocus={locationOpen && !draft.location}
-                  className="h-6 w-36 rounded-sm border border-input bg-background px-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
+                  className="h-7 w-36 rounded-full border border-input bg-background px-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
                 />
               </div>
             ) : (
               <button
                 type="button"
                 onClick={() => setLocationOpen(true)}
-                className={cn(CHIP_CLS, "border-dashed border-border text-muted-foreground")}
+                className={cn(CHIP_CLS, DASHED_CHIP_CLS)}
               >
                 <MapPin className="size-3 shrink-0" />
                 Location
               </button>
             )}
+            <EventColorSpaceFields
+              colorState={draft.colorState}
+              categories={categories}
+              groups={groups}
+              onChange={(colorState) => update({ colorState })}
+              swatchClassName="size-4 rounded-full ring-offset-0"
+              spaceClassName={cn(CHIP_CLS, DASHED_CHIP_CLS)}
+            />
           </div>
 
           {/* Date/time pickers, revealed by the time chip */}
@@ -259,13 +268,6 @@ export default function EventCreatePopover({
             </div>
           </div>
 
-          <EventColorSpaceFields
-            colorState={draft.colorState}
-            categories={categories}
-            groups={groups}
-            onChange={(colorState) => update({ colorState })}
-          />
-
           {(validationError ?? error) && (
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
@@ -275,13 +277,13 @@ export default function EventCreatePopover({
               type="button"
               variant="ghost"
               size="sm"
-              className="rounded-sm px-3"
+              className="rounded-full px-3"
               onClick={onClose}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} size="sm" className="rounded-sm px-3">
-              {submitting ? "Creating…" : "Create event"}
+            <Button type="submit" disabled={submitting} size="sm" className="rounded-full px-4">
+              {submitting ? "Creating…" : "Create"}
             </Button>
           </div>
         </form>
