@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { addDays, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
 import { groupByDay, type UpcomingDay } from "@/lib/space-overview";
@@ -11,6 +12,8 @@ const COLLAPSED_ROWS = 5;
 interface PanelUpcomingSectionProps {
   days: UpcomingDay[];
   onOpenEvent: (event: CalendarEvent) => void;
+  /** Opens the event editor, anchored to the clicked button. */
+  onCreateEvent: (anchor: DOMRect) => void;
 }
 
 function dayLabel(day: Date, now: Date): string {
@@ -19,10 +22,9 @@ function dayLabel(day: Date, now: Date): string {
   return format(day, "EEE, MMM d");
 }
 
-export default function PanelUpcomingSection({ days, onOpenEvent }: PanelUpcomingSectionProps) {
+export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent }: PanelUpcomingSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const total = days.reduce((n, d) => n + d.events.length, 0);
-  if (total === 0) return null;
 
   const all = days.flatMap((d) => d.events);
   const shown = expanded ? all : all.slice(0, COLLAPSED_ROWS);
@@ -32,9 +34,18 @@ export default function PanelUpcomingSection({ days, onOpenEvent }: PanelUpcomin
 
   return (
     <section aria-label="Upcoming" className="px-4 py-3">
-      <h3 className="text-[12px] font-semibold text-muted-foreground">
-        Upcoming
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-[12px] font-semibold text-muted-foreground">Upcoming</h3>
+        <button
+          type="button"
+          aria-label="Add event"
+          onClick={(e) => onCreateEvent(e.currentTarget.getBoundingClientRect())}
+          className="grid size-6 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus aria-hidden className="size-3.5" />
+        </button>
+      </div>
+      {total === 0 && <p className="mt-2 text-[13px] text-muted-foreground">Nothing scheduled.</p>}
       <div className="mt-2 flex flex-col gap-2.5">
         {visible.map(({ day, events }) => (
           <div key={day.toISOString()}>

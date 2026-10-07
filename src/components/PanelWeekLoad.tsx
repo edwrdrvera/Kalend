@@ -14,13 +14,15 @@ interface PanelWeekLoadProps {
   color: EventColor;
   /** Name shown in the caption ("5h booked in School"). */
   scopeName: string;
+  /** Selects the day in the calendar. */
+  onSelectDay: (day: Date) => void;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export default function PanelWeekLoad({ days, color, scopeName }: PanelWeekLoadProps) {
+export default function PanelWeekLoad({ days, color, scopeName, onSelectDay }: PanelWeekLoadProps) {
+  if (days.length === 0) return null;
   const total = days.reduce((n, d) => n + d.hours, 0);
-  if (total === 0) return null;
 
   const max = Math.max(1, ...days.map((d) => d.hours));
   const now = new Date();
@@ -37,11 +39,13 @@ export default function PanelWeekLoad({ days, color, scopeName }: PanelWeekLoadP
         {days.map(({ day, hours }) => {
           const today = isSameDay(day, now);
           return (
-            <li
-              key={day.toISOString()}
+            <li key={day.toISOString()} className="flex flex-1">
+            <button
+              type="button"
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
+              onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5",
+                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 today && "bg-muted/60"
               )}
             >
@@ -60,6 +64,7 @@ export default function PanelWeekLoad({ days, color, scopeName }: PanelWeekLoadP
               <span className={cn("text-[11px]", today ? "font-semibold text-foreground" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
+            </button>
             </li>
           );
         })}

@@ -546,19 +546,19 @@ describe("Calendar behavior", () => {
       await mount();
       await openGroup("BIO 102");
       expect(panelHeading()).toBe("BIO 102");
-      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Edit task ']")].map(
         (b) => b.getAttribute("aria-label")
       );
-      expect(panelTasks).toEqual(["Open task Essay draft"]);
+      expect(panelTasks).toEqual(["Edit task Essay draft"]);
     });
 
     it("the Space overview lists its Group's tasks and its direct tasks once each", async () => {
       await mount();
       await openSchoolOverview();
-      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Edit task ']")].map(
         (b) => b.getAttribute("aria-label")
       );
-      expect(panelTasks.sort()).toEqual(["Open task Direct task", "Open task Essay draft"]);
+      expect(panelTasks.sort()).toEqual(["Edit task Direct task", "Edit task Essay draft"]);
     });
 
     it("remembers an open Group after a remount", async () => {
@@ -576,7 +576,7 @@ describe("Calendar behavior", () => {
     it("creating an event from a Group's panel starts in that Group, and the choice can change", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(buttonByText("Add event")!);
+      await click(document.querySelector<HTMLElement>("[role='complementary'] [aria-label='Add event']")!);
       const trigger = () => createPopover()?.querySelector("[aria-label^='Space: ']")?.getAttribute("aria-label");
       expect(trigger()).toBe("Space: School / BIO 102");
 
@@ -588,7 +588,7 @@ describe("Calendar behavior", () => {
     it("adding a task from a Group's panel creates it in that Group", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(buttonByText("Add task")!);
+      await click(document.querySelector<HTMLElement>("[role='complementary'] [aria-label='Add task']")!);
       const input = document.querySelector<HTMLInputElement>("[aria-label='New task title']")!;
       await act(async () => typeInto(input, "Read chapter 4"));
       await act(async () => {

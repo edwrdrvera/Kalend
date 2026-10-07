@@ -360,6 +360,9 @@ export default function Calendar() {
           onToggleComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
           onOpenEvent={panel.openEvent}
+          onChangeTaskDue={(task, due) => void tasks.updateTask(task, { due_at: due ? due.toISOString() : null })}
+          onDeleteTask={(task) => void tasks.deleteTask(task)}
+          onSelectDay={handleDateSelect}
           onCreateEvent={(anchor) =>
             editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor, membershipForSubject(subject))
           }

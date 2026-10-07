@@ -68,6 +68,9 @@ async function render(
         onToggleComplete: () => {},
         onOpenTask: () => {},
         onOpenEvent: () => {},
+        onChangeTaskDue: () => {},
+        onDeleteTask: () => {},
+        onSelectDay: () => {},
         onCreateEvent: () => {
           handlers.eventCreates++;
         },
@@ -96,7 +99,9 @@ async function render(
 }
 
 const buttonWithText = (text: string) =>
-  [...document.querySelectorAll("button")].find((b) => b.textContent === text);
+  [...document.querySelectorAll("button")].find(
+    (b) => b.textContent === text || b.getAttribute("aria-label") === text
+  );
 
 const TASK: CalendarTask = {
   id: "t1",
@@ -255,9 +260,9 @@ describe("SpacePanel for a Group", () => {
     expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
   });
 
-  it("says nothing is coming up in the Group's own name", async () => {
+  it("says nothing is scheduled when the Group has no events", async () => {
     await render(GROUP);
-    expect(container?.textContent).toContain("Nothing coming up in CS 340");
+    expect(container?.textContent).toContain("Nothing scheduled.");
   });
 });
 
@@ -272,35 +277,46 @@ describe("SpacePanel", () => {
     expect(text).not.toContain("Links");
   });
 
-  it("shows an empty state with both add actions when the Space has nothing", async () => {
+  it("shows per-section empty states with both add actions when the Space has nothing", async () => {
     const handlers = await render(SPACE);
-    expect(container?.textContent).toContain("Nothing coming up in School");
-    expect(container?.textContent).not.toContain("Open tasks");
+    expect(container?.textContent).toContain("Nothing scheduled.");
+    expect(container?.textContent).toContain("All caught up.");
     await act(() => buttonWithText("Add event")?.click());
     expect(handlers.eventCreates).toBe(1);
   });
 
-  it("hides the empty state while the task composer is open", async () => {
+  it("opens the task composer from the Add task button", async () => {
     await render(SPACE);
     await act(() => buttonWithText("Add task")?.click());
     expect(document.querySelector('[aria-label="New task title"]')).not.toBeNull();
-    expect(container?.textContent).not.toContain("Nothing coming up");
   });
 
-  it("shows only upcoming events for a Space with events and no tasks", async () => {
+  it("switches between the Overview, Resources and Alerts tabs", async () => {
+    await render(SPACE);
+    const tab = (name: string) =>
+      [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find((t) => t.textContent === name);
+    await act(() => tab("Resources")?.click());
+    expect(container?.textContent).toContain("Add link");
+    expect(container?.textContent).not.toContain("Open tasks");
+    await act(() => tab("Alerts")?.click());
+    expect(container?.textContent).toContain("Notify me about School");
+    await act(() => tab("Overview")?.click());
+    expect(container?.textContent).toContain("Open tasks");
+  });
+
+  it("lists upcoming events for a Space with events and no tasks", async () => {
     await render(SPACE, [], [SHIFT_DAY]);
     const text = container?.textContent ?? "";
     expect(text).toContain("Morning shift");
-    expect(text).not.toContain("Open tasks");
-    expect(text).not.toContain("Nothing coming up");
+    expect(text).toContain("All caught up.");
+    expect(text).not.toContain("Nothing scheduled.");
   });
 
-  it("drops the empty state once the Space has a task", async () => {
+  it("lists the task and drops the tasks empty state once the Space has one", async () => {
     await render(SPACE, [TASK]);
     const text = container?.textContent ?? "";
     expect(text).toContain("Submit timesheet");
-    expect(text).not.toContain("Nothing coming up");
-    expect(text).not.toContain("Upcoming");
+    expect(text).not.toContain("All caught up.");
   });
 
   it("closes on Escape when focus is inside the panel", async () => {

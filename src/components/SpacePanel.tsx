@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
@@ -14,6 +14,8 @@ import PanelUpcomingSection from "./PanelUpcomingSection";
 import PanelWeekLoad from "./PanelWeekLoad";
 import PanelGroupChips, { type PanelGroupNav } from "./PanelGroupChips";
 import PanelTasksSection from "./PanelTasksSection";
+import PanelResourcesTab from "./PanelResourcesTab";
+import PanelAlertsTab from "./PanelAlertsTab";
 import SpacePanelFooter from "./SpacePanelFooter";
 
 interface SpacePanelProps {
@@ -29,6 +31,11 @@ interface SpacePanelProps {
   onToggleComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   onOpenEvent: (event: CalendarEvent) => void;
+  /** Moves a task's due date (null clears it). */
+  onChangeTaskDue: (task: CalendarTask, due: Date | null) => void;
+  onDeleteTask: (task: CalendarTask) => void;
+  /** Selects a day in the calendar (the week bars). */
+  onSelectDay: (day: Date) => void;
   /** Opens the event editor, anchored to the clicked button. */
   onCreateEvent: (anchor: DOMRect) => void;
   /** Creates a task in the open Space or Group (title only; date and membership implied). */
@@ -45,8 +52,13 @@ interface SpacePanelProps {
   onStay: () => void;
 }
 
-const ADD_BUTTON_CLS =
-  "flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+type PanelTab = "overview" | "resources" | "alerts";
+
+const TABS: { id: PanelTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "resources", label: "Resources" },
+  { id: "alerts", label: "Alerts" },
+];
 
 export default function SpacePanel({
   subject,
@@ -59,6 +71,9 @@ export default function SpacePanel({
   onToggleComplete,
   onOpenTask,
   onOpenEvent,
+  onChangeTaskDue,
+  onDeleteTask,
+  onSelectDay,
   onCreateEvent,
   onCreateTask,
   onOpenSettings,
@@ -70,6 +85,7 @@ export default function SpacePanel({
 }: SpacePanelProps) {
   const [composerOpen, setComposerOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [tab, setTab] = useState<PanelTab>("overview");
 
   // Reset the task composer when the panel swaps to a different Space or Group
   // (the recommended "adjust state during render" pattern, not an effect).
@@ -79,6 +95,7 @@ export default function SpacePanel({
     setRenderedKey(key);
     setComposerOpen(false);
     setNewTitle("");
+    setTab("overview");
   }
 
   async function handleCreateTask(e: FormEvent) {
@@ -98,6 +115,25 @@ export default function SpacePanel({
     >
       <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings}>
         {groupNav && groupNav.groups.length > 0 && <PanelGroupChips subject={subject} nav={groupNav} />}
+        <div role="tablist" aria-label="Panel sections" className="-mb-px mt-2 flex gap-[18px]">
+          {TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={cn(
+                "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                tab === id
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </SpacePanelHeader>
 
       {/* Body: scrolls independently; sections self-omit when empty, and
@@ -118,58 +154,62 @@ export default function SpacePanel({
             onStay={onStay}
           />
         )}
-        <div className="px-4 py-3">
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={(e) => onCreateEvent(e.currentTarget.getBoundingClientRect())}
-              className={ADD_BUTTON_CLS}
+        {tab === "overview" && (
+          <>
+            <PanelWeekLoad days={weekLoad} color={subject.color} scopeName={subject.name} onSelectDay={onSelectDay} />
+            <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} onCreateEvent={onCreateEvent} />
+            <PanelTasksSection
+              tasks={tasks}
+              scope={subject.kind === "group" ? "Group" : "Space"}
+              onToggleComplete={onToggleComplete}
+              onOpenTask={onOpenTask}
+              onChangeDue={onChangeTaskDue}
+              onDelete={onDeleteTask}
+              onAddTask={() => setComposerOpen(true)}
             >
-              <Plus className="size-3.5" />
-              Add event
-            </button>
-            <button type="button" onClick={() => setComposerOpen(true)} className={ADD_BUTTON_CLS}>
-              <Plus className="size-3.5" />
-              Add task
-            </button>
-          </div>
-          {composerOpen && (
-            <form onSubmit={handleCreateTask} className="mt-2">
-              <input
-                autoFocus
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    // Keep PanelShell from also closing the whole panel.
-                    e.stopPropagation();
-                    setComposerOpen(false);
-                    setNewTitle("");
-                  }
-                }}
-                onBlur={() => {
-                  if (!newTitle.trim()) setComposerOpen(false);
-                }}
-                aria-label="New task title"
-                placeholder="New task"
-                className={cn(APP_INPUT_CLS, "w-full")}
-              />
-            </form>
-          )}
-        </div>
-        {upcoming.length === 0 && tasks.length === 0 && !composerOpen ? (
-          <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">
-            Nothing coming up in {subject.name}. Events and tasks you add here show up in this panel.
-          </p>
-        ) : null}
-        <PanelWeekLoad days={weekLoad} color={subject.color} scopeName={subject.name} />
-        <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} />
-        <PanelTasksSection
-          tasks={tasks}
-          scope={subject.kind === "group" ? "Group" : "Space"}
-          onToggleComplete={onToggleComplete}
-          onOpenTask={onOpenTask}
-        />
+              {composerOpen && (
+                <form onSubmit={handleCreateTask} className="mt-2">
+                  <input
+                    autoFocus
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        // Keep PanelShell from also closing the whole panel.
+                        e.stopPropagation();
+                        setComposerOpen(false);
+                        setNewTitle("");
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!newTitle.trim()) setComposerOpen(false);
+                    }}
+                    aria-label="New task title"
+                    placeholder="New task"
+                    className={cn(APP_INPUT_CLS, "w-full")}
+                  />
+                </form>
+              )}
+            </PanelTasksSection>
+            <section aria-label="Resources summary" className="px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setTab("resources")}
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span>
+                  <span className="block text-[12px] font-semibold text-muted-foreground">Files and links</span>
+                  <span className="mt-1 block text-[13px] text-foreground">Open Resources</span>
+                </span>
+                <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
+              </button>
+            </section>
+          </>
+        )}
+        {tab === "resources" && <PanelResourcesTab kindWord={subject.kind === "group" ? "Group" : "Space"} />}
+        {tab === "alerts" && (
+          <PanelAlertsTab name={subject.name} kindWord={subject.kind === "group" ? "Group" : "Space"} />
+        )}
       </div>
 
       <SpacePanelFooter
