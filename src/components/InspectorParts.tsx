@@ -24,9 +24,9 @@ export function DetailRow({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex min-h-12 items-center gap-3 border-t border-border", className)}>
-      <label htmlFor={labelFor} className="flex w-22 shrink-0 items-center gap-2 text-[13px] text-muted-foreground">
-        <span aria-hidden className="shrink-0 [&>svg]:size-[15px]">
+    <div className={cn("flex min-h-10 items-center gap-3 border-t border-border", className)}>
+      <label htmlFor={labelFor} className="flex w-20 shrink-0 items-center gap-2 text-xs text-muted-foreground">
+        <span aria-hidden className="shrink-0 [&>svg]:size-3.5">
           {icon}
         </span>
         {label}

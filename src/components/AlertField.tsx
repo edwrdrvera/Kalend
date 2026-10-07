@@ -35,7 +35,7 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         className={cn(
           APP_INPUT_CLS,
           "w-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
-          inline && "h-8 border-transparent bg-transparent px-0 text-sm"
+          inline && "h-7 border-transparent bg-transparent px-0 text-[13px]"
         )}
       >
         <option value="">None</option>
