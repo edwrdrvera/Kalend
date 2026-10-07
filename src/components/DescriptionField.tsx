@@ -57,7 +57,7 @@ export function DescriptionTextarea({
 }
 
 export const ADD_DESCRIPTION_CLS =
-  "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
+  "flex w-fit items-center gap-1 rounded-md text-[11.5px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
 
 /** A description box that is always shown, empty or not. With `formatted`,
  *  saved text renders as formatted notes until clicked. */
