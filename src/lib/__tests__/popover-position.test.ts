@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { computePopoverSide } from "../popover-position";
+import { clampPopoverTop, computePopoverSide } from "../popover-position";
 
 /** Minimal rect shape the function actually reads. */
 type Rect = { left: number; right: number };
@@ -42,5 +42,21 @@ describe("computePopoverSide", () => {
     const anchor: Rect = { left: 20, right: 60 };
     const container: Rect = { left: 0, right: 375 };
     expect(computePopoverSide(anchor, container)).toBe("right");
+  });
+});
+
+describe("clampPopoverTop", () => {
+  it("centers the panel on the anchor when there is room above and below", () => {
+    // center 400, height 200 → top 300, bottom 500 within 800px viewport
+    expect(clampPopoverTop(400, 200, 800)).toBe(300);
+  });
+
+  it("keeps the panel off the bottom edge when a tall panel would overflow", () => {
+    // center 780, height 300 → raw top 630, bottom 930 overflows 800px
+    expect(clampPopoverTop(780, 300, 800)).toBe(800 - 300 - 8);
+  });
+
+  it("keeps the panel below the top margin when the anchor is near the top", () => {
+    expect(clampPopoverTop(20, 200, 800)).toBe(8);
   });
 });
