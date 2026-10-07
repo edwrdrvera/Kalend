@@ -15,6 +15,7 @@ export function reconcileDetachedTasks(
       color: saved.color,
       color_overridden: saved.color_overridden,
       category_id: saved.category_id,
+      group_id: saved.group_id,
     } : task;
   });
 }

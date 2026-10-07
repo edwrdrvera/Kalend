@@ -4,7 +4,7 @@
  * The app's db client bypasses RLS (see `src/db/CLAUDE.md`), so the only thing
  * keeping one user's rows away from another is the `eq(<table>.user_id,
  * user.id)` filter hand-written into every query. A query over `events`,
- * `tasks`, `categories`, or `alerts` that does not reach a `.where(...)` holding that
+ * `tasks`, `categories`, `alerts`, or `groups` that does not reach a `.where(...)` holding that
  * filter is a potential cross-tenant leak, and that includes a query with no
  * `.where` at all. An insert into those tables must chain `.values(...)` with
  * `user_id: user.id` written inline in every row, so a row can't be written
@@ -26,7 +26,7 @@
  * exception means changing this rule, where the change gets reviewed.
  */
 
-const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts"]);
+const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;

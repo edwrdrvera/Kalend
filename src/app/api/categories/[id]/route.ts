@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
 import { events } from "@/db/schema/events";
+import { groups } from "@/db/schema/groups";
 import { tasks } from "@/db/schema/tasks";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import * as field from "@/lib/api/parse-fields";
@@ -104,6 +105,7 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
         .update(events)
         .set({
           category_id: null,
+          group_id: null,
           color: event.color_overridden ? event.color : (ownedCategory.color ?? event.color),
         })
         .where(and(eq(events.id, event.id), eq(events.user_id, user.id)))
@@ -117,6 +119,7 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
         .update(tasks)
         .set({
           category_id: null,
+          group_id: null,
           color: task.color_overridden ? task.color : (ownedCategory.color ?? task.color),
         })
         .where(and(eq(tasks.id, task.id), eq(tasks.user_id, user.id)))
@@ -124,24 +127,31 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
       if (detached) detachedTasks.push(detached);
     }
 
+    // Items already left their Groups above, so none can still point at one.
+    const removedGroups = await tx
+      .delete(groups)
+      .where(and(eq(groups.category_id, id), eq(groups.user_id, user.id)))
+      .returning();
+
     const [deletedCategory] = await tx
       .delete(categories)
       .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
       .returning();
     if (!deletedCategory) throw new Error("Space disappeared during deletion");
-    return { deletedCategory, detachedEvents, detachedTasks };
+    return { deletedCategory, detachedEvents, detachedTasks, removedGroups };
   }));
 
   if (!result) {
     return fail("Space not found", 404);
   }
 
-  // Non-standard envelope: the detached events and tasks ride alongside the
-  // deleted Space so the client can reconcile their colors without a refetch.
+  // Non-standard envelope: the detached events and tasks, and the Groups removed
+  // with the Space, ride alongside it so the client can reconcile without a refetch.
   return NextResponse.json({
     success: true,
     data: result.deletedCategory,
     events: result.detachedEvents,
     tasks: result.detachedTasks,
+    groups: result.removedGroups,
   });
 });

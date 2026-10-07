@@ -14,6 +14,7 @@ import TaskInspector from "./TaskInspector";
 import EventInspector from "./EventInspector";
 import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
+import GroupEditorDialog, { type GroupEditorTarget } from "./GroupEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
 import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
 import { Button } from "@/components/ui/button";
@@ -26,13 +27,13 @@ import {
 import { cn } from "@/lib/utils";
 import type { CalendarView } from "./ViewSwitcher";
 import type { AlertOffset } from "@/lib/alerts";
-import type { CalendarEvent, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
+import type { CalendarEvent, CalendarGroup, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
-import { branchesForSpace, branchesForSpaces, findBranch } from "@/lib/branch-stub";
 import type { InspectorNav } from "./InspectorParts";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useTasks } from "@/hooks/useTasks";
 import { useCategories } from "@/hooks/useCategories";
+import { useGroups } from "@/hooks/useGroups";
 import { useEventEditor } from "@/hooks/useEventEditor";
 import { useEventSelection } from "@/hooks/useEventSelection";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
@@ -42,6 +43,7 @@ import { useAlerts } from "@/hooks/useAlerts";
 import { useAlertItemOpener } from "@/hooks/useAlertItemOpener";
 import AlertMessages from "./AlertMessages";
 import { initialSpaceFocus, isEmphasized, spaceFocusReducer } from "@/lib/space-focus";
+import { membershipForSubject } from "@/lib/panel-subject";
 
 function ErrorToast({
   message,
@@ -99,6 +101,8 @@ export default function Calendar() {
 
   // Space create/edit dialog: null when closed, else the open target.
   const [spaceEditor, setSpaceEditor] = useState<SpaceEditorTarget | null>(null);
+  // Group create/rename/delete dialog: null when closed.
+  const [groupEditor, setGroupEditor] = useState<GroupEditorTarget | null>(null);
   // Right-click context menu (day/slot/event), and quick task creation.
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -109,19 +113,25 @@ export default function Calendar() {
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
   const selection = useEventSelection(events);
+  const groups = useGroups((_releasedEvents, _releasedTasks, groupId) => {
+    events.reconcileGroupRemoval(groupId);
+    tasks.reconcileGroupRemoval(groupId);
+  });
   const categories = useCategories(
     (detachedEvents, detachedTasks, categoryId) => {
       events.reconcileSpaceRemoval(detachedEvents, categoryId);
       tasks.reconcileSpaceRemoval(detachedTasks, categoryId);
+      groups.reconcileSpaceRemoval(categoryId);
       dispatchSpaceFocus({ type: "deleted", spaceId: categoryId });
     }
   );
-  const panel = useSpacePanel(categories.data, tasks.data, events.data, dispatchSpaceFocus);
+  const panel = useSpacePanel(categories.data, groups.data, tasks.data, events.data, dispatchSpaceFocus);
 
   const handleRetry = () => {
     events.retry();
     tasks.retry();
     categories.retry();
+    groups.retry();
   };
 
   // Selecting a day (from the mini calendar, or any of the main grids) also
@@ -238,11 +248,30 @@ export default function Calendar() {
   const agendaEvents = events.data.filter((event) => isEmphasized(event, spaceFocus));
   const agendaTasks = tasks.data.filter((task) => isEmphasized(task, spaceFocus));
 
-  // All branches, for the agenda list.
-  const branches = branchesForSpaces(categories.data);
-  const { activeBranch, activeTask, activeEvent } = panel;
+  const { subject, activeTask, activeEvent } = panel;
   const rightPanelOpen =
-    activeBranch !== null || panel.allTasksOpen || activeTask !== null || activeEvent !== null;
+    subject !== null || panel.allTasksOpen || activeTask !== null || activeEvent !== null;
+
+  const openGroupEditor = (group: CalendarGroup) => {
+    const space = categories.data.find((c) => c.id === group.category_id);
+    if (!space) return;
+    setGroupEditor({
+      mode: "edit",
+      group,
+      spaceName: space.name,
+      eventCount: events.data.filter((e) => e.group_id === group.id).length,
+      taskCount: tasks.data.filter((t) => t.group_id === group.id).length,
+    });
+  };
+  // The panel closes only after the server confirmed the delete.
+  const handleDeleteGroup = async (group: CalendarGroup) => {
+    await groups.deleteGroup(group);
+    panel.groupDeleted(group.id);
+  };
+  const openGroupCreator = (spaceId: string) => {
+    const space = categories.data.find((c) => c.id === spaceId);
+    if (space) setGroupEditor({ mode: "create", spaceId, spaceName: space.name });
+  };
 
   // Close only after the server confirms, so a failed delete brings the task
   // back with its details still open.
@@ -283,7 +312,7 @@ export default function Calendar() {
   };
 
   const handleSaveSpaceDescription = async (description: string | null) => {
-    const space = categories.data.find((c) => c.id === activeBranch?.spaceId);
+    const space = categories.data.find((c) => c.id === subject?.spaceId);
     return space ? categories.updateCategory(space, { description }) : false;
   };
 
@@ -293,27 +322,30 @@ export default function Calendar() {
     panel.close();
   };
 
-  const inspectorNav = (categoryId: string | null): InspectorNav => {
+  const inspectorNav = (categoryId: string | null, groupId: string | null): InspectorNav => {
     const category = categories.data.find((c) => c.id === categoryId);
-    const spaceBranch = category ? branchesForSpace(category)[0] : null;
+    const group = groups.data.find((g) => g.id === groupId);
     const { backTarget } = panel;
     const backLabel =
       backTarget?.kind === "allTasks"
         ? "All tasks"
-        : backTarget
-          ? (findBranch(categories.data, backTarget.branchId)?.name ?? null)
-          : null;
+        : backTarget?.kind === "space"
+          ? (categories.data.find((c) => c.id === backTarget.spaceId)?.name ?? null)
+          : backTarget?.kind === "group"
+            ? (groups.data.find((g) => g.id === backTarget.groupId)?.name ?? null)
+            : null;
     return {
-      space: category && spaceBranch ? { name: category.name, onOpen: () => panel.openBranch(spaceBranch) } : null,
+      space: category ? { name: category.name, onOpen: () => panel.openSpace(category.id) } : null,
+      group: group ? { name: group.name, onOpen: () => panel.openGroup(group) } : null,
       back: backLabel ? { label: backLabel, onBack: panel.back } : null,
     };
   };
 
   const renderRightPanel = (modal: boolean) => {
-    if (activeBranch) {
+    if (subject) {
       return (
         <SpacePanel
-          branch={activeBranch}
+          subject={subject}
           tasks={panel.panelTasks}
           upcoming={panel.panelUpcoming}
           modal={modal}
@@ -321,9 +353,17 @@ export default function Calendar() {
           onToggleComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
           onOpenEvent={panel.openEvent}
-          onCreateEvent={(anchor) => editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor)}
-          onCreateTask={(title) => tasks.createTask(title, undefined, activeBranch.spaceId)}
-          onOpenSettings={() => handleEditSpaceById(activeBranch.spaceId)}
+          onCreateEvent={(anchor) =>
+            editor.openCreate(startOfHour(addHours(new Date(), 1)), anchor, membershipForSubject(subject))
+          }
+          onCreateTask={(title) => tasks.createTask(title, undefined, membershipForSubject(subject))}
+          onOpenSettings={() => {
+            if (subject.kind === "space") handleEditSpaceById(subject.spaceId);
+            else {
+              const group = groups.data.find((g) => g.id === subject.groupId);
+              if (group) openGroupEditor(group);
+            }
+          }}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
           navigationPending={panel.navigationPending}
@@ -337,6 +377,7 @@ export default function Calendar() {
         <AllTasksPanel
           tasks={tasks.data}
           categories={categories.data}
+          groups={groups.data}
           selectedSpaceId={selectedSpaceId}
           modal={modal}
           onClose={panel.close}
@@ -353,8 +394,9 @@ export default function Calendar() {
           task={activeTask}
           alertOffset={itemAlerts.byItem.get(activeTask.id)?.offset_minutes ?? null}
           categories={categories.data}
+          groups={groups.data}
           modal={modal}
-          nav={inspectorNav(activeTask.category_id)}
+          nav={inspectorNav(activeTask.category_id, activeTask.group_id)}
           onClose={panel.close}
           onSave={handleSaveTask}
           onToggleComplete={tasks.toggleComplete}
@@ -373,8 +415,9 @@ export default function Calendar() {
           event={activeEvent}
           alertOffset={itemAlerts.byItem.get(activeEvent.id)?.offset_minutes ?? null}
           categories={categories.data}
+          groups={groups.data}
           modal={modal}
-          nav={inspectorNav(activeEvent.category_id)}
+          nav={inspectorNav(activeEvent.category_id, activeEvent.group_id)}
           onClose={panel.close}
           onSave={handleSaveEvent}
           onDelete={handleDeleteEvent}
@@ -390,11 +433,12 @@ export default function Calendar() {
 
   return (
     <div className="relative flex h-full w-full overflow-hidden bg-card text-foreground">
-        {(events.error || tasks.error || categories.error) && (
+        {(events.error || tasks.error || categories.error || groups.error) && (
           <div className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-col gap-2">
             {events.error && <ErrorToast message={events.error} onDismiss={() => events.setError(null)} onRetry={handleRetry} />}
             {tasks.error && <ErrorToast message={tasks.error} onDismiss={() => tasks.setError(null)} onRetry={handleRetry} />}
             {categories.error && <ErrorToast message={categories.error} onDismiss={() => categories.setError(null)} onRetry={handleRetry} />}
+            {groups.error && <ErrorToast message={groups.error} onDismiss={() => groups.setError(null)} onRetry={handleRetry} />}
           </div>
         )}
         <CalendarSidebar
@@ -415,9 +459,12 @@ export default function Calendar() {
           onSelectSpace={panel.selectSpace}
           onCreateSpace={() => setSpaceEditor({ mode: "create" })}
           onEditSpace={(category) => setSpaceEditor({ mode: "edit", category })}
-          branches={branches}
-          activeBranchId={panel.activeBranchId}
-          onOpenBranch={panel.openBranch}
+          groups={groups.data}
+          activeSubject={subject}
+          onOpenSpace={panel.openSpace}
+          onOpenGroup={panel.openGroup}
+          onCreateGroup={openGroupCreator}
+          onEditGroup={openGroupEditor}
           accountMenu={
             <SettingsMenu
               triggerLabel="Account"
@@ -567,7 +614,9 @@ export default function Calendar() {
           initialStart={editor.target.start}
           initialEnd={editor.target.end ?? undefined}
           initialSpaceId={editor.target.initialSpaceId}
+          initialGroupId={editor.target.initialGroupId}
           categories={categories.data}
+          groups={groups.data}
           onSubmit={editor.submit}
           onClose={editor.close}
           submitting={editor.submitting}
@@ -577,6 +626,7 @@ export default function Calendar() {
 
       <SpaceEditorDialog
         target={spaceEditor}
+        groups={groups.data}
         onOpenChange={(open) => {
           if (!open) setSpaceEditor(null);
         }}
@@ -585,9 +635,20 @@ export default function Calendar() {
         onDelete={categories.deleteCategory}
       />
 
+      <GroupEditorDialog
+        target={groupEditor}
+        onOpenChange={(open) => {
+          if (!open) setGroupEditor(null);
+        }}
+        onCreate={groups.createGroup}
+        onRename={groups.renameGroup}
+        onDelete={handleDeleteGroup}
+      />
+
       <TaskCreateDialog
         day={taskCreateDay}
         categories={categories.data}
+        groups={groups.data}
         initialSpaceId={selectedSpaceId}
         onCreate={tasks.createTask}
         onOpenChange={(open) => {

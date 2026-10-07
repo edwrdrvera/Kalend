@@ -27,6 +27,7 @@ function makeEvent(): CalendarEvent {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     location: null,
     icon: null,
     description: null,

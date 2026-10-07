@@ -1,6 +1,7 @@
 /** An overview an item can be opened from, and that Back returns to. */
 export type PanelOverview =
-  | { kind: "branch"; branchId: string; spaceId: string }
+  | { kind: "space"; spaceId: string }
+  | { kind: "group"; groupId: string; spaceId: string }
   | { kind: "allTasks" };
 
 export type PanelSelection =
@@ -10,7 +11,8 @@ export type PanelSelection =
 
 /** A request that would replace or close the current selection. */
 export type PanelNavigation =
-  | { type: "openBranch"; branchId: string; spaceId: string }
+  | { type: "openSpace"; spaceId: string }
+  | { type: "openGroup"; groupId: string; spaceId: string }
   | { type: "openAllTasks" }
   | { type: "openTask"; taskId: string }
   | { type: "openEvent"; eventId: string }
@@ -19,7 +21,7 @@ export type PanelNavigation =
   | { type: "close" }
   | { type: "spaceChanged"; spaceId: string | null };
 
-export interface BranchPanelState {
+export interface PanelState {
   active: PanelSelection | null;
   /** True while the open editor holds unsaved edits. */
   dirty: boolean;
@@ -27,13 +29,13 @@ export interface BranchPanelState {
   pending: PanelNavigation | null;
 }
 
-export const initialBranchPanelState: BranchPanelState = {
+export const initialPanelState: PanelState = {
   active: null,
   dirty: false,
   pending: null,
 };
 
-export type BranchPanelAction =
+export type PanelAction =
   | PanelNavigation
   | { type: "setDirty"; dirty: boolean }
   /** Carry out the pending navigation: the edits were saved or discarded. */
@@ -41,7 +43,9 @@ export type BranchPanelAction =
   /** Drop the pending navigation and keep editing. */
   | { type: "stay" }
   /** The open task or event no longer exists, so its unsaved edits can't block anything. */
-  | { type: "itemGone" };
+  | { type: "itemGone" }
+  /** A Group was deleted: its overview closes, and an item opened from it loses that Back target. */
+  | { type: "groupGone"; groupId: string };
 
 function backTargetCarriedFrom(active: PanelSelection | null): PanelOverview | null {
   if (active === null) return null;
@@ -52,10 +56,14 @@ function backTargetCarriedFrom(active: PanelSelection | null): PanelOverview | n
 // the reducer tells a no-op apart from a navigation the dirty guard must hold.
 function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSelection | null {
   switch (nav.type) {
-    case "openBranch":
-      return active?.kind === "branch" && active.branchId === nav.branchId
+    case "openSpace":
+      return active?.kind === "space" && active.spaceId === nav.spaceId
         ? active
-        : { kind: "branch", branchId: nav.branchId, spaceId: nav.spaceId };
+        : { kind: "space", spaceId: nav.spaceId };
+    case "openGroup":
+      return active?.kind === "group" && active.groupId === nav.groupId
+        ? active
+        : { kind: "group", groupId: nav.groupId, spaceId: nav.spaceId };
     case "openAllTasks":
       return active?.kind === "allTasks" ? active : { kind: "allTasks" };
     case "openTask":
@@ -71,21 +79,38 @@ function navigate(active: PanelSelection | null, nav: PanelNavigation): PanelSel
     case "close":
       return null;
     case "spaceChanged":
-      // All tasks and a task's details span every Space, so changing the
-      // Space filter leaves them open. A Branch belongs to one Space.
-      return active?.kind === "branch" ? null : active;
+      // All tasks and a task's details span every Space, so changing the Space
+      // filter leaves them open. A Space overview is replaced by the new focus,
+      // and a Group overview stays only while its own Space is the focus.
+      if (active?.kind === "space") return null;
+      if (active?.kind === "group") return active.spaceId === nav.spaceId ? active : null;
+      return active;
   }
 }
 
-export function branchPanelReducer(
-  state: BranchPanelState,
-  action: BranchPanelAction
-): BranchPanelState {
+export function panelReducer(
+  state: PanelState,
+  action: PanelAction
+): PanelState {
   switch (action.type) {
     case "setDirty":
       return state.dirty === action.dirty ? state : { ...state, dirty: action.dirty };
     case "stay":
       return state.pending ? { ...state, pending: null } : state;
+    case "groupGone": {
+      const { active } = state;
+      if (active?.kind === "group" && active.groupId === action.groupId) {
+        return { active: null, dirty: false, pending: null };
+      }
+      if (
+        (active?.kind === "task" || active?.kind === "event") &&
+        active.from?.kind === "group" &&
+        active.from.groupId === action.groupId
+      ) {
+        return { ...state, active: { ...active, from: null } };
+      }
+      return state;
+    }
     case "itemGone":
       if (!state.dirty && !state.pending) return state;
       return {
@@ -109,43 +134,45 @@ export function branchPanelReducer(
 // Persistence
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = "kalend.branchPanel";
+const STORAGE_KEY = "kalend.panel";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isStoredBranch(
+function isStoredOverview(
   value: unknown
-): value is Extract<PanelSelection, { kind: "branch" }> {
-  return (
-    isPlainObject(value) &&
-    value.kind === "branch" &&
-    typeof value.branchId === "string" &&
-    typeof value.spaceId === "string"
-  );
+): value is Extract<PanelSelection, { kind: "space" | "group" }> {
+  if (!isPlainObject(value)) return false;
+  if (value.kind === "space") return typeof value.spaceId === "string";
+  return value.kind === "group" && typeof value.groupId === "string" && typeof value.spaceId === "string";
 }
 
-// Only a Branch overview is restored after a reload. Every other view, and any
-// unrecognized stored value, loads as a closed panel.
-export function loadBranchPanelState(): BranchPanelState {
+// Only a Space or Group overview is restored after a reload. Every other view,
+// and any unrecognized stored value (including what an earlier version wrote
+// under another key, which is never read), loads as a closed panel.
+export function loadPanelState(): PanelState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialBranchPanelState;
+    if (!raw) return initialPanelState;
     const parsed: unknown = JSON.parse(raw);
-    if (!isPlainObject(parsed) || !isStoredBranch(parsed.active)) {
-      return initialBranchPanelState;
-    }
-    const { branchId, spaceId } = parsed.active;
-    return { ...initialBranchPanelState, active: { kind: "branch", branchId, spaceId } };
+    if (!isPlainObject(parsed) || !isStoredOverview(parsed.active)) return initialPanelState;
+    const { active } = parsed;
+    return {
+      ...initialPanelState,
+      active:
+        active.kind === "space"
+          ? { kind: "space", spaceId: active.spaceId }
+          : { kind: "group", groupId: active.groupId, spaceId: active.spaceId },
+    };
   } catch {
-    return initialBranchPanelState;
+    return initialPanelState;
   }
 }
 
-export function saveBranchPanelState(state: BranchPanelState): void {
+export function savePanelState(state: PanelState): void {
   const stored = {
-    active: state.active?.kind === "branch" ? state.active : null,
+    active: state.active?.kind === "space" || state.active?.kind === "group" ? state.active : null,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));

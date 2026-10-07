@@ -37,6 +37,7 @@ ruleTester.run("scoped-query", rule, {
     // The tx builder inside a transaction, with .for('update') chained after.
     "db.transaction(async (tx) => tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for('update'))",
     "db.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.user_id, user.id)))",
+    "db.delete(groups).where(and(eq(groups.id, id), eq(groups.user_id, user.id)))",
     "db.update(categories).set({ name }).where(and(eq(categories.id, id), eq(categories.user_id, user.id)))",
     // alerts is user-owned too.
     "db.select().from(alerts).where(and(eq(alerts.id, id), eq(alerts.user_id, user.id)))",
@@ -138,7 +139,10 @@ ruleTester.run("scoped-query", rule, {
     { code: "function evict(id) { cache.delete(id) }", errors: [{ message: /can't tell which table/ }] },
     { code: "db.query.tasks.findMany()", errors: [{ message: /db\.query\.tasks hides its filter/ }] },
     { code: "db.execute(sql`select * from tasks`)", errors: [{ message: /Raw SQL cannot be checked/ }] },
-    // alerts must be scoped like the other user-owned tables.
+    // groups and alerts must be scoped like the other user-owned tables.
+    { code: "db.select().from(groups).where(eq(groups.id, id))", errors: [{ message: /Query over "groups" is missing an eq\(groups\.user_id/ }] },
+    { code: "db.delete(groups).where(eq(groups.category_id, id))", errors: [{ message: /Query over "groups" is missing an eq\(groups\.user_id/ }] },
+    { code: "db.insert(groups).values({ category_id, name })", errors: [{ message: /Insert into "groups" must set user_id: user\.id/ }] },
     { code: "db.select().from(alerts).where(eq(alerts.id, id))", errors: [{ message: /Query over "alerts" is missing an eq\(alerts\.user_id/ }] },
     { code: "db.update(alerts).set({ fired_at: now }).where(isNull(alerts.fired_at))", errors: [{ message: /Query over "alerts" is missing an eq\(alerts\.user_id/ }] },
     { code: "db.insert(alerts).values({ event_id, offset_minutes })", errors: [{ message: /Insert into "alerts" must set user_id: user\.id/ }] },

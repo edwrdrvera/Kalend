@@ -3,7 +3,7 @@ import { act, createElement, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
-import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
+import { panelReducer, initialPanelState } from "@/lib/panel-state";
 import { chooseOption, typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -17,6 +17,7 @@ const TASK: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: null,
+  group_id: null,
 };
 
 let root: Root | null = null;
@@ -47,8 +48,8 @@ async function renderInspector(initial: { task?: CalendarTask; alertOffset?: Ale
   function App() {
     const [task, setTask] = useState(initial.task ?? TASK);
     const [alertOffset, setAlertOffset] = useState<AlertOffset | null>(initial.alertOffset ?? null);
-    const [panel, dispatch] = useReducer(branchPanelReducer, {
-      ...initialBranchPanelState,
+    const [panel, dispatch] = useReducer(panelReducer, {
+      ...initialPanelState,
       active: { kind: "task", taskId: TASK.id, from: null },
     });
     return createElement(
@@ -62,8 +63,9 @@ async function renderInspector(initial: { task?: CalendarTask; alertOffset?: Ale
           task,
           alertOffset,
           categories: [],
+          groups: [],
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (t, patch, wantedAlert) => {
             harness.saves.push(patch);
@@ -240,8 +242,9 @@ describe("TaskInspector", () => {
           task: { ...TASK, due_at: "2026-10-01T23:59:00" },
           alertOffset: null,
           categories: [],
+          groups: [],
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => {},
           onSave: async (_t, patch) => {
             saves.push(patch);

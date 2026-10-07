@@ -1,17 +1,20 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { ensureDOM, renderHook } from "@/test-utils/render-hook";
 import { useSpacePanel } from "@/hooks/useSpacePanel";
-import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
 import { useState, type Dispatch } from "react";
-import { branchesForSpaces } from "@/lib/branch-stub";
 import type { SpaceFocusAction } from "@/lib/space-focus";
 
 ensureDOM();
 
-const STORAGE_KEY = "kalend.branchPanel";
+const STORAGE_KEY = "kalend.panel";
 const SCHOOL: CalendarCategory = { id: "space-1", name: "School", color: "blue", description: null };
+const BIO: CalendarGroup = { id: "group-1", category_id: "space-1", name: "BIO 102" };
 const SAVED = {
-  active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
+  active: { kind: "space", spaceId: "space-1" },
+};
+const SAVED_GROUP = {
+  active: { kind: "group", groupId: "group-1", spaceId: "space-1" },
 };
 
 describe("useSpacePanel", () => {
@@ -19,35 +22,84 @@ describe("useSpacePanel", () => {
 
   it("keeps saved settings through StrictMode's double-run of mount effects", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
-    const { act, unmount } = renderHook(() => useSpacePanel([], [], [], () => {}), { strict: true });
+    const { act, unmount } = renderHook(() => useSpacePanel([], [], [], [], () => {}), { strict: true });
     await act(() => {});
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(SAVED);
     unmount();
   });
 
-  it("reopens the saved branch and selects its Space", async () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
+  it("reopens the saved Group and selects its Space", async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED_GROUP));
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
-    const { result, act, unmount } = renderHook(
-      () => useSpacePanel([SCHOOL], [], [], dispatchSpaceFocus),
-      { strict: true }
+    const { result, act, unmount } = renderHook(() =>
+      useSpacePanel([SCHOOL], [BIO], [], [], dispatchSpaceFocus)
     );
     await act(() => {});
-    expect(result.current.activeBranch?.id).toBe("space-1:default");
-    expect(result.current.activeBranchId).toBe("space-1:default");
+    expect(result.current.subject).toMatchObject({ kind: "group", groupId: "group-1", spaceName: "School" });
     expect(dispatchSpaceFocus).toHaveBeenCalledWith({ type: "select", spaceId: "space-1" });
     unmount();
   });
 
-  it("shows no panel and applies no Space filter when the saved branch's Space is gone", async () => {
+  it("shows no panel for a saved Group that no longer exists", async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED_GROUP));
+    const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
+    const { result, act, unmount } = renderHook(() =>
+      useSpacePanel([SCHOOL], [], [], [], dispatchSpaceFocus)
+    );
+    await act(() => {});
+    expect(result.current.subject).toBeNull();
+    expect(dispatchSpaceFocus).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it("lists a Group's own tasks only, and its Space's tasks include them", async () => {
+    const inGroup: CalendarTask = { ...TASK, id: "t-group", category_id: "space-1", group_id: "group-1" };
+    const direct: CalendarTask = { ...TASK, id: "t-direct", category_id: "space-1", group_id: null };
+    const { result, act, unmount } = renderHook(() =>
+      useSpacePanel([SCHOOL], [BIO], [inGroup, direct], [], () => {})
+    );
+    await act(() => {});
+    await act(() => result.current.openGroup(BIO));
+    expect(result.current.panelTasks.map((t) => t.id)).toEqual(["t-group"]);
+    await act(() => result.current.openSpace("space-1"));
+    expect(result.current.panelTasks.map((t) => t.id)).toEqual(["t-group", "t-direct"]);
+    unmount();
+  });
+
+  it("closes an open Group when it is deleted", async () => {
+    const { result, act, unmount } = renderHook(() =>
+      useSpacePanel([SCHOOL], [BIO], [], [], () => {})
+    );
+    await act(() => {});
+    await act(() => result.current.openGroup(BIO));
+    expect(result.current.subject?.kind).toBe("group");
+    await act(() => result.current.groupDeleted("group-1"));
+    expect(result.current.subject).toBeNull();
+    unmount();
+  });
+
+  it("reopens the saved Space and selects it", async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
+    const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
+    const { result, act, unmount } = renderHook(
+      () => useSpacePanel([SCHOOL], [], [], [], dispatchSpaceFocus),
+      { strict: true }
+    );
+    await act(() => {});
+    expect(result.current.subject).toMatchObject({ kind: "space", spaceId: "space-1" });
+    expect(dispatchSpaceFocus).toHaveBeenCalledWith({ type: "select", spaceId: "space-1" });
+    unmount();
+  });
+
+  it("shows no panel and applies no Space filter when the saved Space is gone", async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(SAVED));
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
     const other: CalendarCategory = { id: "space-2", name: "Work", color: "red", description: null };
     const { result, act, unmount } = renderHook(() =>
-      useSpacePanel([other], [], [], dispatchSpaceFocus)
+      useSpacePanel([other], [], [], [], dispatchSpaceFocus)
     );
     await act(() => {});
-    expect(result.current.activeBranch).toBeNull();
+    expect(result.current.subject).toBeNull();
     expect(dispatchSpaceFocus).not.toHaveBeenCalled();
     unmount();
   });
@@ -60,12 +112,13 @@ describe("useSpacePanel", () => {
     color: null,
     color_overridden: false,
     category_id: null,
+    group_id: null,
   };
 
   it("shows a task's details, and nothing once that task is deleted", async () => {
     const { result, act, unmount } = renderHook(() => {
       const [tasks, setTasks] = useState([TASK]);
-      return { ...useSpacePanel([], tasks, [], () => {}), setTasks };
+      return { ...useSpacePanel([], [], tasks, [], () => {}), setTasks };
     });
     await act(() => {});
     await act(() => result.current.openTask(TASK));
@@ -76,21 +129,21 @@ describe("useSpacePanel", () => {
     unmount();
   });
 
-  it("holds a Branch open request, and its Space focus, while the task editor is dirty", async () => {
+  it("holds a Space open request, and its Space focus, while the task editor is dirty", async () => {
     const dispatchSpaceFocus = mock<Dispatch<SpaceFocusAction>>(() => {});
     const { result, act, unmount } = renderHook(() =>
-      useSpacePanel([SCHOOL], [TASK], [], dispatchSpaceFocus)
+      useSpacePanel([SCHOOL], [], [TASK], [], dispatchSpaceFocus)
     );
     await act(() => {});
     await act(() => result.current.openTask(TASK));
     await act(() => result.current.setEditorDirty(true));
-    await act(() => result.current.openBranch(branchesForSpaces([SCHOOL])[0]));
+    await act(() => result.current.openSpace("space-1"));
     expect(result.current.navigationPending).toBe(true);
     expect(result.current.activeTask).toEqual(TASK);
     expect(dispatchSpaceFocus).not.toHaveBeenCalled();
 
     await act(() => result.current.proceedNavigation());
-    expect(result.current.activeBranchId).toBe("space-1:default");
+    expect(result.current.subject).toMatchObject({ kind: "space", spaceId: "space-1" });
     expect(dispatchSpaceFocus).toHaveBeenCalledWith({ type: "select", spaceId: "space-1" });
     unmount();
   });
@@ -98,7 +151,7 @@ describe("useSpacePanel", () => {
   it("lets the next panel open once a dirty task is deleted elsewhere", async () => {
     const { result, act, unmount } = renderHook(() => {
       const [tasks, setTasks] = useState([TASK]);
-      return { ...useSpacePanel([], tasks, [], () => {}), setTasks };
+      return { ...useSpacePanel([], [], tasks, [], () => {}), setTasks };
     });
     await act(() => {});
     await act(() => result.current.openTask(TASK));

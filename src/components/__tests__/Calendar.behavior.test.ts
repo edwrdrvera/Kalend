@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createElement, act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
 import { chooseOption, testWindow, typeInto } from "./test-dom";
 
 mock.module("next/navigation", () => ({
@@ -34,6 +34,7 @@ function makeEvent(id: string, title: string, hour: number): CalendarEvent {
     color: null,
     color_overridden: false,
     category_id: SPACE.id,
+    group_id: null,
     location: null,
     icon: null,
     description: null,
@@ -54,8 +55,11 @@ const ESSAY: CalendarTask = {
   color: null,
   color_overridden: false,
   category_id: SPACE.id,
+  group_id: null,
 };
 let tasks: CalendarTask[] = [];
+let groups: CalendarGroup[] = [];
+let eventRows: CalendarEvent[] = EVENTS;
 
 type Call = { url: string; method: string; body: unknown };
 let calls: Call[] = [];
@@ -79,6 +83,8 @@ let container: HTMLDivElement | null = null;
 beforeEach(() => {
   calls = [];
   tasks = [];
+  groups = [];
+  eventRows = EVENTS;
   deleteStatus = 200;
   alertClaim = { due: [], missed: [] };
   storedAlerts = [];
@@ -89,8 +95,20 @@ beforeEach(() => {
     const url = String(input);
     const method = init?.method ?? "GET";
     calls.push({ url, method, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-    if (method === "GET" && url === "/api/events") return json({ success: true, data: EVENTS });
+    if (method === "GET" && url === "/api/events") return json({ success: true, data: eventRows });
     if (method === "GET" && url === "/api/tasks") return json({ success: true, data: tasks });
+    if (method === "GET" && url === "/api/groups") return json({ success: true, data: groups });
+    if (method === "POST" && url === "/api/groups") {
+      const body = JSON.parse(String(init?.body));
+      const created: CalendarGroup = { id: "group-new", category_id: body.category_id, name: body.name };
+      groups = [...groups, created];
+      return json({ success: true, data: created }, 201);
+    }
+    if (method === "DELETE" && url.startsWith("/api/groups/")) {
+      const gone = groups.find((g) => `/api/groups/${g.id}` === url);
+      groups = groups.filter((g) => g !== gone);
+      return json({ success: true, data: gone, events: [], tasks: [] });
+    }
     if (method === "GET" && url === "/api/categories") return json({ success: true, data: [SPACE] });
     if (method === "POST" && url === "/api/alerts/claim") return json({ success: true, data: alertClaim });
     if (url === "/api/alerts" && method === "GET") return json({ success: true, data: storedAlerts });
@@ -187,12 +205,23 @@ const eventDetails = () => document.querySelector("[aria-label='Event details']"
 const createPopover = () => document.querySelector("[role='dialog'][aria-label='Create event']");
 const titleField = () => eventDetails()!.querySelector<HTMLInputElement>("#event-inspector-title")!;
 const panelOpen = () => document.querySelector("[aria-label='Close panel']") !== null;
-async function openSchoolBranch() {
+async function selectSchool() {
   await click(document.querySelector("nav [aria-label='School']")!);
+}
+
+async function openSchoolOverview() {
+  await selectSchool();
   const row = [...document.querySelectorAll<HTMLElement>("button")].find(
-    (b) => b.textContent === "School" && b.parentElement?.previousElementSibling?.textContent === "Branches"
+    (b) => b.textContent === "School" && b.parentElement?.previousElementSibling?.textContent === "Groups"
   );
-  if (!row) throw new Error("no School branch row");
+  if (!row) throw new Error("no School row in the Groups list");
+  await click(row);
+}
+
+async function openGroup(name: string) {
+  await selectSchool();
+  const row = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === name);
+  if (!row) throw new Error(`no Group row named ${name}`);
   await click(row);
 }
 
@@ -376,7 +405,7 @@ describe("Calendar behavior", () => {
 
   it("a panel closed before a remount stays closed", async () => {
     await mount();
-    await openSchoolBranch();
+    await openSchoolOverview();
     await click(document.querySelector("[aria-label='Close panel']")!);
     expect(panelOpen()).toBe(false);
 
@@ -384,15 +413,15 @@ describe("Calendar behavior", () => {
     expect(panelOpen()).toBe(false);
   });
 
-  it("after a remount the panel reopens on the branch that was open", async () => {
+  it("after a remount the panel reopens on the Space that was open", async () => {
     await mount();
-    await openSchoolBranch();
+    await openSchoolOverview();
     expect(panelOpen()).toBe(true);
 
     await remount();
     expect(panelOpen()).toBe(true);
-    expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-      active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
+    expect(JSON.parse(localStorage.getItem("kalend.panel")!)).toEqual({
+      active: { kind: "space", spaceId: "space-1" },
     });
   });
 
@@ -421,7 +450,7 @@ describe("Calendar behavior", () => {
   it("the panel is pinned on wide windows and a sheet on narrow ones", async () => {
     testWindow.happyDOM.setInnerWidth(1300);
     await mount();
-    await openSchoolBranch();
+    await openSchoolOverview();
     expect(panelOpen()).toBe(true);
     expect(panelIsSheet()).toBe(false);
 
@@ -458,8 +487,8 @@ describe("Calendar behavior", () => {
 
       await click([...breadcrumb()!.querySelectorAll("button")].find((b) => b.textContent === "School")!);
       expect(isAbsent(eventDetails())).toBe(true);
-      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!)).toEqual({
-        active: { kind: "branch", branchId: "space-1:default", spaceId: "space-1" },
+      expect(JSON.parse(localStorage.getItem("kalend.panel")!)).toEqual({
+        active: { kind: "space", spaceId: "space-1" },
       });
       expect(calendarPosition()).toEqual(before);
     });
@@ -476,14 +505,14 @@ describe("Calendar behavior", () => {
 
     it("Back from an event opened over a Space overview returns to that overview", async () => {
       await mount();
-      await openSchoolBranch();
+      await openSchoolOverview();
       await click(eventBlock("Lecture"));
       expect(eventDetails()).not.toBeNull();
 
       await click(document.querySelector("[aria-label='Back to School']")!);
       expect(isAbsent(eventDetails())).toBe(true);
       expect(panelOpen()).toBe(true);
-      expect(JSON.parse(localStorage.getItem("kalend.branchPanel")!).active?.kind).toBe("branch");
+      expect(JSON.parse(localStorage.getItem("kalend.panel")!).active?.kind).toBe("space");
     });
 
     it("Back waits for the unsaved-edits answer", async () => {
@@ -499,6 +528,109 @@ describe("Calendar behavior", () => {
 
       await click(buttonByText("Discard")!);
       expect(allTasksPanel()).not.toBeNull();
+    });
+  });
+
+  describe("Groups", () => {
+    const BIO: CalendarGroup = { id: "group-bio", category_id: SPACE.id, name: "BIO 102" };
+    const panelHeading = () => document.querySelector("[role='complementary'] h2")?.textContent;
+
+    beforeEach(() => {
+      groups = [BIO];
+      eventRows = [{ ...EVENTS[0], group_id: BIO.id }, EVENTS[1], RETREAT];
+      tasks = [{ ...ESSAY, group_id: BIO.id }, { ...ESSAY, id: "t2", title: "Direct task" }];
+      testWindow.happyDOM.setInnerWidth(1300);
+    });
+
+    it("opens a Group from the selected Space with only its own tasks", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      expect(panelHeading()).toBe("BIO 102");
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+        (b) => b.getAttribute("aria-label")
+      );
+      expect(panelTasks).toEqual(["Open task Essay draft"]);
+    });
+
+    it("the Space overview lists its Group's tasks and its direct tasks once each", async () => {
+      await mount();
+      await openSchoolOverview();
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+        (b) => b.getAttribute("aria-label")
+      );
+      expect(panelTasks.sort()).toEqual(["Open task Direct task", "Open task Essay draft"]);
+    });
+
+    it("remembers an open Group after a remount", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await remount();
+      expect(panelHeading()).toBe("BIO 102");
+      expect(JSON.parse(localStorage.getItem("kalend.panel")!).active).toEqual({
+        kind: "group",
+        groupId: "group-bio",
+        spaceId: "space-1",
+      });
+    });
+
+    it("creating an event from a Group's panel starts in that Group, and the choice can change", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await click(buttonByText("Add event")!);
+      const trigger = () => createPopover()?.querySelector("[aria-label^='Space: ']")?.getAttribute("aria-label");
+      expect(trigger()).toBe("Space: School / BIO 102");
+
+      await click(createPopover()!.querySelector("[aria-label^='Space: ']")!);
+      await click(buttonByText("No Space")!);
+      expect(trigger()).toBe("Space: No Space");
+    });
+
+    it("adding a task from a Group's panel creates it in that Group", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await click(buttonByText("Add task")!);
+      const input = document.querySelector<HTMLInputElement>("[aria-label='New task title']")!;
+      await act(async () => typeInto(input, "Read chapter 4"));
+      await act(async () => {
+        document.querySelector("[role='complementary'] form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      });
+      await settle();
+      const post = calls.find((c) => c.method === "POST" && c.url === "/api/tasks");
+      expect(post?.body).toMatchObject({ title: "Read chapter 4", category_id: "space-1", group_id: "group-bio" });
+    });
+
+    it("the breadcrumb names the Space, the Group and the item", async () => {
+      await mount();
+      await click(eventBlock("Lecture"));
+      expect(document.querySelector("nav[aria-label='Breadcrumb']")?.textContent).toBe("School/BIO 102/Lecture");
+    });
+
+    it("creates a Group from the empty list prompt", async () => {
+      groups = [];
+      await mount();
+      await selectSchool();
+      await click(buttonByText("Create a Group")!);
+      const input = document.querySelector<HTMLInputElement>("[aria-label='Group name']")!;
+      await act(async () => typeInto(input, "HIST 201"));
+      await click(buttonByText("Create")!);
+
+      const post = calls.find((c) => c.method === "POST" && c.url === "/api/groups");
+      expect(post?.body).toEqual({ category_id: "space-1", name: "HIST 201" });
+      expect([...document.querySelectorAll("button")].some((b) => b.textContent === "HIST 201")).toBe(true);
+    });
+
+    it("deleting a Group says what happens, then removes it and closes its panel", async () => {
+      await mount();
+      await openGroup("BIO 102");
+      await click(document.querySelector("[aria-label='Edit Group BIO 102']")!);
+      await click(document.querySelector("[aria-label='Delete Group']")!);
+      const message = document.querySelector("[role='dialog']")?.textContent ?? "";
+      expect(message).toContain("Its 1 event and 1 task stay in School");
+
+      await click(document.querySelector("[aria-label='Confirm delete Group']")!);
+      expect(calls.some((c) => c.method === "DELETE" && c.url === "/api/groups/group-bio")).toBe(true);
+      expect([...document.querySelectorAll("button")].some((b) => b.textContent === "BIO 102")).toBe(false);
+      expect(panelOpen()).toBe(false);
     });
   });
 

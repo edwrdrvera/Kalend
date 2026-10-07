@@ -8,9 +8,10 @@ await import("./test-dom");
 
 const { createRoot } = await import("react-dom/client");
 const { default: SpacePanelHeader } = await import("../SpacePanelHeader");
-const { FIXTURE_BRANCH_FULL, FIXTURE_BRANCH_SPARSE } = await import(
-  "@/lib/branch-fixtures"
-);
+import type { PanelSubject } from "@/lib/panel-subject";
+
+const SPACE: PanelSubject = { kind: "space", spaceId: "school", name: "School", color: "blue", description: "Databases & Information Systems." };
+const GROUP: PanelSubject = { kind: "group", groupId: "cs340", name: "CS 340", spaceId: "school", spaceName: "School", color: "blue" };
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -28,7 +29,7 @@ interface Interactions {
   overflowed: boolean;
 }
 
-async function renderHeader(branch = FIXTURE_BRANCH_FULL) {
+async function renderHeader(subject: PanelSubject = GROUP) {
   const interactions: Interactions = { closed: false, overflowed: false };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -37,7 +38,7 @@ async function renderHeader(branch = FIXTURE_BRANCH_FULL) {
   await act(() =>
     root?.render(
       createElement(SpacePanelHeader, {
-        branch,
+        subject,
         onClose: () => {
           interactions.closed = true;
         },
@@ -55,25 +56,20 @@ function byLabel(label: string): HTMLElement | null {
 }
 
 describe("SpacePanelHeader", () => {
-  it("renders the space name and branch name, leaving the description to the body", async () => {
-    await renderHeader();
+  it("shows the Space name above the Group name, leaving the description to the body", async () => {
+    await renderHeader(GROUP);
 
     expect(container?.textContent).toContain("School");
-    expect(container?.textContent).toContain("CS 340");
+    expect(container?.querySelector("h2")?.textContent).toBe("CS 340");
     expect(container?.textContent).not.toContain("Databases & Information Systems");
   });
 
-  it("renders only the Space name and heading for a sparse branch", async () => {
-    await renderHeader(FIXTURE_BRANCH_SPARSE);
+  it("shows only the Space name as the heading for a Space", async () => {
+    await renderHeader(SPACE);
 
-    const heading = document.querySelector("h2");
-    expect(heading?.textContent).toBe("Weekend plans");
-    // No paragraph other than a possible description should carry text —
-    // simplest check: nothing in the DOM equals a description string.
+    expect(document.querySelector("h2")?.textContent).toBe("School");
     const paragraphs = Array.from(document.querySelectorAll("p"));
-    const spaceNameParagraph = paragraphs.find((p) => p.textContent === "Personal");
-    expect(spaceNameParagraph).toBeDefined();
-    expect(paragraphs.length).toBe(1);
+    expect(paragraphs.map((p) => p.textContent)).toEqual(["Space"]);
   });
 
   it("calls onClose when the close button is clicked", async () => {
@@ -88,10 +84,16 @@ describe("SpacePanelHeader", () => {
   it("calls onOverflow when the overflow button is clicked", async () => {
     const interactions = await renderHeader();
 
-    byLabel("Branch options")?.dispatchEvent(
+    byLabel("Group options")?.dispatchEvent(
       new MouseEvent("click", { bubbles: true })
     );
     expect(interactions.overflowed).toBe(true);
+  });
+
+  it("names the overflow button for what is open", async () => {
+    await renderHeader(SPACE);
+    expect(byLabel("Space options")).not.toBeNull();
+    expect(byLabel("Group options")).toBeNull();
   });
 
   it("has a decorative, aria-hidden color mark", async () => {

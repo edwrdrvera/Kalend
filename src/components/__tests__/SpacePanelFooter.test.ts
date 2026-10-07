@@ -25,12 +25,23 @@ describe("SpacePanelFooter", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     await act(() =>
-      root?.render(createElement(SpacePanelFooter, { onOpenSettings: () => {} }))
+      root?.render(createElement(SpacePanelFooter, { label: "Space settings", onOpenSettings: () => {} }))
     );
 
     const button = document.querySelector('[aria-label="Space settings"]');
     expect(button).not.toBeNull();
     expect(button?.textContent).toContain("Space settings");
+  });
+
+  it("takes its wording from the label, so a Group panel says Group settings", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(() =>
+      root?.render(createElement(SpacePanelFooter, { label: "Group settings", onOpenSettings: () => {} }))
+    );
+    expect(document.querySelector('[aria-label="Group settings"]')?.textContent).toContain("Group settings");
+    expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
   });
 
   it("calls onOpenSettings when clicked", async () => {
@@ -41,6 +52,7 @@ describe("SpacePanelFooter", () => {
     await act(() =>
       root?.render(
         createElement(SpacePanelFooter, {
+          label: "Space settings",
           onOpenSettings: () => {
             opened = true;
           },

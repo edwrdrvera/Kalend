@@ -4,7 +4,7 @@ import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
-import { branchPanelReducer, initialBranchPanelState } from "@/lib/branch-panel-state";
+import { panelReducer, initialPanelState } from "@/lib/panel-state";
 import { chooseOption, typeInto, typeIntoTextarea } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -23,6 +23,7 @@ const EVENT: CalendarEvent = {
   color: "blue",
   color_overridden: false,
   category_id: "space-1",
+  group_id: null,
   location: "Room 204",
   icon: "🧪",
   description: null,
@@ -55,8 +56,8 @@ async function renderInspector(initialAlert: AlertOffset | null = null, base: Ca
     useEffect(() => {
       harness.setEvent = setEvent;
     }, []);
-    const [panel, dispatch] = useReducer(branchPanelReducer, {
-      ...initialBranchPanelState,
+    const [panel, dispatch] = useReducer(panelReducer, {
+      ...initialPanelState,
       active: { kind: "event", eventId: EVENT.id, from: null },
     });
     return createElement(
@@ -70,8 +71,9 @@ async function renderInspector(initialAlert: AlertOffset | null = null, base: Ca
           event,
           alertOffset,
           categories: CATEGORIES,
+          groups: [],
           modal: false,
-          nav: { space: null, back: null },
+          nav: { space: null, group: null, back: null },
           onClose: () => dispatch({ type: "close" }),
           onSave: async (e, values, wantedAlert) => {
             harness.saves.push(values);
@@ -232,6 +234,7 @@ describe("EventInspector", () => {
         color: "blue",
         colorOverridden: false,
         categoryId: "space-1",
+        groupId: null,
         location: "Room 204",
         icon: "🧪",
         description: null,

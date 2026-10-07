@@ -17,6 +17,7 @@ const response: CategoryDeleteApiResponse = {
     color: "green",
     color_overridden: false,
     category_id: null,
+    group_id: null,
     location: null,
     icon: null,
     description: null,
@@ -29,6 +30,7 @@ const response: CategoryDeleteApiResponse = {
     color: "green",
     color_overridden: false,
     category_id: null,
+    group_id: null,
   }],
 };
 

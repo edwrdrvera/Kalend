@@ -11,6 +11,7 @@ function task(id: string, dueAt: Date | null, completed = false): CalendarTask {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
   };
 }
 

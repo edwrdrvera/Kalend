@@ -7,7 +7,7 @@ import type {
   CalendarEvent,
   CalendarTask,
 } from "@/lib/calendar-types";
-import { branchesForSpaces } from "@/lib/branch-stub";
+import type { CalendarGroup } from "@/lib/calendar-types";
 import "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -36,6 +36,7 @@ function makeEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     location: null,
     icon: null,
     ...overrides,
@@ -52,6 +53,7 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     ...overrides,
   };
 }
@@ -79,6 +81,7 @@ afterEach(async () => {
 });
 
 interface RenderOptions {
+  groups?: CalendarGroup[];
   categories?: CalendarCategory[];
   events?: CalendarEvent[];
   tasks?: CalendarTask[];
@@ -91,7 +94,9 @@ interface Interactions {
   eventClicks: string[];
   taskToggles: string[];
   selectedSpaces: (string | null)[];
-  openedBranches: string[];
+  openedSpaces: string[];
+  openedGroups: string[];
+  createdGroups: string[];
   allTasksOpens: number;
 }
 
@@ -100,7 +105,9 @@ async function renderSidebar(options: RenderOptions = {}) {
     eventClicks: [],
     taskToggles: [],
     selectedSpaces: [],
-    openedBranches: [],
+    openedSpaces: [],
+    openedGroups: [],
+    createdGroups: [],
     allTasksOpens: 0,
   };
   container = document.createElement("div");
@@ -127,9 +134,12 @@ async function renderSidebar(options: RenderOptions = {}) {
         onSelectSpace: (id) => interactions.selectedSpaces.push(id),
         onCreateSpace: () => {},
         onEditSpace: () => {},
-        branches: branchesForSpaces(options.categories ?? []),
-        activeBranchId: null,
-        onOpenBranch: (branch) => interactions.openedBranches.push(branch.id),
+        groups: options.groups ?? [],
+        activeSubject: null,
+        onOpenSpace: (id) => interactions.openedSpaces.push(id),
+        onOpenGroup: (group) => interactions.openedGroups.push(group.id),
+        onCreateGroup: (id) => interactions.createdGroups.push(id),
+        onEditGroup: () => {},
       })
     )
   );
@@ -211,18 +221,39 @@ describe("CalendarSidebar collapse", () => {
     expect(byLabel("Collapse sidebar")).not.toBeNull();
   });
 
-  it("opening a Branch does not collapse the agenda", async () => {
+  it("opening a Space does not collapse the agenda", async () => {
     const work = makeCategory({ id: "cat-1", name: "Work" });
     const interactions = await renderSidebar({ categories: [work], selectedSpaceId: "cat-1" });
 
-    const branchButton = [...document.querySelectorAll("button")].find(
+    const spaceButton = [...document.querySelectorAll("button")].find(
       (b) => b.getAttribute("aria-label") === null && b.textContent?.trim() === "Work"
     );
-    expect(branchButton).toBeDefined();
-    await act(() => branchButton?.click());
+    expect(spaceButton).toBeDefined();
+    await act(() => spaceButton?.click());
 
-    expect(interactions.openedBranches).toEqual(["cat-1:default"]);
+    expect(interactions.openedSpaces).toEqual(["cat-1"]);
     expect(document.querySelectorAll('[data-testid="agenda-column"]').length).toBe(2);
+  });
+
+  it("lists only the selected Space's Groups, and opens one", async () => {
+    const work = makeCategory({ id: "cat-1", name: "Work" });
+    const school = makeCategory({ id: "cat-2", name: "School" });
+    const groups: CalendarGroup[] = [
+      { id: "g-web", category_id: "cat-1", name: "Website" },
+      { id: "g-bio", category_id: "cat-2", name: "BIO 102" },
+    ];
+    const interactions = await renderSidebar({ categories: [work, school], groups, selectedSpaceId: "cat-1" });
+
+    const rows = [...document.querySelectorAll("button")].filter((b) => b.textContent === "Website");
+    expect(rows.length).toBeGreaterThan(0);
+    expect([...document.querySelectorAll("button")].some((b) => b.textContent === "BIO 102")).toBe(false);
+    await act(() => rows[0]?.click());
+    expect(interactions.openedGroups).toEqual(["g-web"]);
+  });
+
+  it("shows no Group list while no Space is selected", async () => {
+    await renderSidebar({ categories: [makeCategory({ id: "cat-1", name: "Work" })], selectedSpaceId: null });
+    expect(document.body.textContent).not.toContain("Create a Group");
   });
 });
 

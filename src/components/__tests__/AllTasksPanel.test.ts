@@ -16,6 +16,7 @@ function makeTask(overrides: Partial<CalendarTask> = {}): CalendarTask {
     color: "blue",
     color_overridden: true,
     category_id: null,
+    group_id: null,
     ...overrides,
   };
 }
@@ -50,11 +51,12 @@ async function renderPanel(tasks: CalendarTask[]) {
       createElement(AllTasksPanel, {
         tasks,
         categories: [],
+        groups: [],
         selectedSpaceId: "cat-1",
         modal: false,
         onClose: () => calls.closes++,
         onCreateTask: async (title, _dueAt, categoryId) => {
-          calls.created.push({ title, categoryId });
+          calls.created.push({ title, categoryId: categoryId?.category_id });
         },
         onToggleTaskComplete: (task) => calls.toggled.push(task.id),
         onOpenTask: (task) => calls.opened.push(task.id),

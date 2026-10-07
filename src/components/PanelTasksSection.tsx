@@ -7,6 +7,8 @@ import type { CalendarTask } from "@/lib/calendar-types";
 
 interface PanelTasksSectionProps {
   tasks: CalendarTask[];
+  /** What the list is scoped to, for the caption. */
+  scope: "Space" | "Group";
   onToggleComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
 }
@@ -32,6 +34,7 @@ function dueState(task: CalendarTask, now: Date): DueState {
 
 export default function PanelTasksSection({
   tasks,
+  scope,
   onToggleComplete,
   onOpenTask,
 }: PanelTasksSectionProps) {
@@ -42,10 +45,10 @@ export default function PanelTasksSection({
       <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         Open tasks
       </h3>
-      {/* Distinguishes this Space-wide backlog from the agenda's per-day
+      {/* Distinguishes this Space-wide or Group-wide backlog from the agenda's per-day
           task list: this shows everything still open, regardless of date. */}
       <p className="mt-0.5 text-[11px] text-muted-foreground/70">
-        Everything open in this Space
+        Everything open in this {scope}
       </p>
 
       <div className="mt-1 flex flex-col">

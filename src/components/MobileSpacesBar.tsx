@@ -24,7 +24,7 @@ interface MobileSpacesBarProps {
  * The Spaces control for the mobile slide-out, which has no icon rail. A
  * horizontal, scrollable row of Space chips (tap to filter, tap the active
  * one to clear) plus a create button and the account menu. Editing a Space on
- * mobile happens through its branch panel (overflow), the same as on desktop.
+ * mobile happens through its Space panel (overflow), the same as on desktop.
  */
 export default function MobileSpacesBar({
   categories,

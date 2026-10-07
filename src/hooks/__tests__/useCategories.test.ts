@@ -30,6 +30,7 @@ const DETACHED_EVENT: CalendarEvent = {
   color: "green",
   color_overridden: false,
   category_id: null,
+  group_id: null,
   location: null,
   icon: null,
   description: null,
@@ -43,6 +44,7 @@ const DETACHED_TASK: CalendarTask = {
   color: "green",
   color_overridden: false,
   category_id: null,
+  group_id: null,
 };
 
 // ── Fetch mock ─────────────────────────────────────────────────────────

@@ -1,9 +1,11 @@
 import { db } from "@/db";
 import { tasks } from "@/db/schema/tasks";
-import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
+import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
 import { parseTaskCreate } from "@/lib/api/task-body";
-import { and, eq } from "drizzle-orm";
+import { UNASSIGNED } from "@/lib/membership";
+import { retryTransaction } from "@/lib/transaction-retry";
+import { eq } from "drizzle-orm";
 
 export const GET = withUser(async (_request, _context, user) => {
   const userTasks = await db
@@ -19,40 +21,33 @@ export const POST = withUser(async (request, _context, user) => {
   if (!parsed.ok) return fail(parsed.error, 400);
   const body = parsed.value;
 
-  // This ownership check and the insert below stay two round trips rather
-  // than one combined query. Merging them needs either an insert-from-select
-  // (which requires fabricating id/created_at client-side since Postgres
-  // only applies column defaults to columns omitted from the target list,
-  // not ones populated by a SELECT) or a scalar subquery inside category_id
-  // with a rollback DELETE when it resolves to null. Both trade a well
-  // understood, easily verified query for a harder-to-verify one, for a
-  // saving that's now marginal: both queries hit the same local Postgres
-  // instance, and the auth check that used to precede them (see
-  // getAuthenticatedUser()) no longer costs a network round trip.
-  if (body.category_id) {
-    const [cat] = await db
-      .select()
-      .from(categories)
-      .where(and(eq(categories.id, body.category_id), eq(categories.user_id, user.id)));
-    if (!cat) {
-      return fail("The selected Space is unavailable", 400);
-    }
-  }
+  // The Space (and Group) stay locked until the insert commits, so a delete
+  // cannot slip in between the ownership check and the new task.
+  const result = await retryTransaction(() => db.transaction(async (tx) => {
+    const resolved = await resolveItemMembership(tx, user, UNASSIGNED, {
+      category_id: body.category_id,
+      group_id: body.group_id,
+    });
+    if (!resolved.ok) return resolved;
 
-  const [newTask] = await db
-    .insert(tasks)
-    .values({
-      title: body.title,
-      // Omit the key entirely when no due date was given, instead of
-      // passing `due_at: undefined`, so the column gets a real `null`
-      // rather than an explicit-but-empty insert value.
-      ...(body.due_at != null ? { due_at: body.due_at } : {}),
-      user_id: user.id,
-      color: body.color,
-      color_overridden: body.color_overridden ?? false,
-      category_id: body.category_id ?? null,
-    })
-    .returning();
+    const [newTask] = await tx
+      .insert(tasks)
+      .values({
+        title: body.title,
+        // Omit the key entirely when no due date was given, instead of
+        // passing `due_at: undefined`, so the column gets a real `null`
+        // rather than an explicit-but-empty insert value.
+        ...(body.due_at != null ? { due_at: body.due_at } : {}),
+        user_id: user.id,
+        color: body.color,
+        color_overridden: body.color_overridden ?? false,
+        category_id: resolved.membership.category_id,
+        group_id: resolved.membership.group_id,
+      })
+      .returning();
+    return { ok: true, task: newTask } as const;
+  }));
+  if (!result.ok) return fail(membershipErrorMessage(result.error), 400);
 
-  return ok(newTask, { status: 201 });
+  return ok(result.task, { status: 201 });
 });

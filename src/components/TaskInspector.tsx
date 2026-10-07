@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CalendarCategory, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import type { AlertOffset } from "@/lib/alerts";
 import {
   draftFromTask,
@@ -16,7 +16,8 @@ import {
 } from "@/lib/task-draft";
 import { APP_INPUT_CLS, DateField } from "./DateField";
 import AlertField from "./AlertField";
-import CategorySelect from "./CategorySelect";
+import MembershipSelect from "./MembershipSelect";
+import { membershipOf } from "@/lib/membership";
 import PanelShell from "./PanelShell";
 import {
   FIELD_LABEL_CLS,
@@ -33,6 +34,7 @@ interface TaskInspectorProps {
   /** The task's stored alert, which the draft is compared against. */
   alertOffset: AlertOffset | null;
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   modal: boolean;
   nav: InspectorNav;
   onClose: () => void;
@@ -54,6 +56,7 @@ export default function TaskInspector({
   task,
   alertOffset,
   categories,
+  groups,
   modal,
   nav,
   onClose,
@@ -133,10 +136,11 @@ export default function TaskInspector({
           <span className={FIELD_LABEL_CLS}>
             Space
           </span>
-          <CategorySelect
+          <MembershipSelect
             categories={categories}
-            categoryId={draft.categoryId}
-            onChange={(categoryId) => update({ categoryId })}
+            groups={groups}
+            membership={membershipOf({ category_id: draft.categoryId, group_id: draft.groupId })}
+            onChange={(next) => update({ categoryId: next.category_id, groupId: next.group_id })}
             className="-mx-2 w-fit"
           />
         </div>

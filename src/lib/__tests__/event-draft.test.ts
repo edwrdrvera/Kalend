@@ -18,6 +18,7 @@ const EVENT: CalendarEvent = {
   color: "blue",
   color_overridden: false,
   category_id: null,
+  group_id: null,
   location: null,
   icon: null,
   description: null,
@@ -59,6 +60,7 @@ describe("event draft", () => {
       color: "blue",
       colorOverridden: false,
       categoryId: null,
+      groupId: null,
       location: null,
       icon: null,
       description: null,
@@ -172,6 +174,25 @@ describe("rebaseEventDraft", () => {
     const cleared = { ...draftFromEvent(saved(EVENT, 15)), alertOffset: null };
     const next = rebaseEventDraft(cleared, saved(EVENT, 15), saved(MOVED, 15));
     expect(next.alertOffset).toBeNull();
+  });
+});
+
+describe("event draft Group membership", () => {
+  const IN_GROUP = { ...EVENT, category_id: "space-1", group_id: "bio" };
+
+  it("saves the Space and the Group, and is dirty only when the Group changes", () => {
+    const draft = draftFromEvent(saved(IN_GROUP));
+    expect(eventDraftValues(draft).values).toMatchObject({ categoryId: "space-1", groupId: "bio" });
+    expect(isEventDraftDirty(saved(IN_GROUP), draft)).toBe(false);
+    const left = { ...draft, colorState: { ...draft.colorState, groupId: null } };
+    expect(isEventDraftDirty(saved(IN_GROUP), left)).toBe(true);
+  });
+
+  it("an unedited draft follows a newly saved Group, and an edited one is kept", () => {
+    const moved = { ...IN_GROUP, group_id: "hist" };
+    expect(rebaseEventDraft(draftFromEvent(saved(IN_GROUP)), saved(IN_GROUP), saved(moved)).colorState.groupId).toBe("hist");
+    const edited = { ...draftFromEvent(saved(IN_GROUP)), colorState: { ...draftFromEvent(saved(IN_GROUP)).colorState, groupId: null } };
+    expect(rebaseEventDraft(edited, saved(IN_GROUP), saved(moved)).colorState.groupId).toBeNull();
   });
 });
 

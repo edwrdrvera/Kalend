@@ -17,7 +17,7 @@ import {
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH } from "@/lib/popover-position";
-import type { CalendarCategory } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
@@ -38,7 +38,10 @@ interface EventCreatePopoverProps {
   initialEnd?: Date;
   /** Snapshotted Space focus used only when creating a new event. */
   initialSpaceId?: string | null;
+  /** Snapshotted Group, set when the event is created from a Group's panel. */
+  initialGroupId?: string | null;
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   onSubmit: (values: EventFormValues) => void;
   onClose: () => void;
   submitting?: boolean;
@@ -54,7 +57,9 @@ export default function EventCreatePopover({
   initialStart,
   initialEnd,
   initialSpaceId = null,
+  initialGroupId = null,
   categories,
+  groups,
   onSubmit,
   onClose,
   submitting = false,
@@ -69,7 +74,7 @@ export default function EventCreatePopover({
       description: "",
       startAt: toDateTimeLocal(start),
       endAt: toDateTimeLocal(initialEnd ?? new Date(start.getTime() + DEFAULT_DURATION_MS)),
-      colorState: initialEventColor(null, initialSpaceId),
+      colorState: initialEventColor(null, initialSpaceId, initialGroupId),
       alertOffset: null,
     };
   });
@@ -250,6 +255,7 @@ export default function EventCreatePopover({
           <EventColorSpaceFields
             colorState={draft.colorState}
             categories={categories}
+            groups={groups}
             onChange={(colorState) => update({ colorState })}
           />
 

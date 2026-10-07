@@ -8,6 +8,7 @@ export interface TaskDraft {
   /** "yyyy-MM-dd", or "" for no due date. */
   dueDate: string;
   categoryId: string | null;
+  groupId: string | null;
   /** The one alert the inspector offers. Null means none. */
   alertOffset: AlertOffset | null;
 }
@@ -23,6 +24,7 @@ export function draftFromTask({ task, alertOffset }: SavedTask): TaskDraft {
     title: task.title,
     dueDate: task.due_at ? format(new Date(task.due_at), "yyyy-MM-dd") : "",
     categoryId: task.category_id,
+    groupId: task.group_id,
     alertOffset,
   };
 }
@@ -46,7 +48,11 @@ export function draftPatch(task: CalendarTask, draft: TaskDraft): TaskPatchReque
   if (draft.dueDate !== saved.dueDate) {
     patch.due_at = draft.dueDate ? dueAtFromDate(draft.dueDate) : null;
   }
-  if (draft.categoryId !== saved.categoryId) patch.category_id = draft.categoryId;
+  // The Space and Group travel together, so the server always sees a consistent pair.
+  if (draft.categoryId !== saved.categoryId || draft.groupId !== saved.groupId) {
+    patch.category_id = draft.categoryId;
+    patch.group_id = draft.groupId;
+  }
   return patch;
 }
 
@@ -62,7 +68,8 @@ export function rebaseTaskDraft(draft: TaskDraft, previous: SavedTask, next: Sav
   return {
     title: draft.title.trim() === was.title ? now.title : draft.title,
     dueDate: draft.dueDate === was.dueDate ? now.dueDate : draft.dueDate,
-    categoryId: draft.categoryId === was.categoryId ? now.categoryId : draft.categoryId,
+    categoryId: draft.categoryId === was.categoryId && draft.groupId === was.groupId ? now.categoryId : draft.categoryId,
+    groupId: draft.categoryId === was.categoryId && draft.groupId === was.groupId ? now.groupId : draft.groupId,
     alertOffset: draft.alertOffset === was.alertOffset ? now.alertOffset : draft.alertOffset,
   };
 }

@@ -10,7 +10,7 @@ const spaces = [
 ];
 const event: CalendarEvent = {
   id: "event-1", title: "Lecture", start_at: "2026-09-08T10:00:00Z",
-  end_at: "2026-09-08T11:00:00Z", color: "blue", category_id: "space-1", color_overridden: false,
+  end_at: "2026-09-08T11:00:00Z", color: "blue", category_id: "space-1", group_id: null, color_overridden: false,
   location: null, icon: null,
   description: null,
 };
@@ -20,6 +20,7 @@ describe("event editor Space color transitions", () => {
     expect(initialEventColor(null, "space-1")).toEqual({
       color: "blue",
       categoryId: "space-1",
+      groupId: null,
       colorOverridden: false,
     });
   });
@@ -28,6 +29,7 @@ describe("event editor Space color transitions", () => {
     expect(initialEventColor({ ...event, category_id: null }, "space-2")).toEqual({
       color: "blue",
       categoryId: null,
+      groupId: null,
       colorOverridden: false,
     });
     expect(initialEventColor(event, "space-2").categoryId).toBe("space-1");
@@ -71,13 +73,13 @@ describe("event editor Space color transitions", () => {
   it("unlinking preserves inherited visible color, including after reset", () => {
     const reset = eventColorReducer(initialEventColor({ ...event, color: "orange", color_overridden: true }), { type: "inherit" });
     const detached = eventColorReducer(reset, { type: "space", categoryId: null, categories: spaces });
-    expect(detached).toEqual({ color: "green", categoryId: null, colorOverridden: false });
+    expect(detached).toEqual({ color: "green", categoryId: null, groupId: null, colorOverridden: false });
     expect(resolveDisplayColor(detached.color, detached.categoryId, detached.colorOverridden, [])).toBe("green");
   });
 
   it("unlinking an overridden event preserves the personal color and override", () => {
     const detached = eventColorReducer(initialEventColor({ ...event, color: "orange", color_overridden: true }), { type: "space", categoryId: null, categories: spaces });
-    expect(detached).toEqual({ color: "orange", categoryId: null, colorOverridden: true });
+    expect(detached).toEqual({ color: "orange", categoryId: null, groupId: null, colorOverridden: true });
   });
 
   it("sends explicit override, reset, and unlink intent through the shared create/edit payload", () => {
@@ -108,5 +110,32 @@ describe("Space deletion response reconciliation", () => {
     const reassigned = { ...event, category_id: "space-2", color: "orange", color_overridden: true };
     const result = reconcileDetachedEvents([reassigned], [{ ...event, category_id: null, color: "green" }], "space-1");
     expect(result[0]).toBe(reassigned);
+  });
+});
+
+describe("event editor Group membership", () => {
+  it("starts from the saved Group, or from the Group a new event is created in", () => {
+    expect(initialEventColor({ ...event, group_id: "bio" }).groupId).toBe("bio");
+    expect(initialEventColor(null, "space-1", "bio")).toMatchObject({ categoryId: "space-1", groupId: "bio" });
+    expect(initialEventColor(null, "space-1").groupId).toBeNull();
+  });
+
+  it("picking a Group sets it together with its Space and keeps the color override", () => {
+    const picked = eventColorReducer(initialEventColor(event), { type: "pick", color: "orange" });
+    const grouped = eventColorReducer(picked, { type: "group", groupId: "hist", categoryId: "space-2", categories: spaces });
+    expect(grouped).toMatchObject({ categoryId: "space-2", groupId: "hist", color: "orange", colorOverridden: true });
+  });
+
+  it("picking a Space leaves the Group, even the Space it was already in", () => {
+    const inGroup = initialEventColor({ ...event, group_id: "bio" });
+    expect(eventColorReducer(inGroup, { type: "space", categoryId: "space-1", categories: spaces }).groupId).toBeNull();
+    expect(eventColorReducer(inGroup, { type: "space", categoryId: "space-2", categories: spaces }).groupId).toBeNull();
+  });
+
+  it("choosing no Space freezes the visible color and leaves the Group", () => {
+    const inGroup = initialEventColor({ ...event, group_id: "bio" });
+    expect(eventColorReducer(inGroup, { type: "space", categoryId: null, categories: spaces })).toEqual({
+      color: "green", categoryId: null, groupId: null, colorOverridden: false,
+    });
   });
 });

@@ -4,11 +4,10 @@ import { Calendar, ListTodo, Loader2 } from "lucide-react";
 import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import type { Branch } from "@/lib/branch-types";
 import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
-import BranchList from "./BranchList";
+import GroupList, { type GroupListProps } from "./GroupList";
 import TaskRow from "./TaskRow";
 
 interface AgendaColumnProps {
@@ -22,9 +21,8 @@ interface AgendaColumnProps {
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  branches: Branch[];
-  activeBranchId: string | null;
-  onOpenBranch: (branch: Branch) => void;
+  /** The selected Space's Groups. Null while no Space is selected. */
+  groupNav: GroupListProps | null;
   onOpenAllTasks: () => void;
 }
 
@@ -38,9 +36,7 @@ export default function AgendaColumn({
   onToggleTaskComplete,
   onOpenTask,
   onEventClick,
-  branches,
-  activeBranchId,
-  onOpenBranch,
+  groupNav,
   onOpenAllTasks,
 }: AgendaColumnProps) {
   const dayStart = startOfDay(selectedDate);
@@ -59,7 +55,7 @@ export default function AgendaColumn({
 
   return (
     <div data-testid="agenda-column" className="flex h-full w-full flex-col bg-card">
-      <BranchList branches={branches} activeBranchId={activeBranchId} onOpenBranch={onOpenBranch} />
+      {groupNav && <GroupList {...groupNav} />}
 
       <AgendaDateHeader
         selectedDate={selectedDate}

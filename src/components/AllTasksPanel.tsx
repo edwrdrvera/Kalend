@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
+import type { CalendarCategory, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks, type TaskBucketKey } from "@/lib/task-buckets";
 import { dueAtFromDate } from "@/lib/task-draft";
+import { spaceMembership, type Membership } from "@/lib/membership";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
-import CategorySelect from "./CategorySelect";
+import MembershipSelect from "./MembershipSelect";
 import PanelShell from "./PanelShell";
 import TaskRow from "./TaskRow";
 
@@ -16,11 +17,12 @@ interface AllTasksPanelProps {
   /** Every task across all Spaces; the panel splits open from completed. */
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   /** Seeds a new task's Space. */
   selectedSpaceId: string | null;
   modal: boolean;
   onClose: () => void;
-  onCreateTask: (title: string, dueAt?: string, categoryId?: string | null) => Promise<void>;
+  onCreateTask: (title: string, dueAt?: string, membership?: Membership) => Promise<void>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
 }
@@ -53,16 +55,18 @@ interface TaskDraft {
   title: string;
   showDueDate: boolean;
   dueDate: string;
-  categoryId: string | null;
+  membership: Membership;
 }
 
 function InlineTaskComposer({
   categories,
+  groups,
   selectedSpaceId,
   onCreateTask,
   onClose,
 }: {
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
   selectedSpaceId: string | null;
   onCreateTask: AllTasksPanelProps["onCreateTask"];
   onClose: () => void;
@@ -71,7 +75,7 @@ function InlineTaskComposer({
     title: "",
     showDueDate: false,
     dueDate: "",
-    categoryId: selectedSpaceId,
+    membership: spaceMembership(selectedSpaceId),
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +96,7 @@ function InlineTaskComposer({
 
     try {
       const dueAt = draft.dueDate ? dueAtFromDate(draft.dueDate) : undefined;
-      await onCreateTask(draft.title.trim(), dueAt, draft.categoryId);
+      await onCreateTask(draft.title.trim(), dueAt, draft.membership);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create task");
@@ -130,10 +134,11 @@ function InlineTaskComposer({
             + due date
           </button>
         )}
-        <CategorySelect
+        <MembershipSelect
           categories={categories}
-          categoryId={draft.categoryId}
-          onChange={(categoryId) => setDraft({ ...draft, categoryId })}
+          groups={groups}
+          membership={draft.membership}
+          onChange={(membership) => setDraft({ ...draft, membership })}
         />
       </div>
 
@@ -215,6 +220,7 @@ const ICON_BUTTON_CLS =
 export default function AllTasksPanel({
   tasks,
   categories,
+  groups,
   selectedSpaceId,
   modal,
   onClose,
@@ -279,6 +285,7 @@ export default function AllTasksPanel({
         {composerOpen && (
           <InlineTaskComposer
             categories={categories}
+            groups={groups}
             selectedSpaceId={selectedSpaceId}
             onCreateTask={onCreateTask}
             onClose={() => setComposerOpen(false)}

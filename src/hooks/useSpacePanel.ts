@@ -1,32 +1,27 @@
 import { useEffect, useReducer, useState, type Dispatch } from "react";
-import type { Branch } from "@/lib/branch-types";
-import { resolveBranchTasks } from "@/lib/branch-types";
-import { findBranch } from "@/lib/branch-stub";
+import { resolveSubject, subjectTasks } from "@/lib/panel-subject";
 import { upcomingEventsByDay } from "@/lib/space-overview";
-import {
-  branchPanelReducer,
-  loadBranchPanelState,
-  saveBranchPanelState,
-} from "@/lib/branch-panel-state";
-import type { CalendarEvent, CalendarTask, CalendarCategory } from "@/lib/calendar-types";
+import { panelReducer, loadPanelState, savePanelState } from "@/lib/panel-state";
+import type { CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
 import type { SpaceFocusAction } from "@/lib/space-focus";
 
 type PanelMode = "pinned" | "sheet" | "fullscreen";
 
 export function useSpacePanel(
   categories: CalendarCategory[],
+  groups: CalendarGroup[],
   tasks: CalendarTask[],
   events: CalendarEvent[],
   dispatchSpaceFocus: Dispatch<SpaceFocusAction>
 ) {
   // Read storage in the initializer, not a mount effect: StrictMode's second
   // effect run would restore what the first save had already overwritten.
-  const [branchPanel, dispatch] = useReducer(branchPanelReducer, undefined, loadBranchPanelState);
+  const [panel, dispatch] = useReducer(panelReducer, undefined, loadPanelState);
   const [panelMode, setPanelMode] = useState<PanelMode>("pinned");
 
   useEffect(() => {
-    saveBranchPanelState(branchPanel);
-  }, [branchPanel]);
+    savePanelState(panel);
+  }, [panel]);
 
   useEffect(() => {
     const compute = () => {
@@ -38,10 +33,12 @@ export function useSpacePanel(
     return () => window.removeEventListener("resize", compute);
   }, []);
 
-  const selection = branchPanel.active;
-  const activeBranch =
-    selection?.kind === "branch" ? findBranch(categories, selection.branchId) : null;
-  const activeSpaceId = activeBranch?.spaceId ?? null;
+  const selection = panel.active;
+  const subject =
+    selection?.kind === "space" || selection?.kind === "group"
+      ? resolveSubject(selection, categories, groups)
+      : null;
+  const activeSpaceId = subject?.spaceId ?? null;
 
   useEffect(() => {
     if (activeSpaceId !== null) dispatchSpaceFocus({ type: "select", spaceId: activeSpaceId });
@@ -57,29 +54,30 @@ export function useSpacePanel(
 
   useEffect(() => {
     if (openItemGone) dispatch({ type: "itemGone" });
-  }, [openItemGone, branchPanel.dirty, branchPanel.pending]);
+  }, [openItemGone, panel.dirty, panel.pending]);
 
   return {
     panelMode,
-    activeBranch,
-    activeBranchId: selection?.kind === "branch" ? selection.branchId : null,
+    subject,
     allTasksOpen: selection?.kind === "allTasks",
     // null when the selected task or event was deleted, so the panel renders nothing.
     activeTask,
     activeEvent,
     /** Where Back leads, when the open item came from an overview. */
     backTarget: selection?.kind === "task" || selection?.kind === "event" ? selection.from : null,
-    navigationPending: branchPanel.pending !== null,
-    panelTasks: activeBranch ? resolveBranchTasks(activeBranch, tasks) : [],
-    panelUpcoming: activeBranch ? upcomingEventsByDay(events, activeBranch.spaceId, new Date()) : [],
-    // The Space focus follows through the activeSpaceId effect once the Branch
+    navigationPending: panel.pending !== null,
+    panelTasks: subject ? subjectTasks(subject, tasks) : [],
+    panelUpcoming: subject ? upcomingEventsByDay(events, subject, new Date()) : [],
+    // The Space focus follows through the activeSpaceId effect once the panel
     // actually opens, so a navigation held by unsaved edits changes nothing yet.
-    openBranch: (branch: Branch) =>
-      dispatch({ type: "openBranch", branchId: branch.id, spaceId: branch.spaceId }),
+    openSpace: (spaceId: string) => dispatch({ type: "openSpace", spaceId }),
+    openGroup: (group: CalendarGroup) =>
+      dispatch({ type: "openGroup", groupId: group.id, spaceId: group.category_id }),
     openAllTasks: () => dispatch({ type: "openAllTasks" }),
     openTask: (task: CalendarTask) => dispatch({ type: "openTask", taskId: task.id }),
     openEvent: (event: CalendarEvent) => dispatch({ type: "openEvent", eventId: event.id }),
     back: () => dispatch({ type: "back" }),
+    groupDeleted: (groupId: string) => dispatch({ type: "groupGone", groupId }),
     setEditorDirty: (dirty: boolean) => dispatch({ type: "setDirty", dirty }),
     proceedNavigation: () => dispatch({ type: "proceed" }),
     cancelNavigation: () => dispatch({ type: "stay" }),
