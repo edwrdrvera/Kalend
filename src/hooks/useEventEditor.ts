@@ -3,6 +3,7 @@ import type { EventFormValues } from "@/lib/event-form";
 import type { UseCalendarEventsReturn } from "@/hooks/useCalendarEvents";
 import { computePopoverSide } from "@/lib/popover-position";
 import type { Membership } from "@/lib/membership";
+import type { CalendarEvent } from "@/lib/calendar-types";
 
 type EventWrites = Pick<UseCalendarEventsReturn, "createEvent">;
 
@@ -18,7 +19,8 @@ interface EventEditorTarget {
 export function useEventEditor(
   events: EventWrites,
   selectedSpaceId: string | null,
-  containerRef: RefObject<HTMLElement | null>
+  containerRef: RefObject<HTMLElement | null>,
+  onOpenCreated: (event: CalendarEvent) => void = () => {}
 ) {
   const [target, setTarget] = useState<EventEditorTarget | null>(null);
   // The sketched box from a drag-create, kept visible until the popover
@@ -57,13 +59,16 @@ export function useEventEditor(
     setPendingRange(null);
   };
 
-  const submit = async (values: EventFormValues) => {
+  // `openDetails` hands the saved event to the right panel, for the fields the
+  // quick popover doesn't have (description, reminder).
+  const submit = async (values: EventFormValues, openDetails = false) => {
     if (!target) return;
     setSubmitting(true);
     setError(null);
     try {
-      await events.createEvent(values);
+      const created = await events.createEvent(values);
       close();
+      if (openDetails) onOpenCreated(created);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

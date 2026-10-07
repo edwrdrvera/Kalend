@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ import {
 } from "@/lib/event-draft";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import IconPicker from "./IconPicker";
-import { POPOVER_WIDTH } from "@/lib/popover-position";
+import { POPOVER_WIDTH, clampPopoverTop } from "@/lib/popover-position";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
@@ -24,7 +24,7 @@ const SIDE_GAP = 10;
 const CHIP_CLS =
   "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-muted";
 const DASHED_CHIP_CLS = "border-dashed border-muted-foreground/40 text-muted-foreground";
-/** Used for vertical centering; approximate — exact height varies with content. */
+/** First-render guess for vertical centering, replaced by the measured height. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
 
 export type { EventFormValues } from "@/lib/event-form";
@@ -44,7 +44,8 @@ interface EventCreatePopoverProps {
   initialGroupId?: string | null;
   categories: CalendarCategory[];
   groups: CalendarGroup[];
-  onSubmit: (values: EventFormValues) => void;
+  /** `openDetails` saves the event, then opens it in the right panel. */
+  onSubmit: (values: EventFormValues, openDetails?: boolean) => void;
   onClose: () => void;
   submitting?: boolean;
   error?: string | null;
@@ -85,10 +86,25 @@ export default function EventCreatePopover({
   const [locationOpen, setLocationOpen] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // The panel grows when the time section expands, so the clamp uses the
+  // measured height. The estimate covers the first render, before measuring.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const measure = () => setMeasuredHeight(el.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const panelHeight = measuredHeight ?? POPOVER_HEIGHT_ESTIMATE;
+
   // Fixed position: vertically centered on the anchor, horizontally offset
   // to the chosen side.
-  const rawTop = anchorRect.top + anchorRect.height / 2 - POPOVER_HEIGHT_ESTIMATE / 2;
-  const top = Math.max(8, Math.min(rawTop, window.innerHeight - POPOVER_HEIGHT_ESTIMATE - 8));
+  const anchorCenterY = anchorRect.top + anchorRect.height / 2;
+  const top = clampPopoverTop(anchorCenterY, panelHeight, window.innerHeight);
   // On viewports narrower than the panel (plus its 8px margins), shrink the
   // panel to fit instead of letting it overflow the screen.
   const effectiveWidth = Math.min(POPOVER_WIDTH, window.innerWidth - 16);
@@ -104,10 +120,9 @@ export default function EventCreatePopover({
 
   const tailWidth = 8;
   const tailHeight = 14;
-  const anchorCenterY = anchorRect.top + anchorRect.height / 2;
   const tailTop = Math.max(
     12,
-    Math.min(anchorCenterY - top - tailHeight / 2, POPOVER_HEIGHT_ESTIMATE - 12 - tailHeight)
+    Math.min(anchorCenterY - top - tailHeight / 2, panelHeight - 12 - tailHeight)
   );
 
   // Escape closes the panel.
@@ -119,11 +134,15 @@ export default function EventCreatePopover({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const submitDraft = (openDetails: boolean) => {
     const { values, error: invalid } = eventDraftValues(draft);
     setValidationError(invalid);
-    if (values) onSubmit(values);
+    if (values) onSubmit(values, openDetails);
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    submitDraft(false);
   };
 
   return createPortal(
@@ -145,6 +164,7 @@ export default function EventCreatePopover({
       />
       {/* Fixed, compact editor that stays visually subordinate to the calendar. */}
       <div
+        ref={panelRef}
         role="dialog"
         aria-label="Create event"
         style={{
@@ -272,7 +292,17 @@ export default function EventCreatePopover({
             <p className="text-xs text-destructive">{validationError ?? error}</p>
           )}
 
-          <div className="flex items-center justify-end gap-1.5 border-t border-border pt-2.5">
+          <div className="flex items-center gap-1.5 border-t border-border pt-2.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mr-auto rounded-sm px-2 text-muted-foreground"
+              disabled={submitting}
+              onClick={() => submitDraft(true)}
+            >
+              More options
+            </Button>
             <Button
               type="button"
               variant="ghost"

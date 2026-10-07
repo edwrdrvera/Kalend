@@ -46,7 +46,7 @@ afterEach(async () => {
 interface RenderOptions {
   initialSpaceId?: string | null;
   initialGroupId?: string | null;
-  onSubmit?: (values: EventFormValues) => void;
+  onSubmit?: (values: EventFormValues, openDetails?: boolean) => void;
 }
 
 async function renderPopover({
@@ -350,5 +350,44 @@ describe("EventCreatePopover location and icon", () => {
     const values = submitted as EventFormValues | null;
     expect(values?.location).toBeNull();
     expect(values?.icon).toBeNull();
+  });
+});
+
+describe("EventCreatePopover More options", () => {
+  async function typeTitle(title: string) {
+    const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
+    if (!titleInput) throw new Error("Event title input was not rendered");
+    await act(() => typeInto(titleInput, title));
+  }
+
+  function moreOptions() {
+    return [...document.querySelectorAll<HTMLButtonElement>("form button")].find(
+      (button) => button.textContent?.trim() === "More options"
+    );
+  }
+
+  it("submits the draft and asks to open it in the panel", async () => {
+    const calls: Array<[EventFormValues, boolean | undefined]> = [];
+    await renderPopover({ onSubmit: (values, openDetails) => calls.push([values, openDetails]) });
+    await typeTitle("Study group");
+    await act(() => moreOptions()?.click());
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0].title).toBe("Study group");
+    expect(calls[0][1]).toBe(true);
+  });
+
+  it("does not submit when the draft is invalid", async () => {
+    const calls: unknown[] = [];
+    await renderPopover({ onSubmit: (values) => calls.push(values) });
+    await act(() => moreOptions()?.click());
+    expect(calls).toHaveLength(0);
+  });
+
+  it("a normal submit does not ask to open the panel", async () => {
+    const calls: Array<boolean | undefined> = [];
+    await renderPopover({ onSubmit: (_values, openDetails) => calls.push(openDetails) });
+    await typeTitle("Study group");
+    await submitForm();
+    expect(calls).toEqual([false]);
   });
 });

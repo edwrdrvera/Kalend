@@ -1,6 +1,18 @@
 /** Width of the event-create popover panel in px. Used by both the
- *  positioning logic and the panel's own Tailwind width class. */
+ *  positioning logic and the panel's inline width style. */
 export const POPOVER_WIDTH = 320;
+
+/** Returns the panel's top edge so it is centered on the anchor's vertical
+ *  midpoint, pulled back inside the viewport when it would overflow. */
+export function clampPopoverTop(
+  anchorCenterY: number,
+  popoverHeight: number,
+  viewportHeight: number,
+  margin = 8
+): number {
+  const centered = anchorCenterY - popoverHeight / 2;
+  return Math.max(margin, Math.min(centered, viewportHeight - popoverHeight - margin));
+}
 
 /** Given the anchor element's rect (the clicked day cell) and the calendar
  *  grid container's rect, returns which side of the anchor to place the
