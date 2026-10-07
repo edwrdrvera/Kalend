@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git worktree remove:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git push origin --delete:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
