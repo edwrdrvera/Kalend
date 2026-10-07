@@ -49,7 +49,7 @@ export default function IconPicker({ value, onChange, maxLength, id = "new-event
         placeholder="🙂"
         title="Optional emoji or symbol for this event"
         maxLength={maxLength}
-        className={cn(APP_INPUT_CLS, "w-9 shrink-0 cursor-pointer text-center", className)}
+        className={cn(APP_INPUT_CLS, "w-9 shrink-0 cursor-pointer text-center caret-transparent", className)}
       />
 
       {open && (
