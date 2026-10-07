@@ -114,9 +114,14 @@ export function useCreateDrag({
       suppressSlotClickRef.current = true;
       const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
       const dayStart = startOfDay(drag.day);
-      const columnEl = gridRef.current?.children[drag.dayIndex] as HTMLElement | undefined;
-      const rect = columnEl?.getBoundingClientRect() ?? gridRef.current?.getBoundingClientRect();
-      if (rect) {
+      const gridEl = gridRef.current;
+      const columnEl = gridEl?.children[drag.dayIndex] as HTMLElement | undefined;
+      const column = columnEl?.getBoundingClientRect() ?? gridEl?.getBoundingClientRect();
+      if (gridEl && column) {
+        const gridTop = gridEl.getBoundingClientRect().top;
+        const top = gridTop + (lo / MINUTES_PER_DAY) * dayHeight;
+        const bottom = gridTop + (hi / MINUTES_PER_DAY) * dayHeight;
+        const rect = new DOMRect(column.left, top, column.width, bottom - top);
         onSlotDragCreateRef.current?.(addMinutes(dayStart, lo), addMinutes(dayStart, hi), rect);
       }
     }
