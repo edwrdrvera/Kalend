@@ -208,6 +208,7 @@ export default function EventInspector({
         <DescriptionField
           id="event-inspector-description"
           label="Notes"
+          formatted
           value={draft.description}
           onChange={(description) => update({ description })}
         />

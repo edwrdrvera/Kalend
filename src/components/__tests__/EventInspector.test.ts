@@ -154,14 +154,25 @@ describe("EventInspector description", () => {
     expect(button("Save")?.disabled).toBe(true);
   });
 
-  it("shows a stored description in the box without clicking anything", async () => {
-    await renderInspector(null, { ...EVENT, description: "Bring ID" });
-    expect(descriptionBox()?.value).toBe("Bring ID");
+  const openNotes = () =>
+    act(async () => {
+      document.querySelector<HTMLElement>('[role="button"][title="Click to edit"]')?.click();
+    });
+
+  it("shows stored notes as formatted text, and a click opens the box", async () => {
+    await renderInspector(null, { ...EVENT, description: "Bring **ID**\n- pen\nhttps://example.com/a" });
+    expect(descriptionBox()).toBeNull();
+    expect(document.querySelector("strong")?.textContent).toBe("ID");
+    expect(document.querySelectorAll("ul.list-disc li")).toHaveLength(1);
+    expect(document.querySelector("a")?.getAttribute("href")).toBe("https://example.com/a");
     expect(button("Add notes")).toBeUndefined();
+    await openNotes();
+    expect(descriptionBox()?.value).toBe("Bring **ID**\n- pen\nhttps://example.com/a");
   });
 
   it("removes a description by clearing the box, which saves null", async () => {
     const harness = await renderInspector(null, { ...EVENT, description: "Bring ID" });
+    await openNotes();
     await editDescription("   ");
     await click("Save");
     expect(harness.saves[0]?.description).toBeNull();
