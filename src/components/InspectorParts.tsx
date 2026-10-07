@@ -2,12 +2,41 @@
 
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowLeft, Trash2, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export const ICON_BUTTON_CLS =
   "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-export const FIELD_LABEL_CLS = "text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
+/** One label/value row of an inspector: icon and label on the left, the control on the right. */
+export function DetailRow({
+  icon,
+  label,
+  labelFor,
+  className,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  labelFor?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn("flex min-h-10 items-center gap-3 border-t border-border", className)}>
+      <label htmlFor={labelFor} className="flex w-20 shrink-0 items-center gap-2 text-xs text-muted-foreground">
+        <span aria-hidden className="shrink-0 [&>svg]:size-3.5">
+          {icon}
+        </span>
+        {label}
+      </label>
+      <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
+export const FIELD_LABEL_CLS = "text-[13px] font-medium text-muted-foreground";
 
 /** Where an inspector sits: its Space and Group (links to their overviews) and
  *  the overview Back returns to. */
@@ -111,8 +140,9 @@ export function InspectorFooter({
         ) : (
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="-ml-2 text-muted-foreground hover:text-destructive"
             disabled={navigationPending}
             onClick={() => setConfirmingDelete(true)}
           >

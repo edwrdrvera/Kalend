@@ -21,9 +21,10 @@ interface IconPickerProps {
   onChange: (icon: string) => void;
   maxLength: number;
   id?: string;
+  className?: string;
 }
 
-export default function IconPicker({ value, onChange, maxLength, id = "new-event-icon" }: IconPickerProps) {
+export default function IconPicker({ value, onChange, maxLength, id = "new-event-icon", className }: IconPickerProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +49,7 @@ export default function IconPicker({ value, onChange, maxLength, id = "new-event
         placeholder="🙂"
         title="Optional emoji or symbol for this event"
         maxLength={maxLength}
-        className={cn(APP_INPUT_CLS, "w-9 shrink-0 cursor-pointer text-center")}
+        className={cn(APP_INPUT_CLS, "w-9 shrink-0 cursor-pointer text-center", className)}
       />
 
       {open && (

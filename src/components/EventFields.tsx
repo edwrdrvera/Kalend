@@ -64,28 +64,95 @@ export function EventTimeFields({
   );
 }
 
-/** Color swatch and Space picker. The color follows the Space until the user picks one. */
-export function EventColorSpaceFields({
-  colorState,
-  categories,
-  groups,
-  onChange,
-  swatchClassName,
-  spaceClassName,
-}: {
+interface ColorSpaceProps {
   colorState: EventColorState;
   categories: CalendarCategory[];
   groups: CalendarGroup[];
   onChange: (next: EventColorState) => void;
+}
+
+function useSwatchColor({ colorState, categories }: Pick<ColorSpaceProps, "colorState" | "categories">) {
+  const { color, categoryId, colorOverridden } = colorState;
+  const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
+  return isEventColor(visibleColor) ? visibleColor : DEFAULT_EVENT_COLOR;
+}
+
+/** The Space picker. Picking a Group also picks its Space. */
+export function EventSpaceSelect({
+  colorState,
+  categories,
+  groups,
+  onChange,
+  className,
+}: ColorSpaceProps & { className?: string }) {
+  const { categoryId, groupId } = colorState;
+  return (
+    <MembershipSelect
+      categories={categories}
+      groups={groups}
+      className={className}
+      membership={membershipOf({ category_id: categoryId, group_id: groupId })}
+      onChange={(next) =>
+        onChange(
+          next.group_id
+            ? eventColorReducer(colorState, { type: "group", groupId: next.group_id, categoryId: next.category_id, categories })
+            : eventColorReducer(colorState, { type: "space", categoryId: next.category_id, categories })
+        )
+      }
+    />
+  );
+}
+
+/** The color swatch and the note on whether the Space or the user chose it. */
+export function EventColorControl({
+  colorState,
+  categories,
+  onChange,
+  swatchClassName,
+  className,
+}: Pick<ColorSpaceProps, "colorState" | "categories" | "onChange"> & {
+  swatchClassName?: string;
+  className?: string;
+}) {
+  const { categoryId, colorOverridden } = colorState;
+  const hasSpace = categories.some((c) => c.id === categoryId);
+  const swatchColor = useSwatchColor({ colorState, categories });
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      {hasSpace &&
+        (colorOverridden ? (
+          <button
+            type="button"
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={() => onChange(eventColorReducer(colorState, { type: "inherit" }))}
+          >
+            Use Space color
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground">Using Space color</span>
+        ))}
+      <ColorSwatchPicker
+        color={swatchColor}
+        className={swatchClassName}
+        onColorChange={(nextColor) => onChange(eventColorReducer(colorState, { type: "pick", color: nextColor }))}
+      />
+    </div>
+  );
+}
+
+/** Color swatch and Space picker, stacked. The color follows the Space until the user picks one. */
+export function EventColorSpaceFields({
+  swatchClassName,
+  spaceClassName,
+  ...props
+}: ColorSpaceProps & {
   /** Restyle the swatch and Space trigger, for editors that show them as chips. */
   swatchClassName?: string;
   spaceClassName?: string;
 }) {
-  const { color, categoryId, groupId, colorOverridden } = colorState;
-  const selectedCategory = categories.find((c) => c.id === categoryId);
-  const visibleColor = resolveDisplayColor(color, categoryId, colorOverridden, categories);
-  const swatchColor = isEventColor(visibleColor) ? visibleColor : DEFAULT_EVENT_COLOR;
-
+  const hasSpace = props.categories.some((c) => c.id === props.colorState.categoryId);
+  const swatchColor = useSwatchColor(props);
+  const { colorState, categories, onChange } = props;
   return (
     <>
       <div className="flex items-center gap-2">
@@ -94,22 +161,10 @@ export function EventColorSpaceFields({
           className={swatchClassName}
           onColorChange={(nextColor) => onChange(eventColorReducer(colorState, { type: "pick", color: nextColor }))}
         />
-        <MembershipSelect
-          categories={categories}
-          groups={groups}
-          className={spaceClassName}
-          membership={membershipOf({ category_id: categoryId, group_id: groupId })}
-          onChange={(next) =>
-            onChange(
-              next.group_id
-                ? eventColorReducer(colorState, { type: "group", groupId: next.group_id, categoryId: next.category_id, categories })
-                : eventColorReducer(colorState, { type: "space", categoryId: next.category_id, categories })
-            )
-          }
-        />
+        <EventSpaceSelect {...props} className={spaceClassName} />
       </div>
-      {selectedCategory && (
-        colorOverridden ? (
+      {hasSpace &&
+        (colorState.colorOverridden ? (
           <button
             type="button"
             className="self-start text-xs font-medium text-primary hover:underline"
@@ -117,8 +172,9 @@ export function EventColorSpaceFields({
           >
             Use Space color
           </button>
-        ) : <p className="text-xs text-muted-foreground">Using Space color</p>
-      )}
+        ) : (
+          <p className="text-xs text-muted-foreground">Using Space color</p>
+        ))}
     </>
   );
 }
