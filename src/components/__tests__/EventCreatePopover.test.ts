@@ -91,6 +91,14 @@ function spaceOption(name: string): HTMLButtonElement | undefined {
   ].find((button) => button.textContent?.trim() === name);
 }
 
+/** The Location chip, which swaps itself for the location input. */
+async function openLocation() {
+  const chip = [...document.querySelectorAll<HTMLButtonElement>("form button")].find(
+    (button) => button.textContent?.trim() === "Location"
+  );
+  await act(() => chip?.click());
+}
+
 async function submitForm() {
   await act(() =>
     document
@@ -295,12 +303,12 @@ describe("EventCreatePopover submitted values", () => {
 });
 
 describe("EventCreatePopover location and icon", () => {
-  it("starts a new Event with empty location and icon fields", async () => {
+  it("starts a new Event with an empty icon and the location input behind a chip", async () => {
     await renderPopover();
-    const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
-    const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
-    expect(locationInput?.value).toBe("");
-    expect(iconInput?.value).toBe("");
+    expect(document.querySelector("#new-event-location")).toBeNull();
+    await openLocation();
+    expect(document.querySelector<HTMLInputElement>("#new-event-location")?.value).toBe("");
+    expect(document.querySelector<HTMLInputElement>("#new-event-icon")?.value).toBe("");
   });
 
   it("submits the typed location and icon", async () => {
@@ -311,6 +319,7 @@ describe("EventCreatePopover location and icon", () => {
       },
     });
 
+    await openLocation();
     const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
     const locationInput = document.querySelector<HTMLInputElement>("#new-event-location");
     const iconInput = document.querySelector<HTMLInputElement>("#new-event-icon");
