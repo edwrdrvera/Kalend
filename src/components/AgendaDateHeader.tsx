@@ -1,13 +1,13 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { format } from "date-fns";
+import { format, isToday } from "date-fns";
 
 interface AgendaDateHeaderProps {
   selectedDate: Date;
   eventCount: number;
   taskCount: number;
-  action?: ReactNode;
+  /** Where the counts come from: the selected Space's name, or "all spaces". */
+  scopeLabel: string;
 }
 
 function countLabel(count: number, singular: string): string {
@@ -18,23 +18,18 @@ export default function AgendaDateHeader({
   selectedDate,
   eventCount,
   taskCount,
-  action,
+  scopeLabel,
 }: AgendaDateHeaderProps) {
-  const parts: string[] = [];
-  if (eventCount > 0) parts.push(countLabel(eventCount, "event"));
-  if (taskCount > 0) parts.push(`${countLabel(taskCount, "task")} due`);
+  const day = format(selectedDate, "EEE MMM d");
 
   return (
-    <div className="flex shrink-0 items-start justify-between gap-2 border-b border-border px-4 pt-3 pb-2.5">
-      <div className="min-w-0">
-        <h2 className="text-[15px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
-          {format(selectedDate, "EEEE, MMM d")}
-        </h2>
-        {parts.length > 0 && (
-          <p className="mt-0.5 text-[11px] text-muted-foreground">{parts.join(" · ")}</p>
-        )}
-      </div>
-      {action}
+    <div className="shrink-0 px-4 pt-4 pb-2.5">
+      <h2 className="text-[17px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+        {isToday(selectedDate) ? `Today · ${day}` : day}
+      </h2>
+      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+        {countLabel(eventCount, "event")}, {taskCount} due · {scopeLabel}
+      </p>
     </div>
   );
 }

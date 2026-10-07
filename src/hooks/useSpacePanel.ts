@@ -86,6 +86,8 @@ export function useSpacePanel(
     selectSpace: (spaceId: string | null) => {
       dispatchSpaceFocus({ type: "select", spaceId });
       dispatch({ type: "spaceChanged", spaceId });
+      // The rail opens what it picks: a Space's panel, or the All tasks view for "all spaces".
+      dispatch(spaceId !== null ? { type: "openSpace", spaceId } : { type: "openAllTasks" });
     },
   };
 }

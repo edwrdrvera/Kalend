@@ -17,6 +17,8 @@ interface TaskRowProps {
   onOpenTask: (task: CalendarTask) => void;
   /** Shows the alert bell. Only the day panel passes it. */
   hasAlert?: boolean;
+  /** Space and Group name shown under the title, with the color dot. */
+  meta?: string;
 }
 
 export default function TaskRow({
@@ -25,6 +27,7 @@ export default function TaskRow({
   onToggleTaskComplete,
   onOpenTask,
   hasAlert = false,
+  meta,
 }: TaskRowProps) {
   const displayColor = resolveDisplayColor(
     task.color,
@@ -57,20 +60,30 @@ export default function TaskRow({
           <Check className="size-2.5" strokeWidth={3} />
         </button>
       </span>
-      <span className="flex h-[18px] shrink-0 items-center">
-        <span aria-hidden className={cn("size-1.5 translate-y-[1px] rounded-full", dotClass)} />
-      </span>
-      <button
-        type="button"
-        onClick={() => onOpenTask(task)}
-        aria-label={`Open task ${task.title}`}
-        className={cn(
-          "min-w-0 flex-1 rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          task.completed ? "line-through opacity-50" : "text-foreground"
+      {meta === undefined && (
+        <span className="flex h-[18px] shrink-0 items-center">
+          <span aria-hidden className={cn("size-1.5 translate-y-[1px] rounded-full", dotClass)} />
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          onClick={() => onOpenTask(task)}
+          aria-label={`Open task ${task.title}`}
+          className={cn(
+            "block w-full rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            task.completed ? "line-through opacity-50" : "text-foreground"
+          )}
+        >
+          {task.title}
+        </button>
+        {meta !== undefined && (
+          <span className="block truncate text-[11.5px] leading-[18px] text-muted-foreground">
+            <span aria-hidden className={cn("mr-1.5 inline-block size-[7px] rounded-[2px] align-middle", dotClass)} />
+            {meta}
+          </span>
         )}
-      >
-        {task.title}
-      </button>
+      </div>
       {hasAlert && (
         <span className="flex h-[18px] shrink-0 items-center">
           <AlertBell />

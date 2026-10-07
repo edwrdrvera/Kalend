@@ -462,7 +462,6 @@ export default function Calendar() {
           alertsByItem={itemAlerts.byItem}
           onToggleTaskComplete={tasks.toggleComplete}
           onOpenTask={panel.openTask}
-          onOpenAllTasks={panel.openAllTasks}
           onEventClick={handleEventClick}
           categories={categories.data}
           selectedSpaceId={selectedSpaceId}
@@ -470,11 +469,6 @@ export default function Calendar() {
           onCreateSpace={() => setSpaceEditor({ mode: "create" })}
           onEditSpace={(category) => setSpaceEditor({ mode: "edit", category })}
           groups={groups.data}
-          activeSubject={subject}
-          onOpenSpace={panel.openSpace}
-          onOpenGroup={panel.openGroup}
-          onCreateGroup={openGroupCreator}
-          onEditGroup={openGroupEditor}
           accountMenu={
             <SettingsMenu
               triggerLabel="Account"

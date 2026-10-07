@@ -92,7 +92,6 @@ interface Interactions {
   eventClicks: string[];
   taskToggles: string[];
   taskOpens: string[];
-  allTasksOpens: number;
 }
 
 async function renderColumn(options: RenderOptions = {}) {
@@ -100,7 +99,6 @@ async function renderColumn(options: RenderOptions = {}) {
     eventClicks: [],
     taskToggles: [],
     taskOpens: [],
-    allTasksOpens: 0,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -121,8 +119,8 @@ async function renderColumn(options: RenderOptions = {}) {
           interactions.taskToggles.push(task.id),
         onOpenTask: (task) => interactions.taskOpens.push(task.id),
         onEventClick: (event) => interactions.eventClicks.push(event.id),
-        groupNav: null,
-        onOpenAllTasks: () => interactions.allTasksOpens++,
+        groups: [],
+        selectedSpaceId: null,
       })
     )
   );
@@ -143,10 +141,8 @@ describe("AgendaColumn date header", () => {
   it("renders the date as weekday, month and day", async () => {
     await renderColumn();
 
-    const text = document.body.textContent ?? "";
-    // September 17, 2030 is a Tuesday -> "Tuesday, Sep 17"
-    expect(text).toContain("Tuesday");
-    expect(text).toContain("Sep 17");
+    // September 17, 2030 is a Tuesday
+    expect(document.body.textContent ?? "").toContain("Tue Sep 17");
   });
 
   it("shows event and task counts in the sub-line", async () => {
@@ -170,8 +166,7 @@ describe("AgendaColumn date header", () => {
     });
 
     const text = document.body.textContent ?? "";
-    expect(text).toContain("2 events");
-    expect(text).toContain("3 tasks due");
+    expect(text).toContain("2 events, 3 due · all spaces");
   });
 });
 
@@ -286,17 +281,6 @@ describe("AgendaColumn tasks section", () => {
     expect(document.body.textContent ?? "").toContain("Nothing scheduled");
   });
 
-  it("opens All tasks from the header control", async () => {
-    const interactions = await renderColumn();
-
-    const button = [...document.querySelectorAll("button")].find(
-      (b) => b.textContent?.trim() === "All tasks"
-    );
-    await act(() => button?.click());
-
-    expect(interactions.allTasksOpens).toBe(1);
-  });
-
   it("renders completed tasks with strikethrough and reduced opacity", async () => {
     await renderColumn({
       tasks: [makeTask({ title: "Done task", completed: true })],
@@ -386,7 +370,7 @@ describe("AgendaColumn alert bell", () => {
       alertedIds: ["with"],
     });
     expect(bells()).toHaveLength(1);
-    const row = byLabel("Open task Essay")?.parentElement;
+    const row = byLabel("Open task Essay")?.parentElement?.parentElement;
     expect(row?.querySelector('[aria-label="Alert set"]')).not.toBeNull();
   });
 

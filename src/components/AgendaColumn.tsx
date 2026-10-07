@@ -1,13 +1,18 @@
 "use client";
 
-import { Calendar, ListTodo, Loader2 } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 import { format, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
+import type {
+  CalendarAlert,
+  CalendarCategory,
+  CalendarEvent,
+  CalendarGroup,
+  CalendarTask,
+} from "@/lib/calendar-types";
 import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
-import GroupList, { type GroupListProps } from "./GroupList";
 import TaskRow from "./TaskRow";
 
 interface AgendaColumnProps {
@@ -15,15 +20,15 @@ interface AgendaColumnProps {
   events: CalendarEvent[];
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  groups: CalendarGroup[];
+  /** The selected Space, for the header caption. Null means all spaces. */
+  selectedSpaceId: string | null;
   loading: boolean;
   /** Events and tasks with an alert show a bell. */
   alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
-  /** The selected Space's Groups. Null while no Space is selected. */
-  groupNav: GroupListProps | null;
-  onOpenAllTasks: () => void;
 }
 
 export default function AgendaColumn({
@@ -31,13 +36,13 @@ export default function AgendaColumn({
   events,
   tasks,
   categories,
+  groups,
+  selectedSpaceId,
   loading,
   alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
   onEventClick,
-  groupNav,
-  onOpenAllTasks,
 }: AgendaColumnProps) {
   const dayStart = startOfDay(selectedDate);
   const dayEnd = new Date(dayStart);
@@ -51,26 +56,21 @@ export default function AgendaColumn({
   const dayTasks = tasksDueOn(tasks, selectedDate);
 
   const eventCount = dayEvents.length;
+  const pathOf = (item: { category_id: string | null; group_id: string | null }) => {
+    const space = categories.find((c) => c.id === item.category_id)?.name;
+    const group = groups.find((g) => g.id === item.group_id)?.name;
+    return [space, group].filter(Boolean).join(" · ");
+  };
+  const scopeLabel = categories.find((c) => c.id === selectedSpaceId)?.name ?? "all spaces";
   const isEmpty = eventCount === 0 && dayTasks.length === 0;
 
   return (
     <div data-testid="agenda-column" className="flex h-full w-full flex-col bg-card">
-      {groupNav && <GroupList {...groupNav} />}
-
       <AgendaDateHeader
         selectedDate={selectedDate}
         eventCount={eventCount}
         taskCount={dayTasks.filter((t) => !t.completed).length}
-        action={
-          <button
-            type="button"
-            onClick={onOpenAllTasks}
-            className="flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ListTodo aria-hidden className="size-3.5" />
-            All tasks
-          </button>
-        }
+        scopeLabel={scopeLabel}
       />
 
       {loading ? (
@@ -88,11 +88,12 @@ export default function AgendaColumn({
           </p>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <div className="flex flex-col gap-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+          <div className="flex flex-col">
             <AgendaScheduleGroup
               events={dayEvents}
               categories={categories}
+              pathOf={pathOf}
               selectedDate={selectedDate}
               alertsByItem={alertsByItem}
               onEventClick={onEventClick}
@@ -102,6 +103,7 @@ export default function AgendaColumn({
                 label={dueSectionLabel(selectedDate, new Date())}
                 tasks={dayTasks}
                 categories={categories}
+                pathOf={pathOf}
                 alertsByItem={alertsByItem}
                 onToggleTaskComplete={onToggleTaskComplete}
                 onOpenTask={onOpenTask}
@@ -119,6 +121,7 @@ function DueTasksSection({
   label,
   tasks,
   categories,
+  pathOf,
   alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
@@ -127,23 +130,23 @@ function DueTasksSection({
   label: string;
   tasks: CalendarTask[];
   categories: CalendarCategory[];
+  pathOf: (item: { category_id: string | null; group_id: string | null }) => string;
   alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   precededBySchedule: boolean;
 }) {
   return (
-    <section aria-label={label} className={cn(precededBySchedule && "border-t border-border pt-3")}>
-      <h3 className="px-1 pb-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
-        {label}
-      </h3>
-      <div className="flex flex-col gap-1">
+    <section aria-label={label} className={cn(precededBySchedule && "mt-3 border-t border-border pt-2.5")}>
+      <h3 className="pb-1 text-[12px] font-semibold text-muted-foreground">{label}</h3>
+      <div className="flex flex-col">
         {tasks.map((task) => (
           <TaskRow
             key={task.id}
             task={task}
             categories={categories}
             hasAlert={alertsByItem.has(task.id)}
+            meta={pathOf(task)}
             onToggleTaskComplete={onToggleTaskComplete}
             onOpenTask={onOpenTask}
           />

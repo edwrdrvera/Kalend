@@ -23,7 +23,7 @@ interface SpacePanelProps {
   tasks: CalendarTask[];
   upcoming: UpcomingDay[];
   weekLoad: WeekLoadDay[];
-  /** The Space's Groups as chips under the title. Omitted, or with no Groups, hides the row. */
+  /** The Space's Groups as chips under the title. Omitted hides the row. */
   groupNav?: PanelGroupNav;
   /** Modal dialog in overlay/full-screen modes; see PanelShell. */
   modal: boolean;
@@ -114,7 +114,7 @@ export default function SpacePanel({
       onClose={onClose}
     >
       <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings}>
-        {groupNav && groupNav.groups.length > 0 && <PanelGroupChips subject={subject} nav={groupNav} />}
+        {groupNav && <PanelGroupChips subject={subject} nav={groupNav} />}
         <div role="tablist" aria-label="Panel sections" className="-mb-px mt-2 flex gap-[18px]">
           {TABS.map(({ id, label }) => (
             <button
