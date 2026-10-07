@@ -11,6 +11,7 @@ import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
 import SpacePanelDescription from "./SpacePanelDescription";
 import PanelUpcomingSection from "./PanelUpcomingSection";
+import PanelTabs from "./PanelTabs";
 import PanelWeekLoad from "./PanelWeekLoad";
 import PanelGroupChips, { type PanelGroupNav } from "./PanelGroupChips";
 import PanelTasksSection from "./PanelTasksSection";
@@ -115,25 +116,7 @@ export default function SpacePanel({
     >
       <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings}>
         {groupNav && <PanelGroupChips subject={subject} nav={groupNav} />}
-        <div role="tablist" aria-label="Panel sections" className="-mb-px mt-2 flex gap-[18px]">
-          {TABS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => setTab(id)}
-              className={cn(
-                "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                tab === id
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <PanelTabs tabs={TABS} value={tab} onChange={setTab} />
       </SpacePanelHeader>
 
       {/* Body: scrolls independently; sections self-omit when empty, and

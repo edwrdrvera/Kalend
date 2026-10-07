@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 // Placeholder: the switch is component state only and no alert list is loaded.
 // Per-item alerts still work from each event's and task's own editor.
 
-export default function PanelAlertsTab({ name, kindWord }: { name: string; kindWord: "Space" | "Group" }) {
+export default function PanelAlertsTab({ name, kindWord }: { name: string; kindWord: "Space" | "Group" | "view" }) {
   const [notify, setNotify] = useState(true);
 
   return (

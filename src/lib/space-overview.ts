@@ -48,10 +48,10 @@ export interface WeekLoadDay {
   hours: number;
 }
 
-/** Booked event hours for each day of the week containing `now` (Sunday first, matching the calendar grid). Multi-day events count only the part inside each day. */
-export function weekLoad(events: CalendarEvent[], subject: PanelSubject, now: Date): WeekLoadDay[] {
+/** Booked event hours (all Spaces when `subject` is null) for each day of the week containing `now` (Sunday first, matching the calendar grid). Multi-day events count only the part inside each day. */
+export function weekLoad(events: CalendarEvent[], subject: PanelSubject | null, now: Date): WeekLoadDay[] {
   const first = startOfWeek(now, { weekStartsOn: 0 });
-  const mine = events.filter((e) => inSubject(subject, e));
+  const mine = subject ? events.filter((e) => inSubject(subject, e)) : events;
   return Array.from({ length: 7 }, (_, i) => {
     const start = addDays(first, i).getTime();
     const end = addDays(first, i + 1).getTime();

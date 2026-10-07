@@ -9,7 +9,8 @@ import WeekGrid from "./WeekGrid";
 import DayGrid from "./DayGrid";
 import EventCreatePopover from "./EventCreatePopover";
 import SpacePanel from "./SpacePanel";
-import AllTasksPanel from "./AllTasksPanel";
+import AllSpacesPanel from "./AllSpacesPanel";
+import { weekLoad } from "@/lib/space-overview";
 import TaskInspector from "./TaskInspector";
 import EventInspector from "./EventInspector";
 import SettingsMenu from "./SettingsMenu";
@@ -384,16 +385,20 @@ export default function Calendar() {
     }
     if (panel.allTasksOpen) {
       return (
-        <AllTasksPanel
+        <AllSpacesPanel
           tasks={tasks.data}
           categories={categories.data}
           groups={groups.data}
+          weekLoad={weekLoad(events.data, null, new Date())}
           selectedSpaceId={selectedSpaceId}
           modal={modal}
           onClose={panel.close}
           onCreateTask={tasks.createTask}
           onToggleTaskComplete={tasks.toggleComplete}
+          onChangeTaskDue={(task, due) => void tasks.updateTask(task, { due_at: due ? due.toISOString() : null })}
+          onDeleteTask={(task) => void tasks.deleteTask(task)}
           onOpenTask={panel.openTask}
+          onSelectDay={handleDateSelect}
         />
       );
     }

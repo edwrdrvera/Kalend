@@ -497,6 +497,7 @@ describe("Calendar behavior", () => {
     it("Back from a task opened in All tasks returns to All tasks", async () => {
       await mount();
       await openAllTasks();
+      await click(allTasksPanel()!.querySelector("[aria-label='Edit task Essay draft']")!);
       await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
       expect(isAbsent(allTasksPanel())).toBe(true);
 
@@ -519,6 +520,7 @@ describe("Calendar behavior", () => {
     it("Back waits for the unsaved-edits answer", async () => {
       await mount();
       await openAllTasks();
+      await click(allTasksPanel()!.querySelector("[aria-label='Edit task Essay draft']")!);
       await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
       const input = document.querySelector("[aria-label='Task details'] input") as HTMLInputElement;
       await act(async () => typeInto(input, "Essay v2"));

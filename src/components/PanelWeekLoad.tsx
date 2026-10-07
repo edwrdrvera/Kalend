@@ -16,11 +16,13 @@ interface PanelWeekLoadProps {
   scopeName: string;
   /** Selects the day in the calendar. */
   onSelectDay: (day: Date) => void;
+  /** Gray bars, for views that span every Space. */
+  neutral?: boolean;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-export default function PanelWeekLoad({ days, color, scopeName, onSelectDay }: PanelWeekLoadProps) {
+export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neutral = false }: PanelWeekLoadProps) {
   if (days.length === 0) return null;
   const total = days.reduce((n, d) => n + d.hours, 0);
 
@@ -56,7 +58,11 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay }: P
                   style={{ height: Math.max(3, Math.round((hours / max) * MAX_BAR_PX)) }}
                   className={cn(
                     "w-3.5 rounded-[3px]",
-                    hours >= HEAVY_HOURS ? "bg-amber-600" : EVENT_COLOR_SWATCH_CLASSES[color],
+                    hours >= HEAVY_HOURS
+                      ? "bg-amber-600"
+                      : neutral
+                        ? "bg-muted-foreground/50"
+                        : EVENT_COLOR_SWATCH_CLASSES[color],
                     !today && hours < HEAVY_HOURS && "opacity-60"
                   )}
                 />
