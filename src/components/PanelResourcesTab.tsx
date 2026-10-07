@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
+import { parseWebLink } from "@/lib/web-link";
 
 // Placeholder: links and files live in component state only, nothing is saved
 // or uploaded yet. Swap in real storage when Resources get a backend.
@@ -26,8 +27,6 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
   { name: "Notes.docx", ext: "DOC", size: "32 KB" },
 ];
 
-const hostOf = (url: string) => url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split("/")[0];
-
 const HEADER_BTN =
   "flex h-7 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const REMOVE_BTN =
@@ -48,12 +47,12 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
       setLinkOpen(false);
       return;
     }
-    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-    if (!/^https?:\/\/[^\s/.]+\.[^\s]{2,}$/i.test(url)) {
+    const link = parseWebLink(raw);
+    if (!link) {
       setError("That does not look like a web address.");
       return;
     }
-    setLinks((q) => [...q, { id: seq, url, host: hostOf(url) }]);
+    setLinks((q) => [...q, { id: seq, url: link.href, host: link.host }]);
     setSeq(seq + 1);
     setLinkOpen(false);
     setDraft("");
