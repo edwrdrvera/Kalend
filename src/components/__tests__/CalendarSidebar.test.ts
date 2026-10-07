@@ -95,9 +95,6 @@ interface Interactions {
   taskToggles: string[];
   selectedSpaces: (string | null)[];
   openedSpaces: string[];
-  openedGroups: string[];
-  createdGroups: string[];
-  allTasksOpens: number;
 }
 
 async function renderSidebar(options: RenderOptions = {}) {
@@ -106,9 +103,6 @@ async function renderSidebar(options: RenderOptions = {}) {
     taskToggles: [],
     selectedSpaces: [],
     openedSpaces: [],
-    openedGroups: [],
-    createdGroups: [],
-    allTasksOpens: 0,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -127,7 +121,6 @@ async function renderSidebar(options: RenderOptions = {}) {
         alertsByItem: new Map(),
         onToggleTaskComplete: (task) => interactions.taskToggles.push(task.id),
         onOpenTask: () => {},
-        onOpenAllTasks: () => interactions.allTasksOpens++,
         onEventClick: (event) => interactions.eventClicks.push(event.id),
         categories: options.categories ?? [],
         selectedSpaceId: options.selectedSpaceId ?? null,
@@ -135,11 +128,6 @@ async function renderSidebar(options: RenderOptions = {}) {
         onCreateSpace: () => {},
         onEditSpace: () => {},
         groups: options.groups ?? [],
-        activeSubject: null,
-        onOpenSpace: (id) => interactions.openedSpaces.push(id),
-        onOpenGroup: (group) => interactions.openedGroups.push(group.id),
-        onCreateGroup: (id) => interactions.createdGroups.push(id),
-        onEditGroup: () => {},
       })
     )
   );
@@ -220,41 +208,6 @@ describe("CalendarSidebar collapse", () => {
     }
     expect(byLabel("Collapse sidebar")).not.toBeNull();
   });
-
-  it("opening a Space does not collapse the agenda", async () => {
-    const work = makeCategory({ id: "cat-1", name: "Work" });
-    const interactions = await renderSidebar({ categories: [work], selectedSpaceId: "cat-1" });
-
-    const spaceButton = [...document.querySelectorAll("button")].find(
-      (b) => b.getAttribute("aria-label") === null && b.textContent?.trim() === "Work"
-    );
-    expect(spaceButton).toBeDefined();
-    await act(() => spaceButton?.click());
-
-    expect(interactions.openedSpaces).toEqual(["cat-1"]);
-    expect(document.querySelectorAll('[data-testid="agenda-column"]').length).toBe(2);
-  });
-
-  it("lists only the selected Space's Groups, and opens one", async () => {
-    const work = makeCategory({ id: "cat-1", name: "Work" });
-    const school = makeCategory({ id: "cat-2", name: "School" });
-    const groups: CalendarGroup[] = [
-      { id: "g-web", category_id: "cat-1", name: "Website" },
-      { id: "g-bio", category_id: "cat-2", name: "BIO 102" },
-    ];
-    const interactions = await renderSidebar({ categories: [work, school], groups, selectedSpaceId: "cat-1" });
-
-    const rows = [...document.querySelectorAll("button")].filter((b) => b.textContent === "Website");
-    expect(rows.length).toBeGreaterThan(0);
-    expect([...document.querySelectorAll("button")].some((b) => b.textContent === "BIO 102")).toBe(false);
-    await act(() => rows[0]?.click());
-    expect(interactions.openedGroups).toEqual(["g-web"]);
-  });
-
-  it("shows no Group list while no Space is selected", async () => {
-    await renderSidebar({ categories: [makeCategory({ id: "cat-1", name: "Work" })], selectedSpaceId: null });
-    expect(document.body.textContent).not.toContain("Create a Group");
-  });
 });
 
 describe("CalendarSidebar empty state", () => {
@@ -309,20 +262,6 @@ describe("CalendarSidebar agenda inline", () => {
     const text = document.body.textContent ?? "";
     expect(text).toContain("Biology lecture");
     expect(text).toContain("Finish lab report");
-  });
-});
-
-describe("CalendarSidebar All tasks control", () => {
-  it("opens the All tasks view from the desktop agenda", async () => {
-    const interactions = await renderSidebar();
-
-    const button = [...document.querySelectorAll("button")].find(
-      (b) => b.textContent?.trim() === "All tasks"
-    );
-    expect(button).toBeDefined();
-    await act(() => button?.click());
-
-    expect(interactions.allTasksOpens).toBe(1);
   });
 });
 

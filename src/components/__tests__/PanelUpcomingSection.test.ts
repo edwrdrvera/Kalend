@@ -48,7 +48,7 @@ async function render(days: UpcomingDay[]) {
   document.body.appendChild(container);
   root = createRoot(container);
   await act(() =>
-    root?.render(createElement(PanelUpcomingSection, { days, onOpenEvent: (e) => opened.push(e.id) }))
+    root?.render(createElement(PanelUpcomingSection, { days, onOpenEvent: (e) => opened.push(e.id), onCreateEvent: () => {} }))
   );
   return opened;
 }
@@ -58,9 +58,9 @@ const button = (text: string) =>
   [...(container?.querySelectorAll("button") ?? [])].find((b) => b.textContent === text);
 
 describe("PanelUpcomingSection", () => {
-  it("renders nothing when no events are coming up", async () => {
+  it("says nothing is scheduled when no events are coming up", async () => {
     await render([]);
-    expect(container?.textContent).toBe("");
+    expect(container?.textContent).toContain("Nothing scheduled.");
   });
 
   it("labels each day and opens an event from its row", async () => {

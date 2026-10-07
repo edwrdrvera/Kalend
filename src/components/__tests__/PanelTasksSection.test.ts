@@ -53,6 +53,9 @@ async function render(tasks: CalendarTask[], scope: "Space" | "Group" = "Space")
         scope,
         onToggleComplete: (task: CalendarTask) => interactions.toggled.push(task.id),
         onOpenTask: (task: CalendarTask) => interactions.opened.push(task.id),
+        onChangeDue: () => {},
+        onDelete: () => {},
+        onAddTask: () => {},
       })
     )
   );
@@ -60,10 +63,10 @@ async function render(tasks: CalendarTask[], scope: "Space" | "Group" = "Space")
 }
 
 describe("PanelTasksSection when empty", () => {
-  it("renders nothing, so an events-only Space shows no empty task list", async () => {
+  it("says all caught up", async () => {
     await render([]);
 
-    expect(container?.textContent).toBe("");
+    expect(container?.textContent).toContain("All caught up.");
   });
 });
 
@@ -91,9 +94,14 @@ describe("PanelTasksSection rows", () => {
     expect(interactions.toggled).toEqual(["a"]);
   });
 
-  it("opens the task from its title without completing it", async () => {
+  it("opens the task from its expanded row without completing it", async () => {
     const interactions = await render([makeTask({ id: "a" })]);
 
+    await act(() => {
+      document
+        .querySelector('[aria-label="Edit task Finish lab report"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     document
       .querySelector('[aria-label="Open task Finish lab report"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

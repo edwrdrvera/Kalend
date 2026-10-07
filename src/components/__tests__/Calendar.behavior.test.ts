@@ -211,18 +211,19 @@ async function selectSchool() {
 
 async function openSchoolOverview() {
   await selectSchool();
-  const row = [...document.querySelectorAll<HTMLElement>("button")].find(
-    (b) => b.textContent === "School" && b.parentElement?.previousElementSibling?.textContent === "Groups"
-  );
-  if (!row) throw new Error("no School row in the Groups list");
-  await click(row);
 }
 
 async function openGroup(name: string) {
   await selectSchool();
-  const row = [...document.querySelectorAll<HTMLElement>("button")].find((b) => b.textContent === name);
-  if (!row) throw new Error(`no Group row named ${name}`);
-  await click(row);
+  const chip = [...document.querySelectorAll<HTMLElement>("[role='complementary'] [aria-label='Groups'] button")].find(
+    (b) => b.textContent === name
+  );
+  if (!chip) throw new Error(`no Group chip named ${name}`);
+  await click(chip);
+}
+
+async function openAllTasks() {
+  await click(document.querySelector("nav [aria-label='View all spaces']")!);
 }
 
 async function createFromSlotMenu() {
@@ -428,7 +429,7 @@ describe("Calendar behavior", () => {
   it("All tasks stays open when another date is selected, and is not restored after a remount", async () => {
     testWindow.happyDOM.setInnerWidth(1300);
     await mount();
-    await click(buttonByText("All tasks")!);
+    await openAllTasks();
     const allTasksPanel = () => document.querySelector("[role='complementary'][aria-label='All tasks']");
     expect(allTasksPanel()).not.toBeNull();
 
@@ -495,7 +496,8 @@ describe("Calendar behavior", () => {
 
     it("Back from a task opened in All tasks returns to All tasks", async () => {
       await mount();
-      await click(buttonByText("All tasks")!);
+      await openAllTasks();
+      await click(allTasksPanel()!.querySelector("[aria-label='Edit task Essay draft']")!);
       await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
       expect(isAbsent(allTasksPanel())).toBe(true);
 
@@ -517,7 +519,8 @@ describe("Calendar behavior", () => {
 
     it("Back waits for the unsaved-edits answer", async () => {
       await mount();
-      await click(buttonByText("All tasks")!);
+      await openAllTasks();
+      await click(allTasksPanel()!.querySelector("[aria-label='Edit task Essay draft']")!);
       await click(allTasksPanel()!.querySelector("[aria-label='Open task Essay draft']")!);
       const input = document.querySelector("[aria-label='Task details'] input") as HTMLInputElement;
       await act(async () => typeInto(input, "Essay v2"));
@@ -546,19 +549,19 @@ describe("Calendar behavior", () => {
       await mount();
       await openGroup("BIO 102");
       expect(panelHeading()).toBe("BIO 102");
-      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Edit task ']")].map(
         (b) => b.getAttribute("aria-label")
       );
-      expect(panelTasks).toEqual(["Open task Essay draft"]);
+      expect(panelTasks).toEqual(["Edit task Essay draft"]);
     });
 
     it("the Space overview lists its Group's tasks and its direct tasks once each", async () => {
       await mount();
       await openSchoolOverview();
-      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Open task ']")].map(
+      const panelTasks = [...document.querySelectorAll("[role='complementary'] [aria-label^='Edit task ']")].map(
         (b) => b.getAttribute("aria-label")
       );
-      expect(panelTasks.sort()).toEqual(["Open task Direct task", "Open task Essay draft"]);
+      expect(panelTasks.sort()).toEqual(["Edit task Direct task", "Edit task Essay draft"]);
     });
 
     it("remembers an open Group after a remount", async () => {
@@ -576,7 +579,7 @@ describe("Calendar behavior", () => {
     it("creating an event from a Group's panel starts in that Group, and the choice can change", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(buttonByText("Add event")!);
+      await click(document.querySelector<HTMLElement>("[role='complementary'] [aria-label='Add event']")!);
       const trigger = () => createPopover()?.querySelector("[aria-label^='Space: ']")?.getAttribute("aria-label");
       expect(trigger()).toBe("Space: School / BIO 102");
 
@@ -588,7 +591,7 @@ describe("Calendar behavior", () => {
     it("adding a task from a Group's panel creates it in that Group", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(buttonByText("Add task")!);
+      await click(document.querySelector<HTMLElement>("[role='complementary'] [aria-label='Add task']")!);
       const input = document.querySelector<HTMLInputElement>("[aria-label='New task title']")!;
       await act(async () => typeInto(input, "Read chapter 4"));
       await act(async () => {
@@ -609,7 +612,7 @@ describe("Calendar behavior", () => {
       groups = [];
       await mount();
       await selectSchool();
-      await click(buttonByText("Create a Group")!);
+      await click(document.querySelector("[role='complementary'] [aria-label='New Group']")!);
       const input = document.querySelector<HTMLInputElement>("[aria-label='Group name']")!;
       await act(async () => typeInto(input, "HIST 201"));
       await click(buttonByText("Create")!);
@@ -622,7 +625,7 @@ describe("Calendar behavior", () => {
     it("deleting a Group says what happens, then removes it and closes its panel", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(document.querySelector("[aria-label='Edit Group BIO 102']")!);
+      await click(document.querySelector("[aria-label='Group options']")!);
       await click(document.querySelector("[aria-label='Delete Group']")!);
       const message = document.querySelector("[role='dialog']")?.textContent ?? "";
       expect(message).toContain("Its 1 event and 1 task stay in School");
@@ -678,7 +681,7 @@ describe("Calendar behavior", () => {
       await click(document.querySelector("[aria-label='Open task Essay draft']")!);
       await act(async () => typeInto(inspector()!.querySelector("input")!, "Essay v2"));
 
-      await click(buttonByText("All tasks")!);
+      await openAllTasks();
       expect(inspector()).not.toBeNull();
       expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
 
@@ -714,7 +717,7 @@ describe("Calendar behavior", () => {
       await mount();
       await click(document.querySelector("[aria-label='Open task Essay draft']")!);
       await act(async () => typeInto(inspector()!.querySelector("input")!, "Essay v2"));
-      await click(buttonByText("All tasks")!);
+      await openAllTasks();
 
       expect(document.querySelector("[role='alertdialog']")).not.toBeNull();
       expect((buttonByText("Delete") as HTMLButtonElement).disabled).toBe(true);

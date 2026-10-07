@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { CalendarEvent } from "../calendar-types";
-import { upcomingEventsByDay } from "../space-overview";
+import { upcomingEventsByDay, weekLoad } from "../space-overview";
 import type { PanelSubject } from "../panel-subject";
 
 const NOW = new Date(2026, 9, 1, 12, 0);
@@ -72,5 +72,30 @@ describe("upcomingEventsByDay", () => {
 
   it("returns no days for a Space with nothing coming up", () => {
     expect(upcomingEventsByDay([], WORK, NOW)).toEqual([]);
+  });
+});
+
+describe("weekLoad", () => {
+  // Thu Oct 1 2026: the week runs Sun Sep 27 to Sat Oct 3.
+  it("sums the subject's hours per day, Sunday first, ignoring other Spaces", () => {
+    const days = weekLoad(
+      [
+        event("a", new Date(2026, 9, 1, 9), 2),
+        event("b", new Date(2026, 9, 1, 14), 1.5),
+        event("other", new Date(2026, 9, 1, 9), 4, "school"),
+        event("next-week", new Date(2026, 9, 5, 9), 3),
+      ],
+      WORK,
+      NOW
+    );
+    expect(days).toHaveLength(7);
+    expect(days[0].day).toEqual(new Date(2026, 8, 27));
+    expect(days.map((d) => d.hours)).toEqual([0, 0, 0, 0, 3.5, 0, 0]);
+  });
+
+  it("splits an overnight event across both days", () => {
+    const days = weekLoad([event("late", new Date(2026, 9, 1, 22), 4)], WORK, NOW);
+    expect(days[4].hours).toBe(2);
+    expect(days[5].hours).toBe(2);
   });
 });

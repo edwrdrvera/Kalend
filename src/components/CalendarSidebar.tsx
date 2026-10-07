@@ -9,8 +9,6 @@ import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
-import { spaceColor, type PanelSubject } from "@/lib/panel-subject";
-import { groupsOfSpace } from "@/lib/group-state";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -23,7 +21,6 @@ interface CalendarSidebarProps {
   alertsByItem: ReadonlyMap<string, CalendarAlert>;
   onToggleTaskComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
-  onOpenAllTasks: () => void;
   onEventClick: (event: CalendarEvent, anchorRect: DOMRect) => void;
   categories: CalendarCategory[];
   selectedSpaceId: string | null;
@@ -31,11 +28,6 @@ interface CalendarSidebarProps {
   onCreateSpace: () => void;
   onEditSpace: (category: CalendarCategory) => void;
   groups: CalendarGroup[];
-  activeSubject: PanelSubject | null;
-  onOpenSpace: (spaceId: string) => void;
-  onOpenGroup: (group: CalendarGroup) => void;
-  onCreateGroup: (spaceId: string) => void;
-  onEditGroup: (group: CalendarGroup) => void;
   /** Account menu element for the desktop rail, composed by the state owner. */
   accountMenu?: ReactNode;
   /** Account menu element for the mobile slide-out (light-surface styling). */
@@ -53,7 +45,6 @@ export default function CalendarSidebar({
   alertsByItem,
   onToggleTaskComplete,
   onOpenTask,
-  onOpenAllTasks,
   onEventClick,
   categories,
   selectedSpaceId,
@@ -61,11 +52,6 @@ export default function CalendarSidebar({
   onCreateSpace,
   onEditSpace,
   groups,
-  activeSubject,
-  onOpenSpace,
-  onOpenGroup,
-  onCreateGroup,
-  onEditGroup,
   accountMenu,
   mobileAccountMenu,
 }: CalendarSidebarProps) {
@@ -82,31 +68,18 @@ export default function CalendarSidebar({
     saveSidebarCollapsed(next);
   };
 
-  // The agenda's list shows the selected Space and its Groups.
-  const selectedSpace = categories.find((c) => c.id === selectedSpaceId);
-  const groupNav = selectedSpace
-    ? {
-        space: { id: selectedSpace.id, name: selectedSpace.name, color: spaceColor(selectedSpace) },
-        groups: groupsOfSpace(groups, selectedSpace.id),
-        activeSubject,
-        onOpenSpace,
-        onOpenGroup,
-        onCreateGroup,
-        onEditGroup,
-      }
-    : null;
-
   const agendaProps = {
     selectedDate: currentDate,
     events,
     tasks,
     categories,
+    groups,
+    selectedSpaceId,
     loading: tasksLoading || eventsLoading,
     alertsByItem,
     onToggleTaskComplete,
     onOpenTask,
     onEventClick,
-    groupNav,
   } as const;
 
   const miniCalProps = {
@@ -152,7 +125,7 @@ export default function CalendarSidebar({
         {!collapsed && (
           <div className="flex h-full w-[272px] flex-col border-r border-border">
             <div className="min-h-0 flex-1 overflow-hidden">
-              <AgendaColumn {...agendaProps} onOpenAllTasks={onOpenAllTasks} />
+              <AgendaColumn {...agendaProps} />
             </div>
             <MiniCalendar {...miniCalProps} />
           </div>
@@ -184,13 +157,7 @@ export default function CalendarSidebar({
             accountMenu={mobileAccountMenu}
           />
           <div className="min-h-0 flex-1 overflow-hidden">
-            <AgendaColumn
-              {...agendaProps}
-              onOpenAllTasks={() => {
-                setMobileOpen(false);
-                onOpenAllTasks();
-              }}
-            />
+            <AgendaColumn {...agendaProps} />
           </div>
           <MiniCalendar {...miniCalProps} />
         </div>
