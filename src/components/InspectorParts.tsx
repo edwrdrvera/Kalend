@@ -6,8 +6,15 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export const ICON_BUTTON_CLS =
-  "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** Press feedback for anything clickable: a small scale-down the moment it is
+ *  pressed, so the UI confirms it heard the click. */
+export const PRESS_CLS =
+  "transition-[color,background-color,border-color,opacity,transform] duration-150 ease-snappy motion-safe:active:scale-[0.97]";
+
+export const ICON_BUTTON_CLS = cn(
+  "grid size-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  PRESS_CLS
+);
 
 /** One label/value row of an inspector: icon and label on the left, the control on the right. */
 export function DetailRow({

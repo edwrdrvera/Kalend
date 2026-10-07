@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PRESS_CLS } from "./InspectorParts";
 
 interface PanelTabsProps<T extends string> {
   tabs: { id: T; label: string }[];
@@ -20,7 +21,8 @@ export default function PanelTabs<T extends string>({ tabs, value, onChange }: P
           aria-selected={value === id}
           onClick={() => onChange(id)}
           className={cn(
-            "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "border-b-2 pb-2.5 pt-2 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            PRESS_CLS,
             value === id
               ? "border-primary text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"

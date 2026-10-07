@@ -5,6 +5,7 @@ import { MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
 import type { PanelSubject } from "@/lib/panel-subject";
+import { ICON_BUTTON_CLS } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
   subject: PanelSubject;
@@ -13,9 +14,6 @@ interface SpacePanelHeaderProps {
   /** Rendered under the title, inside the header (the Group chips). */
   children?: ReactNode;
 }
-
-const ICON_BUTTON_CLS =
-  "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function SpacePanelHeader({
   subject,

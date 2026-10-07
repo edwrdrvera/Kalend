@@ -587,7 +587,7 @@ export default function Calendar() {
         {panel.panelMode === "pinned" ? (
           <div
             className={cn(
-              "relative h-full shrink-0 overflow-hidden transition-[width] duration-[180ms] ease-out motion-reduce:transition-none",
+              "relative h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-snappy motion-reduce:transition-none",
               rightPanelOpen ? "w-[396px]" : "w-0"
             )}
           >
@@ -604,7 +604,7 @@ export default function Calendar() {
               />
               <div
                 className={cn(
-                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[fadeIn_180ms_ease-out]",
+                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)] motion-reduce:animate-[fadeIn_180ms_ease-out]",
                   panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[396px]"
                 )}
               >

@@ -6,6 +6,7 @@ import { addDays, format, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks } from "@/lib/task-buckets";
+import { PRESS_CLS } from "./InspectorParts";
 
 /** Rows shown before "Show more", so a long backlog doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -15,8 +16,6 @@ const ALERT_CHOICES = ["None", "10 minutes before", "1 hour before", "1 day befo
 
 interface PanelTasksSectionProps {
   tasks: CalendarTask[];
-  /** What the list is scoped to, for the caption. */
-  scope: "Space" | "Group" | "all";
   onToggleComplete: (task: CalendarTask) => void;
   onOpenTask: (task: CalendarTask) => void;
   /** Moves the due date (null clears it). */
@@ -36,7 +35,7 @@ interface PanelTasksSectionProps {
 
 interface DueState {
   text: string;
-  /** Overdue or imminent (today/tomorrow) — rendered in the warning color. */
+  /** Overdue or imminent (today/tomorrow), rendered in the warning color. */
   warning: boolean;
 }
 
@@ -56,12 +55,19 @@ function dueState(task: CalendarTask, now: Date): DueState {
 /** The dashboard names the later buckets "Later" and "No date". */
 const BUCKET_LABELS: Partial<Record<string, string>> = { month: "Later", unscheduled: "No date" };
 
-const PILL_CLS =
-  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const PILL_CLS = cn(
+  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  PRESS_CLS
+);
+const TEXT_BTN_CLS = cn(
+  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+  PRESS_CLS
+);
+const LINK_BTN_CLS =
+  "rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function PanelTasksSection({
   tasks,
-  scope,
   onToggleComplete,
   onOpenTask,
   onChangeDue,
@@ -106,25 +112,32 @@ export default function PanelTasksSection({
             aria-pressed={task.completed}
             aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
             className={cn(
-              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-[background-color,border-color,transform] duration-150 ease-snappy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:active:scale-90",
               task.completed
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-transparent hover:border-muted-foreground"
+                : "border-border hover:border-muted-foreground"
             )}
           >
-            <Check className="size-2.5" strokeWidth={3} />
+            <Check
+              className={cn(
+                "size-2.5 transition-[opacity,transform] duration-150 ease-snappy",
+                task.completed ? "scale-100 opacity-100" : "scale-50 opacity-0"
+              )}
+              strokeWidth={3}
+            />
           </button>
           <button
             type="button"
             aria-expanded={expanded}
             aria-label={`Edit task ${task.title}`}
             onClick={() => setExpandedId(expanded ? null : task.id)}
-            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span
               className={cn(
                 "block truncate text-[13px]",
-                task.completed ? "text-muted-foreground line-through" : "text-foreground"
+                task.completed ? "text-muted-foreground line-through" : "text-foreground",
+                "transition-colors duration-150"
               )}
             >
               {task.title}
@@ -144,7 +157,7 @@ export default function PanelTasksSection({
           </span>
         </div>
         {expanded && (
-          <div className="ml-6 mt-2 rounded-xl border border-border bg-muted/30 p-2.5 motion-safe:animate-[fadeIn_180ms_ease-out]">
+          <div className="ml-6 mt-2 rounded-xl border border-border bg-muted/30 p-2.5 motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]">
             <div className="flex flex-wrap gap-1.5">
               {dueChoices.map(({ label, day }) => {
                 const on = day
@@ -172,7 +185,7 @@ export default function PanelTasksSection({
               <button
                 type="button"
                 onClick={() => setAlertIdx((q) => ({ ...q, [task.id]: (alertAt + 1) % ALERT_CHOICES.length }))}
-                className="h-[26px] rounded-lg border border-border bg-card px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(PILL_CLS, "border-border bg-card text-foreground hover:bg-muted")}
               >
                 Alert: {ALERT_CHOICES[alertAt]}
               </button>
@@ -181,7 +194,7 @@ export default function PanelTasksSection({
                 type="button"
                 onClick={() => onOpenTask(task)}
                 aria-label={`Open task ${task.title}`}
-                className="h-[26px] rounded-lg px-2.5 text-[12px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(TEXT_BTN_CLS, "text-muted-foreground hover:text-foreground")}
               >
                 Details
               </button>
@@ -190,7 +203,7 @@ export default function PanelTasksSection({
                 onClick={() => {
                   if (window.confirm(`Delete "${task.title}"?`)) onDelete(task);
                 }}
-                className="h-[26px] rounded-lg px-2.5 text-[12px] font-semibold text-red-600 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={cn(TEXT_BTN_CLS, "text-destructive")}
               >
                 Delete
               </button>
@@ -202,34 +215,32 @@ export default function PanelTasksSection({
   };
 
   return (
-    <section aria-label="Open tasks" className="px-4 py-3">
+    <section aria-label="Tasks" className="px-4 py-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[12px] font-semibold text-muted-foreground">
-          Open tasks
-          <span className="ml-1.5 font-normal">{tasks.length}</span>
+          Tasks
+          <span className="font-normal"> · {tasks.length} open</span>
         </h3>
         <button
           type="button"
           aria-label="Add task"
           onClick={onAddTask}
-          className="grid size-6 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            PRESS_CLS
+          )}
         >
           <Plus aria-hidden className="size-3.5" />
         </button>
       </div>
       {children}
-      {/* Distinguishes this Space-wide or Group-wide backlog from the agenda's per-day
-          task list: this shows everything still open, regardless of date. */}
-      {scope !== "all" && (
-        <p className="mt-0.5 text-[11px] text-muted-foreground/70">Everything open in this {scope}</p>
-      )}
       {tasks.length === 0 && <p className="mt-2 text-[13px] text-muted-foreground">All caught up.</p>}
 
       <div className="mt-1 flex flex-col">
         {groups.map((group) => (
           <div key={group.key}>
             {group.label && (
-              <h4 className={cn("mb-0.5 mt-3 text-[12px] font-semibold", group.danger ? "text-red-600" : "text-foreground")}>
+              <h4 className={cn("mb-0.5 mt-3 text-[12px] font-semibold", group.danger ? "text-destructive" : "text-foreground")}>
                 {group.label}
                 <span className="ml-1.5 font-normal text-muted-foreground">{group.tasks.length}</span>
               </h4>
@@ -242,7 +253,7 @@ export default function PanelTasksSection({
         <button
           type="button"
           onClick={() => setShowAll(!showAll)}
-          className="mt-2 rounded-sm text-[12px] font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(LINK_BTN_CLS, "mt-2")}
         >
           {showAll ? "Show fewer" : `Show ${hidden} more`}
         </button>
@@ -252,11 +263,15 @@ export default function PanelTasksSection({
           <button
             type="button"
             onClick={() => setShowCompleted(!showCompleted)}
-            className="rounded-sm text-[12px] font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={LINK_BTN_CLS}
           >
             {showCompleted ? "Hide" : "Show"} completed ({completed.length})
           </button>
-          {showCompleted && completed.map(renderRow)}
+          {showCompleted && (
+            <div className="motion-safe:animate-[revealDown_180ms_var(--ease-snappy)] motion-reduce:animate-[fadeIn_120ms_ease-out]">
+              {completed.map(renderRow)}
+            </div>
+          )}
         </div>
       )}
     </section>

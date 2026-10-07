@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { addDays, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
+import { cn } from "@/lib/utils";
 import { groupByDay, type UpcomingDay } from "@/lib/space-overview";
+import { PRESS_CLS } from "./InspectorParts";
 
 /** Rows shown before "Show more", so a busy Space doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -40,7 +42,10 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
           type="button"
           aria-label="Add event"
           onClick={(e) => onCreateEvent(e.currentTarget.getBoundingClientRect())}
-          className="grid size-6 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            PRESS_CLS
+          )}
         >
           <Plus aria-hidden className="size-3.5" />
         </button>
@@ -57,7 +62,7 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
                     type="button"
                     onClick={() => onOpenEvent(event)}
                     aria-label={`Open event ${event.title}`}
-                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-[13px] hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-[13px] transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span className="w-[60px] shrink-0 tabular-nums text-muted-foreground">
                       {format(new Date(event.start_at), "h:mm a")}
@@ -74,7 +79,7 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="mt-2 rounded-sm text-[12px] text-muted-foreground hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-2 rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {expanded ? "Show less" : `Show ${hidden} more`}
         </button>

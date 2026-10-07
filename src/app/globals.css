@@ -320,6 +320,13 @@
   --kal-tile-ink: #171310;
 }
 
+/* The built-in ease-out starts too gently for UI. `ease-snappy` responds on
+ * the first frame; `ease-drawer` is the iOS sheet curve for the overlay panel. */
+@theme {
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 /* Cross-fade for the Space Panel body when swapping Spaces and Groups. */
 @keyframes fadeIn {
   from {
@@ -327,6 +334,21 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+/* A task row's inline editor drops in from just under the row. */
+@keyframes revealDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* The overlay panel slides in from the right edge it lives on. */
+@keyframes sheetIn {
+  from {
+    transform: translateX(100%);
   }
 }
 

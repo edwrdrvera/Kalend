@@ -297,11 +297,11 @@ describe("SpacePanel", () => {
       [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find((t) => t.textContent === name);
     await act(() => tab("Resources")?.click());
     expect(container?.textContent).toContain("Add link");
-    expect(container?.textContent).not.toContain("Open tasks");
+    expect(container?.textContent).not.toContain("Tasks · ");
     await act(() => tab("Alerts")?.click());
     expect(container?.textContent).toContain("Notify me about School");
     await act(() => tab("Overview")?.click());
-    expect(container?.textContent).toContain("Open tasks");
+    expect(container?.textContent).toContain("Tasks · ");
   });
 
   it("lists upcoming events for a Space with events and no tasks", async () => {
