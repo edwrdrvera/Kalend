@@ -20,10 +20,12 @@ export function DateField({
   label,
   value,
   onChange,
+  className,
 }: {
   label: string;
   value: string; // "yyyy-MM-dd"
   onChange: (value: string) => void;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   // Parse at local noon so there's no UTC-midnight timezone shift.
@@ -34,7 +36,7 @@ export function DateField({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`${label}, ${displayValue}`}
-        className={cn(APP_INPUT_CLS, "w-full cursor-pointer text-left text-xs hover:bg-muted/30")}
+        className={cn(APP_INPUT_CLS, "w-full cursor-pointer text-left text-xs hover:bg-muted/30", className)}
       >
         {value ? format(date, "MMM d, yyyy") : "Select date"}
       </PopoverTrigger>

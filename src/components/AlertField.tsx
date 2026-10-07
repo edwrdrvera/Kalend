@@ -11,14 +11,16 @@ interface AlertFieldProps {
   onChange: (offset: AlertOffset | null) => void;
   /** Why the choice is turned off, or null when it is available. */
   disabledReason?: string | null;
+  /** Borderless select for a label/value row that supplies its own visible label. */
+  inline?: boolean;
 }
 
 /** The "Alert" choice shared by the event and task inspectors. */
-export default function AlertField({ id, value, onChange, disabledReason = null }: AlertFieldProps) {
+export default function AlertField({ id, value, onChange, disabledReason = null, inline = false }: AlertFieldProps) {
   const noteId = `${id}-note`;
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={FIELD_LABEL_CLS}>
+      <label htmlFor={id} className={inline ? "sr-only" : FIELD_LABEL_CLS}>
         Alert
       </label>
       <select
@@ -30,7 +32,11 @@ export default function AlertField({ id, value, onChange, disabledReason = null 
           const next = Number(e.target.value);
           onChange(e.target.value !== "" && isAlertOffset(next) ? next : null);
         }}
-        className={cn(APP_INPUT_CLS, "w-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed")}
+        className={cn(
+          APP_INPUT_CLS,
+          "w-full cursor-pointer focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed",
+          inline && "h-8 border-transparent bg-transparent px-0 text-sm"
+        )}
       >
         <option value="">None</option>
         {ALERT_OFFSETS.map((offset) => (
