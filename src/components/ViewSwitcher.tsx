@@ -28,7 +28,7 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           onClick={() => onViewChange(value)}
           aria-pressed={view === value}
           className={cn(
-            "h-7 rounded-md px-1.5 transition-colors md:px-2.5",
+            "h-8 min-w-11 rounded-md px-2 transition-colors md:h-7 md:min-w-0 md:px-2.5",
             view === value
               ? "bg-card text-foreground shadow-sm"
               : "hover:text-foreground"
