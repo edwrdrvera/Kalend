@@ -14,6 +14,8 @@ const { default: SpacePanel } = await import("../SpacePanel");
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+/** The props of the last render, so a test can re-render with a new subject. */
+let lastProps: Parameters<typeof SpacePanel>[0];
 
 afterEach(async () => {
   if (root) await act(() => root?.unmount());
@@ -58,9 +60,7 @@ async function render(
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  await act(() =>
-    root?.render(
-      createElement(SpacePanel, {
+  lastProps = {
         subject,
         tasks,
         upcoming,
@@ -100,9 +100,8 @@ async function render(
         onStay: () => {
           handlers.stays++;
         },
-      })
-    )
-  );
+      };
+  await act(() => root?.render(createElement(SpacePanel, lastProps)));
   return handlers;
 }
 
@@ -408,6 +407,20 @@ describe("SpacePanel rename", () => {
     await act(() => buttonWithText("Rename School")?.click());
     await key("Enter");
     expect(handlers.renames).toEqual([]);
+  });
+
+  it("drops an unsaved name when the panel switches to another Space", async () => {
+    const handlers = await render(SPACE);
+    handlers.renameResult = false;
+    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Enter");
+
+    const work = { ...SPACE, spaceId: "fixture-work", name: "Work" };
+    await act(() => root?.render(createElement(SpacePanel, { ...lastProps, subject: work })));
+    expect(document.querySelector('input[aria-label="Work name"]')).toBeNull();
+    expect(buttonWithText("Rename Work")).toBeDefined();
+    expect(container?.textContent).not.toContain("Couldn't rename");
   });
 
   it("keeps the box open with a message when the save fails", async () => {

@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
 import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
-import type { PanelSubject } from "@/lib/panel-subject";
+import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
 import { ICON_BUTTON_CLS } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
@@ -25,6 +25,16 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
   const [failed, setFailed] = useState(false);
   // Enter saves and then the input blurs, which would save a second time.
   const saving = useRef(false);
+
+  // A half-typed name belongs to the Space it was typed for, so drop it when
+  // the panel switches to another Space or Group.
+  const key = subjectKey(subject);
+  const [renderedKey, setRenderedKey] = useState(key);
+  if (renderedKey !== key) {
+    setRenderedKey(key);
+    setDraft(null);
+    setFailed(false);
+  }
 
   const stopEditing = () => {
     setDraft(null);
