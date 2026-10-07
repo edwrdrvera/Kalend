@@ -48,7 +48,7 @@ afterEach(async () => {
 interface Handlers {
   moves: Array<{ event: CalendarEvent; start: Date; end: Date }>;
   resizes: Array<{ event: CalendarEvent; start: Date; end: Date }>;
-  creates: Array<{ start: Date; end: Date }>;
+  creates: Array<{ start: Date; end: Date; rect: DOMRect }>;
 }
 
 async function renderGrid(spaceFocus: SpaceFocus = initialSpaceFocus): Promise<Handlers> {
@@ -66,7 +66,7 @@ async function renderGrid(spaceFocus: SpaceFocus = initialSpaceFocus): Promise<H
         spaceFocus,
         onEventMove: (event, start, end) => handlers.moves.push({ event, start, end }),
         onEventResize: (event, start, end) => handlers.resizes.push({ event, start, end }),
-        onSlotDragCreate: (start, end) => handlers.creates.push({ start, end }),
+        onSlotDragCreate: (start, end, rect) => handlers.creates.push({ start, end, rect }),
       })
     )
   );
@@ -158,6 +158,19 @@ describe("TimeGrid create-drag", () => {
     const { start, end } = handlers.creates[0]!;
     expect(start.getHours()).toBe(2);
     expect(end.getHours()).toBe(4);
+  });
+
+  it("anchors the creator on the sketched box, not the whole day column", async () => {
+    const handlers = await renderGrid();
+    const slots = document.querySelectorAll<HTMLDivElement>('div[role="button"]');
+
+    await act(async () => pointer("pointerdown", PX_PER_HOUR * 2, slots[2]!));
+    await windowPointer("pointermove", PX_PER_HOUR * 4);
+    await windowPointer("pointerup", PX_PER_HOUR * 4);
+
+    const { rect } = handlers.creates[0]!;
+    expect(rect.top).toBe(PX_PER_HOUR * 2);
+    expect(rect.height).toBe(PX_PER_HOUR * 2);
   });
 });
 
