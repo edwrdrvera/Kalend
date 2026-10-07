@@ -348,6 +348,13 @@ export default function Calendar() {
           subject={subject}
           tasks={panel.panelTasks}
           upcoming={panel.panelUpcoming}
+          weekLoad={panel.panelWeekLoad}
+          groupNav={{
+            groups: groups.data.filter((g) => g.category_id === subject.spaceId),
+            onOpenSpace: panel.openSpace,
+            onOpenGroup: panel.openGroup,
+            onCreateGroup: openGroupCreator,
+          }}
           modal={modal}
           onClose={panel.close}
           onToggleComplete={tasks.toggleComplete}

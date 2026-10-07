@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { MoreHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
@@ -9,6 +10,8 @@ interface SpacePanelHeaderProps {
   subject: PanelSubject;
   onClose: () => void;
   onOverflow?: () => void;
+  /** Rendered under the title, inside the header (the Group chips). */
+  children?: ReactNode;
 }
 
 const ICON_BUTTON_CLS =
@@ -18,6 +21,7 @@ export default function SpacePanelHeader({
   subject,
   onClose,
   onOverflow,
+  children,
 }: SpacePanelHeaderProps) {
   return (
     <header className="border-b border-border px-4 py-4">
@@ -55,6 +59,7 @@ export default function SpacePanelHeader({
           {subject.name}
         </h2>
       </div>
+      {children}
     </header>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState, type Dispatch } from "react";
 import { resolveSubject, subjectTasks } from "@/lib/panel-subject";
-import { upcomingEventsByDay } from "@/lib/space-overview";
+import { upcomingEventsByDay, weekLoad } from "@/lib/space-overview";
 import { panelReducer, loadPanelState, savePanelState } from "@/lib/panel-state";
 import type { CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
 import type { SpaceFocusAction } from "@/lib/space-focus";
@@ -68,6 +68,7 @@ export function useSpacePanel(
     navigationPending: panel.pending !== null,
     panelTasks: subject ? subjectTasks(subject, tasks) : [],
     panelUpcoming: subject ? upcomingEventsByDay(events, subject, new Date()) : [],
+    panelWeekLoad: subject ? weekLoad(events, subject, new Date()) : [],
     // The Space focus follows through the activeSpaceId effect once the panel
     // actually opens, so a navigation held by unsaved edits changes nothing yet.
     openSpace: (spaceId: string) => dispatch({ type: "openSpace", spaceId }),

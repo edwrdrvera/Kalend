@@ -60,6 +60,7 @@ async function render(
         subject,
         tasks,
         upcoming,
+        weekLoad: [],
         modal: false,
         onClose: () => {
           handlers.closes++;

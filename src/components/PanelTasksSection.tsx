@@ -42,8 +42,9 @@ export default function PanelTasksSection({
 
   return (
     <section aria-label="Open tasks" className="px-4 py-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h3 className="text-[12px] font-semibold text-muted-foreground">
         Open tasks
+        <span className="ml-1.5 font-normal">{tasks.length}</span>
       </h3>
       {/* Distinguishes this Space-wide or Group-wide backlog from the agenda's per-day
           task list: this shows everything still open, regardless of date. */}

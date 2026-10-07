@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import type { UpcomingDay } from "@/lib/space-overview";
+import type { UpcomingDay, WeekLoadDay } from "@/lib/space-overview";
 import PanelShell from "./PanelShell";
 import SpacePanelHeader from "./SpacePanelHeader";
 import SpacePanelDescription from "./SpacePanelDescription";
 import PanelUpcomingSection from "./PanelUpcomingSection";
+import PanelWeekLoad from "./PanelWeekLoad";
+import PanelGroupChips, { type PanelGroupNav } from "./PanelGroupChips";
 import PanelTasksSection from "./PanelTasksSection";
 import SpacePanelFooter from "./SpacePanelFooter";
 
@@ -18,6 +20,9 @@ interface SpacePanelProps {
   subject: PanelSubject;
   tasks: CalendarTask[];
   upcoming: UpcomingDay[];
+  weekLoad: WeekLoadDay[];
+  /** The Space's Groups as chips under the title. Omitted, or with no Groups, hides the row. */
+  groupNav?: PanelGroupNav;
   /** Modal dialog in overlay/full-screen modes; see PanelShell. */
   modal: boolean;
   onClose: () => void;
@@ -47,6 +52,8 @@ export default function SpacePanel({
   subject,
   tasks,
   upcoming,
+  weekLoad,
+  groupNav,
   modal,
   onClose,
   onToggleComplete,
@@ -89,7 +96,9 @@ export default function SpacePanel({
       modal={modal}
       onClose={onClose}
     >
-      <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings} />
+      <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings}>
+        {groupNav && groupNav.groups.length > 0 && <PanelGroupChips subject={subject} nav={groupNav} />}
+      </SpacePanelHeader>
 
       {/* Body: scrolls independently; sections self-omit when empty, and
           divide-y draws a hairline only between the sections that render.
@@ -153,6 +162,7 @@ export default function SpacePanel({
             Nothing coming up in {subject.name}. Events and tasks you add here show up in this panel.
           </p>
         ) : null}
+        <PanelWeekLoad days={weekLoad} color={subject.color} scopeName={subject.name} />
         <PanelUpcomingSection days={upcoming} onOpenEvent={onOpenEvent} />
         <PanelTasksSection
           tasks={tasks}

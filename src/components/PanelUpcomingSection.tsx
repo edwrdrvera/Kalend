@@ -32,7 +32,7 @@ export default function PanelUpcomingSection({ days, onOpenEvent }: PanelUpcomin
 
   return (
     <section aria-label="Upcoming" className="px-4 py-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <h3 className="text-[12px] font-semibold text-muted-foreground">
         Upcoming
       </h3>
       <div className="mt-2 flex flex-col gap-2.5">
