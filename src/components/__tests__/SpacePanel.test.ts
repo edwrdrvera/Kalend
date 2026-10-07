@@ -33,6 +33,8 @@ interface Handlers {
   dirty: boolean[];
   proceeds: number;
   stays: number;
+  renames: string[];
+  renameResult: boolean;
 }
 
 async function render(
@@ -50,6 +52,8 @@ async function render(
     dirty: [],
     proceeds: 0,
     stays: 0,
+    renames: [],
+    renameResult: true,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -78,6 +82,10 @@ async function render(
           handlers.created.push(title);
         },
         onOpenSettings: () => {},
+        onRename: async (name: string) => {
+          handlers.renames.push(name);
+          return handlers.renameResult;
+        },
         onSaveDescription: async (description: string | null) => {
           handlers.descriptionSaves.push(description);
           return handlers.saveResult;
@@ -356,5 +364,59 @@ describe("SpacePanel", () => {
       form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
     expect(handlers.created).toEqual(["Read chapter 4"]);
+  });
+});
+
+describe("SpacePanel rename", () => {
+  const nameInput = () => document.querySelector<HTMLInputElement>('input[aria-label="School name"]');
+  const key = (k: string) =>
+    act(async () => {
+      nameInput()?.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    });
+
+  it("has no options button, and the title opens a name box", async () => {
+    await render(SPACE);
+    expect(buttonWithText("Space options")).toBeUndefined();
+    await act(() => buttonWithText("Rename School")?.click());
+    expect(nameInput()?.value).toBe("School");
+  });
+
+  it("saves the trimmed name on Enter", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => typeInto(nameInput()!, "  Biology "));
+    await key("Enter");
+    expect(handlers.renames).toEqual(["Biology"]);
+    expect(nameInput()).toBeNull();
+  });
+
+  it("cancels on Escape without saving or closing the panel", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Escape");
+    expect(handlers.renames).toEqual([]);
+    expect(handlers.closes).toBe(0);
+    expect(nameInput()).toBeNull();
+  });
+
+  it("does not save a blank or unchanged name", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => typeInto(nameInput()!, "   "));
+    await key("Enter");
+    await act(() => buttonWithText("Rename School")?.click());
+    await key("Enter");
+    expect(handlers.renames).toEqual([]);
+  });
+
+  it("keeps the box open with a message when the save fails", async () => {
+    const handlers = await render(SPACE);
+    handlers.renameResult = false;
+    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Enter");
+    expect(nameInput()?.value).toBe("Biology");
+    expect(container?.textContent).toContain("Couldn't rename");
   });
 });

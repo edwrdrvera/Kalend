@@ -4,7 +4,7 @@ import { act } from "react";
 import type { Root } from "react-dom/client";
 
 // Install DOM globals before importing React DOM (see test-dom.ts).
-await import("./test-dom");
+const { typeInto } = await import("./test-dom");
 
 const { createRoot } = await import("react-dom/client");
 const { default: SpacePanelHeader } = await import("../SpacePanelHeader");
@@ -26,11 +26,11 @@ afterEach(async () => {
 
 interface Interactions {
   closed: boolean;
-  overflowed: boolean;
+  renames: string[];
 }
 
 async function renderHeader(subject: PanelSubject = GROUP) {
-  const interactions: Interactions = { closed: false, overflowed: false };
+  const interactions: Interactions = { closed: false, renames: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -42,8 +42,9 @@ async function renderHeader(subject: PanelSubject = GROUP) {
         onClose: () => {
           interactions.closed = true;
         },
-        onOverflow: () => {
-          interactions.overflowed = true;
+        onRename: async (name: string) => {
+          interactions.renames.push(name);
+          return true;
         },
       })
     )
@@ -81,19 +82,16 @@ describe("SpacePanelHeader", () => {
     expect(interactions.closed).toBe(true);
   });
 
-  it("calls onOverflow when the overflow button is clicked", async () => {
-    const interactions = await renderHeader();
-
-    byLabel("Group options")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true })
-    );
-    expect(interactions.overflowed).toBe(true);
-  });
-
-  it("names the overflow button for what is open", async () => {
-    await renderHeader(SPACE);
-    expect(byLabel("Space options")).not.toBeNull();
-    expect(byLabel("Group options")).toBeNull();
+  it("renames a Group once when Enter is followed by the box losing focus", async () => {
+    const interactions = await renderHeader(GROUP);
+    await act(() => byLabel("Rename CS 340")?.click());
+    const input = byLabel("CS 340 name") as HTMLInputElement;
+    await act(() => typeInto(input, "CS 341"));
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input.dispatchEvent(new Event("focusout", { bubbles: true }));
+    });
+    expect(interactions.renames).toEqual(["CS 341"]);
   });
 
   it("has a decorative, aria-hidden color mark", async () => {

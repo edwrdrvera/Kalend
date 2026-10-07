@@ -41,9 +41,10 @@ interface SpacePanelProps {
   onCreateEvent: (anchor: DOMRect) => void;
   /** Creates a task in the open Space or Group (title only; date and membership implied). */
   onCreateTask: (title: string) => Promise<void>;
-  /** Opens the editor for the open Space or Group. Wired to both the header
-   *  overflow button and the footer row. */
+  /** Opens the editor for the open Space or Group (the footer row). */
   onOpenSettings: () => void;
+  /** Renames the open Space or Group from its title. Resolves false when the save failed. */
+  onRename: (name: string) => Promise<boolean>;
   /** Saves the Space's description (null removes it). Resolves false when the save failed. */
   onSaveDescription: (description: string | null) => Promise<boolean>;
   onDirtyChange: (dirty: boolean) => void;
@@ -78,6 +79,7 @@ export default function SpacePanel({
   onCreateEvent,
   onCreateTask,
   onOpenSettings,
+  onRename,
   onSaveDescription,
   onDirtyChange,
   navigationPending,
@@ -114,7 +116,7 @@ export default function SpacePanel({
       modal={modal}
       onClose={onClose}
     >
-      <SpacePanelHeader subject={subject} onClose={onClose} onOverflow={onOpenSettings}>
+      <SpacePanelHeader subject={subject} onClose={onClose} onRename={onRename}>
         {groupNav && <PanelGroupChips subject={subject} nav={groupNav} />}
         <PanelTabs tabs={TABS} value={tab} onChange={setTab} />
       </SpacePanelHeader>

@@ -312,6 +312,21 @@ export default function Calendar() {
     }
   };
 
+  const handleRenameSubject = async (name: string): Promise<boolean> => {
+    if (subject?.kind === "space") {
+      const space = categories.data.find((c) => c.id === subject.spaceId);
+      return space ? categories.updateCategory(space, { name }) : false;
+    }
+    const group = groups.data.find((g) => g.id === subject?.groupId);
+    if (!group) return false;
+    try {
+      await groups.renameGroup(group, name);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveSpaceDescription = async (description: string | null) => {
     const space = categories.data.find((c) => c.id === subject?.spaceId);
     return space ? categories.updateCategory(space, { description }) : false;
@@ -375,6 +390,7 @@ export default function Calendar() {
               if (group) openGroupEditor(group);
             }
           }}
+          onRename={handleRenameSubject}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
           navigationPending={panel.navigationPending}
