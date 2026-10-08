@@ -100,10 +100,9 @@ describe("IconRail", () => {
   it("renders one Space tile per category with correct abbreviation", async () => {
     await renderRail({ categories: threeCategories });
 
-    const text = document.body.textContent ?? "";
-    expect(text).toContain("Sc"); // School
-    expect(text).toContain("Wo"); // Work
-    expect(text).toContain("Fi"); // Fitness
+    expect(byLabel("School")?.textContent).toBe("S");
+    expect(byLabel("Work")?.textContent).toBe("W");
+    expect(byLabel("Fitness")?.textContent).toBe("F");
   });
 
   it("clicking a Space tile calls onSelectSpace with its id", async () => {
@@ -127,13 +126,13 @@ describe("IconRail", () => {
     expect(interactions.selectedSpaces).toEqual([null]);
   });
 
-  it("each Space tile has a title attribute with the full Space name", async () => {
+  it("each Space tile is labelled with the full Space name", async () => {
     await renderRail({ categories: threeCategories });
 
     for (const cat of threeCategories) {
       const btn = byLabel(cat.name);
       expect(btn).not.toBeNull();
-      expect(btn?.getAttribute("title")).toBe(cat.name);
+      expect(btn?.getAttribute("aria-label")).toBe(cat.name);
     }
   });
 
@@ -174,16 +173,24 @@ describe("IconRail", () => {
 });
 
 describe("spaceAbbreviation", () => {
-  it('"School" → "Sc"', () => {
-    expect(spaceAbbreviation("School")).toBe("Sc");
+  it('"School" → "S"', () => {
+    expect(spaceAbbreviation("School")).toBe("S");
   });
 
-  it('"Work" → "Wo"', () => {
-    expect(spaceAbbreviation("Work")).toBe("Wo");
+  it('"work" → "W"', () => {
+    expect(spaceAbbreviation("work")).toBe("W");
   });
 
-  it('"a" → "A"', () => {
-    expect(spaceAbbreviation("a")).toBe("A");
+  it('"Study Group" → "SG"', () => {
+    expect(spaceAbbreviation("Study Group")).toBe("SG");
+  });
+
+  it("uses only the first two words", () => {
+    expect(spaceAbbreviation("Side Project Ideas")).toBe("SP");
+  });
+
+  it("ignores extra whitespace", () => {
+    expect(spaceAbbreviation("  Gym   Time ")).toBe("GT");
   });
 
   it('"" → "??"', () => {

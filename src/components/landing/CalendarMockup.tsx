@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { EVENT_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, RAIL_SPACE_ACTIVE_CLASSES, type EventColor } from "@/lib/event-colors";
+import { EVENT_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, RAIL_SPACE_CLASSES, type EventColor } from "@/lib/event-colors";
 import KalendMark from "@/components/KalendMark";
 
 // A dragged event is "picked up": a solid fill with white text instead of the
@@ -24,12 +24,12 @@ const DAYS = [
 // keys (the app's "sunset warm" palette), rendered via the same
 // EVENT_COLOR_* helpers the real sidebar uses so the mock can't drift.
 
-// Rail space tiles: 2-letter abbreviations like the app's spaceAbbreviation().
+// Rail space tiles: initials like the app's spaceAbbreviation().
 const RAIL_SPACES: { abbr: string; color: EventColor; active?: boolean }[] = [
-  { abbr: "Sc", color: "indigo", active: true },
-  { abbr: "Wk", color: "orange" },
-  { abbr: "Pe", color: "purple" },
-  { abbr: "Ha", color: "green" },
+  { abbr: "S", color: "indigo", active: true },
+  { abbr: "W", color: "orange" },
+  { abbr: "P", color: "purple" },
+  { abbr: "H", color: "green" },
 ];
 
 // Agenda "Schedule" section: the selected day's timed events.
@@ -297,11 +297,7 @@ function RailMockup() {
         {RAIL_SPACES.map((space) => (
           <span
             key={space.abbr}
-            className={
-              space.active
-                ? `grid size-7 place-items-center rounded-[9px] border-[1.5px] text-[11px] font-bold ${RAIL_SPACE_ACTIVE_CLASSES[space.color]}`
-                : "grid size-7 place-items-center rounded-[9px] bg-[var(--mock-soft)] text-[11px] font-bold text-[var(--mock-muted)]"
-            }
+            className={`grid size-7 place-items-center rounded-[9px] border-[1.5px] text-[11px] font-bold ${RAIL_SPACE_CLASSES[space.color]} ${space.active ? "ring-2 ring-white/40 ring-offset-1 ring-offset-[var(--mock-surface)]" : ""}`}
           >
             {space.abbr}
           </span>

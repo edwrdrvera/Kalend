@@ -90,9 +90,9 @@ export function getTaskColorClasses(color: string | null): string {
   return TASK_COLOR_CLASSES[color];
 }
 
-// Solid fill + lighter border for the active Space tile in the icon rail. The
-// colored fill with white text reads on the rail in both light and dark themes.
-export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
+// Solid fill + border for a Space tile in the icon rail. The colored fill with
+// white text reads on the rail in both light and dark themes.
+export const RAIL_SPACE_CLASSES: Record<EventColor, string> = {
   blue: "bg-[var(--evt-blue-deep)] border-[var(--evt-blue-deep)] text-white",
   green: "bg-[var(--evt-green-deep)] border-[var(--evt-green-deep)] text-white",
   purple: "bg-[var(--evt-purple-deep)] border-[var(--evt-purple-deep)] text-white",
