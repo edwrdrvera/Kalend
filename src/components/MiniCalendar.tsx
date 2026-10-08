@@ -91,7 +91,7 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   if (isTodayCurrent) {
     // Today (when not selected): outlined square with ring to distinguish
     // it from an ordinary date without filling the background.
-    return `${baseClasses} rounded-[6px] ring-2 ring-primary text-primary font-bold`;
+    return `${baseClasses} rounded-[6px] ring-2 ring-primary text-primary-text font-bold`;
   }
 
   return `${baseClasses} rounded-md text-foreground hover:bg-muted`;

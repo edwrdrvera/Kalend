@@ -433,7 +433,7 @@ export default function CategoryManager({
               type="button"
               onClick={() => setCreating(true)}
               aria-label="Create your first space"
-              className="text-[13px] font-medium text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+              className="text-[13px] font-medium text-primary-text hover:text-primary-text/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
             >
               + Create your first space
             </button>

@@ -71,7 +71,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                   )}
                 />
               </span>
-              <span className={cn("text-[11px]", today ? "font-semibold text-primary" : "text-muted-foreground")}>
+              <span className={cn("text-[11px]", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
             </button>

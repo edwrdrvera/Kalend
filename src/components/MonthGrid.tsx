@@ -108,7 +108,7 @@ function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): st
   if (isTodayDay) {
     // Today: bold accent-colored text, no fill. The cell itself carries
     // the today highlight (tinted border + wash).
-    return `${base} text-primary font-bold`;
+    return `${base} text-primary-text font-bold`;
   }
 
   if (!isCurrentMonth) {

@@ -246,7 +246,7 @@ export default function TimeGrid({
                 const { lo, hi } = computeCreateRange(create.preview.anchorMinutes, create.preview.liveMinutes);
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary-text"
                     style={{
                       top: `${(lo / MINUTES_PER_DAY) * 100}%`,
                       height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
@@ -269,7 +269,7 @@ export default function TimeGrid({
                   (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary-text"
                     style={{
                       top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
                       height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
