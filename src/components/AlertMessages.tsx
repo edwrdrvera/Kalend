@@ -48,7 +48,7 @@ function DueMessage({
         if (event.key === "Escape") onDismiss(message.id);
       }}
     >
-      <Bell className="size-4 shrink-0 text-primary" aria-hidden />
+      <Bell className="size-4 shrink-0 text-primary-text" aria-hidden />
       {onOpen ? (
         <button
           type="button"
@@ -100,7 +100,7 @@ export default function AlertMessages({ tray, onOpen, onDismiss, onClearMissed }
             <button
               type="button"
               onClick={onClearMissed}
-              className="text-[13px] font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-ring"
+              className="text-[13px] font-medium text-primary-text transition-colors hover:text-primary-text/80 focus-visible:outline-2 focus-visible:outline-ring"
             >
               Dismiss all
             </button>

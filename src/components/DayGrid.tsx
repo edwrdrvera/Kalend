@@ -51,7 +51,7 @@ function DayColumnHeader({
 
   let numberCls = "flex size-9 items-center justify-center rounded-full text-lg font-bold";
   if (isSelected) numberCls += " bg-primary text-primary-foreground";
-  else if (isToday) numberCls += " text-primary";
+  else if (isToday) numberCls += " text-primary-text";
   else numberCls += " text-foreground";
 
   return (

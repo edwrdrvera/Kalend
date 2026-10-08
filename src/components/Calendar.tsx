@@ -62,7 +62,7 @@ function ErrorToast({
         <button
           type="button"
           onClick={onRetry}
-          className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+          className="shrink-0 font-medium text-primary-text transition-colors hover:text-primary-text/80"
         >
           Retry
         </button>

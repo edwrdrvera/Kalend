@@ -123,7 +123,7 @@ export function EventColorControl({
         (colorOverridden ? (
           <button
             type="button"
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-primary-text hover:underline"
             onClick={() => onChange(eventColorReducer(colorState, { type: "inherit" }))}
           >
             Use Space color
@@ -167,7 +167,7 @@ export function EventColorSpaceFields({
         (colorState.colorOverridden ? (
           <button
             type="button"
-            className="self-start text-xs font-medium text-primary hover:underline"
+            className="self-start text-xs font-medium text-primary-text hover:underline"
             onClick={() => onChange(eventColorReducer(colorState, { type: "inherit" }))}
           >
             Use Space color
