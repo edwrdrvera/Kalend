@@ -16,3 +16,7 @@ pr	date	tier	reviewer_version	finding	severity	outcome
 233	2026-10-03	medium	809eef0	Failed delete during an alert offset switch left a duplicate alert, and Retry reported success without removing it	medium	real-fixed
 241	2026-10-06	high	809eef0	Item update and Group delete locked the Space and Group in opposite order and could deadlock; item update now locks the Space first	medium	real-fixed
 248	2026-10-07	medium	809eef0	More options skips opening the panel when it has unsaved edits. Not a bug: the panel shows its standard Save, Discard, Stay prompt right away, same as clicking any event.	medium	false-positive
+251	2026-10-07	medium	809eef0	Panel header kept a half-typed or failed rename when switching to another Space, so Enter could rename the wrong Space	medium	real-fixed
+251	2026-10-08	medium	809eef0	A rename that fails after the panel switches showed its error under the new Space	medium	real-fixed
+251	2026-10-08	medium	809eef0	Settings dialogs still rename; kept on purpose (create needs the field, user asked for panel rename in addition). PR text clarified and the borrowed Group length cap removed for Spaces	low	ignored
+251	2026-10-08	medium	809eef0	Panel title rename and the sidebar Space list rename are two separate implementations; a shared inline-rename hook is beyond this PR	low	real-deferred

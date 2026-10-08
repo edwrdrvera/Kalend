@@ -625,7 +625,7 @@ describe("Calendar behavior", () => {
     it("deleting a Group says what happens, then removes it and closes its panel", async () => {
       await mount();
       await openGroup("BIO 102");
-      await click(document.querySelector("[aria-label='Group options']")!);
+      await click(document.querySelector("[aria-label='Group settings']")!);
       await click(document.querySelector("[aria-label='Delete Group']")!);
       const message = document.querySelector("[role='dialog']")?.textContent ?? "";
       expect(message).toContain("Its 1 event and 1 task stay in School");

@@ -312,6 +312,21 @@ export default function Calendar() {
     }
   };
 
+  const handleRenameSubject = async (name: string): Promise<boolean> => {
+    if (subject?.kind === "space") {
+      const space = categories.data.find((c) => c.id === subject.spaceId);
+      return space ? categories.updateCategory(space, { name }) : false;
+    }
+    const group = groups.data.find((g) => g.id === subject?.groupId);
+    if (!group) return false;
+    try {
+      await groups.renameGroup(group, name);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveSpaceDescription = async (description: string | null) => {
     const space = categories.data.find((c) => c.id === subject?.spaceId);
     return space ? categories.updateCategory(space, { description }) : false;
@@ -375,6 +390,7 @@ export default function Calendar() {
               if (group) openGroupEditor(group);
             }
           }}
+          onRename={handleRenameSubject}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
           navigationPending={panel.navigationPending}
@@ -581,17 +597,17 @@ export default function Calendar() {
         )}
 
         {/* Space Panel (fourth region). Pinned: an in-flow column whose width
-            animates 0<->396 so the canvas reflows in the same transition.
+            animates 0<->360 so the canvas reflows in the same transition.
             Below 1200px: an overlay sheet with a scrim; below 900px: full
             screen. Both overlay modes are modal dialogs (see SpacePanel). */}
         {panel.panelMode === "pinned" ? (
           <div
             className={cn(
-              "relative h-full shrink-0 overflow-hidden transition-[width] duration-[180ms] ease-out motion-reduce:transition-none",
-              rightPanelOpen ? "w-[396px]" : "w-0"
+              "relative h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-snappy motion-reduce:transition-none",
+              rightPanelOpen ? "w-[360px]" : "w-0"
             )}
           >
-            <div className="h-full w-[396px]">{renderRightPanel(false)}</div>
+            <div className="h-full w-[360px]">{renderRightPanel(false)}</div>
           </div>
         ) : (
           rightPanelOpen && (
@@ -604,8 +620,8 @@ export default function Calendar() {
               />
               <div
                 className={cn(
-                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[fadeIn_180ms_ease-out]",
-                  panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[396px]"
+                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)] motion-reduce:animate-[fadeIn_180ms_ease-out]",
+                  panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[360px]"
                 )}
               >
                 {renderRightPanel(true)}

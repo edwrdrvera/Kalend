@@ -87,7 +87,7 @@ export default function InlineTaskComposer({
           <button
             type="button"
             onClick={() => setDraft({ ...draft, showDueDate: true })}
-            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
           >
             + due date
           </button>
@@ -104,7 +104,7 @@ export default function InlineTaskComposer({
         <button
           type="button"
           onClick={onClose}
-          className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
         >
           Cancel
         </button>
@@ -112,7 +112,7 @@ export default function InlineTaskComposer({
           type="submit"
           disabled={!draft.title.trim() || submitting}
           aria-label="Add task"
-          className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+          className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-40"
         >
           Add task
         </button>

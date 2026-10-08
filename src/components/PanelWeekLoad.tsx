@@ -4,6 +4,7 @@ import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
 import type { WeekLoadDay } from "@/lib/space-overview";
+import { PRESS_CLS } from "./InspectorParts";
 
 /** Hours in a day at or above which the bar turns to the warning color. */
 const HEAVY_HOURS = 8;
@@ -47,8 +48,9 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
               onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                today && "bg-muted/60"
+                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+                PRESS_CLS,
+                today && "bg-primary/10 hover:bg-primary/15"
               )}
             >
               <span className="text-[11px] tabular-nums text-muted-foreground">{round1(hours)}h</span>
@@ -60,14 +62,16 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                     "w-3.5 rounded-[3px]",
                     hours >= HEAVY_HOURS
                       ? "bg-amber-600"
-                      : neutral
+                      : today
+                        ? "bg-primary"
+                        : neutral
                         ? "bg-muted-foreground/50"
                         : EVENT_COLOR_SWATCH_CLASSES[color],
                     !today && hours < HEAVY_HOURS && "opacity-60"
                   )}
                 />
               </span>
-              <span className={cn("text-[11px]", today ? "font-semibold text-foreground" : "text-muted-foreground")}>
+              <span className={cn("text-[11px]", today ? "font-semibold text-primary" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
             </button>

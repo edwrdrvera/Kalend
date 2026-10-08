@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { descriptionProblem } from "@/lib/description";
 import { APP_INPUT_CLS } from "./DateField";
@@ -28,7 +27,8 @@ export function DescriptionTextarea({
   className,
   label = "Description",
   onBlur,
-}: DescriptionFieldProps & { autoFocus?: boolean; onBlur?: () => void }) {
+  placeholder,
+}: DescriptionFieldProps & { autoFocus?: boolean; onBlur?: () => void; placeholder?: string }) {
   const problem = descriptionProblem(value);
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
@@ -41,10 +41,11 @@ export function DescriptionTextarea({
         onChange={(e) => onChange(e.target.value)}
         autoFocus={autoFocus}
         onBlur={onBlur}
+        placeholder={placeholder}
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed focus-visible:ring-2 focus-visible:ring-ring")}
+        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed")}
       />
       {problem && (
         <p id={`${id}-problem`} className="text-[12px] text-destructive">
@@ -56,11 +57,10 @@ export function DescriptionTextarea({
 }
 
 export const ADD_DESCRIPTION_CLS =
-  "flex w-fit items-center gap-1 rounded-md text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "flex w-fit items-center gap-1 rounded-md text-[11.5px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
 
-/** An optional description. Empty and not being edited, it is a single
- *  "Add description" button instead of an empty box. It stays a box once
- *  opened, so clearing the text while typing doesn't make it vanish. */
+/** A description box that is always shown, empty or not. With `formatted`,
+ *  saved text renders as formatted notes until clicked. */
 export default function DescriptionField({
   id,
   value,
@@ -69,26 +69,8 @@ export default function DescriptionField({
   label = "Description",
   formatted = false,
 }: DescriptionFieldProps) {
-  const [open, setOpen] = useState(value !== "");
   const [editing, setEditing] = useState(false);
   const [focusOnOpen, setFocusOnOpen] = useState(false);
-
-  if (!open && value === "") {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setFocusOnOpen(true);
-          setOpen(true);
-          setEditing(true);
-        }}
-        className={cn(ADD_DESCRIPTION_CLS, className)}
-      >
-        <Plus className="size-3.5" />
-        Add {label.toLowerCase()}
-      </button>
-    );
-  }
 
   if (formatted && !editing && value !== "") {
     const startEditing = () => {
@@ -111,7 +93,7 @@ export default function DescriptionField({
           onKeyDown={(e) => {
             if (e.key === "Enter" && e.target === e.currentTarget) startEditing();
           }}
-          className="cursor-text rounded-sm border border-transparent px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-input focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-h-20 cursor-text rounded-sm border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-foreground/20 focus-visible:border-foreground/30"
         >
           <NotesView value={value} />
         </div>
@@ -123,10 +105,15 @@ export default function DescriptionField({
     <DescriptionTextarea
       id={id}
       value={value}
-      onChange={onChange}
+      onChange={(next) => {
+        // Typing into the empty box must not flip it to the formatted view.
+        setEditing(true);
+        onChange(next);
+      }}
       autoFocus={focusOnOpen}
       className={className}
       label={label}
+      placeholder={`Add ${label.toLowerCase()}`}
       onBlur={formatted ? () => setEditing(false) : undefined}
     />
   );

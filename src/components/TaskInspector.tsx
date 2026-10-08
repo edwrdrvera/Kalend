@@ -100,7 +100,7 @@ export default function TaskInspector({
         <UnsavedChangesPrompt noun="task" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />
       )}
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
         <label className="flex flex-col gap-1.5">
           <span className={FIELD_LABEL_CLS}>
             Title
@@ -109,7 +109,7 @@ export default function TaskInspector({
             value={draft.title}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={titleMissing || undefined}
-            className={cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:ring-ring")}
+            className={cn(APP_INPUT_CLS, "w-full")}
           />
         </label>
 
@@ -157,7 +157,7 @@ export default function TaskInspector({
           role="checkbox"
           aria-checked={task.completed}
           onClick={() => onToggleComplete(task)}
-          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
         >
           <span
             aria-hidden="true"

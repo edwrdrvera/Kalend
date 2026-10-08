@@ -252,12 +252,8 @@ function DayCell({
               dimClass(event, spaceFocus)
             )}
           >
-            {/* Month cells are too narrow for a location line, so only the
-             *  icon (if set) rides along with the title here. */}
-            <span className="block truncate">
-              {event.icon && <span className="mr-1">{event.icon}</span>}
-              {event.title}
-            </span>
+            {/* Month cells are too narrow for a location line, so only the title shows. */}
+            <span className="block truncate">{event.title}</span>
           </button>
         ))}
         {overflowCount > 0 && (

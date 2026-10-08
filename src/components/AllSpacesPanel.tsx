@@ -6,6 +6,7 @@ import type { CalendarCategory, CalendarGroup, CalendarTask } from "@/lib/calend
 import type { WeekLoadDay } from "@/lib/space-overview";
 import type { Membership } from "@/lib/membership";
 import InlineTaskComposer from "./InlineTaskComposer";
+import { ICON_BUTTON_CLS } from "./InspectorParts";
 import PanelAlertsTab from "./PanelAlertsTab";
 import PanelShell from "./PanelShell";
 import PanelTabs from "./PanelTabs";
@@ -36,9 +37,6 @@ const TABS: { id: AllTab; label: string }[] = [
   { id: "tasks", label: "Tasks" },
   { id: "alerts", label: "Alerts" },
 ];
-
-const ICON_BUTTON_CLS =
-  "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** The dashboard for "all spaces": same frame as a Space's panel, across every Space. */
 export default function AllSpacesPanel({
@@ -73,7 +71,6 @@ export default function AllSpacesPanel({
     <PanelShell label="All tasks" modal={modal} onClose={onClose}>
       <header className="border-b border-border px-4 pt-4">
         <div className="flex items-center gap-2">
-          <span aria-hidden="true" className="size-[10px] shrink-0 rounded-[3px] bg-muted-foreground/50" />
           <h2 className="min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground">
             All tasks
           </h2>
@@ -90,7 +87,6 @@ export default function AllSpacesPanel({
             <PanelWeekLoad days={weekLoad} color="blue" scopeName="all spaces" onSelectDay={onSelectDay} neutral />
             <PanelTasksSection
               tasks={open}
-              scope="all"
               bucketed
               completed={completed}
               pathOf={pathOf}

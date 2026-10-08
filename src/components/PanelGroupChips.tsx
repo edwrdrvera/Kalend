@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { EVENT_COLOR_CLASSES } from "@/lib/event-colors";
 import type { CalendarGroup } from "@/lib/calendar-types";
 import type { PanelSubject } from "@/lib/panel-subject";
+import { PRESS_CLS } from "./InspectorParts";
 
 export interface PanelGroupNav {
   groups: CalendarGroup[];
@@ -13,8 +14,10 @@ export interface PanelGroupNav {
   onCreateGroup: (spaceId: string) => void;
 }
 
-const CHIP_CLS =
-  "h-[26px] rounded-full border px-3 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const CHIP_CLS = cn(
+  "h-[26px] rounded-full border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  PRESS_CLS
+);
 
 /** The Space's Groups as a chip row: All (the Space itself), each Group, and a new-Group button. */
 export default function PanelGroupChips({
@@ -53,7 +56,10 @@ export default function PanelGroupChips({
         type="button"
         aria-label="New Group"
         onClick={() => nav.onCreateGroup(subject.spaceId)}
-        className="grid h-[26px] w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "grid h-[26px] w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+          PRESS_CLS
+        )}
       >
         <Plus aria-hidden className="size-3.5" />
       </button>

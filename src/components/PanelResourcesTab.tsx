@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS } from "@/components/DateField";
 import { parseWebLink } from "@/lib/web-link";
+import { PRESS_CLS } from "./InspectorParts";
 
 // Placeholder: links and files live in component state only, nothing is saved
 // or uploaded yet. Swap in real storage when Resources get a backend.
@@ -27,10 +28,14 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
   { name: "Notes.docx", ext: "DOC", size: "32 KB" },
 ];
 
-const HEADER_BTN =
-  "flex h-7 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const REMOVE_BTN =
-  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground/70 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const HEADER_BTN = cn(
+  "flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  PRESS_CLS
+);
+const REMOVE_BTN = cn(
+  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  PRESS_CLS
+);
 
 export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "Group" }) {
   const [links, setLinks] = useState<ResourceLink[]>([]);
@@ -101,7 +106,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
               }}
               className={cn(APP_INPUT_CLS, "w-full")}
             />
-            {error && <p className="mt-1 text-[11.5px] text-red-600">{error}</p>}
+            {error && <p className="mt-1 text-[11.5px] text-destructive">{error}</p>}
           </form>
         )}
         {links.length === 0 && !linkOpen && (
@@ -111,12 +116,12 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
         )}
         <ul className="mt-1.5">
           {links.map((link) => (
-            <li key={link.id} className="flex items-center gap-2.5 py-1">
+            <li key={link.id} className="flex animate-reveal-down items-center gap-2.5 py-1">
               <a
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
               >
                 <span
                   aria-hidden="true"
@@ -157,7 +162,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
         )}
         <ul className="mt-1.5">
           {files.map((file) => (
-            <li key={file.id} className="flex items-center gap-2.5 py-1">
+            <li key={file.id} className="flex animate-reveal-down items-center gap-2.5 py-1">
               <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1">
                 <span
                   aria-hidden="true"

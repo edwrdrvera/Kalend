@@ -5,7 +5,7 @@ import { Bell, Clock, LayoutGrid, MapPin, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent, CalendarGroup } from "@/lib/calendar-types";
-import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
+import { MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   draftFromEvent,
   joinDateTimeLocal,
@@ -21,7 +21,6 @@ import { useInspectorSave } from "@/hooks/useInspectorSave";
 import { APP_INPUT_CLS, DateField } from "./DateField";
 import AlertField from "./AlertField";
 import DescriptionField from "./DescriptionField";
-import IconPicker from "./IconPicker";
 import PanelShell from "./PanelShell";
 import { EventColorControl, EventSpaceSelect } from "./EventFields";
 import {
@@ -54,7 +53,7 @@ interface EventInspectorProps {
 
 const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-md px-2 text-xs";
 
-const INPUT_CLS = cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:ring-ring");
+const INPUT_CLS = cn(APP_INPUT_CLS, "w-full");
 
 /** An event's details in the right panel. Mount it with `key={event.id}` so
  *  each event gets a fresh draft. */
@@ -110,30 +109,18 @@ export default function EventInspector({
         <UnsavedChangesPrompt noun="event" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />
       )}
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        <div className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
+        <div>
           <label htmlFor="event-inspector-title" className="sr-only">
             Title
           </label>
-          <div className="flex items-center gap-2.5">
-            <label htmlFor="event-inspector-icon" className="sr-only">
-              Event icon
-            </label>
-            <IconPicker
-              id="event-inspector-icon"
-              value={draft.icon}
-              onChange={(icon) => update({ icon })}
-              maxLength={MAX_ICON_LENGTH}
-              className="size-9 rounded-lg text-base"
-            />
-            <input
-              id="event-inspector-title"
-              value={draft.title}
-              onChange={(e) => update({ title: e.target.value })}
-              aria-invalid={draft.title.trim() === "" || undefined}
-              className={cn(INPUT_CLS, "h-9 flex-1 rounded-lg px-3 text-base font-semibold tracking-tight")}
-            />
-          </div>
+          <input
+            id="event-inspector-title"
+            value={draft.title}
+            onChange={(e) => update({ title: e.target.value })}
+            aria-invalid={draft.title.trim() === "" || undefined}
+            className={cn(INPUT_CLS, "h-9 rounded-lg px-3 text-base font-semibold tracking-tight")}
+          />
         </div>
 
         <div className="flex flex-col border-b border-border">
@@ -174,7 +161,7 @@ export default function EventInspector({
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus-visible:ring-2 focus-visible:ring-ring")}
+              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus:border-input")}
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">

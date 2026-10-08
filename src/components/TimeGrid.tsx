@@ -329,7 +329,6 @@ export default function TimeGrid({
                      *  event, where flow content could otherwise center or
                      *  drift within the padded box. Left inset clears the bar. */}
                     <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
-                      {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
                     <span className="absolute left-[13px] right-1.5 top-5 truncate text-[10px] font-medium opacity-90">
@@ -384,7 +383,6 @@ export default function TimeGrid({
             {/* Same top-left-pinned title treatment as the real block above,
              *  so the name doesn't drift within the ghost either. */}
             <span className="absolute inset-x-1.5 top-0.5 truncate">
-              {ghost.event.icon && <span className="mr-1">{ghost.event.icon}</span>}
               {ghost.event.title}
             </span>
           </div>

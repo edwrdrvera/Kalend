@@ -61,14 +61,14 @@ export default function SpacePanelDescription({
       <div className="flex flex-col items-start gap-1.5 px-4 py-3">
         <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground/75">{description}</p>
         <button type="button" onClick={startEditing} className={ADD_DESCRIPTION_CLS}>
-          <Pencil className="size-3.5" />
+          <Pencil className="size-3" />
           Edit description
         </button>
       </div>
     ) : (
       <div className="px-4 py-3">
         <button type="button" onClick={startEditing} className={ADD_DESCRIPTION_CLS}>
-          <Plus className="size-3.5" />
+          <Plus className="size-3" />
           Add description
         </button>
       </div>

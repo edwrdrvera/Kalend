@@ -6,8 +6,15 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export const ICON_BUTTON_CLS =
-  "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** Press feedback for anything clickable: a small scale-down the moment it is
+ *  pressed, so the UI confirms it heard the click. */
+export const PRESS_CLS =
+  "transition-[color,background-color,border-color,opacity,transform] duration-150 ease-snappy motion-safe:active:scale-[0.97]";
+
+export const ICON_BUTTON_CLS = cn(
+  "grid size-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  PRESS_CLS
+);
 
 /** One label/value row of an inspector: icon and label on the left, the control on the right. */
 export function DetailRow({
@@ -24,7 +31,7 @@ export function DetailRow({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("flex min-h-10 items-center gap-3 border-t border-border", className)}>
+    <div className={cn("flex min-h-11 items-center gap-3 border-t border-border", className)}>
       <label htmlFor={labelFor} className="flex w-20 shrink-0 items-center gap-2 text-xs text-muted-foreground">
         <span aria-hidden className="shrink-0 [&>svg]:size-3.5">
           {icon}
@@ -36,7 +43,7 @@ export function DetailRow({
   );
 }
 
-export const FIELD_LABEL_CLS = "text-[13px] font-medium text-muted-foreground";
+export const FIELD_LABEL_CLS = "text-[12px] font-semibold text-muted-foreground";
 
 /** Where an inspector sits: its Space and Group (links to their overviews) and
  *  the overview Back returns to. */
@@ -83,7 +90,7 @@ export function InspectorHeader({
                     <button
                       type="button"
                       onClick={crumb.onOpen}
-                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
                     >
                       {crumb.name}
                     </button>
