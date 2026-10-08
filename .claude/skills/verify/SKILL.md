@@ -34,19 +34,19 @@ Never start the server with a raw `bun run dev` in Bash; use `preview_start`, or
 .claude/skills/verify/scripts/doctor.sh <port>
 ```
 
-Read-only. Checks `.env.local` has the three vars the server needs (`DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; a new worktree has no `.env.local` until you copy one in), that the port's listener runs from *this* checkout (not another worktree), `/api/ping` answers, and an unauthenticated `/api/tasks` is redirected (307 to `/login` by the middleware; a 503 means Supabase config is broken). Ends with `DOCTOR: OK` or `DOCTOR: PROBLEMS`. Run it first, and again whenever something looks off.
+Read-only. Checks `.env.local` has the three vars the server needs (`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`; a new worktree has no `.env.local` until you copy one in), that the port's listener runs from *this* checkout (not another worktree), `/api/ping` answers, and an unauthenticated `/api/tasks` is redirected (307 to `/login` by the proxy; any other code means the proxy or the database is broken, so read the server log). Ends with `DOCTOR: OK` or `DOCTOR: PROBLEMS`. Run it first, and again whenever something looks off.
 
 ## Sign in (needed for everything under `/app`)
 
 The agent never types the demo password. Two ways in:
 
 1. `navigate` to `http://localhost:<port>/app`. If you land on `/app` and `find "Main navigation"` hits the icon rail (right after `navigate` it can miss while the page hydrates; retry once), the pane already has a session (cookies persist across runs); skip ahead.
-2. Otherwise `navigate` to `http://localhost:<port>/api/dev/sign-in`. It signs the pane in as the demo account on the server and redirects to `/app`; nobody types anything. It needs `KALEND_DEV_SIGN_IN=1`, `SUPABASE_SERVICE_ROLE_KEY`, and `DEMO_USER_EMAIL` in `.env.local` (the doctor reports which are missing), and it only works under `bun run dev`. A 404 JSON body means the flag is off; a 500 body names what's missing or what Supabase rejected.
+2. Otherwise `navigate` to `http://localhost:<port>/api/dev/sign-in`. It signs the pane in as the demo account on the server and redirects to `/app`; nobody types anything. It needs `KALEND_DEV_SIGN_IN=1`, `DEMO_USER_EMAIL`, and `DEMO_USER_PASSWORD` in `.env.local` (the doctor reports which are missing), and it only works under `bun run dev`. A 404 JSON body means the flag is off; a 500 body names what's missing or why sign-in failed.
 3. If that route isn't available, ask the user to sign in with the demo account in the browser pane and wait. Never read, echo, or paste `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` values anywhere: chat, screenshots, commits, PRs, evidence files. In an unattended run nobody can sign in: mark every `/app` feature `verified-unreachable` (prerequisite: no session and no dev sign-in) and still verify the signed-out checks.
 
 Signing out (e.g. to check the landing page in the pane) is fine now: `/api/dev/sign-in` gets you back.
 
-Failure modes: an inline error on the login card (wrong password; run `bun run db:seed:demo` only if the user OKs it); protected APIs return 503 when Supabase is unreachable.
+Failure modes: an inline error on the login card (wrong password; run `bun run db:seed:demo` only if the user OKs it); the login card shows "Too many requests" after three wrong passwords in ten seconds (wait and retry); when the database is unreachable, pages and APIs fail and the server log names the connection error.
 
 ## Drive
 
@@ -66,7 +66,7 @@ This is a GET through the real auth path, so it counts as proof of persistence. 
 
 ## Data safety
 
-There is one shared Supabase database and one demo account, and there is no isolated test DB. Everything you create is real and visible to the user.
+There is one shared database (the one `DATABASE_URL` names) and one demo account, and there is no isolated test DB. Everything you create is real and visible to the user.
 
 - Name anything you create with the prefix `verify-` plus a timestamp, e.g. `verify-task-1727000000`.
 - Delete what you created before finishing, through the UI when the feature has a delete path, otherwise `fetch('/api/tasks/<id>', {method:'DELETE'})` on the ids you created. Never delete rows you didn't create.

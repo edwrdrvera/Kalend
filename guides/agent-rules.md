@@ -61,7 +61,7 @@ The codebase is the strongest lever, because agents copy existing patterns. Ever
 ### 8. The shortest path is the best path
 
 - **Lesson:** Agents take the quickest way to solve a problem, so make the quickest way the correct one. Design for the least capable agent. A codebase with no guardrails spirals out of control, because every agent takes a different shortcut. Put strong constraints on new code from the start.
-- **Here:** The easiest way to get data onto a screen is the correct one: a hook calls an `/api` route through `mutateResource`. The easy wrong paths fail lint: importing the database, calling `fetch` in a component, or querying a table through the browser Supabase client.
+- **Here:** The easiest way to get data onto a screen is the correct one: a hook calls an `/api` route through `mutateResource`. The easy wrong paths fail lint: importing the database or a server auth file, or calling `fetch` in a component.
 - **Enforced by:** `eslint.config.mjs`. `eslint-rules/__tests__/boundaries.test.ts` plants each shortcut and expects it reported.
 
 ### 9. Enforcement comes in hard and soft layers
@@ -121,7 +121,7 @@ The codebase is the strongest lever, because agents copy existing patterns. Ever
 ### 14. A folder says where code runs and what it may import
 
 - **Lesson:** A folder tells an agent where code runs and which imports are legal. Separate code by where it runs, and have CI check the import graph, so code meant for one side can't leak into the other.
-- **Here:** Kalend's split is server and browser. The server-only files are listed in `serverFiles` in `eslint.config.mjs`: `src/app/api`, `src/lib/api`, the server Supabase files, `src/db`, and `src/proxy.ts`. Every other file under `src/` may end up in the browser. Browser files can't import server-only files, including by relative path, `import()`, or `require`. Server files can't import React, components, or hooks. App code can't import `src/test-utils`.
+- **Here:** Kalend's split is server and browser. The server-only files are listed in `serverFiles` in `eslint.config.mjs`: `src/app/api`, `src/lib/api`, the server auth files in `src/lib/auth`, `src/db`, and `src/proxy.ts`. Every other file under `src/` may end up in the browser. Browser files can't import server-only files, including by relative path, `import()`, or `require`. Server files can't import React, components, or hooks. App code can't import `src/test-utils`.
 - **Enforced by:** `eslint.config.mjs`. A new folder is browser-side automatically, so it's covered without editing the config.
 
 ### 15. Shared types sit between the two sides

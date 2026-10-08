@@ -11,11 +11,13 @@ See `api/CLAUDE.md` for Route Handler conventions.
 
 ## MVP: no signup, a demo account instead
 
-This is a pre-launch MVP: there's no self-serve signup, password reset, or email confirmation. `/login` signs in to a single hardcoded demo Supabase Auth user (seeding it is documented in `src/db/CLAUDE.md`). Anyone else who wants in joins the waitlist on the landing page (`WaitlistForm` → `POST /api/waitlist`, which just stores an email, no account created). Revisit this once there's real demand to justify building account creation properly.
+This is a pre-launch MVP: there's no self-serve signup, password reset, or email confirmation. `/login` signs in to a single demo account (seeding it is documented in `src/db/CLAUDE.md`). Anyone else who wants in joins the waitlist on the landing page (`WaitlistForm` → `POST /api/waitlist`, which just stores an email, no account created). Revisit this once there's real demand to justify building account creation properly.
 
 ## Auth & routing
 
-`src/proxy.ts` delegates to `updateSession()` in `@/lib/supabase/middleware`, which refreshes the Supabase session and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). Its matcher excludes static assets, `api/ping`, and `api/waitlist` (public, unauthenticated). A new public route has to be added to the public-route allowance in `updateSession`, not just to the matcher.
+Better Auth handles sign-in, sign-out, and sessions at `api/auth/[...all]`. Sessions live in the app's own Postgres database.
+
+`src/proxy.ts` delegates to `updateSession()` in `@/lib/auth/middleware`, which looks up the session cookie and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). The proxy runs on the Node runtime, so it reads the session table directly. Its matcher excludes static assets, `api/ping`, `api/waitlist` (public, unauthenticated), `api/auth` (Better Auth's own endpoints), and `api/dev/sign-in`. A new public route has to be added to the public-route allowance in `updateSession`, not just to the matcher.
 
 ## Styling (`globals.css`)
 
