@@ -19,14 +19,15 @@
 // a task with that exact title. Nothing is deleted.
 //
 // User selection: pass SEED_USER_ID=<uuid> to target a specific account,
-// otherwise it resolves the single Supabase Auth user automatically (and
+// otherwise it resolves the single user automatically (and
 // errors if there are zero or more than one, so it never guesses).
 
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "./index";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";
+import { resolveSeedUserId } from "./seed-user";
 import type { EventColor } from "../lib/event-colors";
 
 // Each Space: a display name, a palette color (from EVENT_COLORS), the event
@@ -144,27 +145,6 @@ const TASK_TITLE_TO_SPACE: Record<string, string> = {
   "Do Chores": "Personal",
 };
 
-async function resolveUserId(): Promise<string> {
-  const fromEnv = process.env.SEED_USER_ID;
-  if (fromEnv) return fromEnv;
-
-  const rows = (await db.execute(
-    sql`select id from auth.users order by created_at`
-  )) as unknown as { id: string }[];
-
-  if (rows.length === 0) {
-    throw new Error(
-      "No Supabase Auth users found. Pass SEED_USER_ID=<uuid> explicitly."
-    );
-  }
-  if (rows.length > 1) {
-    throw new Error(
-      `Found ${rows.length} auth users; pass SEED_USER_ID=<uuid> to pick one.`
-    );
-  }
-  return rows[0].id;
-}
-
 /** Insert the Space if the user doesn't have one by that name; return its id. */
 async function ensureSpace(userId: string, name: string, color: EventColor): Promise<string> {
   const existing = await db
@@ -190,7 +170,7 @@ function dueDate(dueInDays?: number): Date | null {
 }
 
 async function main() {
-  const userId = await resolveUserId();
+  const userId = await resolveSeedUserId();
   console.log(`Seeding Space relations for user ${userId}\n`);
 
   const spaceIds = new Map<string, string>();

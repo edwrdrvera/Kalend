@@ -9,7 +9,7 @@ import accessControl from "./eslint-rules/scoped-query.mjs";
 const serverFiles = [
   "src/app/api/**",
   "src/lib/api/**",
-  "src/lib/supabase/{server,auth-user,middleware}.ts",
+  "src/lib/auth/{server,auth-user,middleware}.ts",
   "src/db/**",
   "src/proxy.ts",
 ];
@@ -19,7 +19,7 @@ const networkFiles = ["src/hooks/**", "src/lib/api.ts"];
 // Written with [/] instead of an escaped slash so the same source works inside
 // an esquery selector for dynamic import().
 const serverOnly =
-  "^(drizzle-orm|postgres|next[/]headers)([/]|$)|(^|[/])(db|supabase[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
+  "^(drizzle-orm|postgres|next[/]headers)([/]|$)|(^|[/])(db|auth[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
 const serverOnlyMessage =
   "Server-only module. Browser code reads and changes data through a hook in src/hooks that calls an /api route; server code belongs under src/app/api.";
 const networkMessage =
@@ -30,25 +30,6 @@ const testOnly = { regex: "(^|[/])test-utils([/]|$)", message: "Test helpers are
 const serverImportSyntax = [
   { selector: `ImportExpression[source.value=/${serverOnly}/]`, message: serverOnlyMessage },
   { selector: "CallExpression[callee.name='require']", message: "Use a static import so the import rules can check it." },
-];
-
-// The browser Supabase client is for sign-in only; table reads and writes from
-// it skip the /api parsers and Space ownership checks. Hooks run in the browser
-// too, so this applies to them as well.
-const supabaseDataMessage =
-  "The browser Supabase client is for sign-in only. Read and change data through an /api route (mutateResource from @/lib/api).";
-const browserSyntax = [
-  ...serverImportSyntax,
-  {
-    selector:
-      "CallExpression[callee.property.name=/^(from|rpc|schema|channel)$/]:not([callee.object.name=/^[A-Z]/]):not([callee.object.property.name=/^[A-Z]/])",
-    message: supabaseDataMessage,
-  },
-  {
-    selector:
-      "MemberExpression[property.name='storage'][object.callee.name='createClient'], MemberExpression[property.name='storage'][object.name=/supabase/i]",
-    message: supabaseDataMessage,
-  },
 ];
 
 const eslintConfig = defineConfig([
@@ -75,7 +56,7 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": ["error", {
         patterns: [{ regex: serverOnly, message: serverOnlyMessage, allowTypeImports: true }, testOnly],
       }],
-      "no-restricted-syntax": ["error", ...browserSyntax],
+      "no-restricted-syntax": ["error", ...serverImportSyntax],
     },
   },
   {
@@ -91,7 +72,7 @@ const eslintConfig = defineConfig([
         ],
       }],
       "no-restricted-syntax": ["error",
-        ...browserSyntax,
+        ...serverImportSyntax,
         {
           selector: "VariableDeclarator[init.type='Identifier'][init.name=/^(window|globalThis|self)$/]",
           message: networkMessage,

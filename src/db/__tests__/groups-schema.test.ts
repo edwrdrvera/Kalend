@@ -30,7 +30,7 @@ describe.skipIf(!url)("Groups schema constraints", () => {
   async function inRolledBackTransaction(body: (tx: Tx) => Promise<void>) {
     await sql
       .begin(async (tx) => {
-        await tx`insert into "user" (id, name, email) values (${ALICE}, 'Alice', 'alice@example.com'), (${BOB}, 'Bob', 'bob@example.com')`;
+        await asSql(tx)`insert into "user" (id, name, email) values (${ALICE}, 'Alice', 'alice@example.com'), (${BOB}, 'Bob', 'bob@example.com')`;
         await body(asSql(tx));
         throw new Rollback();
       })

@@ -5,7 +5,7 @@ describe("tierOf", () => {
   test.each([
     "src/app/api/tasks/route.ts",
     "src/lib/api/task-body.ts",
-    "src/lib/supabase/server.ts",
+    "src/lib/auth/server.ts",
     "src/db/schema/tasks.ts",
     "drizzle/0007_spaces.sql",
     "src/proxy.ts",

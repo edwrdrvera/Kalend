@@ -117,7 +117,7 @@ function tableNameOf(table: unknown): string | null {
 }
 
 /**
- * Registers `mock.module` for `@/db` and `@/lib/supabase/auth-user`,
+ * Registers `mock.module` for `@/db` and `@/lib/auth/auth-user`,
  * wiring both to the provided mutable state objects. Call this at the top
  * of each test file, before importing route handlers.
  *
@@ -150,7 +150,7 @@ export function setupMockDb<T extends BaseRow>(
   getCategoryRows: () => BaseRow[] = () => [],
   relatedStates: Record<string, MockDbState<BaseRow>> = {}
 ) {
-  mock.module("@/lib/supabase/auth-user", () => ({
+  mock.module("@/lib/auth/auth-user", () => ({
     getAuthenticatedUser: mock(async () => getUser()),
   }));
 

@@ -1,53 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { validateAuthForm } from "@/lib/auth-validation";
 import { cn } from "@/lib/utils";
 import { landingButtonVariants } from "@/components/landing/landing-button-variants";
-import {
-  getSupabaseConfig,
-  SUPABASE_CONFIGURATION_ERROR_MESSAGE,
-  SupabaseConfigurationError,
-} from "@/lib/supabase/config";
 import AuthCardShell, { authInputClassName, authLabelClassName } from "./AuthCardShell";
 
-// NOTE ON RATE LIMITING: signInWithPassword below calls Supabase's Auth
-// API directly from the browser, it never passes through this app's own
-// server, so there is nowhere in our code to add a rate limiter that would
-// actually see these attempts. Brute-force protection is enforced by
-// Supabase itself (project's auth rate limit config: 30 sign-in requests
-// per 5 minutes per IP address). See issue #62.
-//
 // There's no public signup: this is an MVP with a single demo account
 // (see src/db/CLAUDE.md for how it's seeded). Anyone who wants in signs up
 // for the waitlist on the landing page instead.
 export default function AuthCard() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  let authenticationUnavailable = false;
-
-  try {
-    getSupabaseConfig();
-  } catch (error) {
-    if (!(error instanceof SupabaseConfigurationError)) {
-      throw error;
-    }
-    authenticationUnavailable = true;
-  }
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(
-    authenticationUnavailable || searchParams.get("error") === "configuration"
-      ? SUPABASE_CONFIGURATION_ERROR_MESSAGE
-      : searchParams.get("error") === "expired_link"
-      ? "That link has expired or was already used. Please try again."
-      : null
-  );
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,25 +32,20 @@ export default function AuthCard() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await authClient.signIn.email({
         email: validation.trimmedEmail,
         password,
       });
 
       if (signInError) {
-        setError(signInError.message);
+        setError(signInError.message ?? "Sign-in failed. Please try again.");
         return;
       }
 
       router.push("/app");
       router.refresh();
-    } catch (err) {
-      setError(
-        err instanceof SupabaseConfigurationError
-          ? SUPABASE_CONFIGURATION_ERROR_MESSAGE
-          : "An unexpected error occurred."
-      );
+    } catch {
+      setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -131,7 +96,7 @@ export default function AuthCard() {
 
         <button
           type="submit"
-          disabled={loading || authenticationUnavailable}
+          disabled={loading}
           className={cn(landingButtonVariants({ variant: "primary" }), "w-full")}
         >
           {loading ? (
