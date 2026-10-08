@@ -175,6 +175,15 @@ export default function TimeGrid({
         className="relative grid flex-1 divide-x divide-border border-r border-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
+        {/* The "now" line runs across the whole week; today's column draws its
+            own stronger line and dot on top. */}
+        {showNow && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-red-500/50"
+            style={{ top: nowOffsetPx }}
+          />
+        )}
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
           const isToday = isSameDay(day, now);
