@@ -101,3 +101,29 @@ describe("SpacePanelHeader", () => {
     expect(mark).not.toBeNull();
   });
 });
+
+describe("SpacePanelHeader rename across a panel switch", () => {
+  it("does not show a failed rename under the Space the panel switched to", async () => {
+    let finishRename: (ok: boolean) => void = () => {};
+    const onRename = () => new Promise<boolean>((resolve) => (finishRename = resolve));
+    const mount = (subject: PanelSubject) =>
+      act(() => root?.render(createElement(SpacePanelHeader, { subject, onClose: () => {}, onRename })));
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await mount(GROUP);
+    await act(() => byLabel("Rename CS 340")?.click());
+    const input = byLabel("CS 340 name") as HTMLInputElement;
+    await act(() => typeInto(input, "CS 341"));
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+
+    await mount(SPACE);
+    await act(async () => finishRename(false));
+
+    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(container?.textContent).not.toContain("Couldn't rename");
+  });
+});

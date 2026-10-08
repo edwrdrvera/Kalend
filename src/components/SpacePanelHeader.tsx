@@ -20,36 +20,31 @@ interface SpacePanelHeaderProps {
 const TITLE_CLS = "min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground";
 
 export default function SpacePanelHeader({ subject, onClose, onRename, children }: SpacePanelHeaderProps) {
-  // null while the title is showing; the typed name while it is being edited.
-  const [draft, setDraft] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const key = subjectKey(subject);
+  // The draft and a failed save each belong to the Space or Group they were
+  // made for, so switching the panel hides them, and a save that finishes
+  // after the switch cannot touch the new subject's header.
+  const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
   // Enter saves and then the input blurs, which would save a second time.
   const saving = useRef(false);
 
-  // A half-typed name belongs to the Space it was typed for, so drop it when
-  // the panel switches to another Space or Group.
-  const key = subjectKey(subject);
-  const [renderedKey, setRenderedKey] = useState(key);
-  if (renderedKey !== key) {
-    setRenderedKey(key);
-    setDraft(null);
-    setFailed(false);
-  }
-
-  const stopEditing = () => {
-    setDraft(null);
-    setFailed(false);
-  };
+  const text = draft?.key === key ? draft.text : null;
+  const failed = failedKey === key;
 
   async function commit() {
-    if (draft === null || saving.current) return;
-    const name = draft.trim();
-    if (!name || name === subject.name) return stopEditing();
+    if (text === null || saving.current) return;
+    const name = text.trim();
+    if (!name || name === subject.name) return setDraft(null);
     saving.current = true;
     const saved = await onRename(name);
     saving.current = false;
-    if (saved) stopEditing();
-    else setFailed(true);
+    if (saved) {
+      setDraft((d) => (d?.key === key ? null : d));
+      setFailedKey(null);
+    } else {
+      setFailedKey(key);
+    }
   }
 
   return (
@@ -66,13 +61,13 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
           aria-hidden="true"
           className={cn("size-[10px] shrink-0 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[subject.color])}
         />
-        {draft === null ? (
+        {text === null ? (
           <h2 className="min-w-0 flex-1">
             <button
               type="button"
               aria-label={`Rename ${subject.name}`}
               title="Click to rename"
-              onClick={() => setDraft(subject.name)}
+              onClick={() => setDraft({ key, text: subject.name })}
               className={cn(
                 TITLE_CLS,
                 "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
@@ -87,11 +82,11 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
             onFocus={(e) => e.currentTarget.select()}
             aria-label={`${subject.name} name`}
             aria-invalid={failed || undefined}
-            value={draft}
-            maxLength={MAX_GROUP_NAME_LENGTH}
+            value={text}
+            maxLength={subject.kind === "group" ? MAX_GROUP_NAME_LENGTH : undefined}
             onChange={(e) => {
-              setDraft(e.target.value);
-              setFailed(false);
+              setDraft({ key, text: e.target.value });
+              setFailedKey(null);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -100,7 +95,8 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
               } else if (e.key === "Escape") {
                 // Keep PanelShell from also closing the whole panel.
                 e.stopPropagation();
-                stopEditing();
+                setDraft(null);
+                setFailedKey(null);
               }
             }}
             onBlur={() => void commit()}
