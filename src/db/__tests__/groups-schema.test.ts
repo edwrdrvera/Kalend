@@ -7,7 +7,7 @@ import postgres from "postgres";
 // every migration applied (not the shared database: these tests write rows,
 // though each one is rolled back):
 //   SCHEMA_TEST_DATABASE_URL=postgres://... bun test src/db/__tests__/groups-schema.test.ts
-// Without it they skip, the same way rls.test.ts skips without DATABASE_URL.
+// Without it they skip.
 const url = process.env.SCHEMA_TEST_DATABASE_URL;
 
 const ALICE = "11111111-1111-1111-1111-111111111111";
@@ -21,7 +21,7 @@ const asTransaction = (tx: Tx) => tx as unknown as postgres.TransactionSql;
 class Rollback extends Error {}
 
 describe.skipIf(!url)("Groups schema constraints", () => {
-  const sql = postgres(url!, { prepare: false, onnotice: () => {} });
+  const sql = postgres(url!, { onnotice: () => {} });
 
   afterAll(async () => {
     await sql.end();
@@ -30,6 +30,7 @@ describe.skipIf(!url)("Groups schema constraints", () => {
   async function inRolledBackTransaction(body: (tx: Tx) => Promise<void>) {
     await sql
       .begin(async (tx) => {
+        await tx`insert into "user" (id, name, email) values (${ALICE}, 'Alice', 'alice@example.com'), (${BOB}, 'Bob', 'bob@example.com')`;
         await body(asSql(tx));
         throw new Rollback();
       })
