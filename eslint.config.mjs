@@ -36,8 +36,8 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Enforce the per-user data-scoping invariant on the API route handlers,
-  // the access-control boundary (see src/app/api/CLAUDE.md). The db client
-  // bypasses RLS, so every query over a user-owned table must carry its
+  // the access-control boundary (see src/app/api/CLAUDE.md). The database
+  // has no row-level security, so every query over a user-owned table must carry its
   // owner filter; this rule fails the build when one is missing.
   // Seeds are admin scripts run by hand against one chosen user.
   {
