@@ -53,6 +53,9 @@ interface EventInspectorProps {
 
 const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-md px-2 text-xs";
 
+/** Spaces the native picker icon off the digits, and dims it until hovered. */
+const TIME_INPUT_CLS = "w-28 shrink-0 dark:scheme-dark hover:bg-muted/30 [&::-webkit-calendar-picker-indicator]:ml-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-150 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
+
 const INPUT_CLS = cn(APP_INPUT_CLS, "w-full");
 
 /** An event's details in the right panel. Mount it with `key={event.id}` so
@@ -136,7 +139,7 @@ export default function EventInspector({
               aria-label="Start time"
               value={start.time}
               onChange={(e) => update({ startAt: joinDateTimeLocal(start.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, "w-28 shrink-0")}
+              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<Clock />} label="Ends">
@@ -151,7 +154,7 @@ export default function EventInspector({
               aria-label="End time"
               value={end.time}
               onChange={(e) => update({ endAt: joinDateTimeLocal(end.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, "w-28 shrink-0")}
+              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<MapPin />} label="Location" labelFor="event-inspector-location">
@@ -161,7 +164,7 @@ export default function EventInspector({
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus:border-input")}
+              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-xs focus:border-input")}
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">
@@ -178,7 +181,7 @@ export default function EventInspector({
               categories={categories}
               groups={groups}
               onChange={(colorState) => update({ colorState })}
-              className="-ml-2 h-7 text-[13px] text-foreground"
+              className="h-7 border border-transparent text-xs text-foreground"
             />
           </DetailRow>
           <DetailRow icon={<Palette />} label="Color" className="justify-between">

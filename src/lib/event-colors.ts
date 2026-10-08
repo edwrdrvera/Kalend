@@ -90,9 +90,9 @@ export function getTaskColorClasses(color: string | null): string {
   return TASK_COLOR_CLASSES[color];
 }
 
-// Solid fill + lighter border for the active Space tile in the icon rail. The
-// colored fill with white text reads on the rail in both light and dark themes.
-export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
+// Solid fill + border for a Space tile in the icon rail. The colored fill with
+// white text reads on the rail in both light and dark themes.
+export const RAIL_SPACE_CLASSES: Record<EventColor, string> = {
   blue: "bg-[var(--evt-blue-deep)] border-[var(--evt-blue-deep)] text-white",
   green: "bg-[var(--evt-green-deep)] border-[var(--evt-green-deep)] text-white",
   purple: "bg-[var(--evt-purple-deep)] border-[var(--evt-purple-deep)] text-white",
@@ -102,6 +102,20 @@ export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
   pink: "bg-[var(--evt-pink-deep)] border-[var(--evt-pink-deep)] text-white",
   yellow: "bg-[var(--evt-yellow-deep)] border-[var(--evt-yellow-deep)] text-white",
   teal: "bg-[var(--evt-teal-deep)] border-[var(--evt-teal-deep)] text-white",
+};
+
+// Rail tile used by the app's icon rail. Light mode inverts the solid tile: a
+// pale tint with the deep hue as border and text. Dark mode keeps the solid fill.
+export const RAIL_TILE_CLASSES: Record<EventColor, string> = {
+  blue: "bg-[var(--evt-blue-bg)] border-[var(--evt-blue-deep)] text-[var(--evt-blue-deep)] dark:bg-[var(--evt-blue-deep)] dark:text-white",
+  green: "bg-[var(--evt-green-bg)] border-[var(--evt-green-deep)] text-[var(--evt-green-deep)] dark:bg-[var(--evt-green-deep)] dark:text-white",
+  purple: "bg-[var(--evt-purple-bg)] border-[var(--evt-purple-deep)] text-[var(--evt-purple-deep)] dark:bg-[var(--evt-purple-deep)] dark:text-white",
+  orange: "bg-[var(--evt-orange-bg)] border-[var(--evt-orange-deep)] text-[var(--evt-orange-deep)] dark:bg-[var(--evt-orange-deep)] dark:text-white",
+  red: "bg-[var(--evt-red-bg)] border-[var(--evt-red-deep)] text-[var(--evt-red-deep)] dark:bg-[var(--evt-red-deep)] dark:text-white",
+  indigo: "bg-[var(--evt-indigo-bg)] border-[var(--evt-indigo-deep)] text-[var(--evt-indigo-deep)] dark:bg-[var(--evt-indigo-deep)] dark:text-white",
+  pink: "bg-[var(--evt-pink-bg)] border-[var(--evt-pink-deep)] text-[var(--evt-pink-deep)] dark:bg-[var(--evt-pink-deep)] dark:text-white",
+  yellow: "bg-[var(--evt-yellow-bg)] border-[var(--evt-yellow-deep)] text-[var(--evt-yellow-deep)] dark:bg-[var(--evt-yellow-deep)] dark:text-white",
+  teal: "bg-[var(--evt-teal-bg)] border-[var(--evt-teal-deep)] text-[var(--evt-teal-deep)] dark:bg-[var(--evt-teal-deep)] dark:text-white",
 };
 
 // Shared by events and tasks: when linked to a category, the color shown on

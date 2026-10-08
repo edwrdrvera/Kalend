@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   format,
   addMonths,
@@ -17,6 +18,7 @@ import {
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { tasksDueOn } from "@/lib/day-agenda";
 import { cn } from "@/lib/utils";
+import { createWheelPager } from "@/lib/wheel-pager";
 import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import CalendarHeader from "./CalendarHeader";
@@ -291,9 +293,17 @@ export default function MonthGrid({
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
+  const wheelPager = useRef(createWheelPager());
+
+  // Scroll down for the next month, up for the previous. Pinch-zoom and sideways scrolls don't count.
+  function handleWheel(e: React.WheelEvent) {
+    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const step = wheelPager.current.push(e.deltaY, e.timeStamp);
+    if (step !== 0) onViewDateChange(addMonths(monthStart, step));
+  }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
+    <div onWheel={handleWheel} className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}
