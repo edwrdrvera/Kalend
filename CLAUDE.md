@@ -6,7 +6,7 @@ Keep it short. Detail belongs in the linked docs and in the per-directory `CLAUD
 
 ## Project
 
-Kalend is a student productivity web app centered on an integrated calendar and task manager. Next.js App Router, Drizzle ORM over Supabase Postgres, Tailwind, shadcn, and daisyUI. Full product plan: `docs/project_overview.md` (local-only, may be missing).
+Kalend is a student productivity web app centered on an integrated calendar and task manager. Next.js App Router, Drizzle ORM over self-hosted Postgres, Better Auth, Tailwind, shadcn, and daisyUI. Full product plan: `docs/project_overview.md` (local-only, may be missing).
 
 ## Commands
 
@@ -18,10 +18,10 @@ This project uses Bun, not npm, yarn, or pnpm.
 - `bun run build`: full production build (run only before merging PRs)
 - `bun run review:tier`: prints the branch's review tier (low, medium, or high) and each changed file's tier
 
-Seeding is three layered scripts, not three versions of one. To build the demo account from scratch, run them in this order:
+Seeding is three layered scripts, not three versions of one. To build the demo account from scratch on an empty database, apply the migrations with `bunx --bun drizzle-kit migrate`, then run them in this order:
 
-1. `bun run db:seed:demo`: creates the demo login (or resets its password). Needs `SUPABASE_SERVICE_ROLE_KEY` and `DEMO_USER_PASSWORD`.
-2. `bun run db:seed`: loads the sample events from `src/db/data/data.csv`. Needs `SEED_USER_ID=<demo user's uuid>`.
+1. `bun run db:seed:demo`: creates the demo login (or resets its password). Needs `DEMO_USER_PASSWORD`.
+2. `bun run db:seed`: loads the sample events from `src/db/data/data.csv`. Picks the only user automatically, or takes `SEED_USER_ID`.
 3. `bun run db:seed:spaces`: creates the Spaces and links that user's events and tasks to them. Picks the only user automatically, or takes `SEED_USER_ID`.
 
 All three are safe to re-run.
@@ -29,7 +29,7 @@ All three are safe to re-run.
 ## Always applies
 
 - **React Compiler is enabled** (`reactCompiler: true` in `next.config.ts`). Don't add `useMemo` or `useCallback` by hand. Write plain component code and let the compiler optimize it.
-- **Every API route is the access-control boundary.** The app's database client bypasses RLS, so each handler scopes user data with an explicit `user_id` filter. Details in `src/app/api/CLAUDE.md` and `src/db/CLAUDE.md`.
+- **Every API route is the access-control boundary.** The database has no row-level security, so each handler scopes user data with an explicit `user_id` filter. Details in `src/app/api/CLAUDE.md` and `src/db/CLAUDE.md`.
 - Type-check before you commit. Commit in small conventional-commit steps, and open a PR into `develop`.
 - Batch small fixes: put related small changes on one branch and open one PR, not one PR per fix.
 - Before opening a PR, run `git fetch origin develop`, then `bun run review:tier`. It compares against `origin/develop`. A file's tier (low, medium, or high) comes from its folder, and the PR takes its riskiest file's tier, adjusted for size: under 40 changed lines with no high-tier file is trivial, and a low diff over 150 lines counts as medium. The tier decides how much of this flow runs:
@@ -118,7 +118,7 @@ These have their own `CLAUDE.md` with the conventions for that area. Read it bef
 - `src/app/api/`: Route Handler shape, auth check, response envelope
 - `src/components/`: calendar state flow, wire types, color and geometry helpers
 - `src/db/`: Drizzle client caveats, schema conventions, seed scripts
-- `src/lib/`: Supabase clients, shared helpers, pure calendar and drag math
+- `src/lib/`: Better Auth setup, shared helpers, pure calendar and drag math
 
 No `CLAUDE.md` of their own:
 

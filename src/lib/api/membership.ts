@@ -3,7 +3,7 @@ import { categories, type Category } from "@/db/schema/categories";
 import { groups } from "@/db/schema/groups";
 import type { Tx } from "@/lib/api/alert-sync";
 import { reconcileMembership, type Membership, type MembershipPatch, type ReconcileError } from "@/lib/membership";
-import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
+import type { AuthenticatedUser } from "@/lib/auth/auth-user";
 
 export type MembershipError = ReconcileError | "space_unavailable";
 

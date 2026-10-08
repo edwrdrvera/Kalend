@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, foreignKey, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 import { categories } from "./categories";
 import { groups } from "./groups";
 
@@ -7,7 +8,7 @@ export const events = pgTable(
   "events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     start_at: timestamp("start_at", { withTimezone: true }).notNull(),
     end_at: timestamp("end_at", { withTimezone: true }).notNull(),
@@ -36,7 +37,7 @@ export const events = pgTable(
       .on(table.group_id)
       .where(sql`${table.group_id} is not null`)
   ]
-).enableRLS();
+);
 
 // Drizzle inferred types (server-side, dates are Date objects). For
 // component props, use the wire types from Calendar.tsx (ISO strings).

@@ -1,6 +1,6 @@
 # Demo sign-in and route guard
 
-Single demo account; no signup or password reset. Middleware in `src/lib/supabase/middleware.ts` enforces redirects.
+Single demo account; no signup or password reset. The proxy (`src/proxy.ts`, logic in `src/lib/auth/middleware.ts`) enforces redirects.
 
 ## Sub-features
 - Sign in via `/login` form.
@@ -8,7 +8,7 @@ Single demo account; no signup or password reset. Middleware in `src/lib/supabas
 - Signed-in visit to `/` or `/login` redirects to `/app`.
 - Log out from the account menu (`SettingsMenu.tsx`): icon rail `Account` button → `Log out` (`Logging out...` while pending) → `/login`.
 - The same account menu has a theme toggle: `Switch to light mode` / `Switch to dark mode`. It flips the `dark` class on `<html>` and persists in `localStorage["kalend-theme"]`.
-- Unauthenticated `/api/*` (except `ping`, `waitlist`) is redirected 307 to `/login` by the middleware (the handler-level 401 is only reachable if the middleware is bypassed).
+- Unauthenticated `/api/*` (except `ping`, `waitlist`, `auth`, `dev/sign-in`) is redirected 307 to `/login` by the proxy (the handler-level 401 is only reachable if the middleware is bypassed).
 
 ## How to get to it (user POV)
 Landing page → "Log in" link in the nav, or go straight to `/login`.

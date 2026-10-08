@@ -11,7 +11,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { createClient } from "@/lib/supabase/client";
+import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 
@@ -50,10 +50,10 @@ export default function SettingsMenu({
     setIsLoggingOut(true);
 
     try {
-      const { error: signOutError } = await createClient().auth.signOut();
+      const { error: signOutError } = await authClient.signOut();
 
       if (signOutError) {
-        setError(signOutError.message);
+        setError(signOutError.message ?? "Unable to log out. Please try again.");
         return;
       }
 

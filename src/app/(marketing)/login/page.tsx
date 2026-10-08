@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import AuthCard from "@/components/AuthCard";
 
 export const metadata: Metadata = {
@@ -8,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return (
-    <Suspense>
-      <AuthCard />
-    </Suspense>
-  );
+  return <AuthCard />;
 }
