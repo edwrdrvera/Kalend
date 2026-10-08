@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
-import type { CalendarEvent } from "@/lib/calendar-types";
+import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
@@ -29,7 +29,7 @@ function makeEvent(id: string, categoryId: string): CalendarEvent {
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
-async function renderMonth(events: CalendarEvent[], selectedSpaceId: string | null) {
+async function renderMonth(events: CalendarEvent[], selectedSpaceId: string | null, tasks: CalendarTask[] = []) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -39,7 +39,7 @@ async function renderMonth(events: CalendarEvent[], selectedSpaceId: string | nu
         viewDate: DAY,
         selectedDate: DAY,
         events,
-        tasks: [],
+        tasks,
         categories: [],
         spaceFocus: { selectedSpaceId },
         onDateSelect: () => {},
@@ -96,5 +96,39 @@ describe("MonthGrid Space emphasis", () => {
     const events = [makeEvent("a", "x"), makeEvent("b", "y"), makeEvent("c", "x"), makeEvent("d", "y")];
     const el = await renderMonth(events, null);
     expect(chipTitles(el)).toEqual(["a", "b", "c"]);
+  });
+});
+
+function makeTask(id: string): CalendarTask {
+  return {
+    id,
+    title: id,
+    due_at: new Date(2030, 8, 9, 17).toISOString(),
+    completed: false,
+    color: null,
+    color_overridden: false,
+    category_id: null,
+    group_id: null,
+  };
+}
+
+describe("MonthGrid overflow row", () => {
+  const four = [makeEvent("a", "x"), makeEvent("b", "x"), makeEvent("c", "x"), makeEvent("d", "x")];
+  const footer = (el: HTMLElement) =>
+    [...el.querySelectorAll("span")].map((s) => s.textContent).filter((t) => /more|task/.test(t ?? ""));
+
+  it("puts hidden events and the day's tasks on one row", async () => {
+    const el = await renderMonth(four, null, [makeTask("t1"), makeTask("t2")]);
+    expect(footer(el)).toEqual(["+1 more · 2 tasks"]);
+  });
+
+  it("shows only the hidden events when the day has no tasks", async () => {
+    const el = await renderMonth(four, null);
+    expect(footer(el)).toEqual(["+1 more"]);
+  });
+
+  it("shows only the task count when every event fits", async () => {
+    const el = await renderMonth([makeEvent("a", "x")], null, [makeTask("t1")]);
+    expect(footer(el)).toEqual(["1 task"]);
   });
 });

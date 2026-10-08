@@ -185,6 +185,13 @@ function DayCell({
   const overflowCount = dayEvents.length - visibleEvents.length;
 
   const dayTasks = tasksDueOn(tasks, day);
+  // Hidden events and the day's tasks share one row, so a busy day stays one line shorter.
+  const summary = [
+    overflowCount > 0 && `+${overflowCount} more`,
+    dayTasks.length > 0 && `${dayTasks.length} ${dayTasks.length === 1 ? "task" : "tasks"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   // Single click selects the day (the agenda/side nav follows); double click on
   // an empty part of the cell opens the event creator. The double-click guard
@@ -260,15 +267,8 @@ function DayCell({
             </span>
           </button>
         ))}
-        {overflowCount > 0 && (
-          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
-            +{overflowCount} more
-          </span>
-        )}
-        {dayTasks.length > 0 && (
-          <span className="px-1.5 text-left text-[10px] font-medium text-muted-foreground">
-            {dayTasks.length} {dayTasks.length === 1 ? "task" : "tasks"}
-          </span>
+        {summary && (
+          <span className="truncate px-1.5 text-left text-[10px] font-medium text-muted-foreground">{summary}</span>
         )}
       </div>
     </div>
