@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { config } from "../proxy";
 
-const runsProxy = (path: string) =>
-  unstable_doesMiddlewareMatch({ config, url: `http://localhost${path}` });
+// Anchored the way Next anchors a matcher. Next's own matcher compiler loads
+// request storage that breaks later hook tests in the same bun run.
+const runsProxy = (path: string) => config.matcher.some((m) => new RegExp(`^${m}$`).test(path));
 
 describe("proxy matcher", () => {
   it("runs on every API route, including ids that end in an image extension", () => {
