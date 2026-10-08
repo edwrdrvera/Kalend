@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
   isEventColor,
-  RAIL_SPACE_CLASSES,
+  RAIL_TILE_CLASSES,
   type EventColor,
 } from "@/lib/event-colors";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
@@ -100,7 +100,7 @@ export default function IconRail({
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
                     "relative grid size-[34px] place-items-center rounded-[10px] border-[1.5px] text-sm font-semibold transition-[filter] hover:brightness-110",
-                    RAIL_SPACE_CLASSES[color],
+                    RAIL_TILE_CLASSES[color],
                     // Open-Space marker on the rail's left edge.
                     "before:absolute before:top-1/2 before:-left-[15px] before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-foreground before:opacity-0 before:transition-[opacity,transform] before:duration-150 before:ease-snappy",
                     isActive ? "before:scale-y-100 before:opacity-100" : "before:scale-y-50"
