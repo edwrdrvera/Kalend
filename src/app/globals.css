@@ -339,14 +339,6 @@
 }
 .kalend-mark[data-kalend-anim="rotate"]:hover svg { transform: rotate(90deg); }
 
-.kalend-mark[data-kalend-anim="colorShift"] circle { transition: fill 0.3s ease; }
-.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(2) { transition-delay: 0.04s; }
-.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(3) { transition-delay: 0.08s; }
-.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(4) { transition-delay: 0.12s; }
-.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(5) { transition-delay: 0.06s; }
-.kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(6) { transition-delay: 0.10s; }
-.kalend-mark[data-kalend-anim="colorShift"]:hover circle { fill: var(--primary); }
-
 .kalend-mark[data-kalend-anim="morphK"] circle {
   transition:
     cx 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),

@@ -6,7 +6,6 @@ export type KalendMarkAnimation =
   | "scatter"
   | "pulse"
   | "rotate"
-  | "colorShift"
   | "morphK"
   | "morphClock";
 
