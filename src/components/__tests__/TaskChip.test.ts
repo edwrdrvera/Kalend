@@ -40,7 +40,7 @@ async function renderTask(task: CalendarTask, dimmed = false) {
       })
     )
   );
-  const checkbox = container.querySelector<HTMLButtonElement>("button[aria-pressed]");
+  const checkbox = container.querySelector<HTMLElement>('[role="checkbox"]');
   const title = container.querySelector<HTMLButtonElement>(`button[aria-label="Open task ${task.title}"]`);
   if (!checkbox || !title) throw new Error("Task chip was not rendered");
   return { calls, checkbox, title, chip: container.firstElementChild as HTMLElement };
@@ -58,7 +58,7 @@ describe("TaskChip", () => {
     const { checkbox, title, chip } = await renderTask(defaultTask);
 
     expect(checkbox.getAttribute("aria-label")).toBe("Mark as done: Finish lab report");
-    expect(checkbox.getAttribute("aria-pressed")).toBe("false");
+    expect(checkbox.getAttribute("aria-checked")).toBe("false");
     expect(title.textContent).toBe("Finish lab report");
     expect(chip.className).toContain("min-h-7");
     expect(container?.querySelector('[class*="evt-green-solid"]')).not.toBeNull();
@@ -67,7 +67,7 @@ describe("TaskChip", () => {
   it("uses clear completed and overdue states", async () => {
     let rendered = await renderTask({ ...defaultTask, completed: true });
     expect(rendered.checkbox.getAttribute("aria-label")).toBe("Mark as not done: Finish lab report");
-    expect(rendered.checkbox.getAttribute("aria-pressed")).toBe("true");
+    expect(rendered.checkbox.getAttribute("aria-checked")).toBe("true");
     expect(rendered.title.className).toContain("line-through");
 
     await act(() => root?.unmount());
