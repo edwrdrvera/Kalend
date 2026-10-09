@@ -63,16 +63,16 @@ export default function MembershipSelect({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent alignItemWithTrigger={false}>
         <SelectGroup>
           <SelectLabel>Spaces</SelectLabel>
-          <SelectItem value={NONE}>No Space</SelectItem>
+          <SelectItem value={NONE} className="text-[13px]">No Space</SelectItem>
           {categories.length > 0 && <SelectSeparator />}
           {categories.map((category) => (
             <Fragment key={category.id}>
-              <SelectItem value={spaceValue(category.id)}>{category.name}</SelectItem>
+              <SelectItem value={spaceValue(category.id)} className="text-[13px]">{category.name}</SelectItem>
               {groupsOfSpace(groups, category.id).map((g) => (
-                <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6">
+                <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6 text-[13px]">
                   {g.name}
                 </SelectItem>
               ))}

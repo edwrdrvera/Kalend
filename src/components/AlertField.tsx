@@ -46,11 +46,11 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent alignItemWithTrigger={false}>
           <SelectGroup>
             <SelectLabel>Alert</SelectLabel>
             {ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
+              <SelectItem key={item.value} value={item.value} className="text-[13px]">
                 {item.label}
               </SelectItem>
             ))}
