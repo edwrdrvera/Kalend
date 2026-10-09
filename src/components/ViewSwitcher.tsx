@@ -25,7 +25,7 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
         if (next) onViewChange(next.value);
       }}
     >
-      <TabsList className="group-data-horizontal/tabs:h-auto">
+      <TabsList className="group-data-horizontal/tabs:h-auto p-0.5">
         {VIEWS.map(({ value, label, short }) => (
           <TabsTrigger
             key={value}
