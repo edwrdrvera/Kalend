@@ -1,11 +1,17 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { Ellipsis, Palette, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
 import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ICON_BUTTON_CLS } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
@@ -13,13 +19,24 @@ interface SpacePanelHeaderProps {
   onClose: () => void;
   /** Saves a new name for the Space or Group. Resolves false when the save failed. */
   onRename: (name: string) => Promise<boolean>;
+  /** Space panels only: opens the Space editor to change its color. */
+  onChangeColor?: () => void;
+  /** Space panels only: opens the Space editor on its delete confirmation. */
+  onDeleteSpace?: () => void;
   /** Rendered under the title, inside the header (the Group chips). */
   children?: ReactNode;
 }
 
 const TITLE_CLS = "min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground";
 
-export default function SpacePanelHeader({ subject, onClose, onRename, children }: SpacePanelHeaderProps) {
+export default function SpacePanelHeader({
+  subject,
+  onClose,
+  onRename,
+  onChangeColor,
+  onDeleteSpace,
+  children,
+}: SpacePanelHeaderProps) {
   const key = subjectKey(subject);
   // The draft and a failed save each belong to the Space or Group they were
   // made for, so switching the panel hides them, and a save that finishes
@@ -105,6 +122,28 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
               "-mx-1 h-[30px] rounded-md border border-foreground/30 bg-transparent px-1 outline-none"
             )}
           />
+        )}
+        {subject.kind === "space" && onChangeColor && onDeleteSpace && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Space options"
+              render={
+                <button type="button" className={ICON_BUTTON_CLS}>
+                  <Ellipsis className="size-4" />
+                </button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={onChangeColor}>
+                <Palette />
+                Change color
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={onDeleteSpace}>
+                <Trash2 />
+                Delete Space
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       {failed && (

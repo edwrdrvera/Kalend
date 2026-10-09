@@ -176,6 +176,11 @@ export default function Calendar() {
   useAlertDelivery(alerts.dispatch, openAlertItem);
   const itemAlerts = useAlerts(alerts.notify);
 
+  const openSpaceEditor = (spaceId: string, confirmDelete: boolean) => {
+    const category = categories.data.find((c) => c.id === spaceId);
+    if (category) setSpaceEditor({ mode: "edit", category, confirmDelete });
+  };
+
   // ── Right-click menus + event multi-select (Phase 2) ────────────────
   const cursorRect = (x: number, y: number): DOMRect => new DOMRect(x, y, 1, 1);
 
@@ -381,6 +386,16 @@ export default function Calendar() {
             const group = groups.data.find((g) => g.id === subject.groupId);
             if (group) openGroupEditor(group);
           }}
+          onChangeColor={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, false)
+              : undefined
+          }
+          onDeleteSpace={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, true)
+              : undefined
+          }
           onRename={handleRenameSubject}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
