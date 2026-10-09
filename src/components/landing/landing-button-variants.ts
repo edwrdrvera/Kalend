@@ -12,7 +12,7 @@ export const landingButtonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-[var(--kal-accent)] text-white font-semibold hover:bg-[var(--kal-accent-hover)]",
+          "bg-[var(--kal-cta)] text-white font-semibold hover:bg-[var(--kal-cta-hover)]",
         secondary:
           "border border-[var(--kal-border)] bg-transparent text-[var(--kal-ink)] font-medium hover:bg-[#f2efe6] hover:border-[#d8d2c2]",
       },
