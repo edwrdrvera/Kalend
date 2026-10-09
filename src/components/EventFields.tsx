@@ -10,6 +10,9 @@ import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import MembershipSelect from "./MembershipSelect";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { FIELD_LABEL_CLS } from "./InspectorParts";
 
 /** Start and end date/time pickers over local "yyyy-MM-ddTHH:mm" values. */
 export function EventTimeFields({
@@ -28,7 +31,7 @@ export function EventTimeFields({
   return (
     <div className="grid grid-cols-2 gap-3 pt-1">
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-muted-foreground">Start</label>
+        <Label className={FIELD_LABEL_CLS}>Start</Label>
         <div className="flex flex-col gap-1.5">
           <DateField
             label="Start date"
@@ -45,7 +48,7 @@ export function EventTimeFields({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-muted-foreground">End</label>
+        <Label className={FIELD_LABEL_CLS}>End</Label>
         <div className="flex flex-col gap-1.5">
           <DateField
             label="End date"
@@ -166,13 +169,14 @@ export function EventColorSpaceFields({
       </div>
       {hasSpace &&
         (colorState.colorOverridden ? (
-          <button
+          <Button
             type="button"
-            className="self-start text-xs font-medium text-primary-text hover:underline"
+            variant="link"
+            className="h-auto self-start p-0 text-xs font-medium text-primary-text"
             onClick={() => onChange(eventColorReducer(colorState, { type: "inherit" }))}
           >
             Use Space color
-          </button>
+          </Button>
         ) : (
           <p className="text-xs text-muted-foreground">Using Space color</p>
         ))}

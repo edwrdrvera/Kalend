@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ICON_BUTTON_CLS } from "./InspectorParts";
+import { IconButton } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
   subject: PanelSubject;
@@ -68,9 +68,9 @@ export default function SpacePanelHeader({
     <header className="border-b border-border px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11.5px] text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
-        <button type="button" aria-label="Close panel" onClick={onClose} className={ICON_BUTTON_CLS}>
+        <IconButton aria-label="Close panel" onClick={onClose}>
           <X className="size-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="mt-1.5 flex items-center gap-2">
@@ -128,9 +128,9 @@ export default function SpacePanelHeader({
             <DropdownMenuTrigger
               aria-label="Space options"
               render={
-                <button type="button" className={ICON_BUTTON_CLS}>
+                <IconButton>
                   <Ellipsis className="size-4" />
-                </button>
+                </IconButton>
               }
             />
             <DropdownMenuContent align="end" className="w-44">

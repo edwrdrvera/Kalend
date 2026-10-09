@@ -14,7 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface SettingsMenuProps {
   /** Content rendered inside the trigger button. Defaults to a gear icon. */
@@ -81,11 +81,13 @@ export default function SettingsMenu({
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription className="text-[11px]">Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="lg"
           onClick={toggleTheme}
           aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mb-2 w-full justify-start gap-2 px-3 text-[13px]")}
+          className="mb-2 w-full justify-start gap-2 px-3 text-[13px]"
         >
           {mounted && (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />)}
           <span>Dark mode</span>
@@ -103,16 +105,18 @@ export default function SettingsMenu({
               )}
             />
           </span>
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="lg"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-2 px-3 text-[13px] text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50")}
+          className="w-full gap-2 px-3 text-[13px] text-muted-foreground hover:text-foreground"
         >
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}
-        </button>
+        </Button>
         {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
       </PopoverContent>
     </Popover>

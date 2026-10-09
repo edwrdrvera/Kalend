@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarGroup, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import type { AlertOffset } from "@/lib/alerts";
@@ -21,7 +21,7 @@ import { membershipOf } from "@/lib/membership";
 import PanelShell from "./PanelShell";
 import {
   FIELD_LABEL_CLS,
-  ICON_BUTTON_CLS,
+  IconButton,
   InspectorFooter,
   InspectorHeader,
   type InspectorNav,
@@ -29,6 +29,8 @@ import {
 } from "./InspectorParts";
 import { useInspectorSave } from "@/hooks/useInspectorSave";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import TaskCheckbox from "./TaskCheckbox";
 import { FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 
 interface TaskInspectorProps {
@@ -122,14 +124,9 @@ export default function TaskInspector({
           <div className="flex items-center gap-1.5">
             <DateField label="Due date" value={draft.dueDate} onChange={(dueDate) => update({ dueDate })} />
             {draft.dueDate && (
-              <button
-                type="button"
-                aria-label="Clear due date"
-                onClick={() => update({ dueDate: "" })}
-                className={ICON_BUTTON_CLS}
-              >
+              <IconButton aria-label="Clear due date" onClick={() => update({ dueDate: "" })}>
                 <X className="size-3.5" />
-              </button>
+              </IconButton>
             )}
           </div>
         </div>
@@ -154,26 +151,17 @@ export default function TaskInspector({
           disabledReason={draft.dueDate ? null : "Add a due date to set an alert."}
         />
 
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={task.completed}
-          onClick={() => onToggleComplete(task)}
-          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-ring"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "flex size-[15px] items-center justify-center rounded-[4px] border-[1.5px]",
-              task.completed
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-transparent"
-            )}
-          >
-            <Check className="size-2.5" strokeWidth={3} />
-          </span>
-          Done
-        </button>
+        <div className="flex w-fit items-center gap-2">
+          <TaskCheckbox
+            id="task-inspector-done"
+            title={task.title}
+            checked={task.completed}
+            onToggle={() => onToggleComplete(task)}
+          />
+          <Label htmlFor="task-inspector-done" className="text-[13px] font-normal text-foreground">
+            Done
+          </Label>
+        </div>
 
         <InspectorFooter
           noun="task"
