@@ -616,7 +616,7 @@ export default function Calendar() {
                 type="button"
                 aria-label="Close panel"
                 onClick={panel.close}
-                className="absolute inset-0 z-40 bg-foreground/20 motion-safe:animate-[fadeIn_180ms_ease-out]"
+                className="absolute inset-0 z-40 bg-black/30 motion-safe:animate-[fadeIn_180ms_ease-out]"
               />
               <div
                 className={cn(
