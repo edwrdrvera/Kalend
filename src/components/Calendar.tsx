@@ -211,7 +211,7 @@ export default function Calendar() {
       calendarMenuItems(day, () => editor.openCreate(setHours(day, hour), cursorRect(x, y)))
     );
 
-  const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
+  const handleEventContextMenu = (event: CalendarEvent) => {
     const ids = selection.idsForContextMenu(event);
     contextMenu.show([
       {
