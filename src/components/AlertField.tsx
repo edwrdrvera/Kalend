@@ -3,7 +3,7 @@
 import { ALERT_OFFSETS, OFFSET_LABEL, isAlertOffset, type AlertOffset } from "@/lib/alerts";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FIELD_LABEL_CLS } from "./InspectorParts";
 
 const NONE = "none";
@@ -46,12 +46,14 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false}>
-          {ITEMS.map((item) => (
-            <SelectItem key={item.value} value={item.value}>
-              {item.label}
-            </SelectItem>
-          ))}
+        <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
+          <SelectGroup>
+            {ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
       {disabledReason && (

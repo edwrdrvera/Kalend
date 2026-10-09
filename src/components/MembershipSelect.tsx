@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import { Tag } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { groupsOfSpace } from "@/lib/group-state";
 import type { Membership } from "@/lib/membership";
@@ -66,22 +66,26 @@ export default function MembershipSelect({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false} align="start" className="w-52 text-xs">
-        <SelectItem value={NONE}>No Space</SelectItem>
-        {categories.length > 0 && <SelectSeparator />}
-        {categories.map((category) => (
-          <Fragment key={category.id}>
-            <SelectItem value={spaceValue(category.id)}>
-              <SpaceDot color={category.color} />
-              <span className="truncate">{category.name}</span>
-            </SelectItem>
-            {groupsOfSpace(groups, category.id).map((g) => (
-              <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6">
-                <span className="truncate">{g.name}</span>
+      <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
+        <SelectGroup>
+          <SelectItem value={NONE}>No Space</SelectItem>
+          {categories.length > 0 && <SelectSeparator />}
+          {categories.map((category) => (
+            <Fragment key={category.id}>
+              <SelectItem value={spaceValue(category.id)}>
+                <span className="flex min-w-0 items-center gap-2">
+                  <SpaceDot color={category.color} />
+                  <span className="truncate">{category.name}</span>
+                </span>
               </SelectItem>
-            ))}
-          </Fragment>
-        ))}
+              {groupsOfSpace(groups, category.id).map((g) => (
+                <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6">
+                  <span className="truncate">{g.name}</span>
+                </SelectItem>
+              ))}
+            </Fragment>
+          ))}
+        </SelectGroup>
       </SelectContent>
     </Select>
   );
