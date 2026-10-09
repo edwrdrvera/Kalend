@@ -5,7 +5,7 @@ import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
 import { panelReducer, initialPanelState } from "@/lib/panel-state";
-import { chooseOption, typeInto, typeIntoTextarea } from "./test-dom";
+import { chooseSelectOption, selectOptionLabels, alertValue, chooseAlert, typeInto, typeIntoTextarea } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: EventInspector } = await import("../EventInspector");
@@ -248,11 +248,7 @@ describe("EventInspector", () => {
 
   it("moves the event to another Space", async () => {
     const harness = await renderInspector();
-    await act(() => document.querySelector<HTMLElement>('[aria-label^="Space: "]')?.click());
-    const personal = [...document.querySelectorAll<HTMLButtonElement>('[data-slot="popover-content"] button')].find(
-      (b) => b.textContent?.trim() === "Personal"
-    );
-    await act(() => personal?.click());
+    await chooseSelectOption(document.querySelector<HTMLElement>('[aria-label^="Space: "]')!, "Personal");
     await click("Save");
     expect(harness.saves[0]?.categoryId).toBe("space-2");
   });
@@ -334,12 +330,12 @@ describe("EventInspector", () => {
   });
 
   describe("alert", () => {
-    const alertSelect = () => document.querySelector<HTMLSelectElement>("#event-inspector-alert")!;
+    const alertSelect = () => document.querySelector<HTMLElement>("#event-inspector-alert")!;
 
     it("offers none and the five offsets under a visible Alert label, defaulting to none", async () => {
       await renderInspector();
       expect(document.querySelector('label[for="event-inspector-alert"]')?.textContent).toBe("Alert");
-      expect([...alertSelect().options].map((o) => o.textContent)).toEqual([
+      expect(await selectOptionLabels(alertSelect())).toEqual([
         "None",
         "At the time",
         "5 min before",
@@ -347,26 +343,26 @@ describe("EventInspector", () => {
         "1 hour before",
         "1 day before",
       ]);
-      expect(alertSelect().value).toBe("");
-      expect(alertSelect().disabled).toBe(false);
+      expect(alertValue(alertSelect())).toBe("");
+      expect(alertSelect().hasAttribute("data-disabled")).toBe(false);
     });
 
     it("sets an alert, and an alert-only change does not resend the event", async () => {
       const harness = await renderInspector();
-      await act(() => chooseOption(alertSelect(), "15"));
+      await chooseAlert(alertSelect(), "15");
       expect(button("Save")?.disabled).toBe(false);
       await click("Save");
 
       expect(harness.saves).toEqual([null]);
       expect(harness.alertSaves).toEqual([15]);
-      expect(alertSelect().value).toBe("15");
+      expect(alertValue(alertSelect())).toBe("15");
       expect(button("Save")?.disabled).toBe(true);
     });
 
     it("sends the event fields and the alert together when both changed", async () => {
       const harness = await renderInspector();
       await editTitle("Retro");
-      await act(() => chooseOption(alertSelect(), "60"));
+      await chooseAlert(alertSelect(), "60");
       await click("Save");
       expect(harness.saves[0]?.title).toBe("Retro");
       expect(harness.alertSaves).toEqual([60]);
@@ -374,23 +370,23 @@ describe("EventInspector", () => {
 
     it("shows the stored alert, changes it, and clears it", async () => {
       const harness = await renderInspector(60);
-      expect(alertSelect().value).toBe("60");
+      expect(alertValue(alertSelect())).toBe("60");
       expect(button("Save")?.disabled).toBe(true);
 
-      await act(() => chooseOption(alertSelect(), "5"));
+      await chooseAlert(alertSelect(), "5");
       await click("Save");
-      expect(alertSelect().value).toBe("5");
+      expect(alertValue(alertSelect())).toBe("5");
 
-      await act(() => chooseOption(alertSelect(), ""));
+      await chooseAlert(alertSelect(), "");
       await click("Save");
       expect(harness.alertSaves).toEqual([5, null]);
-      expect(alertSelect().value).toBe("");
+      expect(alertValue(alertSelect())).toBe("");
       expect(button("Save")?.disabled).toBe(true);
     });
 
     it("counts an alert change as an unsaved edit when closing", async () => {
       const harness = await renderInspector();
-      await act(() => chooseOption(alertSelect(), "0"));
+      await chooseAlert(alertSelect(), "0");
       await click("Outside close");
       expect(panelState()).toBe("open");
       expect(prompt()?.textContent).toContain("unsaved changes to this event");
@@ -405,9 +401,9 @@ describe("EventInspector", () => {
     it("keeps the chosen alert and offers a retry when the save fails", async () => {
       const harness = await renderInspector();
       harness.saveResult = false;
-      await act(() => chooseOption(alertSelect(), "1440"));
+      await chooseAlert(alertSelect(), "1440");
       await click("Save");
-      expect(alertSelect().value).toBe("1440");
+      expect(alertValue(alertSelect())).toBe("1440");
       expect(alertText()).toContain("Couldn't save");
 
       harness.saveResult = true;
@@ -418,11 +414,11 @@ describe("EventInspector", () => {
 
     it("keeps a chosen alert when the event moves elsewhere", async () => {
       const harness = await renderInspector();
-      await act(() => chooseOption(alertSelect(), "5"));
+      await chooseAlert(alertSelect(), "5");
       await act(async () =>
         harness.setEvent({ ...EVENT, start_at: "2026-09-09T16:00:00.000Z", end_at: "2026-09-09T17:00:00.000Z" })
       );
-      expect(alertSelect().value).toBe("5");
+      expect(alertValue(alertSelect())).toBe("5");
     });
   });
 

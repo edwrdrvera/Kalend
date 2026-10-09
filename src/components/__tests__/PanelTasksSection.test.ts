@@ -107,11 +107,18 @@ describe("PanelTasksSection rows", () => {
     expect(interactions.toggled).toEqual([]);
   });
 
-  it("shows a checked, aria-pressed checkbox for a completed task", async () => {
-    await render([makeTask({ id: "a", completed: true })]);
+  it("exposes the checkbox as role=checkbox and reflects completion in aria-checked", async () => {
+    await render([makeTask({ id: "a", completed: false })]);
+    const open = document.querySelector('[aria-label="Mark Finish lab report as done"]');
+    expect(open?.getAttribute("role")).toBe("checkbox");
+    expect(open?.getAttribute("aria-checked")).toBe("false");
 
-    const checkbox = document.querySelector('[aria-label="Mark Finish lab report as not done"]');
-    expect(checkbox?.getAttribute("aria-pressed")).toBe("true");
+    await act(() => root?.unmount());
+    container?.remove();
+    await render([makeTask({ id: "a", completed: true })]);
+    const done = document.querySelector('[aria-label="Mark Finish lab report as not done"]');
+    expect(done?.getAttribute("role")).toBe("checkbox");
+    expect(done?.getAttribute("aria-checked")).toBe("true");
   });
 });
 

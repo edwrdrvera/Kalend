@@ -4,7 +4,7 @@ import { act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import type { EventFormValues } from "@/lib/event-form";
-import { typeInto } from "./test-dom";
+import { typeInto, chooseSelectOption } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");
 const { default: EventCreatePopover } = await import("../EventCreatePopover");
@@ -80,15 +80,8 @@ function spaceTriggerLabel(): string | null {
   return document.querySelector('[aria-label^="Space: "]')?.getAttribute("aria-label") ?? null;
 }
 
-async function openSpaceDropdown() {
-  await act(() => document.querySelector<HTMLElement>('[aria-label^="Space: "]')?.click());
-}
-
-/** An option row inside the opened Space dropdown. */
-function spaceOption(name: string): HTMLButtonElement | undefined {
-  return [
-    ...document.querySelectorAll<HTMLButtonElement>('[data-slot="popover-content"] button'),
-  ].find((button) => button.textContent?.trim() === name);
+async function pickSpace(name: string) {
+  await chooseSelectOption(document.querySelector<HTMLElement>('[aria-label^="Space: "]')!, name);
 }
 
 /** The Location chip, which swaps itself for the location input. */
@@ -185,8 +178,7 @@ describe("EventCreatePopover Group membership", () => {
         submitted = values;
       },
     });
-    await openSpaceDropdown();
-    await act(() => spaceOption("Trip")?.click());
+    await pickSpace("Trip");
     expect(spaceTriggerLabel()).toBe("Space: Personal / Trip");
 
     const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
@@ -206,8 +198,7 @@ describe("EventCreatePopover Group membership", () => {
         submitted = values;
       },
     });
-    await openSpaceDropdown();
-    await act(() => spaceOption("Work")?.click());
+    await pickSpace("Work");
     expect(spaceTriggerLabel()).toBe("Space: Work");
 
     const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
@@ -285,10 +276,7 @@ describe("EventCreatePopover submitted values", () => {
     });
     expect(spaceTriggerLabel()).toBe("Space: Work");
 
-    await openSpaceDropdown();
-    const noSpace = spaceOption("No Space");
-    expect(noSpace).toBeDefined();
-    await act(() => noSpace?.click());
+    await pickSpace("No Space");
     expect(spaceTriggerLabel()).toBe("Space: No Space");
 
     const titleInput = document.querySelector<HTMLInputElement>("#new-event-title");
