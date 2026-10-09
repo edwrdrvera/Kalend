@@ -4,8 +4,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* One style for every small section label: Upcoming, This week, Spaces, weekday names. */
+@utility label-caps {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+}
+
 @theme inline {
     --color-now: var(--now);
+    --color-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
     --color-warning: var(--warning);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
@@ -63,7 +73,7 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Light app theme: a Notion / cal.com light mode built like the dark one.
-     * A pure white canvas, and every gray is one ink (#16161a) at a different
+     * A pure white canvas, and every gray is one ink (#171717) at a different
      * opacity (sidebar 3%, secondary 5%, border 10%, muted text 64%), so the
      * grays never clash. The one loud color is the landing page orange
      * (#ea580c) on buttons, today, selection and focus, exactly where dark uses
@@ -71,38 +81,38 @@
      * and large text but not 4.5:1 for small text, so keep orange-filled labels
      * semibold and 15px or larger, and use --primary-text for orange text on
      * white. The Space colors below carry the rest of the color. */
-    --background: #ffffff;
-    --foreground: #16161a;
+    --background: #fafafa;
+    --foreground: #171717;
     --card: #ffffff;
-    --card-foreground: #16161a;
+    --card-foreground: #171717;
     --popover: #ffffff;
-    --popover-foreground: #16161a;
+    --popover-foreground: #171717;
     --primary: #ea580c;
     --primary-foreground: #ffffff;
     --primary-text: #c2410c;
-    --secondary: #f3f3f4;
-    --secondary-foreground: #16161a;
-    --muted: #f3f3f4;
-    --muted-foreground: #6a6a6c;
-    --accent: #f3f3f4;
-    --accent-foreground: #16161a;
-    --destructive: #d92d20;
-    --border: #e8e8e8;
-    --input: #e8e8e8;
+    --secondary: #f5f5f5;
+    --secondary-foreground: #171717;
+    --muted: #f5f5f5;
+    --muted-foreground: #737373;
+    --accent: #f5f5f5;
+    --accent-foreground: #171717;
+    --destructive: #dc2626;
+    --border: #e5e5e5;
+    --input: #e5e5e5;
     --ring: #ea580c;
     --chart-1: #ea580c;
-    --chart-2: #6a6a6c;
-    --chart-3: #16161a;
-    --chart-4: #e8e8e8;
-    --chart-5: #f3f3f4;
+    --chart-2: #737373;
+    --chart-3: #171717;
+    --chart-4: #e5e5e5;
+    --chart-5: #f5f5f5;
     --radius: 0.625rem;
-    --sidebar: #f8f8f8;
-    --sidebar-foreground: #16161a;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #171717;
     --sidebar-primary: #ea580c;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #f3f3f4;
-    --sidebar-accent-foreground: #16161a;
-    --sidebar-border: #e8e8e8;
+    --sidebar-accent: #f5f5f5;
+    --sidebar-accent-foreground: #171717;
+    --sidebar-border: #e5e5e5;
     --sidebar-ring: #ea580c;
 
     --mini-cal-bg: #ffffff;
@@ -163,36 +173,99 @@
  * identities so they do not look dusty on white; the .dark block restores the
  * original solid and deep values. */
 :root {
-    --evt-blue-solid: #2b87b8; --evt-blue-deep: #2b87b8; --evt-blue-fg: #00709f; --evt-blue-bg: #dfedf4; --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 8%, #ffffff); --evt-blue-bd: #aed1e4;
-    --evt-green-solid: #5f9e2a; --evt-green-deep: #599822; --evt-green-fg: #407701; --evt-green-bg: #e7f0df; --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 8%, #ffffff); --evt-green-bd: #c2daae;
-    --evt-purple-solid: #a24c9a; --evt-purple-deep: #a24c9a; --evt-purple-fg: #9b4593; --evt-purple-bg: #f1e4f0; --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 8%, #ffffff); --evt-purple-bd: #dcbbd9;
-    --evt-orange-solid: #e8781c; --evt-orange-deep: #d66a03; --evt-orange-fg: #a85200; --evt-orange-bg: #fcebdd; --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 8%, #ffffff); --evt-orange-bd: #f6cca9;
-    --evt-red-solid: #cf4433; --evt-red-deep: #cf4433; --evt-red-fg: #bd3223; --evt-red-bg: #f8e3e0; --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 8%, #ffffff); --evt-red-bd: #edb8b1;
-    --evt-indigo-solid: #4f6bbf; --evt-indigo-deep: #4f6bbf; --evt-indigo-fg: #4863b6; --evt-indigo-bg: #e5e9f5; --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 8%, #ffffff); --evt-indigo-bd: #bcc7e7;
-    --evt-pink-solid: #e05f7a; --evt-pink-deep: #dd5c78; --evt-pink-fg: #b83a59; --evt-pink-bg: #fae7eb; --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 8%, #ffffff); --evt-pink-bd: #f3c2cc;
-    --evt-yellow-solid: #e0a418; --evt-yellow-deep: #b18005; --evt-yellow-fg: #8a5a0a; --evt-yellow-bg: #faf1dc; --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 8%, #ffffff); --evt-yellow-bd: #f3dca7;
-    --evt-teal-solid: #1f9a86; --evt-teal-deep: #1d9985; --evt-teal-fg: #057767; --evt-teal-bg: #ddf0ed; --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 8%, #ffffff); --evt-teal-bd: #aad9d1;
+    --evt-blue-solid: #3d8299;
+    --evt-blue-deep: #2f6a80;
+    --evt-blue-fg: var(--evt-blue-deep);
+    --evt-blue-bg: #e2ecf0;
+    --evt-blue-soft: #eff5f7;
+    --evt-blue-bd: #c5dae0;
+    --evt-green-solid: #7a9b32;
+    --evt-green-deep: #5c7626;
+    --evt-green-fg: var(--evt-green-deep);
+    --evt-green-bg: #ebf0e0;
+    --evt-green-soft: #f4f7ef;
+    --evt-green-bd: #d7e1c2;
+    --evt-purple-solid: #9a4a86;
+    --evt-purple-deep: #7e3a6d;
+    --evt-purple-fg: var(--evt-purple-deep);
+    --evt-purple-bg: #f0e4ed;
+    --evt-purple-soft: #f7f1f5;
+    --evt-purple-bd: #e1c9db;
+    --evt-orange-solid: #e8781c;
+    --evt-orange-deep: #b85712;
+    --evt-orange-fg: var(--evt-orange-deep);
+    --evt-orange-bg: #fcebdd;
+    --evt-orange-soft: #fdf4ed;
+    --evt-orange-bd: #f8d6bb;
+    --evt-red-solid: #cf4433;
+    --evt-red-deep: #b0392b;
+    --evt-red-fg: var(--evt-red-deep);
+    --evt-red-bg: #f8e3e0;
+    --evt-red-soft: #fbf0ef;
+    --evt-red-bd: #f1c7c2;
+    --evt-indigo-solid: #4f6bbf;
+    --evt-indigo-deep: #3f52a0;
+    --evt-indigo-fg: var(--evt-indigo-deep);
+    --evt-indigo-bg: #e5e9f5;
+    --evt-indigo-soft: #f1f3fa;
+    --evt-indigo-bd: #cad3ec;
+    --evt-pink-solid: #e05f7a;
+    --evt-pink-deep: #b83f5c;
+    --evt-pink-fg: var(--evt-pink-deep);
+    --evt-pink-bg: #fae7eb;
+    --evt-pink-soft: #fdf2f4;
+    --evt-pink-bd: #f6cfd7;
+    --evt-yellow-solid: #e0a418;
+    --evt-yellow-deep: #8a6410;
+    --evt-yellow-fg: var(--evt-yellow-deep);
+    --evt-yellow-bg: #faf1dc;
+    --evt-yellow-soft: #fdf8ed;
+    --evt-yellow-bd: #f6e4ba;
+    --evt-teal-solid: #1f9a86;
+    --evt-teal-deep: #187563;
+    --evt-teal-fg: var(--evt-teal-deep);
+    --evt-teal-bg: #ddf0ed;
+    --evt-teal-soft: #edf7f5;
+    --evt-teal-bd: #bce1db;
 }
 
 .dark {
-    --evt-blue-solid: #3d8299; --evt-blue-deep: #2f6a80;
-    --evt-green-solid: #7a9b32; --evt-green-deep: #5c7626;
-    --evt-purple-solid: #9a4a86; --evt-purple-deep: #7e3a6d;
-    --evt-orange-solid: #e8781c; --evt-orange-deep: #b85712;
-    --evt-red-solid: #cf4433; --evt-red-deep: #b0392b;
-    --evt-indigo-solid: #4f6bbf; --evt-indigo-deep: #3f52a0;
-    --evt-pink-solid: #e05f7a; --evt-pink-deep: #b83f5c;
-    --evt-yellow-solid: #e0a418; --evt-yellow-deep: #8a6410;
-    --evt-teal-solid: #1f9a86; --evt-teal-deep: #187563;
-    --evt-blue-fg: #86bdd6; --evt-blue-bg: color-mix(in srgb, var(--evt-blue-solid) 22%, #1f1c16); --evt-blue-soft: color-mix(in srgb, var(--evt-blue-solid) 12%, #1f1c16); --evt-blue-bd: color-mix(in srgb, var(--evt-blue-solid) 40%, #1f1c16);
-    --evt-green-fg: #b6d488; --evt-green-bg: color-mix(in srgb, var(--evt-green-solid) 22%, #1f1c16); --evt-green-soft: color-mix(in srgb, var(--evt-green-solid) 12%, #1f1c16); --evt-green-bd: color-mix(in srgb, var(--evt-green-solid) 40%, #1f1c16);
-    --evt-purple-fg: #d3a3c6; --evt-purple-bg: color-mix(in srgb, var(--evt-purple-solid) 22%, #1f1c16); --evt-purple-soft: color-mix(in srgb, var(--evt-purple-solid) 12%, #1f1c16); --evt-purple-bd: color-mix(in srgb, var(--evt-purple-solid) 40%, #1f1c16);
-    --evt-orange-fg: #f2a35f; --evt-orange-bg: color-mix(in srgb, var(--evt-orange-solid) 22%, #1f1c16); --evt-orange-soft: color-mix(in srgb, var(--evt-orange-solid) 12%, #1f1c16); --evt-orange-bd: color-mix(in srgb, var(--evt-orange-solid) 40%, #1f1c16);
-    --evt-red-fg: #ec9184; --evt-red-bg: color-mix(in srgb, var(--evt-red-solid) 22%, #1f1c16); --evt-red-soft: color-mix(in srgb, var(--evt-red-solid) 12%, #1f1c16); --evt-red-bd: color-mix(in srgb, var(--evt-red-solid) 40%, #1f1c16);
-    --evt-indigo-fg: #a7b4e8; --evt-indigo-bg: color-mix(in srgb, var(--evt-indigo-solid) 22%, #1f1c16); --evt-indigo-soft: color-mix(in srgb, var(--evt-indigo-solid) 12%, #1f1c16); --evt-indigo-bd: color-mix(in srgb, var(--evt-indigo-solid) 40%, #1f1c16);
-    --evt-pink-fg: #f0a1b2; --evt-pink-bg: color-mix(in srgb, var(--evt-pink-solid) 22%, #1f1c16); --evt-pink-soft: color-mix(in srgb, var(--evt-pink-solid) 12%, #1f1c16); --evt-pink-bd: color-mix(in srgb, var(--evt-pink-solid) 40%, #1f1c16);
-    --evt-yellow-fg: #ebc766; --evt-yellow-bg: color-mix(in srgb, var(--evt-yellow-solid) 22%, #1f1c16); --evt-yellow-soft: color-mix(in srgb, var(--evt-yellow-solid) 12%, #1f1c16); --evt-yellow-bd: color-mix(in srgb, var(--evt-yellow-solid) 40%, #1f1c16);
-    --evt-teal-fg: #74cdbb; --evt-teal-bg: color-mix(in srgb, var(--evt-teal-solid) 22%, #1f1c16); --evt-teal-soft: color-mix(in srgb, var(--evt-teal-solid) 12%, #1f1c16); --evt-teal-bd: color-mix(in srgb, var(--evt-teal-solid) 40%, #1f1c16);
+    --evt-blue-fg: #86bdd6;
+    --evt-blue-bg: #263233;
+    --evt-blue-soft: #232826;
+    --evt-blue-bd: #2b454a;
+    --evt-green-fg: #b6d488;
+    --evt-green-bg: #33381c;
+    --evt-green-soft: #2a2b19;
+    --evt-green-bd: #434f21;
+    --evt-purple-fg: #d3a3c6;
+    --evt-purple-bg: #3a262f;
+    --evt-purple-soft: #2e2223;
+    --evt-purple-bd: #502e43;
+    --evt-orange-fg: #f2a35f;
+    --evt-orange-bg: #4b3017;
+    --evt-orange-soft: #372717;
+    --evt-orange-bd: #6f4118;
+    --evt-red-fg: #ec9184;
+    --evt-red-bg: #46251c;
+    --evt-red-soft: #342119;
+    --evt-red-bd: #652c22;
+    --evt-indigo-fg: #a7b4e8;
+    --evt-indigo-bg: #2a2d3b;
+    --evt-indigo-soft: #25252a;
+    --evt-indigo-bd: #323c5a;
+    --evt-pink-fg: #f0a1b2;
+    --evt-pink-bg: #492b2c;
+    --evt-pink-soft: #362422;
+    --evt-pink-bd: #6c373e;
+    --evt-yellow-fg: #ebc766;
+    --evt-yellow-bg: #493a16;
+    --evt-yellow-soft: #362c16;
+    --evt-yellow-bd: #6c5217;
+    --evt-teal-fg: #74cdbb;
+    --evt-teal-bg: #1f382f;
+    --evt-teal-soft: #1f2b23;
+    --evt-teal-bd: #1f4e43;
 }
 
 @layer base {
