@@ -60,7 +60,7 @@ export default function ColorSwatchPicker({
               aria-label={c}
               aria-pressed={color === c}
               className={cn(
-                "size-6 rounded-sm transition-[scale] duration-150 ease-out active:scale-[0.9]",
+                "size-6 rounded-sm transition-[scale] duration-150 ease-out active:scale-[0.97]",
                 EVENT_COLOR_SWATCH_CLASSES[c],
                 color === c
                   ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"

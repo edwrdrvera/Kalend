@@ -75,7 +75,7 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
+  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden";
   const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
@@ -91,7 +91,7 @@ function getCellClasses(day: Date, viewMonth: Date): string {
 
   // Weekends get a slightly darker fill than weekdays, in-month only.
   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-muted/40 cursor-pointer`;
+  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-hover cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
@@ -255,7 +255,7 @@ function DayCell({
               onEventContextMenu?.(event, e.clientX, e.clientY);
             }}
             className={cn(
-              "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[10px] font-semibold transition-transform active:scale-[0.98]",
+              "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[11px] font-medium leading-tight",
               getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
               selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1",
               dimClass(event, spaceFocus)
@@ -266,7 +266,7 @@ function DayCell({
           </button>
         ))}
         {summary && (
-          <span className="truncate px-1.5 text-left text-[10px] font-medium text-muted-foreground">{summary}</span>
+          <span className="truncate px-1.5 text-left text-[11px] font-medium text-muted-foreground">{summary}</span>
         )}
       </div>
     </div>

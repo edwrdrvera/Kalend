@@ -46,7 +46,7 @@ export default function TaskChip({
   return (
     <div
       className={cn(
-        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-[11px] font-medium transition-colors hover:bg-muted/70",
+        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-[11px] font-medium transition-colors hover:bg-hover",
         task.completed
           ? "text-muted-foreground"
           : overdue

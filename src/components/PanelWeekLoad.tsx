@@ -33,7 +33,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
   return (
     <section aria-label="This week" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[12px] font-semibold text-muted-foreground">This week</h3>
+        <h3 className="label-caps">This week</h3>
         <span className="truncate pl-3 text-[11.5px] text-muted-foreground">
           {round1(total)}h booked in {scopeName}
         </span>
@@ -48,7 +48,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
               onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
                 PRESS_CLS,
                 today && "bg-primary/10 hover:bg-primary/15"
               )}
