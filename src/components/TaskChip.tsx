@@ -1,8 +1,8 @@
 "use client";
 
 import { isPast } from "date-fns";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
 import {
   EVENT_COLOR_SWATCH_CLASSES,
@@ -41,7 +41,7 @@ export default function TaskChip({
     categories
   );
 
-  // Both buttons stop propagation: a click on the chip must not also reach
+  // The checkbox and title both stop propagation: a click on the chip must not also reach
   // the day cell underneath, which would select that day.
   return (
     <div
@@ -56,25 +56,16 @@ export default function TaskChip({
         className
       )}
     >
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleComplete(task);
-        }}
-        aria-pressed={task.completed}
+      <Checkbox
+        checked={task.completed}
+        onCheckedChange={() => onToggleComplete(task)}
+        onClick={(e) => e.stopPropagation()}
         aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
         className={cn(
-          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring/60",
-          task.completed
-            ? "border-muted-foreground bg-muted-foreground text-background"
-            : overdue
-              ? "border-destructive text-transparent hover:bg-destructive/10"
-              : "border-muted-foreground/70 text-transparent hover:border-foreground"
+          "size-3.5 rounded-[3px] border-muted-foreground/70 data-checked:border-muted-foreground data-checked:bg-muted-foreground data-checked:text-background dark:data-checked:bg-muted-foreground",
+          overdue && "border-destructive"
         )}
-      >
-        <Check className="size-3" strokeWidth={3} />
-      </button>
+      />
       <span
         aria-hidden="true"
         className={cn(

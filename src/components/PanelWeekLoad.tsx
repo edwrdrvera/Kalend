@@ -61,7 +61,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                   className={cn(
                     "w-3.5 rounded-[3px]",
                     hours >= HEAVY_HOURS
-                      ? "bg-amber-600"
+                      ? "bg-warning"
                       : today
                         ? "bg-primary"
                         : neutral

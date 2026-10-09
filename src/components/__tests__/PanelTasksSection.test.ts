@@ -120,7 +120,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: null })]);
 
     expect(container?.textContent).toContain("No date");
-    const amber = container?.querySelector(".text-amber-600");
+    const amber = container?.querySelector(".text-warning");
     expect(amber).toBeNull();
   });
 
@@ -129,7 +129,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: yesterday })]);
 
     expect(container?.textContent).toContain("Overdue");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Overdue");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Overdue");
   });
 
   it("shows 'Due today' with the warning color for a task due today", async () => {
@@ -137,7 +137,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: today })]);
 
     expect(container?.textContent).toContain("Due today");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Due today");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Due today");
   });
 
   it("shows 'Due tomorrow' with the warning color for a task due tomorrow", async () => {
@@ -145,7 +145,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: tomorrow })]);
 
     expect(container?.textContent).toContain("Due tomorrow");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Due tomorrow");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Due tomorrow");
   });
 
   it("shows a formatted date in muted (non-warning) styling for a far-future task", async () => {
@@ -154,13 +154,13 @@ describe("PanelTasksSection due-state sub-lines", () => {
 
     const expected = format(future, "MMM d");
     expect(container?.textContent).toContain(expected);
-    expect(container?.querySelector(".text-amber-600")).toBeNull();
+    expect(container?.querySelector(".text-warning")).toBeNull();
   });
 
   it("never applies the warning color to a completed, overdue task", async () => {
     const yesterday = addDays(new Date(), -1).toISOString();
     await render([makeTask({ id: "a", due_at: yesterday, completed: true })]);
 
-    expect(container?.querySelector(".text-amber-600")).toBeNull();
+    expect(container?.querySelector(".text-warning")).toBeNull();
   });
 });

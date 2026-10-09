@@ -467,7 +467,7 @@ describe("Calendar behavior", () => {
     const breadcrumb = () => document.querySelector("nav[aria-label='Breadcrumb']");
     const calendarPosition = () => ({
       title: document.querySelector("h1")?.textContent,
-      view: [...document.querySelectorAll("button[aria-pressed='true']")]
+      view: [...document.querySelectorAll("[role='tab'][aria-selected='true']")]
         .map((b) => b.textContent)
         .find((t) => /(Week|Month|Day)$/.test(t ?? "")),
     });
@@ -482,6 +482,7 @@ describe("Calendar behavior", () => {
       await mount();
       await switchView("Month");
       const before = calendarPosition();
+      expect(before.view).toEndWith("Month");
       await click(eventBlock("Lecture"));
       expect(breadcrumb()?.textContent).toBe("School/Lecture");
       expect(isAbsent(document.querySelector("[aria-label^='Back to']"))).toBe(true);

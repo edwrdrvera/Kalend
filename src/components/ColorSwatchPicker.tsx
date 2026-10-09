@@ -42,13 +42,13 @@ export default function ColorSwatchPicker({
       <PopoverTrigger
         aria-label={`Change color, currently ${color}`}
         className={cn(
-          "size-7 shrink-0 rounded-sm ring-1 ring-transparent ring-offset-1 ring-offset-popover transition-colors hover:ring-foreground/25",
+          "size-7 shrink-0 rounded-sm ring-1 ring-transparent ring-offset-1 ring-offset-popover transition-[scale] duration-150 ease-out hover:ring-foreground/25 active:scale-[0.94]",
           EVENT_COLOR_SWATCH_CLASSES[color],
           className
         )}
       />
-      <PopoverContent className="w-auto p-2.5">
-        <div className="flex flex-wrap gap-2">
+      <PopoverContent align="start" className="w-auto p-2.5">
+        <div className="grid grid-cols-5 gap-2">
           {EVENT_COLORS.map((c) => (
             <button
               key={c}
@@ -60,7 +60,7 @@ export default function ColorSwatchPicker({
               aria-label={c}
               aria-pressed={color === c}
               className={cn(
-                "size-6 rounded-sm transition-colors",
+                "size-6 rounded-sm transition-[scale] duration-150 ease-out active:scale-[0.9]",
                 EVENT_COLOR_SWATCH_CLASSES[c],
                 color === c
                   ? "ring-2 ring-foreground ring-offset-2 ring-offset-popover"

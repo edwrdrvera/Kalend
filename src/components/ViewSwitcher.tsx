@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export type CalendarView = "month" | "week" | "day";
 
@@ -15,29 +15,28 @@ interface ViewSwitcherProps {
   onViewChange: (view: CalendarView) => void;
 }
 
-/** Segmented control for switching between the month, week, and day grids.
- *  Styled as a soft pill (a warm muted track with a raised card chip for the
- *  active view), echoing the landing-page mock rather than a hard-bordered box. */
+/** Switches between the month, week, and day grids. The active view is a solid chip. */
 export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 text-xs font-semibold text-muted-foreground">
-      {VIEWS.map(({ value, label, short }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => onViewChange(value)}
-          aria-pressed={view === value}
-          className={cn(
-            "h-8 min-w-11 rounded-md px-2 transition-colors md:h-7 md:min-w-0 md:px-2.5",
-            view === value
-              ? "bg-card text-foreground shadow-sm"
-              : "hover:text-foreground"
-          )}
-        >
-          <span className="md:hidden">{short}</span>
-          <span className="hidden md:inline">{label}</span>
-        </button>
-      ))}
-    </div>
+    <Tabs
+      value={view}
+      onValueChange={(value) => {
+        const next = VIEWS.find((v) => v.value === value);
+        if (next) onViewChange(next.value);
+      }}
+    >
+      <TabsList variant="contrast" className="group-data-horizontal/tabs:h-auto">
+        {VIEWS.map(({ value, label, short }) => (
+          <TabsTrigger
+            key={value}
+            value={value}
+            className="h-8 min-w-11 px-2.5 text-xs font-semibold md:h-7 md:min-w-0"
+          >
+            <span className="md:hidden">{short}</span>
+            <span className="hidden md:inline">{label}</span>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </Tabs>
   );
 }
