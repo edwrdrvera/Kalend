@@ -10,9 +10,15 @@ import { cn } from "@/lib/utils";
  *  adjust width or font weight, but borders, radius, fill, and focus stay
  *  consistent across Space, Task, and Event editors. */
 export const APP_INPUT_CLS =
-  "h-7 rounded-sm border border-input bg-background px-2 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/30 disabled:opacity-60";
+  "h-7 rounded-lg border border-input bg-transparent px-2 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/60 disabled:opacity-60 dark:bg-input/30";
 
 export const SMALL_INPUT_CLS = APP_INPUT_CLS;
+
+/** Compact field size: matches the 28px / 13px controls around it. */
+export const FIELD_SIZE_CLS = "h-7 text-[13px] md:text-[13px]";
+
+/** Thin focus ring for fields that sit inline in a panel or list. Dialogs keep the library ring. */
+export const FIELD_INLINE_RING_CLS = "focus-visible:ring-1 focus-visible:ring-ring/60";
 
 /** Custom date picker — opens MiniCalendar in a Popover instead of the
  *  browser's native date widget, which is unthemeable and looks generic. */
@@ -36,7 +42,7 @@ export function DateField({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={`${label}, ${displayValue}`}
-        className={cn(APP_INPUT_CLS, "w-full cursor-pointer text-left text-xs hover:bg-muted/30", className)}
+        className={cn(APP_INPUT_CLS, "w-full cursor-pointer text-left text-xs hover:bg-hover", className)}
       >
         {value ? format(date, "MMM d, yyyy") : "Select date"}
       </PopoverTrigger>

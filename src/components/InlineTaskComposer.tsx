@@ -8,6 +8,8 @@ import { dueAtFromDate } from "@/lib/task-draft";
 import { spaceMembership, type Membership } from "@/lib/membership";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import MembershipSelect from "./MembershipSelect";
+import { Input } from "@/components/ui/input";
+import { buttonVariants } from "@/components/ui/button";
 
 interface TaskDraft {
   title: string;
@@ -65,13 +67,13 @@ export default function InlineTaskComposer({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2 pb-1">
-      <input
+      <Input
         ref={inputRef}
         value={draft.title}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        className={cn(APP_INPUT_CLS, "h-7 w-full text-[13px]")}
+        className="h-7 w-full text-[13px] md:text-[13px] focus-visible:ring-1 focus-visible:ring-ring/60"
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -104,7 +106,7 @@ export default function InlineTaskComposer({
         <button
           type="button"
           onClick={onClose}
-          className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs text-muted-foreground hover:text-foreground")}
         >
           Cancel
         </button>
@@ -112,7 +114,7 @@ export default function InlineTaskComposer({
           type="submit"
           disabled={!draft.title.trim() || submitting}
           aria-label="Add task"
-          className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-40"
+          className={cn(buttonVariants({ size: "sm" }), "text-xs disabled:pointer-events-none disabled:opacity-40")}
         >
           Add task
         </button>

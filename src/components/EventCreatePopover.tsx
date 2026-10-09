@@ -21,7 +21,7 @@ const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
 const CHIP_CLS =
-  "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-muted";
+  "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-hover";
 const DASHED_CHIP_CLS = "border-dashed border-muted-foreground/40 text-muted-foreground";
 /** First-render guess for vertical centering, replaced by the measured height. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
@@ -241,7 +241,7 @@ export default function EventCreatePopover({
                   maxLength={MAX_LOCATION_LENGTH}
                   placeholder="Location"
                   autoFocus={locationOpen && !draft.location}
-                  className="h-7 w-36 rounded-full border border-input bg-background px-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
+                  className="h-7 w-36 rounded-full border border-input bg-transparent px-1.5 text-xs outline-none dark:bg-input/30 placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/60"
                 />
               </div>
             ) : (
@@ -268,7 +268,7 @@ export default function EventCreatePopover({
           <div
             inert={!timeExpanded}
             className={cn(
-              "grid transition-all duration-150 ease-in-out",
+              "grid transition-[grid-template-rows,opacity] duration-150 ease-out",
               timeExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
             )}
           >

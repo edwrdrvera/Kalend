@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { APP_INPUT_CLS } from "./DateField";
 import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 import type { CalendarGroup } from "@/lib/calendar-types";
+import { Input } from "@/components/ui/input";
+import { FIELD_SIZE_CLS } from "@/components/DateField";
 
 /**
  * Create, rename or delete one Group. A Group has only a name and a Space; it
@@ -137,14 +139,14 @@ function GroupEditorForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
-          <input
+          <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder="Group name"
             aria-label="Group name"
             maxLength={MAX_GROUP_NAME_LENGTH}
             autoFocus
-            className={cn(APP_INPUT_CLS, "w-full")}
+            className={cn(FIELD_SIZE_CLS, "w-full")}
           />
 
           {error && <p className="text-xs text-destructive">{error}</p>}

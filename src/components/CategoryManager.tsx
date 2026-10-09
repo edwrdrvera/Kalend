@@ -26,6 +26,9 @@ import {
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import { APP_INPUT_CLS } from "./DateField";
 import type { CalendarCategory } from "@/lib/calendar-types";
+import { Input } from "@/components/ui/input";
+import { buttonVariants } from "@/components/ui/button";
+import { FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 
 interface CategoryManagerProps {
   categories: CalendarCategory[];
@@ -117,7 +120,7 @@ function CategoryRow({
   return (
     <div
       className={cn(
-        "group relative flex min-h-[30px] flex-wrap items-center gap-0.5 rounded-md px-1 transition-colors hover:bg-muted/60 focus-within:bg-muted/40",
+        "group relative flex min-h-[30px] flex-wrap items-center gap-0.5 rounded-md px-1 transition-colors hover:bg-hover focus-within:bg-muted/40",
         selected && "bg-muted"
       )}
     >
@@ -140,7 +143,7 @@ function CategoryRow({
       />
 
       {editing ? (
-        <input
+        <Input
           value={name}
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => {
@@ -149,7 +152,7 @@ function CategoryRow({
           }}
           aria-label="Space name"
           autoFocus
-          className={cn(APP_INPUT_CLS, "min-w-0 flex-1 font-medium")}
+          className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "min-w-0 flex-1 font-medium")}
         />
       ) : (
         <button
@@ -172,7 +175,7 @@ function CategoryRow({
             type="button"
             onClick={saveName}
             aria-label={`Save ${category.name}`}
-            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60"
+            className={cn(buttonVariants({ variant: "ghost", size: "icon-lg" }), "text-muted-foreground hover:text-foreground")}
           >
             <Check className="size-4" />
           </button>
@@ -180,7 +183,7 @@ function CategoryRow({
             type="button"
             onClick={cancelEdit}
             aria-label={`Cancel renaming ${category.name}`}
-            className="grid size-8 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60"
+            className={cn(buttonVariants({ variant: "ghost", size: "icon-lg" }), "text-muted-foreground hover:text-foreground")}
           >
             <X className="size-4" />
           </button>
@@ -193,7 +196,7 @@ function CategoryRow({
               onClick={onDeselect}
               aria-label="Clear Space filter"
               title="Back to All Spaces"
-              className="grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60"
+              className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground hover:text-foreground shrink-0")}
             >
               <X className="size-3.5" />
             </button>
@@ -205,7 +208,7 @@ function CategoryRow({
             aria-pressed={visible}
             title={`${visible ? "Hide" : "Show"} ${category.name} on calendar`}
             className={cn(
-              "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100",
+              buttonVariants({ variant: "ghost", size: "icon" }), "shrink-0 text-muted-foreground hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100",
               selected && "md:opacity-100"
             )}
           >
@@ -215,7 +218,7 @@ function CategoryRow({
             <PopoverTrigger
               aria-label={`More actions for ${category.name}`}
               className={cn(
-                "grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-muted data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
+                buttonVariants({ variant: "ghost", size: "icon" }), "shrink-0 text-muted-foreground hover:text-foreground md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100 data-[popup-open]:bg-hover data-[popup-open]:text-foreground data-[popup-open]:opacity-100",
                 selected && "md:opacity-100"
               )}
             >
@@ -226,7 +229,7 @@ function CategoryRow({
               type="button"
               onClick={startEditing}
               aria-label={`Rename ${category.name}`}
-              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-hover focus-visible:bg-muted"
             >
               <Pencil className="size-3.5 text-muted-foreground" />
               Rename
@@ -238,7 +241,7 @@ function CategoryRow({
                 setActionsOpen(false);
               }}
               aria-label={pinned ? `Unpin ${category.name}` : `Pin ${category.name}`}
-              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-muted focus-visible:bg-muted"
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm outline-none hover:bg-hover focus-visible:bg-muted"
             >
               {pinned ? (
                 <PinOff className="size-3.5 text-muted-foreground" />
@@ -323,13 +326,13 @@ function CreateCategoryForm({
           onColorChange={(color) => onDraftChange({ ...draft, color })}
           className="size-3 rounded-[3px]"
         />
-        <input
+        <Input
           value={draft.name}
           onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
           placeholder="Space name"
           aria-label="New Space name"
           autoFocus
-          className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
+          className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "min-w-0 flex-1")}
         />
       </div>
 
@@ -338,7 +341,7 @@ function CreateCategoryForm({
           type="button"
           onClick={onDiscard}
           aria-label="Cancel"
-          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground hover:text-foreground shrink-0")}
         >
           <X className="size-4" />
         </button>
@@ -346,7 +349,7 @@ function CreateCategoryForm({
           type="submit"
           disabled={!draft.name.trim() || submitting}
           aria-label="Add Space"
-          className="grid size-7 shrink-0 place-items-center rounded-sm text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/60 disabled:pointer-events-none disabled:opacity-40"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-muted-foreground hover:text-foreground shrink-0")}
         >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
         </button>
@@ -382,7 +385,7 @@ export default function CategoryManager({
   return (
     <div className="flex flex-col px-3 pb-1 pt-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted-foreground">Spaces</h2>
+        <h2 className="label-caps">Spaces</h2>
         <Popover
           open={creating}
           onOpenChange={(open, details) => {
@@ -395,7 +398,7 @@ export default function CategoryManager({
             aria-label={creating ? "Cancel creating Space" : "Create a Space"}
             aria-expanded={creating}
             title={!creating && hasDraft ? "Continue Space draft" : undefined}
-            className="relative grid size-7 place-items-center rounded-md text-foreground hover:bg-muted"
+            className="relative grid size-7 place-items-center rounded-md text-foreground hover:bg-hover"
           >
             {creating ? <X className="size-4" /> : <Plus className="size-4" />}
             {!creating && hasDraft && (
@@ -445,7 +448,7 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-muted/60 focus-visible:ring-1 focus-visible:ring-ring/60",
+                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring/60",
                 selectedSpaceId === null && "bg-[#e8e7e5] font-semibold dark:bg-[#262626]"
               )}
             >

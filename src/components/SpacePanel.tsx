@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_INPUT_CLS } from "@/components/DateField";
+import { APP_INPUT_CLS, FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { UpcomingDay, WeekLoadDay } from "@/lib/space-overview";
@@ -18,6 +18,7 @@ import PanelTasksSection from "./PanelTasksSection";
 import PanelResourcesTab from "./PanelResourcesTab";
 import PanelAlertsTab from "./PanelAlertsTab";
 import SpacePanelFooter from "./SpacePanelFooter";
+import { Input } from "@/components/ui/input";
 
 interface SpacePanelProps {
   subject: PanelSubject;
@@ -164,7 +165,7 @@ export default function SpacePanel({
             >
               {composerOpen && (
                 <form onSubmit={handleCreateTask} className="mt-2">
-                  <input
+                  <Input
                     autoFocus
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
@@ -181,7 +182,7 @@ export default function SpacePanel({
                     }}
                     aria-label="New task title"
                     placeholder="New task"
-                    className={cn(APP_INPUT_CLS, "w-full")}
+                    className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
                   />
                 </form>
               )}

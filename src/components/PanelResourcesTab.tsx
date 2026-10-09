@@ -3,9 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_INPUT_CLS } from "@/components/DateField";
+import { APP_INPUT_CLS, FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 import { parseWebLink } from "@/lib/web-link";
 import { PRESS_CLS } from "./InspectorParts";
+import { Input } from "@/components/ui/input";
+import { buttonVariants } from "@/components/ui/button";
 
 // Placeholder: links and files live in component state only, nothing is saved
 // or uploaded yet. Swap in real storage when Resources get a backend.
@@ -29,11 +31,12 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
 ];
 
 const HEADER_BTN = cn(
-  "flex h-7 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  buttonVariants({ variant: "outline", size: "sm" }),
+  "text-[12px] font-semibold",
   PRESS_CLS
 );
 const REMOVE_BTN = cn(
-  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground shrink-0",
   PRESS_CLS
 );
 
@@ -74,7 +77,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
     <div className="px-4 py-3">
       <section aria-label="Links">
         <div className="flex items-center justify-between">
-          <h3 className="text-[12px] font-semibold text-muted-foreground">
+          <h3 className="label-caps">
             Links<span className="ml-1.5 font-normal">{links.length}</span>
           </h3>
           <button type="button" onClick={() => setLinkOpen(true)} className={HEADER_BTN}>
@@ -84,7 +87,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
         </div>
         {linkOpen && (
           <form onSubmit={commitLink} className="mt-2">
-            <input
+            <Input
               autoFocus
               aria-label="Link address"
               placeholder="Paste a link, then Enter"
@@ -104,7 +107,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                   setError("");
                 }
               }}
-              className={cn(APP_INPUT_CLS, "w-full")}
+              className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
             />
             {error && <p className="mt-1 text-[11.5px] text-destructive">{error}</p>}
           </form>
@@ -121,7 +124,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
               >
                 <span
                   aria-hidden="true"
@@ -146,7 +149,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
 
       <section aria-label="Files" className="mt-5">
         <div className="flex items-center justify-between">
-          <h3 className="text-[12px] font-semibold text-muted-foreground">
+          <h3 className="label-caps">
             Files<span className="ml-1.5 font-normal">{files.length}</span>
           </h3>
           <button type="button" onClick={addFile} className={HEADER_BTN}>
