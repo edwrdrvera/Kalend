@@ -149,7 +149,7 @@ export default function PanelTasksSection({
           <span
             className={cn(
               "shrink-0 whitespace-nowrap text-[11.5px] tabular-nums",
-              warning && !task.completed ? "text-amber-600" : "text-muted-foreground"
+              warning && !task.completed ? "text-warning" : "text-muted-foreground"
             )}
           >
             {text}

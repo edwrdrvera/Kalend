@@ -160,7 +160,7 @@ export default function TimeGrid({
         {/* Current-time label, aligned with the red "now" line in the columns. */}
         {showNow && (
           <div
-            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-red-500 px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-now px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
             style={{ top: nowOffsetPx }}
           >
             {format(now, "h:mm")}
@@ -180,7 +180,7 @@ export default function TimeGrid({
         {showNow && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-red-500/50"
+            className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-now/50"
             style={{ top: nowOffsetPx }}
           />
         )}
@@ -235,8 +235,8 @@ export default function TimeGrid({
                   className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
                   style={{ top: nowOffsetPx }}
                 >
-                  <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                  <div className="h-[2px] flex-1 bg-red-500" />
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-now" />
+                  <div className="h-[2px] flex-1 bg-now" />
                 </div>
               )}
 
