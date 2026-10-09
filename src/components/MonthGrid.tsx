@@ -65,9 +65,9 @@ function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
+    <div role="row" className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
       {days.map((day) => (
-        <div key={day} className="flex items-center justify-center">
+        <div key={day} role="columnheader" className="flex items-center justify-center">
           <CalendarWeekdayLabel>{day}</CalendarWeekdayLabel>
         </div>
       ))}
@@ -152,6 +152,13 @@ function emphasizedFirst(events: CalendarEvent[], focus: SpaceFocus): CalendarEv
   ];
 }
 
+/** True when the target sits on an event chip. The day-number button is not a
+ *  chip: a double-click or right-click on it acts like one on the empty cell. */
+function isOnChip(target: EventTarget): boolean {
+  const button = (target as HTMLElement).closest("button");
+  return button !== null && !button.hasAttribute("data-day-number");
+}
+
 function DayCell({
   day,
   monthStart,
@@ -204,38 +211,35 @@ function DayCell({
   };
 
   const handleCellDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("button")) return;
+    if (isOnChip(e.target)) return;
     onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
-  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onDateSelect(day);
-    }
-  };
-
-  // Not a <button> — event chips inside are their own <button>s, and
-  // buttons can't nest. role="button" + onKeyDown keeps the empty-area
-  // click keyboard-accessible.
+  // The cell is a plain gridcell, not a button, because the day number and the
+  // event chips inside it are their own buttons and buttons can't nest. The
+  // day-number button is the keyboard way to select the day; its click
+  // bubbles to the cell's click handler. Mouse users still click the empty
+  // part of the cell.
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
+      role="gridcell"
       onClick={handleCellClick}
       onDoubleClick={handleCellDoubleClick}
       onContextMenu={(e) => {
-        if ((e.target as HTMLElement).closest("button")) return;
+        if (isOnChip(e.target)) return;
         e.preventDefault();
         onDayContextMenu?.(day, e.clientX, e.clientY);
       }}
-      onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >
-      <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
+      <button
+        type="button"
+        data-day-number
+        aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
+        className={cn("focus-ring", getDayNumberClasses(day, monthStart, selectedDate))}
+      >
         {format(day, "d")}
-      </span>
+      </button>
       <div className="flex w-full min-w-0 flex-col gap-0.5">
         {visibleEvents.map((event) => (
           <button
@@ -295,6 +299,7 @@ export default function MonthGrid({
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
+  const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
   const wheelPager = useRef(createWheelPager());
 
   // Scroll down for the next month, up for the previous. Pinch-zoom and sideways scrolls don't count.
@@ -314,27 +319,39 @@ export default function MonthGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <DaysOfWeekRow />
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
-        {days.map((day) => (
-          <DayCell
-            key={day.getTime()}
-            day={day}
-            monthStart={monthStart}
-            selectedDate={selectedDate}
-            events={events}
-            tasks={tasks}
-            categories={categories}
-            spaceFocus={spaceFocus}
-            onDateSelect={onDateSelect}
-            onCreateEvent={onCreateEvent}
-            onEventClick={onEventClick}
-            onDayContextMenu={onDayContextMenu}
-            onEventShiftClick={onEventShiftClick}
-            onEventContextMenu={onEventContextMenu}
-            selectedEventIds={selectedEventIds}
-          />
-        ))}
+      <div
+        id="calendar-grid"
+        role="grid"
+        aria-label={format(viewDate, "MMMM yyyy")}
+        tabIndex={-1}
+        className="flex min-h-0 flex-1 flex-col outline-hidden"
+      >
+        <DaysOfWeekRow />
+        <div className="grid min-h-0 flex-1 grid-rows-6 gap-2 px-2 pb-2">
+          {weeks.map((week) => (
+            <div key={week[0].getTime()} role="row" className="grid min-h-0 grid-cols-7 gap-2">
+              {week.map((day) => (
+                <DayCell
+                  key={day.getTime()}
+                  day={day}
+                  monthStart={monthStart}
+                  selectedDate={selectedDate}
+                  events={events}
+                  tasks={tasks}
+                  categories={categories}
+                  spaceFocus={spaceFocus}
+                  onDateSelect={onDateSelect}
+                  onCreateEvent={onCreateEvent}
+                  onEventClick={onEventClick}
+                  onDayContextMenu={onDayContextMenu}
+                  onEventShiftClick={onEventShiftClick}
+                  onEventContextMenu={onEventContextMenu}
+                  selectedEventIds={selectedEventIds}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

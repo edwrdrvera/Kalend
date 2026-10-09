@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { format, addDays, subDays, setHours, isSameDay } from "date-fns";
+import { format, addDays, subDays, setHours, startOfDay, isSameDay } from "date-fns";
 import type { SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import CalendarHeader from "./CalendarHeader";
@@ -142,7 +142,7 @@ export default function DayGrid({
           onEventMove={onEventMove}
           onEventResize={onEventResize}
           onSlotSelect={(day) => onDateSelect(day)}
-          onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(day, hour), anchorRect)}
+          onSlotCreate={(day, hour, anchorRect) => onCreateEvent(setHours(startOfDay(day), hour), anchorRect)}
           onSlotDragCreate={onCreateEventRange}
           pendingRange={pendingRange}
           hourHeight={DAY_VIEW_HOUR_HEIGHT_PX}

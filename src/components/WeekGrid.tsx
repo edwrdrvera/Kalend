@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useGridFocus } from "@/hooks/useGridFocus";
 import {
   format,
   startOfWeek,
@@ -67,19 +68,38 @@ function WeekDaysHeader({
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
 }) {
+  // The seven day buttons are one Tab stop; Left and Right move between them.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const dayFocus = useGridFocus({
+    dayCount: days.length,
+    hourCount: 1,
+    initial: { dayIndex: Math.max(days.findIndex((day) => isSameDay(day, selectedDate)), 0), hour: 0 },
+    focusSlot: ({ dayIndex }) =>
+      rowRef.current?.querySelector<HTMLElement>(`[data-header-day="${dayIndex}"]`)?.focus(),
+  });
+
   return (
     <div className="flex h-14 shrink-0 border-b border-border bg-card sm:h-[74px]">
       <div className="w-10 shrink-0 sm:w-16" />
       <div
+        ref={rowRef}
         className="grid flex-1"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
-        {days.map((day) => (
+        {days.map((day, dayIndex) => (
           <button
             key={day.getTime()}
             type="button"
+            tabIndex={dayFocus.tabIndexFor({ dayIndex, hour: 0 })}
+            data-header-day={dayIndex}
+            onFocus={() => dayFocus.setFocused({ dayIndex, hour: 0 })}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                dayFocus.onKeyDown(e, { dayIndex, hour: 0 });
+              }
+            }}
             onClick={() => onDateSelect(day)}
-            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-hover sm:pl-4 lg:pl-5"
+            className="focus-ring flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-hover sm:pl-4 lg:pl-5"
           >
             <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">
               {format(day, "EEE")}

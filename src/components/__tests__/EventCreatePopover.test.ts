@@ -388,3 +388,41 @@ describe("EventCreatePopover More options", () => {
     expect(calls).toEqual([false]);
   });
 });
+
+describe("EventCreatePopover keyboard", () => {
+  it("is a modal dialog", async () => {
+    await renderPopover();
+    expect(document.querySelector('[role="dialog"]')?.getAttribute("aria-modal")).toBe("true");
+  });
+
+  it("wraps Tab from the last control to the first, and Shift+Tab back", async () => {
+    await renderPopover();
+    const title = document.getElementById("new-event-title")!;
+    const create = [...document.querySelectorAll<HTMLButtonElement>("form button")].find(
+      (b) => b.textContent?.trim() === "Create"
+    )!;
+    await act(() => create.focus());
+    await act(() => {
+      create.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true }));
+    });
+    expect(document.activeElement).toBe(title);
+    await act(() => {
+      title.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true })
+      );
+    });
+    expect(document.activeElement).toBe(create);
+  });
+
+  it("gives focus back to the element that had it when the popover closes", async () => {
+    const opener = document.createElement("button");
+    document.body.appendChild(opener);
+    opener.focus();
+    await renderPopover();
+    expect(document.activeElement).toBe(document.getElementById("new-event-title"));
+    await act(() => root?.unmount());
+    root = null;
+    await new Promise((r) => setTimeout(r, 0));
+    expect(document.activeElement).toBe(opener);
+  });
+});
