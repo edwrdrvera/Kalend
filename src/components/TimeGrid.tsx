@@ -11,6 +11,7 @@ import {
   resolveDisplayColor,
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
+import { eventAccessibleName } from "@/lib/event-accessible-name";
 import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
@@ -312,6 +313,7 @@ export default function TimeGrid({
                   <button
                     key={event.id}
                     type="button"
+                    aria-label={eventAccessibleName(event, categories.find((c) => c.id === event.category_id)?.name ?? null)}
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => move.onBlockPointerDown(e, event, dayIndex, day)}
                     onClick={(e) => handleEventClick(e, event)}

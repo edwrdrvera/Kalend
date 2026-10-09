@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { createWheelPager } from "@/lib/wheel-pager";
 import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import { eventAccessibleName } from "@/lib/event-accessible-name";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import type { CalendarView } from "./ViewSwitcher";
@@ -240,6 +241,7 @@ function DayCell({
           <button
             key={event.id}
             type="button"
+            aria-label={eventAccessibleName(event, categories.find((c) => c.id === event.category_id)?.name ?? null)}
             title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();

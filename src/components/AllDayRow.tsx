@@ -3,6 +3,7 @@
 import { isSameDay } from "date-fns";
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import { eventAccessibleName } from "@/lib/event-accessible-name";
 import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { layoutAllDayEvents } from "@/lib/time-grid-layout";
 import TaskChip from "./TaskChip";
@@ -90,6 +91,7 @@ export default function AllDayRow({
               <button
                 key={event.id}
                 type="button"
+                aria-label={eventAccessibleName(event, categories.find((c) => c.id === event.category_id)?.name ?? null)}
                 title={event.location ? `${event.title} (${event.location})` : event.title}
                 onClick={(e) => onEventClick?.(event, e.currentTarget.getBoundingClientRect())}
                 style={{
