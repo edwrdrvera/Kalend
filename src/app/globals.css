@@ -409,3 +409,12 @@
 @media (prefers-reduced-motion: reduce) {
     [data-starting-style], [data-ending-style] { scale: none !important; }
 }
+
+/* Native controls (the time picker's clock icon, scrollbars, date inputs)
+ * follow the app theme, not the OS setting. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
