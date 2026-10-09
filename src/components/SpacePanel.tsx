@@ -43,6 +43,9 @@ interface SpacePanelProps {
   onCreateTask: (title: string) => Promise<void>;
   /** Opens the editor for the open Space or Group (the footer row). */
   onOpenSettings: () => void;
+  /** Space panels only: the title-row menu opens the Space editor. */
+  onChangeColor?: () => void;
+  onDeleteSpace?: () => void;
   /** Renames the open Space or Group from its title. Resolves false when the save failed. */
   onRename: (name: string) => Promise<boolean>;
   /** Saves the Space's description (null removes it). Resolves false when the save failed. */
@@ -79,6 +82,8 @@ export default function SpacePanel({
   onCreateEvent,
   onCreateTask,
   onOpenSettings,
+  onChangeColor,
+  onDeleteSpace,
   onRename,
   onSaveDescription,
   onDirtyChange,
@@ -116,7 +121,13 @@ export default function SpacePanel({
       modal={modal}
       onClose={onClose}
     >
-      <SpacePanelHeader subject={subject} onClose={onClose} onRename={onRename}>
+      <SpacePanelHeader
+        subject={subject}
+        onClose={onClose}
+        onRename={onRename}
+        onChangeColor={onChangeColor}
+        onDeleteSpace={onDeleteSpace}
+      >
         {groupNav && <PanelGroupChips subject={subject} nav={groupNav} />}
         <PanelTabs tabs={TABS} value={tab} onChange={setTab} />
       </SpacePanelHeader>
@@ -196,10 +207,9 @@ export default function SpacePanel({
         )}
       </div>
 
-      <SpacePanelFooter
-        label={subject.kind === "group" ? "Group settings" : "Space settings"}
-        onOpenSettings={onOpenSettings}
-      />
+      {subject.kind === "group" && (
+        <SpacePanelFooter label="Group settings" onOpenSettings={onOpenSettings} />
+      )}
     </PanelShell>
   );
 }

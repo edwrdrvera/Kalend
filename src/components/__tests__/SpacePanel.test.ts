@@ -82,6 +82,8 @@ async function render(
           handlers.created.push(title);
         },
         onOpenSettings: () => {},
+        onChangeColor: () => {},
+        onDeleteSpace: () => {},
         onRename: async (name: string) => {
           handlers.renames.push(name);
           return handlers.renameResult;
@@ -254,11 +256,31 @@ describe("SpacePanel description", () => {
   });
 });
 
+describe("SpacePanel for a Space", () => {
+  it("has a Space options menu beside the title", async () => {
+    await render(SPACE);
+    const trigger = document.querySelector('[aria-label="Space options"]');
+    expect(trigger).not.toBeNull();
+    expect(trigger?.getAttribute("aria-haspopup")).toBe("menu");
+  });
+
+  it("has no settings footer, because the title renames the Space", async () => {
+    await render(SPACE);
+    expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
+    expect(document.querySelector("footer")).toBeNull();
+  });
+});
+
 describe("SpacePanel for a Group", () => {
   it("has no description section, because Groups have none", async () => {
     await render(GROUP);
     expect(buttonWithText("Add description")).toBeUndefined();
     expect(descriptionBox()).toBeNull();
+  });
+
+  it("has no Space options menu, because a Group is edited from its footer", async () => {
+    await render(GROUP);
+    expect(document.querySelector('[aria-label="Space options"]')).toBeNull();
   });
 
   it("offers Group settings in the footer", async () => {
@@ -373,9 +395,8 @@ describe("SpacePanel rename", () => {
       nameInput()?.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
     });
 
-  it("has no options button, and the title opens a name box", async () => {
+  it("opens a name box from the title", async () => {
     await render(SPACE);
-    expect(buttonWithText("Space options")).toBeUndefined();
     await act(() => buttonWithText("Rename School")?.click());
     expect(nameInput()?.value).toBe("School");
   });

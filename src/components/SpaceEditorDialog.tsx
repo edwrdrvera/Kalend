@@ -30,6 +30,8 @@ export interface SpaceEditorTarget {
   mode: "create" | "edit";
   /** The Space being edited; omitted in create mode. */
   category?: CalendarCategory;
+  /** Open straight on the delete confirmation. */
+  confirmDelete?: boolean;
 }
 
 interface SpaceEditorDialogProps {
@@ -75,7 +77,7 @@ export default function SpaceEditorDialog({
     setError(null);
     setSubmitting(false);
     setDeleting(false);
-    setConfirmingDelete(false);
+    setConfirmingDelete(target.confirmDelete === true);
   }, [targetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEdit = target?.mode === "edit";

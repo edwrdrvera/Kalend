@@ -176,11 +176,9 @@ export default function Calendar() {
   useAlertDelivery(alerts.dispatch, openAlertItem);
   const itemAlerts = useAlerts(alerts.notify);
 
-  // Open the Space editor in edit mode for a given Space id (used by the panel
-  // overflow/footer and the rail context menu). No-op if the Space is gone.
-  const handleEditSpaceById = (spaceId: string) => {
+  const openSpaceEditor = (spaceId: string, confirmDelete: boolean) => {
     const category = categories.data.find((c) => c.id === spaceId);
-    if (category) setSpaceEditor({ mode: "edit", category });
+    if (category) setSpaceEditor({ mode: "edit", category, confirmDelete });
   };
 
   // ── Right-click menus + event multi-select (Phase 2) ────────────────
@@ -384,12 +382,20 @@ export default function Calendar() {
           }
           onCreateTask={(title) => tasks.createTask(title, undefined, membershipForSubject(subject))}
           onOpenSettings={() => {
-            if (subject.kind === "space") handleEditSpaceById(subject.spaceId);
-            else {
-              const group = groups.data.find((g) => g.id === subject.groupId);
-              if (group) openGroupEditor(group);
-            }
+            if (subject.kind !== "group") return;
+            const group = groups.data.find((g) => g.id === subject.groupId);
+            if (group) openGroupEditor(group);
           }}
+          onChangeColor={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, false)
+              : undefined
+          }
+          onDeleteSpace={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, true)
+              : undefined
+          }
           onRename={handleRenameSubject}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
