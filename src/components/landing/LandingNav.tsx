@@ -31,7 +31,7 @@ export default function LandingNav() {
           type="button"
           aria-label="Kalend home"
           onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
-          className="inline-flex shrink-0 items-center"
+          className="focus-ring -mx-2 inline-flex shrink-0 items-center rounded-lg px-2 py-2.5"
         >
           <KalendWordmark size="sm" tone="ink" animation="scatter" />
         </button>
@@ -43,7 +43,7 @@ export default function LandingNav() {
               key={id}
               type="button"
               onClick={() => scrollTo(id)}
-              className="text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
+              className="focus-ring rounded-md px-1 py-2.5 text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
             >
               {label}
             </button>
@@ -66,7 +66,7 @@ export default function LandingNav() {
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="grid size-9 place-items-center rounded-lg text-[var(--kal-muted)] transition-colors hover:bg-[var(--kal-border)]/50 hover:text-[var(--kal-ink)] min-[760px]:hidden"
+            className="focus-ring grid size-10 place-items-center rounded-lg text-[var(--kal-muted)] transition-colors hover:bg-[var(--kal-border)]/50 hover:text-[var(--kal-ink)] min-[760px]:hidden"
           >
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -81,7 +81,7 @@ export default function LandingNav() {
               key={id}
               type="button"
               onClick={() => { scrollTo(id); close(); }}
-              className="flex h-11 w-full items-center text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
+              className="focus-ring flex h-11 w-full items-center rounded-md text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
             >
               {label}
             </button>

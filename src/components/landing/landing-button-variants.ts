@@ -7,7 +7,7 @@ import { cva } from "class-variance-authority";
 // own button/theme tokens. Shared by `LandingButton` (renders a `Link`) and
 // the auth forms' submit buttons, so both stay visually consistent.
 export const landingButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-[10px] transition-colors duration-150 whitespace-nowrap",
+  "focus-ring inline-flex items-center justify-center rounded-[10px] whitespace-nowrap transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-[0.97]",
   {
     variants: {
       variant: {
