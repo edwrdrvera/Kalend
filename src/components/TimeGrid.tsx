@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
+import { format, isSameDay, startOfDay, addMinutes, setHours } from "date-fns";
 import { dimClass, type SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import {
@@ -16,6 +16,7 @@ import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
 import { useMoveDrag } from "@/hooks/useMoveDrag";
+import { useGridFocus, type GridSlot } from "@/hooks/useGridFocus";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
@@ -117,6 +118,19 @@ export default function TimeGrid({
 
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // ── Keyboard focus: one roving slot in the Tab order, arrows move it ──
+  // Starts on the 8 AM row, which is where the view opens scrolled to.
+  const todayIndex = days.findIndex((day) => isSameDay(day, now));
+  const slotFocus = useGridFocus({
+    dayCount: days.length,
+    hourCount: HOURS.length,
+    initial: { dayIndex: Math.max(todayIndex, 0), hour: 8 },
+    focusSlot: ({ dayIndex, hour }) =>
+      gridRef.current
+        ?.querySelector<HTMLElement>(`[data-slot-day="${dayIndex}"][data-slot-hour="${hour}"]`)
+        ?.focus(),
+  });
+
   // ── Drag gestures (extracted hooks) ────────────────────────────────
   const resize = useResizeDrag({ dayHeight, onEventResize });
   const move = useMoveDrag({
@@ -146,7 +160,13 @@ export default function TimeGrid({
   const { ghost, ghostRef } = move;
 
   return (
-    <div className="flex select-none">
+    <div
+      id="calendar-grid"
+      role="group"
+      aria-label="Calendar time grid"
+      tabIndex={-1}
+      className="flex select-none outline-hidden"
+    >
       {/* Hour labels — border-r connects to the column grid's left edge */}
       <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
@@ -204,33 +224,44 @@ export default function TimeGrid({
               className={`relative border-r border-border last:border-r-0 ${columnBg}`}
               style={{ height: dayHeight }}
             >
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  role="button"
-                  tabIndex={0}
-                  onPointerDown={(e) => create.onSlotPointerDown(e, dayIndex, day)}
-                  onClick={() => {
-                    if (create.consumeSlotClickSuppression()) return;
-                    onSlotSelect?.(day);
-                  }}
-                  onDoubleClick={(e) =>
-                    onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
-                  }
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+              {HOURS.map((hour) => {
+                const slot: GridSlot = { dayIndex, hour };
+                return (
+                  <div
+                    key={hour}
+                    role="button"
+                    tabIndex={slotFocus.tabIndexFor(slot)}
+                    aria-label={format(setHours(day, hour), "EEEE MMMM d, h a")}
+                    data-slot-day={dayIndex}
+                    data-slot-hour={hour}
+                    onFocus={() => slotFocus.setFocused(slot)}
+                    onPointerDown={(e) => create.onSlotPointerDown(e, dayIndex, day)}
+                    onClick={() => {
+                      if (create.consumeSlotClickSuppression()) return;
                       onSlotSelect?.(day);
+                    }}
+                    onDoubleClick={(e) =>
+                      onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
                     }
-                  }}
-                  style={{ height: hourHeight }}
-                  className="border-b border-border/40"
-                />
-              ))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
+                    }}
+                    onKeyDown={(e) => {
+                      if (slotFocus.onKeyDown(e, slot)) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect());
+                      } else if (e.key === " ") {
+                        e.preventDefault();
+                        onSlotSelect?.(day);
+                      }
+                    }}
+                    style={{ height: hourHeight }}
+                    className="focus-ring scroll-mt-28 border-b border-border/40"
+                  />
+                );
+              })}
 
               {isToday && (
                 <div
