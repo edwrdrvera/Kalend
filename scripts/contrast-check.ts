@@ -83,6 +83,8 @@ export function buildPairs(): Pair[] {
     { name: "muted-foreground on card", fg: "--muted-foreground", bg: "--card", min: 4.5 },
     { name: "Create title placeholder (muted-foreground on popover)", fg: "--muted-foreground", bg: "--popover", min: 4.5 },
     { name: "White now label on --now-label", fg: "#ffffff", bg: "--now-label", min: 4.5 },
+    { name: "Destructive text on card", fg: "--destructive", bg: "--card", min: 4.5 },
+    { name: "Destructive text on popover", fg: "--destructive", bg: "--popover", min: 4.5 },
     {
       name: `Switch off-track (muted-foreground at ${switchAlpha * 100}%) on card`,
       fg: { token: "--muted-foreground", alpha: switchAlpha },
