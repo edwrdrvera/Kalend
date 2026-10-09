@@ -1,4 +1,4 @@
-import LandingButton from "./LandingButton";
+import Link from "next/link";
 import WaitlistForm from "./WaitlistForm";
 import CalendarMockup from "./CalendarMockup";
 
@@ -36,9 +36,12 @@ export default function LandingHero() {
             <ProofPoint>Calendar sync coming soon</ProofPoint>
             <span>
               Have demo access?{" "}
-              <LandingButton href="/login" variant="secondary" className="ml-1 px-2.5 py-1 text-[11px]">
+              <Link
+                href="/login"
+                className="focus-ring -my-2 inline-block rounded-sm px-1 py-2 font-semibold text-[var(--kal-ink)] underline underline-offset-2 transition-colors hover:text-[var(--kal-accent-hover)]"
+              >
                 Log in
-              </LandingButton>
+              </Link>
             </span>
           </div>
         </div>
