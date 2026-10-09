@@ -86,7 +86,7 @@ export default function SpacePanelHeader({
               onClick={() => setDraft({ key, text: subject.name })}
               className={cn(
                 TITLE_CLS,
-                "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-ring"
               )}
             >
               {subject.name}

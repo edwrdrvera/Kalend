@@ -25,8 +25,8 @@ export default function PanelAlertsTab({ name, kindWord }: { name: string; kindW
           aria-label={`Notify me about ${name}`}
           onClick={() => setNotify(!notify)}
           className={cn(
-            "relative h-5 w-[34px] shrink-0 rounded-full transition-colors duration-200 ease-snappy focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-            notify ? "bg-primary" : "bg-muted-foreground/30"
+            "relative h-5 w-[34px] shrink-0 rounded-full transition-colors duration-200 ease-snappy focus-ring",
+            notify ? "bg-primary" : "bg-muted-foreground/80"
           )}
         >
           <span

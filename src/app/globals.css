@@ -13,8 +13,18 @@
     color: var(--muted-foreground);
 }
 
+/* The one keyboard focus ring: a 2px outline in --ring (3.56:1 on white, above
+ * the 3:1 non-text minimum). Shows for keyboard focus only, not mouse clicks. */
+@utility focus-ring {
+    &:focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+}
+
 @theme inline {
     --color-now: var(--now);
+    --color-now-label: var(--now-label);
     --color-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
     --color-warning: var(--warning);
     --font-heading: var(--font-sans);
@@ -62,6 +72,7 @@
 
 :root {
     --now: #ef4444;
+    --now-label: #dc2626;
     --warning: #d97706;
     /* SF Pro isn't licensed for embedding/distribution outside Apple's own
      * platforms, so it can't be self-hosted or pulled from next/font like
@@ -93,7 +104,7 @@
     --secondary: #f5f5f5;
     --secondary-foreground: #171717;
     --muted: #f5f5f5;
-    --muted-foreground: #737373;
+    --muted-foreground: #6b6b6b;
     --accent: #f5f5f5;
     --accent-foreground: #171717;
     --destructive: #dc2626;
@@ -180,7 +191,7 @@
     --evt-blue-soft: #eff5f7;
     --evt-blue-bd: #c5dae0;
     --evt-green-solid: #7a9b32;
-    --evt-green-deep: #5c7626;
+    --evt-green-deep: #597225;
     --evt-green-fg: var(--evt-green-deep);
     --evt-green-bg: #ebf0e0;
     --evt-green-soft: #f4f7ef;
@@ -192,7 +203,7 @@
     --evt-purple-soft: #f7f1f5;
     --evt-purple-bd: #e1c9db;
     --evt-orange-solid: #e8781c;
-    --evt-orange-deep: #b85712;
+    --evt-orange-deep: #ac5111;
     --evt-orange-fg: var(--evt-orange-deep);
     --evt-orange-bg: #fcebdd;
     --evt-orange-soft: #fdf4ed;

@@ -116,13 +116,13 @@ describe("TaskChip", () => {
 
   it("dims a task outside the selected Space but keeps it clickable", async () => {
     const full = await renderTask(defaultTask);
-    expect(full.chip.className).not.toContain("opacity-50");
+    expect(full.chip.className).not.toContain("opacity-80");
 
     await act(() => root?.unmount());
     container?.remove();
 
     const dimmed = await renderTask(defaultTask, true);
-    expect(dimmed.chip.className).toContain("opacity-50");
+    expect(dimmed.chip.className).toContain("opacity-80");
     await act(() => dimmed.title.click());
     await act(() => dimmed.checkbox.click());
     expect(dimmed.calls.opened).toEqual([defaultTask.id]);

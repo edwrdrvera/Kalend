@@ -84,7 +84,7 @@ export default function TaskChip({
         }}
         aria-label={overdue ? `Open task ${task.title}, Overdue` : `Open task ${task.title}`}
         className={cn(
-          "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+          "min-w-0 flex-1 truncate rounded-sm text-left focus-ring",
           task.completed && "line-through"
         )}
       >

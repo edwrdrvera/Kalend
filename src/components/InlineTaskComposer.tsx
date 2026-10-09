@@ -73,7 +73,7 @@ export default function InlineTaskComposer({
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        className="h-7 w-full text-[13px] md:text-[13px] focus-visible:ring-1 focus-visible:ring-ring/60"
+        className="h-7 w-full text-[13px] md:text-[13px] focus-ring"
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -89,7 +89,7 @@ export default function InlineTaskComposer({
           <button
             type="button"
             onClick={() => setDraft({ ...draft, showDueDate: true })}
-            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-ring"
           >
             + due date
           </button>

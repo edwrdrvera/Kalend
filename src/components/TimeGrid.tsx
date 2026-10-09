@@ -161,7 +161,7 @@ export default function TimeGrid({
         {/* Current-time label, aligned with the red "now" line in the columns. */}
         {showNow && (
           <div
-            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-now px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-now-label px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
             style={{ top: nowOffsetPx }}
           >
             {format(now, "h:mm")}
@@ -328,7 +328,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""} ${getEventColorClasses(displayColor)}`}
+                    className={`focus-ring absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""} ${getEventColorClasses(displayColor)}`}
                   >
                     {/* Floating inset accent bar, hugging the left edge. */}
                     <span
@@ -343,11 +343,11 @@ export default function TimeGrid({
                     <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
                       {event.title}
                     </span>
-                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium opacity-90">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium">
                       {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (
-                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-80">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium">
                         {event.location}
                       </span>
                     )}

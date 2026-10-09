@@ -212,7 +212,7 @@ export default function EventCreatePopover({
               placeholder="New event"
               required
               autoFocus
-              className="h-8 w-full bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/60"
+              className="h-8 w-full bg-transparent text-[15px] font-semibold placeholder:text-muted-foreground focus-ring"
             />
           </div>
 
@@ -241,7 +241,7 @@ export default function EventCreatePopover({
                   maxLength={MAX_LOCATION_LENGTH}
                   placeholder="Location"
                   autoFocus={locationOpen && !draft.location}
-                  className="h-7 w-36 rounded-full border border-input bg-transparent px-1.5 text-xs outline-none dark:bg-input/30 placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/60"
+                  className="h-7 w-36 rounded-full border border-input bg-transparent px-1.5 text-xs dark:bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-ring"
                 />
               </div>
             ) : (

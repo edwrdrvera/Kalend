@@ -59,7 +59,7 @@ export default function AgendaScheduleGroup({
                 onClick={(e) =>
                   onEventClick(event, e.currentTarget.getBoundingClientRect())
                 }
-                className="-mx-1.5 flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-1.5 py-[7px] text-left hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                className="-mx-1.5 flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-1.5 py-[7px] text-left hover:bg-hover focus-ring"
                 aria-label={`Open event: ${event.title}`}
               >
                 <span className="w-14 shrink-0 whitespace-nowrap text-[12.5px] tabular-nums text-muted-foreground">

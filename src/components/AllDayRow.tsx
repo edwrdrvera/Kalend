@@ -98,7 +98,7 @@ export default function AllDayRow({
                   gridColumn: `${startCol + 1} / ${endCol + 2}`,
                   gridRow: lane + 1,
                 }}
-                className={`mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))} ${dimClass(event, spaceFocus)}`}
+                className={`focus-ring mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-[11px] font-semibold ${getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories))} ${dimClass(event, spaceFocus)}`}
               >
                 {event.title}
               </button>

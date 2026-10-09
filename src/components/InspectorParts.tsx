@@ -91,7 +91,7 @@ export function InspectorHeader({
                     <button
                       type="button"
                       onClick={crumb.onOpen}
-                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-ring"
                     >
                       {crumb.name}
                     </button>

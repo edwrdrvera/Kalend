@@ -61,7 +61,7 @@ export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) 
               onClose();
             }}
             className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors focus-visible:outline-none",
+              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors focus-ring focus-visible:outline-offset-[-2px]",
               item.destructive
                 ? "text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10"
                 : "text-foreground hover:bg-hover focus-visible:bg-muted"
