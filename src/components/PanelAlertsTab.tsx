@@ -40,7 +40,7 @@ export default function PanelAlertsTab({ name, kindWord }: { name: string; kindW
       </div>
       <div className={cn("transition-opacity duration-200", !notify && "pointer-events-none opacity-45")}>
         <section aria-label="Coming up">
-          <h3 className="mb-1 mt-4 text-[12px] font-semibold text-muted-foreground">Coming up</h3>
+          <h3 className="label-caps mb-1 mt-4">Coming up</h3>
           <p className="text-[13px] text-muted-foreground">No alerts scheduled.</p>
         </section>
       </div>
