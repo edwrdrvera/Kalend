@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-now: var(--now);
+    --color-warning: var(--warning);
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -49,6 +51,8 @@
 }
 
 :root {
+    --now: #ef4444;
+    --warning: #d97706;
     /* SF Pro isn't licensed for embedding/distribution outside Apple's own
      * platforms, so it can't be self-hosted or pulled from next/font like
      * Geist was. -apple-system/BlinkMacSystemFont instead point at the
@@ -338,6 +342,8 @@
 /* The built-in ease-out starts too gently for UI. `ease-snappy` responds on
  * the first frame; `ease-drawer` is the iOS sheet curve for the overlay panel. */
 @theme {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -398,4 +404,8 @@
     opacity: 1;
     animation: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-starting-style], [data-ending-style] { scale: none !important; }
 }
