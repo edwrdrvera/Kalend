@@ -48,7 +48,7 @@ export function DetailRow({
   );
 }
 
-export const FIELD_LABEL_CLS = "text-[12px] font-semibold text-muted-foreground";
+export const FIELD_LABEL_CLS = "text-xs leading-normal font-semibold text-muted-foreground";
 
 /** Where an inspector sits: its Space and Group (links to their overviews) and
  *  the overview Back returns to. */
@@ -79,14 +79,14 @@ export function InspectorHeader({
               <ArrowLeft className="size-4" />
             </IconButton>
           )}
-          <h2 className="text-[13px] font-semibold text-foreground">{title}</h2>
+          <h2 className="text-body font-semibold text-foreground">{title}</h2>
         </div>
         <IconButton aria-label={`Close ${title.toLowerCase()}`} onClick={onClose}>
           <X className="size-4" />
         </IconButton>
       </div>
       <nav aria-label="Breadcrumb">
-        <ol className="flex min-w-0 items-center gap-1 text-[12px] text-muted-foreground">
+        <ol className="flex min-w-0 items-center gap-1 text-xs leading-normal text-muted-foreground">
           {[space, group].map(
             (crumb, index) =>
               crumb && (
@@ -135,14 +135,14 @@ export function InspectorFooter({
   return (
     <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
       {saveError && (
-        <p role="alert" className="text-[12px] text-destructive">
+        <p role="alert" className="text-xs leading-normal text-destructive">
           {saveError}
         </p>
       )}
       <div className="flex items-center justify-between gap-2">
         {confirmingDelete ? (
           <div role="group" aria-label="Confirm delete" className="flex items-center gap-1.5">
-            <span className="text-[12px] text-muted-foreground">Delete this {noun}?</span>
+            <span className="text-xs leading-normal text-muted-foreground">Delete this {noun}?</span>
             <Button type="button" variant="destructive" size="sm" disabled={navigationPending} onClick={onDelete}>
               Delete
             </Button>
@@ -204,7 +204,7 @@ export function UnsavedChangesPrompt({
       onKeyDown={answerEscapeWithStay}
       className="m-4 mb-0 flex flex-col gap-2 rounded-lg border border-border bg-muted/60 p-3"
     >
-      <p id="unsaved-changes-text" className="text-[12.5px] text-foreground">
+      <p id="unsaved-changes-text" className="text-body text-foreground">
         You have unsaved changes to this {noun}.
       </p>
       <div className="flex items-center gap-1.5">

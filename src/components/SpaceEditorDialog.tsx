@@ -139,7 +139,7 @@ export default function SpaceEditorDialog({
             <DialogTitle>Delete {target.category.name}?</DialogTitle>
           </DialogHeader>
 
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {groupCount > 0 && `Its ${groupCount} ${groupCount === 1 ? "Group is" : "Groups are"} deleted. `}
             Its events and tasks stay, but become unassigned. This can&apos;t be undone.
           </p>

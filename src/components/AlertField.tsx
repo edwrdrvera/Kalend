@@ -55,7 +55,7 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         </SelectContent>
       </Select>
       {disabledReason && (
-        <p id={noteId} className="text-[12px] text-muted-foreground">
+        <p id={noteId} className="text-xs leading-normal text-muted-foreground">
           {disabledReason}
         </p>
       )}

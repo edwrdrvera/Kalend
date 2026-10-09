@@ -489,7 +489,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="right"
               align="end"
-              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-body font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
               triggerChildren="E"
             />
           }
@@ -498,7 +498,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="bottom"
               align="end"
-              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-hover"
+              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-body font-semibold text-foreground transition-colors hover:bg-hover"
               triggerChildren="E"
             />
           }
@@ -691,7 +691,7 @@ export default function Calendar() {
                   : "Delete this event?"}
               </DialogTitle>
             </DialogHeader>
-            <p className="text-[13px] text-muted-foreground">This can&apos;t be undone.</p>
+            <p className="text-body text-muted-foreground">This can&apos;t be undone.</p>
             <div className="flex items-center justify-end gap-2 pt-1">
               <Button
                 variant="outline"

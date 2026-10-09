@@ -83,7 +83,7 @@ export default function AgendaColumn({
       ) : isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           <Calendar className="size-6 text-muted-foreground/50" />
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Nothing scheduled for {format(selectedDate, "MMMM d")}
           </p>
         </div>

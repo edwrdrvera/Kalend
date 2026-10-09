@@ -160,7 +160,7 @@ function CategoryRow({
           onClick={onSelect}
           aria-current={selected ? "true" : undefined}
           className={cn(
-            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-[13px] font-medium text-foreground focus-ring",
+            "min-w-0 flex-1 self-stretch rounded-md px-1.5 text-left text-body font-medium text-foreground focus-ring",
             !visible && "text-muted-foreground opacity-65",
             selected && "font-semibold"
           )}
@@ -431,12 +431,12 @@ export default function CategoryManager({
           <p className="text-xs text-muted-foreground">Loading Spaces…</p>
         ) : categories.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-3 text-center">
-            <p className="text-[13px] text-muted-foreground">No spaces yet</p>
+            <p className="text-body text-muted-foreground">No spaces yet</p>
             <button
               type="button"
               onClick={() => setCreating(true)}
               aria-label="Create your first space"
-              className="text-[13px] font-medium text-primary-text hover:text-primary-text/80 focus-ring"
+              className="text-body font-medium text-primary-text hover:text-primary-text/80 focus-ring"
             >
               + Create your first space
             </button>
@@ -448,7 +448,7 @@ export default function CategoryManager({
               onClick={() => onSelectSpace(null)}
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
-                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground transition-colors hover:bg-hover focus-ring",
+                "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-body font-medium text-foreground transition-colors hover:bg-hover focus-ring",
                 selectedSpaceId === null && "bg-hover font-semibold"
               )}
             >

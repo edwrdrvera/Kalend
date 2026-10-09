@@ -158,7 +158,7 @@ export default function TaskInspector({
             checked={task.completed}
             onToggle={() => onToggleComplete(task)}
           />
-          <Label htmlFor="task-inspector-done" className="text-[13px] font-normal text-foreground">
+          <Label htmlFor="task-inspector-done" className="text-body font-normal text-foreground">
             Done
           </Label>
         </div>

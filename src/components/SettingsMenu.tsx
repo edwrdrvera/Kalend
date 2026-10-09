@@ -79,7 +79,7 @@ export default function SettingsMenu({
       <PopoverContent align={align} side={side} className="w-52">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
-          <PopoverDescription className="text-[11px]">Manage your Kalend preferences and session.</PopoverDescription>
+          <PopoverDescription className="text-meta">Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
         <Button
           type="button"
@@ -87,7 +87,7 @@ export default function SettingsMenu({
           size="lg"
           onClick={toggleTheme}
           aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-          className="mb-2 w-full justify-start gap-2 px-3 text-[13px]"
+          className="mb-2 w-full justify-start gap-2 px-3 text-body"
         >
           {mounted && (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />)}
           <span>Dark mode</span>
@@ -112,7 +112,7 @@ export default function SettingsMenu({
           size="lg"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="w-full gap-2 px-3 text-[13px] text-muted-foreground hover:text-foreground"
+          className="w-full gap-2 px-3 text-body text-muted-foreground hover:text-foreground"
         >
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}

@@ -21,7 +21,7 @@ export default function PanelTabs<T extends string>({ tabs, value, onChange }: P
     >
       <TabsList variant="line" aria-label="Panel sections">
         {tabs.map(({ id, label }) => (
-          <TabsTrigger key={id} value={id} className="text-[13px] font-semibold">
+          <TabsTrigger key={id} value={id} className="text-body font-semibold">
             {label}
           </TabsTrigger>
         ))}

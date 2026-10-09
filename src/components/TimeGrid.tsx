@@ -176,7 +176,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: hourHeight }}
-            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-[11px]"
+            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-meta"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
@@ -283,7 +283,7 @@ export default function TimeGrid({
                 const { lo, hi } = computeCreateRange(create.preview.anchorMinutes, create.preview.liveMinutes);
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary-text"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-meta font-medium text-primary-text"
                     style={{
                       top: `${(lo / MINUTES_PER_DAY) * 100}%`,
                       height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
@@ -306,7 +306,7 @@ export default function TimeGrid({
                   (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary-text"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-meta font-medium text-primary-text"
                     style={{
                       top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
                       height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
@@ -377,11 +377,11 @@ export default function TimeGrid({
                     <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
                       {event.title}
                     </span>
-                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-meta font-medium">
                       {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (
-                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-meta font-medium">
                         {event.location}
                       </span>
                     )}
@@ -417,7 +417,7 @@ export default function TimeGrid({
             // pixel metrics captured at pickup, so they stay correct even with
             // the border-based column separators, which percentage positioning
             // would drift against.
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-md leading-tight text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-md leading-tight text-left text-meta font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
             style={{
               left: ghost.originColumnLeft,
               width: ghost.columnWidth,

@@ -33,7 +33,7 @@ function MiniCalendarHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-foreground">
+      <h2 className="text-xs leading-normal font-semibold tracking-[-0.02em] text-foreground">
         {format(browseDate, "MMMM yyyy")}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
@@ -53,7 +53,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-7 text-center text-[11px] font-medium text-muted-foreground">
+        <div key={i} className="w-7 text-center text-meta font-medium text-muted-foreground">
           {day}
         </div>
       ))}
@@ -62,7 +62,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "focus-ring flex justify-center items-center w-7 h-7 text-[11.5px] font-medium cursor-pointer";
+  const baseClasses = "focus-ring flex justify-center items-center w-7 h-7 text-xs leading-normal font-medium cursor-pointer";
 
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);

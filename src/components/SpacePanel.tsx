@@ -194,8 +194,8 @@ export default function SpacePanel({
                 className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-ring"
               >
                 <span>
-                  <span className="block text-[12px] font-semibold text-muted-foreground">Files and links</span>
-                  <span className="mt-1 block text-[13px] text-foreground">Open Resources</span>
+                  <span className="block text-xs leading-normal font-semibold text-muted-foreground">Files and links</span>
+                  <span className="mt-1 block text-body text-foreground">Open Resources</span>
                 </span>
                 <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
               </button>

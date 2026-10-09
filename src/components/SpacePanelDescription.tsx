@@ -59,7 +59,7 @@ export default function SpacePanelDescription({
   if (!editing) {
     return description ? (
       <div className="flex flex-col items-start gap-1.5 px-4 py-3">
-        <p className="whitespace-pre-wrap break-words text-[13px] leading-relaxed text-foreground/75">{description}</p>
+        <p className="whitespace-pre-wrap break-words text-body leading-relaxed text-foreground/75">{description}</p>
         <button type="button" onClick={startEditing} className={ADD_DESCRIPTION_CLS}>
           <Pencil className="size-3" />
           Edit description
@@ -97,7 +97,7 @@ export default function SpacePanelDescription({
           autoFocus
         />
         {saveError && (
-          <p role="alert" className="text-[12px] text-destructive">
+          <p role="alert" className="text-xs leading-normal text-destructive">
             {saveError}
           </p>
         )}

@@ -27,7 +27,7 @@ interface SpacePanelHeaderProps {
   children?: ReactNode;
 }
 
-const TITLE_CLS = "min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground";
+const TITLE_CLS = "min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground";
 
 export default function SpacePanelHeader({
   subject,
@@ -67,7 +67,7 @@ export default function SpacePanelHeader({
   return (
     <header className="border-b border-border px-4 py-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11.5px] text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
+        <p className="text-xs leading-normal text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
         <IconButton aria-label="Close panel" onClick={onClose}>
           <X className="size-4" />
         </IconButton>
@@ -147,7 +147,7 @@ export default function SpacePanelHeader({
         )}
       </div>
       {failed && (
-        <p role="alert" className="mt-1 text-[11.5px] text-destructive">
+        <p role="alert" className="mt-1 text-xs leading-normal text-destructive">
           Couldn&apos;t rename. Try again.
         </p>
       )}

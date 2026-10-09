@@ -27,7 +27,7 @@ export default function PanelGroupChips({
 }) {
   const activeGroupId = subject.kind === "group" ? subject.groupId : null;
   const chipCls = cn(
-    "h-[26px] min-w-0 max-w-full rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-muted-foreground hover:bg-hover hover:text-foreground",
+    "h-[26px] min-w-0 max-w-full rounded-full border border-border bg-card px-3 text-xs leading-normal font-semibold text-muted-foreground hover:bg-hover hover:text-foreground",
     GROUP_CHIP_PRESSED_CLASSES[subject.color]
   );
 

@@ -106,7 +106,7 @@ function GroupEditorForm({
           <DialogHeader>
             <DialogTitle>Delete {target.group.name}?</DialogTitle>
           </DialogHeader>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {deleteOutcome(target.spaceName, target.eventCount, target.taskCount)}
           </p>
           {error && <p className="text-xs text-destructive">{error}</p>}
