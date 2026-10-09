@@ -47,7 +47,7 @@ export default function MembershipSelect({
       <SelectTrigger
         size="sm"
         aria-label={`Space: ${space ? (group ? `${space.name} / ${group.name}` : space.name) : "No Space"}`}
-        className={cn("min-w-0 text-[13px]", className)}
+        className={cn("min-w-0 text-body", className)}
       >
         <SelectValue>
           {space ? (

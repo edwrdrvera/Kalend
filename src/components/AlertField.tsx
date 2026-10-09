@@ -42,7 +42,7 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
           id={id}
           aria-describedby={disabledReason ? noteId : undefined}
           size="sm"
-          className="w-full text-[13px]"
+          className="w-full text-body"
         >
           <SelectValue />
         </SelectTrigger>
