@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { format, isSameDay, startOfDay, addMinutes, setHours } from "date-fns";
+import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
 import { dimClass, type SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import {
@@ -30,6 +30,9 @@ function formatHourLabel(hour: number): string {
   if (hour === 0) return "";
   return format(new Date(2000, 0, 1, hour), "h a");
 }
+
+/** Spoken hour for each slot ("2 PM"), built once so a render doesn't format 168 dates. */
+const SLOT_HOUR_LABELS = HOURS.map((hour) => format(new Date(2000, 0, 1, hour), "h a"));
 
 /** Ticks once a minute so the current-time line stays roughly accurate
  *  without re-rendering on every second. */
@@ -207,6 +210,7 @@ export default function TimeGrid({
         )}
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
+          const dayLabel = format(day, "EEEE MMMM d");
           const isToday = isSameDay(day, now);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
           const columnBg = isDayView
@@ -231,7 +235,7 @@ export default function TimeGrid({
                     key={hour}
                     role="button"
                     tabIndex={slotFocus.tabIndexFor(slot)}
-                    aria-label={format(setHours(day, hour), "EEEE MMMM d, h a")}
+                    aria-label={`${dayLabel}, ${SLOT_HOUR_LABELS[hour]}`}
                     data-slot-day={dayIndex}
                     data-slot-hour={hour}
                     onFocus={() => slotFocus.setFocused(slot)}
