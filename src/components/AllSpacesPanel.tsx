@@ -71,7 +71,7 @@ export default function AllSpacesPanel({
     <PanelShell label="All tasks" modal={modal} onClose={onClose}>
       <header className="border-b border-border px-4 pt-4">
         <div className="flex items-center gap-2">
-          <h2 className="min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground">
+          <h2 className="min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground">
             All tasks
           </h2>
           <IconButton aria-label="Close panel" onClick={onClose}>

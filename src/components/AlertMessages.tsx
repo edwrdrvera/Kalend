@@ -96,11 +96,11 @@ export default function AlertMessages({ tray, onOpen, onDismiss, onClearMissed }
           className="pointer-events-auto w-full rounded-lg bg-muted p-3 text-sm text-foreground shadow-lg ring-1 ring-border"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-[13px] font-semibold">Missed while you were away</h2>
+            <h2 className="text-body font-semibold">Missed while you were away</h2>
             <button
               type="button"
               onClick={onClearMissed}
-              className="text-[13px] font-medium text-primary-text transition-colors hover:text-primary-text/80 focus-visible:outline-2 focus-visible:outline-ring"
+              className="text-body font-medium text-primary-text transition-colors hover:text-primary-text/80 focus-visible:outline-2 focus-visible:outline-ring"
             >
               Dismiss all
             </button>

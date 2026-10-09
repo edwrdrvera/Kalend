@@ -47,10 +47,10 @@ export function DescriptionTextarea({
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className="min-h-14 w-full resize-y px-3 py-2 text-[13px] leading-relaxed focus-ring md:text-[13px]"
+        className="min-h-14 w-full resize-y px-3 py-2 text-body leading-relaxed focus-ring md:text-body"
       />
       {problem && (
-        <p id={`${id}-problem`} className="text-[12px] text-destructive">
+        <p id={`${id}-problem`} className="text-xs leading-normal text-destructive">
           {problem}
         </p>
       )}
@@ -59,7 +59,7 @@ export function DescriptionTextarea({
 }
 
 export const ADD_DESCRIPTION_CLS =
-  "flex w-fit items-center gap-1 rounded-md text-[11.5px] text-muted-foreground transition-colors hover:text-foreground focus-ring";
+  "flex w-fit items-center gap-1 rounded-md text-xs leading-normal text-muted-foreground transition-colors hover:text-foreground focus-ring";
 
 /** A description box that is always shown, empty or not. With `formatted`,
  *  saved text renders as formatted notes until clicked. */
@@ -98,7 +98,7 @@ export default function DescriptionField({
               startEditing();
             }
           }}
-          className="min-h-14 cursor-text rounded-lg border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground transition-colors hover:border-foreground/20 focus-visible:border-ring focus-ring"
+          className="min-h-14 cursor-text rounded-lg border border-input px-3 py-2 text-body leading-relaxed text-foreground transition-colors hover:border-foreground/20 focus-visible:border-ring focus-ring"
         >
           <NotesView value={value} />
         </div>

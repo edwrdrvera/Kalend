@@ -72,7 +72,7 @@ export default function InlineTaskComposer({
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        className="h-7 w-full text-[13px] md:text-[13px] focus-ring"
+        className="h-7 w-full text-body md:text-body focus-ring"
       />
 
       <div className="flex items-center justify-between gap-2">

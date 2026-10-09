@@ -58,7 +58,7 @@ function dueState(task: CalendarTask, now: Date): DueState {
 /** The dashboard names the later buckets "Later" and "No date". */
 const BUCKET_LABELS: Partial<Record<string, string>> = { month: "Later", unscheduled: "No date" };
 
-const TEXT_BTN_CLS = "h-[26px] px-2.5 text-[12px] font-semibold";
+const TEXT_BTN_CLS = "h-[26px] px-2.5 text-xs leading-normal font-semibold";
 
 export default function PanelTasksSection({
   tasks,
@@ -115,20 +115,20 @@ export default function PanelTasksSection({
           >
             <span
               className={cn(
-                "block truncate text-[13px] transition-colors duration-150",
+                "block truncate text-body transition-colors duration-150",
                 task.completed ? "text-muted-foreground line-through" : "text-foreground"
               )}
             >
               {task.title}
             </span>
             {pathOf?.(task) ? (
-              <span className="block truncate text-[11.5px] text-muted-foreground">{pathOf(task)}</span>
+              <span className="block truncate text-xs leading-normal text-muted-foreground">{pathOf(task)}</span>
             ) : null}
           </button>
           {alertAt > 0 && <Bell role="img" aria-label="Alert on"className="mt-0.5 size-3 shrink-0 text-muted-foreground" />}
           <span
             className={cn(
-              "shrink-0 whitespace-nowrap text-[11.5px] tabular-nums",
+              "shrink-0 whitespace-nowrap text-xs leading-normal tabular-nums",
               warning && !task.completed ? "text-warning" : "text-muted-foreground"
             )}
           >
@@ -209,13 +209,13 @@ export default function PanelTasksSection({
         </Button>
       </div>
       {children}
-      {tasks.length === 0 && <p className="mt-2 text-[13px] text-muted-foreground">All caught up.</p>}
+      {tasks.length === 0 && <p className="mt-2 text-body text-muted-foreground">All caught up.</p>}
 
       <div className="mt-1 flex flex-col">
         {groups.map((group) => (
           <div key={group.key}>
             {group.label && (
-              <h4 className={cn("mb-0.5 mt-3 text-[12px] font-semibold", group.danger ? "text-destructive" : "text-foreground")}>
+              <h4 className={cn("mb-0.5 mt-3 text-xs leading-normal font-semibold", group.danger ? "text-destructive" : "text-foreground")}>
                 {group.label}
                 <span className="ml-1.5 font-normal text-muted-foreground">{group.tasks.length}</span>
               </h4>

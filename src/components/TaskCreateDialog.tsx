@@ -94,7 +94,7 @@ export default function TaskCreateDialog({
             className={cn(FIELD_SIZE_CLS, "w-full")}
           />
 
-          <div className="flex items-center justify-between gap-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center justify-between gap-2 text-xs leading-normal text-muted-foreground">
             <span>Due {day ? format(day, "EEE, MMM d") : ""}</span>
             <MembershipSelect
               categories={categories}

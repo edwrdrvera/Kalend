@@ -10,12 +10,12 @@ import { cn } from "@/lib/utils";
  *  adjust width or font weight, but borders, radius, fill, and focus stay
  *  consistent across Space, Task, and Event editors. */
 export const APP_INPUT_CLS =
-  "h-7 rounded-lg border border-input bg-transparent px-2 text-[13px] text-foreground transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-ring disabled:opacity-60 dark:bg-input/30";
+  "h-7 rounded-lg border border-input bg-transparent px-2 text-body text-foreground transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-ring disabled:opacity-60 dark:bg-input/30";
 
 export const SMALL_INPUT_CLS = APP_INPUT_CLS;
 
 /** Compact field size: matches the 28px / 13px controls around it. */
-export const FIELD_SIZE_CLS = "h-7 text-[13px] md:text-[13px]";
+export const FIELD_SIZE_CLS = "h-7 text-body md:text-body";
 
 /** Thin focus ring for fields that sit inline in a panel or list. Dialogs keep the library ring. */
 export const FIELD_INLINE_RING_CLS = "focus-ring";

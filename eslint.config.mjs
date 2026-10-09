@@ -3,6 +3,7 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import eslintComments from "@eslint-community/eslint-plugin-eslint-comments";
 import accessControl from "./eslint-rules/scoped-query.mjs";
+import typeScale from "./eslint-rules/no-arbitrary-text-size.mjs";
 
 // Files that only ever run on the server. Everything else under src/ can end
 // up in a browser bundle, so a new folder is covered without editing this file.
@@ -64,6 +65,14 @@ const eslintConfig = defineConfig([
     ignores: ["src/db/seed*.ts", "src/db/schema/**"],
     plugins: { "access-control": accessControl },
     rules: { "access-control/scoped-query": "error" },
+  },
+  // Text sizes come from the type scale. The landing page keeps its own sizes,
+  // and the hour gutter and mini calendar keep their 9px and 10px labels.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/components/landing/**", "src/components/TimeGrid.tsx", "src/components/MiniCalendar.tsx"],
+    plugins: { "type-scale": typeScale },
+    rules: { "type-scale/no-arbitrary-text-size": "error" },
   },
   // Browser code reaches data only through the hooks in src/hooks, which
   // call /api. The route handlers own the database and auth, so browser code

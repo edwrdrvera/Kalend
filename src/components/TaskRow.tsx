@@ -60,14 +60,14 @@ export default function TaskRow({
           onClick={() => onOpenTask(task)}
           aria-label={overdue ? `Open task ${task.title}, Overdue` : `Open task ${task.title}`}
           className={cn(
-            "block w-full rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-ring",
+            "block w-full rounded-sm text-left text-body leading-[18px] hover:underline focus-ring",
             task.completed ? "line-through opacity-50" : "text-foreground"
           )}
         >
           {task.title}
         </button>
         {meta !== undefined && (
-          <span className="block truncate text-[11.5px] leading-[18px] text-muted-foreground">
+          <span className="block truncate text-xs leading-[18px] text-muted-foreground">
             <SpaceDot color={displayColor} overdue={overdue} className="mr-1.5 inline-block align-middle" />
             {meta}
           </span>

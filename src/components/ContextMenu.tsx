@@ -16,7 +16,7 @@ export interface ContextMenuItem {
   icon?: ReactNode;
 }
 
-const ITEM_CLASS = "gap-2 px-2 py-1.5 text-[13px] focus-ring focus-visible:outline-offset-[-2px]";
+const ITEM_CLASS = "gap-2 px-2 py-1.5 text-body focus-ring focus-visible:outline-offset-[-2px]";
 
 /** Open-state for the right-click menu. A grid target calls `show` with its
  *  items. The trigger only opens when a target claimed the event, so a click

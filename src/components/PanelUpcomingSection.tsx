@@ -50,11 +50,11 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
           <Plus aria-hidden className="size-3.5" />
         </Button>
       </div>
-      {total === 0 && <p className="mt-2 text-[13px] text-muted-foreground">Nothing scheduled.</p>}
+      {total === 0 && <p className="mt-2 text-body text-muted-foreground">Nothing scheduled.</p>}
       <div className="mt-2 flex flex-col gap-2.5">
         {visible.map(({ day, events }) => (
           <div key={day.toISOString()}>
-            <p className="text-[11.5px] font-medium text-muted-foreground">{dayLabel(day, now)}</p>
+            <p className="text-xs leading-normal font-medium text-muted-foreground">{dayLabel(day, now)}</p>
             <ul className="mt-0.5 flex flex-col">
               {events.map((event) => (
                 <li key={event.id}>
@@ -62,7 +62,7 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
                     type="button"
                     onClick={() => onOpenEvent(event)}
                     aria-label={`Open event ${event.title}`}
-                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-[13px] hover:bg-hover focus-ring"
+                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-body hover:bg-hover focus-ring"
                   >
                     <span className="w-[60px] shrink-0 tabular-nums text-muted-foreground">
                       {format(new Date(event.start_at), "h:mm a")}

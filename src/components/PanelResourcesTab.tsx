@@ -29,7 +29,7 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
   { name: "Notes.docx", ext: "DOC", size: "32 KB" },
 ];
 
-const HEADER_BTN = "text-[12px] font-semibold";
+const HEADER_BTN = "text-xs leading-normal font-semibold";
 const REMOVE_BTN = "text-muted-foreground hover:text-foreground";
 
 export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "Group" }) {
@@ -101,11 +101,11 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
               }}
               className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
             />
-            {error && <p className="mt-1 text-[11.5px] text-destructive">{error}</p>}
+            {error && <p className="mt-1 text-xs leading-normal text-destructive">{error}</p>}
           </form>
         )}
         {links.length === 0 && !linkOpen && (
-          <p className="mt-2.5 text-[13px] leading-snug text-muted-foreground">
+          <p className="mt-2.5 text-body leading-snug text-muted-foreground">
             Course pages, docs, shared folders. Add a link to keep it with this {kindWord}.
           </p>
         )}
@@ -120,11 +120,11 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
               >
                 <span
                   aria-hidden="true"
-                  className="grid size-[34px] shrink-0 place-items-center rounded-lg bg-muted text-[14px] font-bold text-muted-foreground"
+                  className="grid size-[34px] shrink-0 place-items-center rounded-lg bg-muted text-sm leading-normal font-bold text-muted-foreground"
                 >
                   {link.host.charAt(0).toUpperCase()}
                 </span>
-                <span className="min-w-0 truncate text-[13px]">{link.host}</span>
+                <span className="min-w-0 truncate text-body">{link.host}</span>
               </a>
               <Button
                 type="button"
@@ -152,7 +152,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
           </Button>
         </div>
         {files.length === 0 && (
-          <div className="mt-3 rounded-xl border border-dashed border-border px-4 py-7 text-center text-[13px] text-muted-foreground">
+          <div className="mt-3 rounded-xl border border-dashed border-border px-4 py-7 text-center text-body text-muted-foreground">
             <div className="font-semibold text-foreground">No files yet</div>
             <p className="mt-1">Use Add file. Uploads are not saved yet.</p>
           </div>
@@ -163,13 +163,13 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
               <div className="flex min-w-0 flex-1 items-center gap-2.5 py-1">
                 <span
                   aria-hidden="true"
-                  className="grid size-[34px] shrink-0 place-items-center rounded-lg bg-muted text-[10px] font-bold tracking-wide text-muted-foreground"
+                  className="grid size-[34px] shrink-0 place-items-center rounded-lg bg-muted text-meta font-bold tracking-wide text-muted-foreground"
                 >
                   {file.ext}
                 </span>
                 <span className="min-w-0">
-                  <span className="block truncate text-[13px]">{file.name}</span>
-                  <span className="block text-[11.5px] text-muted-foreground">{file.size}</span>
+                  <span className="block truncate text-body">{file.name}</span>
+                  <span className="block text-xs leading-normal text-muted-foreground">{file.size}</span>
                 </span>
               </div>
               <Button

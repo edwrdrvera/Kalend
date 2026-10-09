@@ -42,15 +42,15 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
           id={id}
           aria-describedby={disabledReason ? noteId : undefined}
           size="sm"
-          className="w-full text-[13px]"
+          className="w-full"
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false}>
+        <SelectContent>
           <SelectGroup>
             <SelectLabel>Alert</SelectLabel>
             {ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value} className="text-[13px]">
+              <SelectItem key={item.value} value={item.value}>
                 {item.label}
               </SelectItem>
             ))}
@@ -58,7 +58,7 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         </SelectContent>
       </Select>
       {disabledReason && (
-        <p id={noteId} className="text-[12px] text-muted-foreground">
+        <p id={noteId} className="text-xs leading-normal text-muted-foreground">
           {disabledReason}
         </p>
       )}

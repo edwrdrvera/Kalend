@@ -62,7 +62,7 @@ export default function AgendaScheduleGroup({
                 className="-mx-1.5 flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-1.5 py-[7px] text-left hover:bg-hover focus-ring"
                 aria-label={`Open event: ${event.title}`}
               >
-                <span className="w-14 shrink-0 whitespace-nowrap text-[12.5px] tabular-nums text-muted-foreground">
+                <span className="w-14 shrink-0 whitespace-nowrap text-body tabular-nums text-muted-foreground">
                   {allDay
                     ? "All day"
                     : format(new Date(event.start_at), "h:mm a")}
@@ -72,8 +72,8 @@ export default function AgendaScheduleGroup({
                   className={cn("mt-1 size-[9px] shrink-0 rounded-[3px]", swatchClass)}
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] text-foreground">{event.title}</span>
-                  {path && <span className="block truncate text-[11.5px] text-muted-foreground">{path}</span>}
+                  <span className="block truncate text-body text-foreground">{event.title}</span>
+                  {path && <span className="block truncate text-xs leading-normal text-muted-foreground">{path}</span>}
                 </span>
               </button>
               {alertsByItem.has(event.id) && (

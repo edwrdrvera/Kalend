@@ -15,7 +15,7 @@ export default function SpacePanelFooter({ label, onOpenSettings }: SpacePanelFo
         type="button"
         aria-label={label}
         onClick={onOpenSettings}
-        className="flex w-full items-center justify-between rounded-md text-[11.5px] text-muted-foreground hover:text-foreground focus-ring"
+        className="flex w-full items-center justify-between rounded-md text-xs leading-normal text-muted-foreground hover:text-foreground focus-ring"
       >
         <span>{label}</span>
         <ChevronRight aria-hidden="true" className="size-3.5" />

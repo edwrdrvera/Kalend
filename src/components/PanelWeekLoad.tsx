@@ -34,7 +34,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
     <section aria-label="This week" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
         <h3 className="label-caps">This week</h3>
-        <span className="truncate pl-3 text-[11.5px] text-muted-foreground">
+        <span className="truncate pl-3 text-xs leading-normal text-muted-foreground">
           {round1(total)}h booked in {scopeName}
         </span>
       </div>
@@ -53,7 +53,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                 today && "bg-primary/10 hover:bg-primary/15"
               )}
             >
-              <span className="text-[11px] tabular-nums text-muted-foreground">{round1(hours)}h</span>
+              <span className="text-meta tabular-nums text-muted-foreground">{round1(hours)}h</span>
               <span className="flex h-9 items-end">
                 <span
                   aria-hidden="true"
@@ -71,7 +71,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                   )}
                 />
               </span>
-              <span className={cn("text-[11px]", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
+              <span className={cn("text-meta", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
             </Button>

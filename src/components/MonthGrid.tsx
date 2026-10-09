@@ -260,7 +260,7 @@ function DayCell({
               onEventContextMenu?.(event, e.clientX, e.clientY);
             }}
             className={cn(
-              "focus-ring w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[11px] font-medium leading-tight",
+              "focus-ring w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-meta font-medium leading-tight",
               getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
               selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1 ring-offset-background",
               dimClass(event, spaceFocus)
@@ -271,7 +271,7 @@ function DayCell({
           </button>
         ))}
         {summary && (
-          <span className="truncate px-1.5 text-left text-[11px] font-medium text-muted-foreground">{summary}</span>
+          <span className="truncate px-1.5 text-left text-meta font-medium text-muted-foreground">{summary}</span>
         )}
       </div>
     </div>

@@ -74,13 +74,12 @@
     --now: #ef4444;
     --now-label: #dc2626;
     --warning: #d97706;
-    /* SF Pro isn't licensed for embedding/distribution outside Apple's own
-     * platforms, so it can't be self-hosted or pulled from next/font like
-     * Geist was. -apple-system/BlinkMacSystemFont instead point at the
-     * OS's own San Francisco (SF Pro) install on macOS/iOS/Safari, with
-     * "SF Pro Display" as an explicit fallback for anyone with it
-     * installed locally, then a normal system-font stack on other
-     * platforms, where SF Pro isn't available at all. */
+    /* The app UI font is Plus Jakarta Sans, loaded by the app layout and
+     * applied to the body there. This stack is the fallback for anything that
+     * doesn't use that font. SF Pro isn't licensed for embedding, so it can't
+     * come from next/font. -apple-system and BlinkMacSystemFont pick up the
+     * OS's own SF Pro install on Apple platforms, and the rest of the stack
+     * covers other platforms. */
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Light app theme: a Notion / cal.com light mode built like the dark one.
@@ -149,7 +148,7 @@
     --muted-foreground: #a1a1a1;
     --accent: #262626;
     --accent-foreground: #e8e8e8;
-    --destructive: #ef4444;
+    --destructive: #f97a7a;
     --border: #2e2e2e;
     --input: #2e2e2e;
     --ring: #f0916b;
@@ -433,6 +432,9 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --radius-xs: 4px;
   --radius-checkbox: 3px;
+  --text-meta: 11px;
+  --text-body: 13px;
+  --text-title: 20px;
 }
 
 /* Cross-fade for the Space Panel body when swapping Spaces and Groups. */
