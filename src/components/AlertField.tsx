@@ -50,7 +50,7 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
           <SelectGroup>
             <SelectLabel>Alert</SelectLabel>
             {ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value} className="text-[13px]">
+              <SelectItem key={item.value} value={item.value} className="text-body">
                 {item.label}
               </SelectItem>
             ))}

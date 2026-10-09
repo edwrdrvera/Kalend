@@ -66,13 +66,13 @@ export default function MembershipSelect({
       <SelectContent alignItemWithTrigger={false}>
         <SelectGroup>
           <SelectLabel>Spaces</SelectLabel>
-          <SelectItem value={NONE} className="text-[13px]">No Space</SelectItem>
+          <SelectItem value={NONE} className="text-body">No Space</SelectItem>
           {categories.length > 0 && <SelectSeparator />}
           {categories.map((category) => (
             <Fragment key={category.id}>
-              <SelectItem value={spaceValue(category.id)} className="text-[13px]">{category.name}</SelectItem>
+              <SelectItem value={spaceValue(category.id)} className="text-body">{category.name}</SelectItem>
               {groupsOfSpace(groups, category.id).map((g) => (
-                <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6 text-[13px]">
+                <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6 text-body">
                   {g.name}
                 </SelectItem>
               ))}
