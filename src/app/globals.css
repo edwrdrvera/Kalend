@@ -481,7 +481,7 @@
 }
 .kal-fade-up {
   opacity: 0;
-  animation: kal-fade-up 0.7s ease-out forwards;
+  animation: kal-fade-up 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

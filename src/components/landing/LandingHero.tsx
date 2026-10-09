@@ -21,16 +21,16 @@ export default function LandingHero() {
           </h1>
           <p
             className="kal-fade-up mx-auto mt-6 max-w-[590px] text-base leading-[1.75] text-[var(--kal-muted)] min-[640px]:text-lg"
-            style={{ animationDelay: "0.12s" }}
+            style={{ animationDelay: "0.06s" }}
           >
             Classes, shifts, assignments, and everything in between—together on one calendar that&apos;s ready when you are.
           </p>
-          <div className="kal-fade-up mx-auto mt-8 w-full max-w-[560px]" style={{ animationDelay: "0.18s" }}>
+          <div className="kal-fade-up mx-auto mt-8 w-full max-w-[560px]" style={{ animationDelay: "0.12s" }}>
             <WaitlistForm />
           </div>
           <div
             className="kal-fade-up mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-medium text-[var(--kal-muted)]"
-            style={{ animationDelay: "0.24s" }}
+            style={{ animationDelay: "0.18s" }}
           >
             <ProofPoint>Tasks + events together</ProofPoint>
             <ProofPoint>Calendar sync coming soon</ProofPoint>
@@ -43,7 +43,7 @@ export default function LandingHero() {
           </div>
         </div>
 
-        <div className="kal-fade-up relative mt-9 -mx-6 flex w-[calc(100%+3rem)] justify-center min-[640px]:mx-0 min-[640px]:w-full" style={{ animationDelay: "0.2s" }}>
+        <div className="kal-fade-up relative mt-9 -mx-6 flex w-[calc(100%+3rem)] justify-center min-[640px]:mx-0 min-[640px]:w-full" style={{ animationDelay: "0.24s" }}>
           <div className="pointer-events-none absolute -top-2 -left-2 z-20 hidden -rotate-3 rounded-lg border border-[#e6d9af] bg-[#fff3bd] px-4 py-3 text-left text-xs text-[#62572f] shadow-[0_7px_18px_rgba(54,43,19,0.1)] min-[900px]:block" aria-hidden>
             <strong className="block">Lab report</strong>
             due Friday
