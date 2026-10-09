@@ -326,7 +326,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
+                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""} ${getEventColorClasses(displayColor)}`}
                   >
                     {/* Floating inset accent bar, hugging the left edge. */}
                     <span

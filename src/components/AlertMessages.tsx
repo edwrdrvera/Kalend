@@ -15,7 +15,7 @@ interface AlertMessagesProps {
 }
 
 const dismissButton =
-  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring";
+  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
 // The timer stops while the pointer or keyboard focus is on the message, so
 // nobody loses a reminder they are still reading.
