@@ -115,7 +115,7 @@ export function useCreateDrag({
       const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
       const dayStart = startOfDay(drag.day);
       const gridEl = gridRef.current;
-      const columnEl = gridEl?.children[drag.dayIndex] as HTMLElement | undefined;
+      const columnEl = gridEl?.querySelector<HTMLElement>(`:scope > [data-day-index="${drag.dayIndex}"]`) ?? undefined;
       const column = columnEl?.getBoundingClientRect() ?? gridEl?.getBoundingClientRect();
       if (gridEl && column) {
         const gridTop = gridEl.getBoundingClientRect().top;

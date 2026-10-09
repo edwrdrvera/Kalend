@@ -199,6 +199,7 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
+              data-day-index={dayIndex}
               className={`relative border-r border-border last:border-r-0 ${columnBg}`}
               style={{ height: dayHeight }}
             >

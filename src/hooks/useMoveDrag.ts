@@ -176,7 +176,7 @@ export function useMoveDrag({
     // calculations stay correct even with CSS grid gaps between columns.
     const gridEl = gridRef.current;
     const gridRect = gridEl?.getBoundingClientRect();
-    const columnEl = gridEl?.children[dayIndex] as HTMLElement | undefined;
+    const columnEl = gridEl?.querySelector<HTMLElement>(`:scope > [data-day-index="${dayIndex}"]`) ?? undefined;
     const columnRect = columnEl?.getBoundingClientRect();
     const originColumnLeft = columnRect && gridRect ? columnRect.left - gridRect.left : 0;
     const columnWidth = columnRect?.width ?? (gridRect ? gridRect.width / days.length : 0);
