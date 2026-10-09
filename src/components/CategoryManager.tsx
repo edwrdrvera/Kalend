@@ -449,7 +449,7 @@ export default function CategoryManager({
               aria-current={selectedSpaceId === null ? "true" : undefined}
               className={cn(
                 "flex min-h-[30px] items-center gap-1 rounded-md px-1 text-left text-[13px] font-medium text-foreground outline-none transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-ring/60",
-                selectedSpaceId === null && "bg-[#e8e7e5] font-semibold dark:bg-[#262626]"
+                selectedSpaceId === null && "bg-hover font-semibold"
               )}
             >
               <span className="grid size-7 shrink-0 place-items-center text-muted-foreground">

@@ -170,8 +170,8 @@
  *   -bg     event pill fill (a solid ~15% tint in light, translucent in dark).
  *   -soft   task chip fill (fainter).   -bd  border.
  * Light blue, green and purple are slightly more chromatic than their dark
- * identities so they do not look dusty on white; the .dark block restores the
- * original solid and deep values. */
+ * identities so they do not look dusty on white. Light and dark modes share
+ * -solid and -deep; the .dark block overrides only -fg, -bg, -soft and -bd. */
 :root {
     --evt-blue-solid: #3d8299;
     --evt-blue-deep: #2f6a80;
@@ -335,7 +335,7 @@
 .kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(4) { transition-delay: 0.12s; }
 .kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(5) { transition-delay: 0.06s; }
 .kalend-mark[data-kalend-anim="colorShift"] circle:nth-of-type(6) { transition-delay: 0.10s; }
-.kalend-mark[data-kalend-anim="colorShift"]:hover circle { fill: #2563eb; }
+.kalend-mark[data-kalend-anim="colorShift"]:hover circle { fill: var(--primary); }
 
 .kalend-mark[data-kalend-anim="morphK"] circle {
   transition:
@@ -419,6 +419,9 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-snappy: var(--ease-out);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --radius-xs: 4px;
+  --radius-checkbox: 3px;
 }
 
 /* Cross-fade for the Space Panel body when swapping Spaces and Groups. */
