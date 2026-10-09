@@ -257,7 +257,6 @@ function DayCell({
             }}
             onContextMenu={(e) => {
               e.preventDefault();
-              e.stopPropagation();
               onEventContextMenu?.(event, e.clientX, e.clientY);
             }}
             className={cn(

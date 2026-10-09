@@ -354,7 +354,6 @@ export default function TimeGrid({
                     onClick={(e) => handleEventClick(e, event)}
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      e.stopPropagation();
                       onEventContextMenu?.(event, e.clientX, e.clientY);
                     }}
                     style={{
