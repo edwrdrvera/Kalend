@@ -118,6 +118,19 @@ export const RAIL_TILE_CLASSES: Record<EventColor, string> = {
   teal: "bg-[var(--evt-teal-bg)] border-[var(--evt-teal-deep)] text-[var(--evt-teal-deep)] dark:bg-[var(--evt-teal-deep)] dark:text-white",
 };
 
+// The pressed Group chip in a Space panel takes the Space's event-pill tint.
+export const GROUP_CHIP_PRESSED_CLASSES: Record<EventColor, string> = {
+  blue: "aria-pressed:border-[var(--evt-blue-bd)] aria-pressed:bg-[var(--evt-blue-bg)] aria-pressed:text-[var(--evt-blue-fg)] aria-pressed:hover:bg-[var(--evt-blue-bg)] aria-pressed:hover:text-[var(--evt-blue-fg)]",
+  green: "aria-pressed:border-[var(--evt-green-bd)] aria-pressed:bg-[var(--evt-green-bg)] aria-pressed:text-[var(--evt-green-fg)] aria-pressed:hover:bg-[var(--evt-green-bg)] aria-pressed:hover:text-[var(--evt-green-fg)]",
+  purple: "aria-pressed:border-[var(--evt-purple-bd)] aria-pressed:bg-[var(--evt-purple-bg)] aria-pressed:text-[var(--evt-purple-fg)] aria-pressed:hover:bg-[var(--evt-purple-bg)] aria-pressed:hover:text-[var(--evt-purple-fg)]",
+  orange: "aria-pressed:border-[var(--evt-orange-bd)] aria-pressed:bg-[var(--evt-orange-bg)] aria-pressed:text-[var(--evt-orange-fg)] aria-pressed:hover:bg-[var(--evt-orange-bg)] aria-pressed:hover:text-[var(--evt-orange-fg)]",
+  red: "aria-pressed:border-[var(--evt-red-bd)] aria-pressed:bg-[var(--evt-red-bg)] aria-pressed:text-[var(--evt-red-fg)] aria-pressed:hover:bg-[var(--evt-red-bg)] aria-pressed:hover:text-[var(--evt-red-fg)]",
+  indigo: "aria-pressed:border-[var(--evt-indigo-bd)] aria-pressed:bg-[var(--evt-indigo-bg)] aria-pressed:text-[var(--evt-indigo-fg)] aria-pressed:hover:bg-[var(--evt-indigo-bg)] aria-pressed:hover:text-[var(--evt-indigo-fg)]",
+  pink: "aria-pressed:border-[var(--evt-pink-bd)] aria-pressed:bg-[var(--evt-pink-bg)] aria-pressed:text-[var(--evt-pink-fg)] aria-pressed:hover:bg-[var(--evt-pink-bg)] aria-pressed:hover:text-[var(--evt-pink-fg)]",
+  yellow: "aria-pressed:border-[var(--evt-yellow-bd)] aria-pressed:bg-[var(--evt-yellow-bg)] aria-pressed:text-[var(--evt-yellow-fg)] aria-pressed:hover:bg-[var(--evt-yellow-bg)] aria-pressed:hover:text-[var(--evt-yellow-fg)]",
+  teal: "aria-pressed:border-[var(--evt-teal-bd)] aria-pressed:bg-[var(--evt-teal-bg)] aria-pressed:text-[var(--evt-teal-fg)] aria-pressed:hover:bg-[var(--evt-teal-bg)] aria-pressed:hover:text-[var(--evt-teal-fg)]",
+};
+
 // Shared by events and tasks: when linked to a category, the color shown on
 // the calendar is looked up live from that category (so recoloring a
 // category updates everything under it immediately) instead of the item's

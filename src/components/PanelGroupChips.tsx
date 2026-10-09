@@ -2,10 +2,11 @@
 
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { EVENT_COLOR_CLASSES } from "@/lib/event-colors";
+import { GROUP_CHIP_PRESSED_CLASSES } from "@/lib/event-colors";
 import type { CalendarGroup } from "@/lib/calendar-types";
 import type { PanelSubject } from "@/lib/panel-subject";
-import { PRESS_CLS } from "./InspectorParts";
+import { Button } from "@/components/ui/button";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export interface PanelGroupNav {
   groups: CalendarGroup[];
@@ -14,10 +15,7 @@ export interface PanelGroupNav {
   onCreateGroup: (spaceId: string) => void;
 }
 
-const CHIP_CLS = cn(
-  "h-[26px] rounded-full border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-  PRESS_CLS
-);
+const ALL = "all";
 
 /** The Space's Groups as a chip row: All (the Space itself), each Group, and a new-Group button. */
 export default function PanelGroupChips({
@@ -28,41 +26,45 @@ export default function PanelGroupChips({
   nav: PanelGroupNav;
 }) {
   const activeGroupId = subject.kind === "group" ? subject.groupId : null;
-  const selected = EVENT_COLOR_CLASSES[subject.color];
-  const idle = "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground";
+  const chipCls = cn(
+    "h-[26px] min-w-0 max-w-full rounded-full border border-border bg-card px-3 text-[12px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground",
+    GROUP_CHIP_PRESSED_CLASSES[subject.color]
+  );
 
   return (
-    <div role="group" aria-label="Groups" className="mt-2.5 flex flex-wrap gap-1.5">
-      <button
-        type="button"
-        aria-pressed={activeGroupId === null}
-        onClick={() => nav.onOpenSpace(subject.spaceId)}
-        className={cn(CHIP_CLS, activeGroupId === null ? selected : idle)}
+    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+      <ToggleGroup
+        aria-label="Groups"
+        value={[activeGroupId ?? ALL]}
+        onValueChange={([next]) => {
+          if (next === undefined) return;
+          if (next === ALL) {
+            nav.onOpenSpace(subject.spaceId);
+            return;
+          }
+          const group = nav.groups.find((g) => g.id === next);
+          if (group) nav.onOpenGroup(group);
+        }}
+        className="flex-wrap gap-1.5"
       >
-        All
-      </button>
-      {nav.groups.map((group) => (
-        <button
-          key={group.id}
-          type="button"
-          aria-pressed={activeGroupId === group.id}
-          onClick={() => nav.onOpenGroup(group)}
-          className={cn(CHIP_CLS, "max-w-full truncate", activeGroupId === group.id ? selected : idle)}
-        >
-          {group.name}
-        </button>
-      ))}
-      <button
-        type="button"
+        <ToggleGroupItem value={ALL} className={chipCls}>
+          All
+        </ToggleGroupItem>
+        {nav.groups.map((group) => (
+          <ToggleGroupItem key={group.id} value={group.id} className={chipCls}>
+            <span className="truncate">{group.name}</span>
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <Button
+        variant="ghost"
+        size="icon-xs"
         aria-label="New Group"
         onClick={() => nav.onCreateGroup(subject.spaceId)}
-        className={cn(
-          "grid h-[26px] w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-          PRESS_CLS
-        )}
+        className="h-[26px] w-8 rounded-full text-muted-foreground"
       >
-        <Plus aria-hidden className="size-3.5" />
-      </button>
+        <Plus aria-hidden />
+      </Button>
     </div>
   );
 }
