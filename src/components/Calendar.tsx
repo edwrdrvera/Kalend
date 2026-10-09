@@ -17,7 +17,7 @@ import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import GroupEditorDialog, { type GroupEditorTarget } from "./GroupEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
-import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
+import ContextMenu, { useContextMenu, type ContextMenuItem } from "./ContextMenu";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -109,11 +109,7 @@ export default function Calendar() {
   // Group create/rename/delete dialog: null when closed.
   const [groupEditor, setGroupEditor] = useState<GroupEditorTarget | null>(null);
   // Right-click context menu (day/slot/event), and quick task creation.
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    items: ContextMenuItem[];
-  } | null>(null);
+  const contextMenu = useContextMenu();
   const [taskCreateDay, setTaskCreateDay] = useState<Date | null>(null);
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -208,40 +204,28 @@ export default function Calendar() {
   ];
 
   const handleDayContextMenu = (day: Date, x: number, y: number) =>
-    setContextMenu({
-      x,
-      y,
-      items: calendarMenuItems(day, () => editor.openCreate(day, cursorRect(x, y))),
-    });
+    contextMenu.show(calendarMenuItems(day, () => editor.openCreate(day, cursorRect(x, y))));
 
   const handleSlotContextMenu = (day: Date, hour: number, x: number, y: number) =>
-    setContextMenu({
-      x,
-      y,
-      items: calendarMenuItems(day, () =>
-        editor.openCreate(setHours(day, hour), cursorRect(x, y))
-      ),
-    });
+    contextMenu.show(
+      calendarMenuItems(day, () => editor.openCreate(setHours(day, hour), cursorRect(x, y)))
+    );
 
-  const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
+  const handleEventContextMenu = (event: CalendarEvent) => {
     const ids = selection.idsForContextMenu(event);
-    setContextMenu({
-      x,
-      y,
-      items: [
-        {
-          label: "Open details",
-          icon: <PanelRight className="size-3.5" />,
-          onSelect: () => handleEventClick(event),
-        },
-        {
-          label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
-          destructive: true,
-          icon: <Trash2 className="size-3.5" />,
-          onSelect: () => selection.requestDelete(ids),
-        },
-      ],
-    });
+    contextMenu.show([
+      {
+        label: "Open details",
+        icon: <PanelRight className="size-3.5" />,
+        onSelect: () => handleEventClick(event),
+      },
+      {
+        label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
+        destructive: true,
+        icon: <Trash2 className="size-3.5" />,
+        onSelect: () => selection.requestDelete(ids),
+      },
+    ]);
   };
 
   if (!mounted) return null;
@@ -524,8 +508,9 @@ export default function Calendar() {
             <LoadingSpinner />
           </div>
         ) : (
-          <div
-            ref={calendarContentRef}
+          <ContextMenu
+            menu={contextMenu}
+            triggerRef={calendarContentRef}
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card"
           >
             {/* Flat, edge to edge: columns are separated by hairlines, as in the sidebar redesign. */}
@@ -603,7 +588,7 @@ export default function Calendar() {
               />
             )}
             </div>
-          </div>
+          </ContextMenu>
         )}
 
         {/* Space Panel (fourth region). Pinned: an in-flow column whose width
@@ -695,15 +680,6 @@ export default function Calendar() {
         onDismiss={alerts.dismiss}
         onClearMissed={alerts.clearMissed}
       />
-
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          items={contextMenu.items}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
 
       {selection.pendingEventDeletion && (
         <Dialog open onOpenChange={selection.cancelDelete}>

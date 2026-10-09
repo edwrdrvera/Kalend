@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { cn } from "@/lib/utils";
+import {
+  ContextMenu as Menu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 export interface ContextMenuItem {
   label: string;
@@ -10,68 +16,106 @@ export interface ContextMenuItem {
   icon?: ReactNode;
 }
 
-interface ContextMenuProps {
-  /** Viewport coordinates of the click that opened the menu. */
-  x: number;
-  y: number;
-  items: ContextMenuItem[];
-  onClose: () => void;
+const ITEM_CLASS = "gap-2 px-2 py-1.5 text-[13px] focus-ring focus-visible:outline-offset-[-2px]";
+
+/** Open-state for the right-click menu. A grid target calls `show` with its
+ *  items. The trigger only opens when a target claimed the event, so a click
+ *  on a gutter or header never opens a stale menu. */
+export function useContextMenu() {
+  const [items, setItems] = useState<ContextMenuItem[]>([]);
+  const [open, setOpen] = useState(false);
+  const claimed = useRef(false);
+  const fromKeyboard = useRef(false);
+
+  return {
+    items,
+    open,
+    markKeyboardOpen: () => {
+      fromKeyboard.current = true;
+    },
+    takeKeyboardOpen: () => {
+      const was = fromKeyboard.current;
+      fromKeyboard.current = false;
+      return was;
+    },
+    show: (next: ContextMenuItem[]) => {
+      claimed.current = true;
+      setItems(next);
+    },
+    onOpenChange: (next: boolean) => {
+      if (next && !claimed.current) {
+        fromKeyboard.current = false;
+        return;
+      }
+      claimed.current = false;
+      setOpen(next);
+    },
+  };
 }
 
-const MENU_WIDTH = 184;
+const isMenuKey = (e: KeyboardEvent) =>
+  e.key === "ContextMenu" || (e.shiftKey && e.key === "F10");
 
-/** A lightweight right-click menu positioned at the cursor. Closes on outside
- *  click, another right-click, or Escape. */
-export default function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+/** Re-fires the native contextmenu event at the focused element, so the grid
+ *  target that handles a right-click also handles the keyboard. */
+function openFromKeyboard(target: HTMLElement) {
+  const rect = target.getBoundingClientRect();
+  target.dispatchEvent(
+    new MouseEvent("contextmenu", {
+      bubbles: true,
+      cancelable: true,
+      clientX: rect.left + Math.min(rect.width / 2, 24),
+      clientY: rect.top + Math.min(rect.height / 2, 24),
+    })
+  );
+}
 
-  // Keep the menu inside the viewport.
-  const left = Math.min(x, window.innerWidth - MENU_WIDTH - 8);
-  const estHeight = items.length * 34 + 8;
-  const top = Math.min(y, window.innerHeight - estHeight - 8);
+interface ContextMenuProps {
+  menu: ReturnType<typeof useContextMenu>;
+  className?: string;
+  triggerRef?: Ref<HTMLDivElement>;
+  children?: ReactNode;
+}
 
+/** Wraps the calendar grid. Right-click, long press, Shift+F10 and the
+ *  ContextMenu key open the menu for the target the grid reports to `menu`. */
+export default function ContextMenu({ menu, className, triggerRef, children }: ContextMenuProps) {
+  const popupRef = useRef<HTMLDivElement>(null);
   return (
-    <>
-      <div
-        className="fixed inset-0 z-[60]"
-        onClick={onClose}
-        onContextMenu={(e) => {
+    <Menu
+      open={menu.open}
+      onOpenChange={menu.onOpenChange}
+      onOpenChangeComplete={(open) => {
+        if (open && menu.takeKeyboardOpen()) {
+          popupRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+        }
+      }}
+    >
+      <ContextMenuTrigger
+        ref={triggerRef}
+        className={cn("select-text", className)}
+        onKeyDown={(e) => {
+          if (!isMenuKey(e) || !e.currentTarget.contains(e.target as Node)) return;
           e.preventDefault();
-          onClose();
+          menu.markKeyboardOpen();
+          openFromKeyboard(e.target as HTMLElement);
         }}
-      />
-      <div
-        role="menu"
-        className="fixed z-[61] min-w-[168px] rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
-        style={{ top: Math.max(8, top), left: Math.max(8, left), width: MENU_WIDTH }}
       >
-        {items.map((item, i) => (
-          <button
-            key={i}
-            role="menuitem"
-            type="button"
-            onClick={() => {
-              item.onSelect();
-              onClose();
-            }}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors focus-ring focus-visible:outline-offset-[-2px]",
-              item.destructive
-                ? "text-destructive hover:bg-destructive/10 focus-visible:bg-destructive/10"
-                : "text-foreground hover:bg-hover focus-visible:bg-muted"
-            )}
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent ref={popupRef} className="w-46" side="right" align="start" sideOffset={0} alignOffset={0}>
+        {menu.items.map((item) => (
+          <ContextMenuItem
+            key={item.label}
+            variant={item.destructive ? "destructive" : "default"}
+            className={ITEM_CLASS}
+            onClick={item.onSelect}
           >
             {item.icon}
             <span className="truncate">{item.label}</span>
-          </button>
+          </ContextMenuItem>
         ))}
-      </div>
-    </>
+      </ContextMenuContent>
+    </Menu>
   );
 }
