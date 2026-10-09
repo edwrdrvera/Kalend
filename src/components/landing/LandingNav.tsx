@@ -11,8 +11,12 @@ const NAV_LINKS = [
   { label: "How it works", id: "how" },
 ] as const;
 
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+}
+
 function scrollTo(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  document.getElementById(id)?.scrollIntoView({ behavior: scrollBehavior() });
 }
 
 export default function LandingNav() {
@@ -26,7 +30,7 @@ export default function LandingNav() {
         <button
           type="button"
           aria-label="Kalend home"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          onClick={() => window.scrollTo({ top: 0, behavior: scrollBehavior() })}
           className="inline-flex shrink-0 items-center"
         >
           <KalendWordmark size="sm" tone="ink" animation="scatter" />
