@@ -339,12 +339,12 @@
   --kal-tile-ink: #171310;
 }
 
-/* The built-in ease-out starts too gently for UI. `ease-snappy` responds on
- * the first frame; `ease-drawer` is the iOS sheet curve for the overlay panel. */
+/* The built-in ease-out starts too gently for UI, so `ease-out` is the strong
+ * curve the kalend-ui primitives use. `ease-snappy` is the same curve under its
+ * older name; `ease-drawer` is the iOS sheet curve for the overlay panel. */
 @theme {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
-  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-snappy: var(--ease-out);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
