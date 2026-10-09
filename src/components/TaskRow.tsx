@@ -1,14 +1,12 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AlertBell from "./AlertBell";
+import TaskCheckbox from "./TaskCheckbox";
+import SpaceDot from "./SpaceDot";
+import { taskDueLabel } from "@/lib/sidebar-agenda";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
-import {
-  EVENT_COLOR_SWATCH_CLASSES,
-  isEventColor,
-  resolveDisplayColor,
-} from "@/lib/event-colors";
+import { resolveDisplayColor } from "@/lib/event-colors";
 
 interface TaskRowProps {
   task: CalendarTask;
@@ -35,9 +33,7 @@ export default function TaskRow({
     task.color_overridden,
     categories
   );
-  const dotClass = isEventColor(displayColor)
-    ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
-    : "bg-muted-foreground/40";
+  const { overdue } = taskDueLabel(task);
 
   // Each leading element (checkbox, dot) sits in an 18px line box that matches
   // the text's first-line height, so all three centers align and stay aligned
@@ -45,31 +41,24 @@ export default function TaskRow({
   return (
     <div className="flex items-start gap-2 rounded-sm px-1 py-1">
       <span className="flex h-[18px] shrink-0 items-center">
-        <button
-          type="button"
-          onClick={() => onToggleTaskComplete(task)}
-          aria-pressed={task.completed}
-          aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
-          className={cn(
-            "flex size-[15px] translate-y-[1px] items-center justify-center rounded-[4px] border-[1.5px] transition-transform active:scale-[0.97] focus-ring",
-            task.completed
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border text-transparent hover:border-muted-foreground"
-          )}
-        >
-          <Check className="size-2.5" strokeWidth={3} />
-        </button>
+        <TaskCheckbox
+          title={task.title}
+          checked={task.completed}
+          onToggle={() => onToggleTaskComplete(task)}
+          overdue={overdue}
+          className="translate-y-[1px]"
+        />
       </span>
       {meta === undefined && (
         <span className="flex h-[18px] shrink-0 items-center">
-          <span aria-hidden className={cn("size-1.5 translate-y-[1px] rounded-full", dotClass)} />
+          <SpaceDot color={displayColor} overdue={overdue} className="translate-y-[1px]" />
         </span>
       )}
       <div className="min-w-0 flex-1">
         <button
           type="button"
           onClick={() => onOpenTask(task)}
-          aria-label={`Open task ${task.title}`}
+          aria-label={overdue ? `Open task ${task.title}, Overdue` : `Open task ${task.title}`}
           className={cn(
             "block w-full rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-ring",
             task.completed ? "line-through opacity-50" : "text-foreground"
@@ -79,7 +68,7 @@ export default function TaskRow({
         </button>
         {meta !== undefined && (
           <span className="block truncate text-[11.5px] leading-[18px] text-muted-foreground">
-            <span aria-hidden className={cn("mr-1.5 inline-block size-[7px] rounded-[2px] align-middle", dotClass)} />
+            <SpaceDot color={displayColor} overdue={overdue} className="mr-1.5 inline-block align-middle" />
             {meta}
           </span>
         )}
