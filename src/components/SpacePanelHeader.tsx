@@ -119,7 +119,7 @@ export default function SpacePanelHeader({
             onBlur={() => void commit()}
             className={cn(
               TITLE_CLS,
-              "-mx-1 h-[30px] rounded-md border border-foreground/30 bg-transparent px-1 outline-none"
+              "-mx-1 h-[30px] rounded-md border border-ring bg-transparent px-1 outline-none"
             )}
           />
         )}

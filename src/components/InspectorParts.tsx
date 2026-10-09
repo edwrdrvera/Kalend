@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react
 import { ArrowLeft, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 /** Press feedback for anything clickable: a small scale-down the moment it is
  *  pressed, so the UI confirms it heard the click. */
@@ -12,7 +12,8 @@ export const PRESS_CLS =
   "transition-[color,background-color,border-color,opacity,transform] duration-150 ease-snappy motion-safe:active:scale-[0.97]";
 
 export const ICON_BUTTON_CLS = cn(
-  "grid size-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  buttonVariants({ variant: "outline", size: "icon" }),
+  "shrink-0 text-muted-foreground hover:text-foreground",
   PRESS_CLS
 );
 

@@ -9,6 +9,7 @@ import { membershipOf } from "@/lib/membership";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import ColorSwatchPicker from "./ColorSwatchPicker";
 import MembershipSelect from "./MembershipSelect";
+import { Input } from "@/components/ui/input";
 
 /** Start and end date/time pickers over local "yyyy-MM-ddTHH:mm" values. */
 export function EventTimeFields({
@@ -34,12 +35,12 @@ export function EventTimeFields({
             value={start.date}
             onChange={(d) => onStartChange(joinDateTimeLocal(d, start.time))}
           />
-          <input
+          <Input
             type="time"
             aria-label="Start time"
             value={start.time}
             onChange={(e) => onStartChange(joinDateTimeLocal(start.date, e.target.value))}
-            className={cn(SMALL_INPUT_CLS, "w-full")}
+            className="w-full"
           />
         </div>
       </div>
@@ -51,12 +52,12 @@ export function EventTimeFields({
             value={end.date}
             onChange={(d) => onEndChange(joinDateTimeLocal(d, end.time))}
           />
-          <input
+          <Input
             type="time"
             aria-label="End time"
             value={end.time}
             onChange={(e) => onEndChange(joinDateTimeLocal(end.date, e.target.value))}
-            className={cn(SMALL_INPUT_CLS, "w-full")}
+            className="w-full"
           />
         </div>
       </div>

@@ -18,7 +18,7 @@ interface MembershipSelectProps {
 }
 
 const OPTION_CLS =
-  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-xs transition-colors hover:bg-muted";
+  "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-xs transition-colors hover:bg-hover";
 
 /** Popover dropdown that places an event or task: no Space, directly in a
  *  Space, or in one of a Space's Groups. Picking a Group also picks its Space,
@@ -48,7 +48,7 @@ export default function MembershipSelect({
       <PopoverTrigger
         aria-label={`Space: ${space ? (group ? `${space.name} / ${group.name}` : space.name) : "No Space"}`}
         className={cn(
-          "flex min-w-0 items-center gap-1.5 rounded-sm px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
+          "flex min-w-0 items-center gap-1.5 rounded-sm px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-hover hover:text-foreground",
           className
         )}
       >

@@ -6,6 +6,7 @@ import { descriptionProblem } from "@/lib/description";
 import { APP_INPUT_CLS } from "./DateField";
 import { FIELD_LABEL_CLS } from "./InspectorParts";
 import NotesView from "./NotesView";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DescriptionFieldProps {
   id: string;
@@ -35,7 +36,7 @@ export function DescriptionTextarea({
       <label htmlFor={id} className={FIELD_LABEL_CLS}>
         {label}
       </label>
-      <textarea
+      <Textarea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -45,7 +46,7 @@ export function DescriptionTextarea({
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed")}
+        className="min-h-14 w-full resize-y px-3 py-2 text-[13px] leading-relaxed focus-visible:ring-1 focus-visible:ring-ring/60 md:text-[13px]"
       />
       {problem && (
         <p id={`${id}-problem`} className="text-[12px] text-destructive">
@@ -93,7 +94,7 @@ export default function DescriptionField({
           onKeyDown={(e) => {
             if (e.key === "Enter" && e.target === e.currentTarget) startEditing();
           }}
-          className="min-h-20 cursor-text rounded-sm border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-foreground/20 focus-visible:border-foreground/30"
+          className="min-h-14 cursor-text rounded-lg border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/60"
         >
           <NotesView value={value} />
         </div>

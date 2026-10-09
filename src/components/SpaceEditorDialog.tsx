@@ -18,6 +18,8 @@ import {
   type EventColor,
 } from "@/lib/event-colors";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
+import { Input } from "@/components/ui/input";
+import { FIELD_SIZE_CLS } from "@/components/DateField";
 
 /**
  * Create or edit one Space (name + color), with delete in edit mode. A single
@@ -185,13 +187,13 @@ export default function SpaceEditorDialog({
               onColorChange={setColor}
               className="size-6 rounded-[7px]"
             />
-            <input
+            <Input
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Space name"
               aria-label="Space name"
               autoFocus
-              className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
+              className={cn(FIELD_SIZE_CLS, "min-w-0 flex-1")}
             />
           </div>
 

@@ -15,6 +15,8 @@ import { APP_INPUT_CLS } from "./DateField";
 import MembershipSelect from "./MembershipSelect";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { spaceMembership, type Membership } from "@/lib/membership";
+import { Input } from "@/components/ui/input";
+import { FIELD_SIZE_CLS } from "@/components/DateField";
 
 /** Quick task creation seeded with a due date, opened from the calendar's
  *  right-click menu. Title + Space, with the due date fixed to the clicked day. */
@@ -83,13 +85,13 @@ export default function TaskCreateDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
-          <input
+          <Input
             ref={inputRef}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Task title"
             aria-label="Task title"
-            className={cn(APP_INPUT_CLS, "w-full text-[13px]")}
+            className={cn(FIELD_SIZE_CLS, "w-full")}
           />
 
           <div className="flex items-center justify-between gap-2 text-[12px] text-muted-foreground">

@@ -501,7 +501,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="right"
               align="end"
-              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
               triggerChildren="E"
             />
           }
@@ -510,7 +510,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="bottom"
               align="end"
-              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-hover"
               triggerChildren="E"
             />
           }

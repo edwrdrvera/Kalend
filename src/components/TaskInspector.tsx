@@ -28,6 +28,8 @@ import {
   UnsavedChangesPrompt,
 } from "./InspectorParts";
 import { useInspectorSave } from "@/hooks/useInspectorSave";
+import { Input } from "@/components/ui/input";
+import { FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 
 interface TaskInspectorProps {
   task: CalendarTask;
@@ -105,11 +107,11 @@ export default function TaskInspector({
           <span className={FIELD_LABEL_CLS}>
             Title
           </span>
-          <input
+          <Input
             value={draft.title}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={titleMissing || undefined}
-            className={cn(APP_INPUT_CLS, "w-full")}
+            className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
           />
         </label>
 

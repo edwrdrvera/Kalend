@@ -9,6 +9,7 @@ import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
+import { buttonVariants } from "@/components/ui/button";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -135,7 +136,7 @@ export default function CalendarSidebar({
       {/* Mobile sidebar: slide-out overlay with the agenda (no mini calendar) */}
       <aside
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:hidden",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-lg transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -143,7 +144,7 @@ export default function CalendarSidebar({
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute right-4 top-4 z-10 grid size-8 place-items-center rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className={cn(buttonVariants({ variant: "ghost", size: "icon-lg" }), "absolute right-4 top-4 z-10 bg-muted/50 text-muted-foreground hover:text-foreground")}
         >
           <X className="size-4" />
         </button>

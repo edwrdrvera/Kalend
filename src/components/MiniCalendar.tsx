@@ -12,6 +12,7 @@ import {
   addDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 interface MiniCalendarProps {
   currentDate: Date;
@@ -39,7 +40,7 @@ function MiniCalendarHeader({
         <button
           type="button"
           onClick={onPrevMonth}
-          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
+          className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
           aria-label="Previous month"
         >
           <ChevronLeft size={16} />
@@ -47,7 +48,7 @@ function MiniCalendarHeader({
         <button
           type="button"
           onClick={onNextMonth}
-          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
+          className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
           aria-label="Next month"
         >
           <ChevronRight size={16} />
@@ -71,7 +72,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "flex justify-center items-center w-7 h-7 text-[11.5px] font-medium transition-colors cursor-pointer";
+  const baseClasses = "flex justify-center items-center w-7 h-7 text-[11.5px] font-medium cursor-pointer";
 
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);
@@ -85,16 +86,16 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   }
 
   if (isSelected) {
-    return `${baseClasses} rounded-[6px] bg-primary text-primary-foreground font-semibold`;
+    return `${baseClasses} rounded-md bg-primary text-primary-foreground font-semibold`;
   }
 
   if (isTodayCurrent) {
     // Today (when not selected): outlined square with ring to distinguish
     // it from an ordinary date without filling the background.
-    return `${baseClasses} rounded-[6px] ring-2 ring-primary text-primary-text font-bold`;
+    return `${baseClasses} rounded-md ring-2 ring-primary text-primary-text font-bold`;
   }
 
-  return `${baseClasses} rounded-md text-foreground hover:bg-muted`;
+  return `${baseClasses} rounded-md text-foreground hover:bg-hover`;
 }
 
 function MiniCalendarGrid({

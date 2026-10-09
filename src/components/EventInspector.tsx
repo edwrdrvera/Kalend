@@ -30,6 +30,7 @@ import {
   type InspectorNav,
   UnsavedChangesPrompt,
 } from "./InspectorParts";
+import { Input } from "@/components/ui/input";
 
 interface EventInspectorProps {
   event: CalendarEvent;
@@ -51,10 +52,10 @@ interface EventInspectorProps {
   onStay: () => void;
 }
 
-const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-md px-2 text-xs";
+const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-lg px-2 text-xs md:text-xs focus-visible:ring-1 focus-visible:ring-ring/60";
 
 /** Spaces the native picker icon off the digits, and dims it until hovered. */
-const TIME_INPUT_CLS = "w-28 shrink-0 dark:scheme-dark hover:bg-muted/30 [&::-webkit-calendar-picker-indicator]:ml-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-150 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
+const TIME_INPUT_CLS = "w-28 shrink-0 dark:scheme-dark hover:bg-hover [&::-webkit-calendar-picker-indicator]:ml-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-150 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
 
 const INPUT_CLS = cn(APP_INPUT_CLS, "w-full");
 
@@ -117,12 +118,12 @@ export default function EventInspector({
           <label htmlFor="event-inspector-title" className="sr-only">
             Title
           </label>
-          <input
+          <Input
             id="event-inspector-title"
             value={draft.title}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={draft.title.trim() === "" || undefined}
-            className={cn(INPUT_CLS, "h-9 rounded-lg px-3 text-base font-semibold tracking-tight")}
+            className="h-9 rounded-lg px-3 text-base md:text-base font-semibold tracking-tight focus-visible:ring-1 focus-visible:ring-ring/60"
           />
         </div>
 
@@ -134,12 +135,12 @@ export default function EventInspector({
               className={ROW_CONTROL_CLS}
               onChange={(d) => update({ startAt: joinDateTimeLocal(d, start.time) })}
             />
-            <input
+            <Input
               type="time"
               aria-label="Start time"
               value={start.time}
               onChange={(e) => update({ startAt: joinDateTimeLocal(start.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, TIME_INPUT_CLS)}
+              className={cn(ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<Clock />} label="Ends">
@@ -149,22 +150,22 @@ export default function EventInspector({
               className={ROW_CONTROL_CLS}
               onChange={(d) => update({ endAt: joinDateTimeLocal(d, end.time) })}
             />
-            <input
+            <Input
               type="time"
               aria-label="End time"
               value={end.time}
               onChange={(e) => update({ endAt: joinDateTimeLocal(end.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, TIME_INPUT_CLS)}
+              className={cn(ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<MapPin />} label="Location" labelFor="event-inspector-location">
-            <input
+            <Input
               id="event-inspector-location"
               value={draft.location}
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-xs focus:border-input")}
+              className="h-7 w-full border-transparent bg-transparent px-2 text-xs md:text-xs hover:bg-hover focus:border-input dark:bg-transparent focus-visible:ring-1 focus-visible:ring-ring/60"
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">

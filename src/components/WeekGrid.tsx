@@ -79,7 +79,7 @@ function WeekDaysHeader({
             key={day.getTime()}
             type="button"
             onClick={() => onDateSelect(day)}
-            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-muted/40 sm:pl-4 lg:pl-5"
+            className="flex cursor-pointer flex-col items-start justify-center gap-0.5 pl-1 transition-colors hover:bg-hover sm:pl-4 lg:pl-5"
           >
             <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">
               {format(day, "EEE")}

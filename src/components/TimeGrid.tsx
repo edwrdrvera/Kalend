@@ -152,7 +152,7 @@ export default function TimeGrid({
           <div
             key={hour}
             style={{ height: hourHeight }}
-            className="pr-1.5 text-right text-[9px] text-muted-foreground sm:pr-3 sm:text-[10px]"
+            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-[11px]"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
@@ -191,7 +191,7 @@ export default function TimeGrid({
           const columnBg = isDayView
             ? "bg-card"
             : isToday
-              ? "bg-foreground/[0.04]"
+              ? "bg-primary/5"
               : isWeekend
                 ? "bg-muted/30"
                 : "bg-card";
@@ -341,11 +341,11 @@ export default function TimeGrid({
                     <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
                       {event.title}
                     </span>
-                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[10px] font-medium opacity-90">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[11px] font-medium opacity-90">
                       {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (
-                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-70">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-80">
                         {event.location}
                       </span>
                     )}
@@ -381,7 +381,7 @@ export default function TimeGrid({
             // pixel metrics captured at pickup, so they stay correct even with
             // the border-based column separators, which percentage positioning
             // would drift against.
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-md leading-tight text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
             style={{
               left: ghost.originColumnLeft,
               width: ghost.columnWidth,

@@ -138,7 +138,7 @@ function DueTasksSection({
 }) {
   return (
     <section aria-label={label} className={cn(precededBySchedule && "mt-3 border-t border-border pt-2.5")}>
-      <h3 className="pb-1 text-[12px] font-semibold text-muted-foreground">{label}</h3>
+      <h3 className="label-caps pb-1">{label}</h3>
       <div className="flex flex-col">
         {tasks.map((task) => (
           <TaskRow

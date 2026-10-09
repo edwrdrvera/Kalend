@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
   isEventColor,
-  RAIL_TILE_CLASSES,
+  RAIL_TILE_PRESSED_CLASSES,
   type EventColor,
 } from "@/lib/event-colors";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 import type { CalendarCategory } from "@/lib/calendar-types";
 import KalendMark from "./KalendMark";
-import { Tooltip, TooltipProvider } from "./ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface IconRailProps {
   categories: CalendarCategory[];
@@ -51,35 +51,45 @@ export default function IconRail({
       >
         {/* App mark now toggles the side nav's collapsed state, instead of
             selecting "All Spaces" (that moved to the stack icon below). */}
-        <Tooltip label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
-          <button
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
             type="button"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
             onClick={onToggleCollapse}
-            className="grid size-[30px] place-items-center rounded-[9px] bg-primary transition-shadow hover:bg-primary/90"
+            className="grid size-[30px] place-items-center rounded-[10px] bg-primary transition-shadow hover:bg-primary/90"
+              />
+            }
           >
             <KalendMark size={18} tone="white" />
-          </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</TooltipContent>
         </Tooltip>
 
         {/* Divider */}
         <div className="my-[11px] h-px w-6 bg-border" />
 
         {/* View all spaces (this used to be the app mark's job). */}
-        <Tooltip label="View all spaces">
-          <button
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
             type="button"
             aria-label="View all spaces"
             aria-current={atAllSpaces ? "true" : undefined}
             onClick={() => onSelectSpace(null)}
             className={cn(
-              "mb-[9px] grid size-[30px] place-items-center rounded-[9px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              "mb-[9px] grid size-[30px] place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-hover hover:text-foreground",
               atAllSpaces && "ring-2 ring-primary/35 ring-offset-2 ring-offset-card"
             )}
+              />
+            }
           >
             <Layers className="size-4" />
-          </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{"View all spaces"}</TooltipContent>
         </Tooltip>
 
         {/* Space marks */}
@@ -88,8 +98,10 @@ export default function IconRail({
             const isActive = selectedSpaceId === cat.id;
             const color: EventColor = isEventColor(cat.color) ? cat.color : DEFAULT_EVENT_COLOR;
             return (
-              <Tooltip key={cat.id} label={cat.name}>
-                <button
+              <Tooltip key={cat.id}>
+                <TooltipTrigger
+                  render={
+                    <button
                   type="button"
                   aria-label={cat.name}
                   onClick={() => onSelectSpace(isActive ? null : cat.id)}
@@ -100,29 +112,44 @@ export default function IconRail({
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
                     "relative grid size-[34px] place-items-center rounded-[10px] border-[1.5px] text-sm font-semibold transition-[filter] hover:brightness-110",
-                    RAIL_TILE_CLASSES[color],
+                    isActive ? RAIL_TILE_PRESSED_CLASSES[color].replace(/aria-pressed:/g,"") : "bg-muted text-muted-foreground hover:bg-hover hover:text-foreground",
                     // Open-Space marker on the rail's left edge.
                     "before:absolute before:top-1/2 before:-left-[15px] before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-foreground before:opacity-0 before:transition-[opacity,transform] before:duration-150 before:ease-snappy",
                     isActive ? "before:scale-y-100 before:opacity-100" : "before:scale-y-50"
                   )}
+                    />
+                  }
                 >
                   {spaceAbbreviation(cat.name)}
-                </button>
+                  {!isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute right-[3px] bottom-[3px] size-1.5 rounded-full"
+                      style={{ background: `var(--evt-${color}-solid)` }}
+                    />
+                  )}
+                </TooltipTrigger>
+                <TooltipContent side="right">{cat.name}</TooltipContent>
               </Tooltip>
             );
           })}
         </div>
 
         {/* Add Space */}
-        <Tooltip label="Create space">
-          <button
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
             type="button"
             aria-label="Create space"
             onClick={onCreateSpace}
             className="mt-[5px] grid size-[34px] place-items-center rounded-[10px] border border-dashed border-border text-muted-foreground transition-colors hover:border-muted-foreground hover:text-foreground"
+              />
+            }
           >
             <Plus className="size-4" />
-          </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{"Create space"}</TooltipContent>
         </Tooltip>
 
         {/* Spacer pushes the account menu to the bottom */}

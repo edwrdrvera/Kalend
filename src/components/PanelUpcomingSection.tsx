@@ -7,6 +7,7 @@ import type { CalendarEvent } from "@/lib/calendar-types";
 import { cn } from "@/lib/utils";
 import { groupByDay, type UpcomingDay } from "@/lib/space-overview";
 import { PRESS_CLS } from "./InspectorParts";
+import { buttonVariants } from "@/components/ui/button";
 
 /** Rows shown before "Show more", so a busy Space doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -37,13 +38,13 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
   return (
     <section aria-label="Upcoming" className="px-4 py-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold text-muted-foreground">Upcoming</h3>
+        <h3 className="label-caps">Upcoming</h3>
         <button
           type="button"
           aria-label="Add event"
           onClick={(e) => onCreateEvent(e.currentTarget.getBoundingClientRect())}
           className={cn(
-            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+            buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground",
             PRESS_CLS
           )}
         >
@@ -62,7 +63,7 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
                     type="button"
                     onClick={() => onOpenEvent(event)}
                     aria-label={`Open event ${event.title}`}
-                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-[13px] transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                    className="-mx-4 flex w-[calc(100%+2rem)] items-baseline gap-3 rounded-lg px-4 py-1 text-left text-[13px] hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
                   >
                     <span className="w-[60px] shrink-0 tabular-nums text-muted-foreground">
                       {format(new Date(event.start_at), "h:mm a")}

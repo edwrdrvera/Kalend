@@ -52,7 +52,7 @@ export default function MobileSpacesBar({
                 "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[13px] transition-colors",
                 isActive
                   ? "border-transparent bg-muted font-medium text-foreground"
-                  : "border-border text-muted-foreground hover:bg-muted/60"
+                  : "border-border text-muted-foreground hover:bg-hover"
               )}
             >
               <span
