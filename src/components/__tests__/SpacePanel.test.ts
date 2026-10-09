@@ -397,13 +397,13 @@ describe("SpacePanel rename", () => {
 
   it("opens a name box from the title", async () => {
     await render(SPACE);
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     expect(nameInput()?.value).toBe("School");
   });
 
   it("saves the trimmed name on Enter", async () => {
     const handlers = await render(SPACE);
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await act(() => typeInto(nameInput()!, "  Biology "));
     await key("Enter");
     expect(handlers.renames).toEqual(["Biology"]);
@@ -412,7 +412,7 @@ describe("SpacePanel rename", () => {
 
   it("cancels on Escape without saving or closing the panel", async () => {
     const handlers = await render(SPACE);
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await act(() => typeInto(nameInput()!, "Biology"));
     await key("Escape");
     expect(handlers.renames).toEqual([]);
@@ -422,10 +422,10 @@ describe("SpacePanel rename", () => {
 
   it("does not save a blank or unchanged name", async () => {
     const handlers = await render(SPACE);
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await act(() => typeInto(nameInput()!, "   "));
     await key("Enter");
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await key("Enter");
     expect(handlers.renames).toEqual([]);
   });
@@ -433,21 +433,21 @@ describe("SpacePanel rename", () => {
   it("drops an unsaved name when the panel switches to another Space", async () => {
     const handlers = await render(SPACE);
     handlers.renameResult = false;
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await act(() => typeInto(nameInput()!, "Biology"));
     await key("Enter");
 
     const work = { ...SPACE, spaceId: "fixture-work", name: "Work" };
     await act(() => root?.render(createElement(SpacePanel, { ...lastProps, subject: work })));
     expect(document.querySelector('input[aria-label="Work name"]')).toBeNull();
-    expect(buttonWithText("Rename Work")).toBeDefined();
+    expect(buttonWithText("Work Rename")).toBeDefined();
     expect(container?.textContent).not.toContain("Couldn't rename");
   });
 
   it("keeps the box open with a message when the save fails", async () => {
     const handlers = await render(SPACE);
     handlers.renameResult = false;
-    await act(() => buttonWithText("Rename School")?.click());
+    await act(() => buttonWithText("School Rename")?.click());
     await act(() => typeInto(nameInput()!, "Biology"));
     await key("Enter");
     expect(nameInput()?.value).toBe("Biology");

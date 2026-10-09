@@ -41,7 +41,7 @@ async function renderTask(task: CalendarTask, dimmed = false) {
     )
   );
   const checkbox = container.querySelector<HTMLElement>('[role="checkbox"]');
-  const title = container.querySelector<HTMLButtonElement>(`button[aria-label="Open task ${task.title}"]`);
+  const title = container.querySelector<HTMLButtonElement>(`button[aria-label^="Open task ${task.title}"]`);
   if (!checkbox || !title) throw new Error("Task chip was not rendered");
   return { calls, checkbox, title, chip: container.firstElementChild as HTMLElement };
 }
@@ -78,6 +78,13 @@ describe("TaskChip", () => {
     rendered = await renderTask({ ...defaultTask, due_at: "2000-01-01T00:00:00.000Z" });
     expect(rendered.chip.className).toContain("text-destructive");
     expect(rendered.title.className).not.toContain("line-through");
+    expect(rendered.title.getAttribute("aria-label")).toBe("Open task Finish lab report, Overdue");
+  });
+
+  it("leaves Overdue out of the name of a task that is not overdue", async () => {
+    const { title } = await renderTask(defaultTask);
+
+    expect(title.getAttribute("aria-label")).toBe("Open task Finish lab report");
   });
 
   it("opens the task from its title without completing it", async () => {

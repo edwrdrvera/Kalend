@@ -537,7 +537,7 @@ describe("Calendar behavior", () => {
 
   describe("Groups", () => {
     const BIO: CalendarGroup = { id: "group-bio", category_id: SPACE.id, name: "BIO 102" };
-    const panelHeading = () => document.querySelector("[role='complementary'] h2")?.textContent;
+    const panelHeading = () => document.querySelector("[role='complementary'] h2")?.getAttribute("aria-label");
 
     beforeEach(() => {
       groups = [BIO];

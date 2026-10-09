@@ -130,6 +130,9 @@ function MiniCalendarGrid({
                 type="button"
                 key={`day-${day.getTime()}`}
                 onClick={() => onDateSelect(day)}
+                aria-label={format(day, "EEEE, MMMM d, yyyy")}
+                aria-pressed={isSameDay(day, currentDate)}
+                aria-current={isSameDay(day, new Date()) ? "date" : undefined}
                 className={getDayClasses(day, monthStart, currentDate)}
               >
                 {format(day, "d")}

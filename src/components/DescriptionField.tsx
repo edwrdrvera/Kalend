@@ -92,7 +92,10 @@ export default function DescriptionField({
             if (!(e.target as HTMLElement).closest("a")) startEditing();
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target === e.currentTarget) startEditing();
+            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+              e.preventDefault();
+              startEditing();
+            }
           }}
           className="min-h-14 cursor-text rounded-lg border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/60"
         >

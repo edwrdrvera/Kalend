@@ -55,7 +55,10 @@ async function renderMonth(events: CalendarEvent[], selectedSpaceId: string | nu
 }
 
 function chipTitles(el: HTMLElement) {
-  return [...el.querySelectorAll<HTMLButtonElement>("button[title]")].map((b) => b.title);
+  // The header's Previous and Next buttons also carry a title, so skip them.
+  return [...el.querySelectorAll<HTMLButtonElement>("button[title]")]
+    .filter((b) => !/^(Previous|Next) /.test(b.getAttribute("aria-label") ?? ""))
+    .map((b) => b.title);
 }
 
 afterEach(async () => {

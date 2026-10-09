@@ -174,7 +174,7 @@ export default function EventCreatePopover({
           zIndex: 50,
           filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.08))",
         }}
-        className="animate-in fade-in-0 zoom-in-95 duration-100"
+        className="animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none"
       >
       <div className="relative rounded-xl border border-border bg-popover text-popover-foreground">
         {!wasClamped && (

@@ -56,7 +56,10 @@ function ErrorToast({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
+    <div
+      role="alert"
+      className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border"
+    >
       <span>{message}</span>
       {onRetry && (
         <button
@@ -81,8 +84,9 @@ function ErrorToast({
 
 function LoadingSpinner() {
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div role="status" className="flex h-full w-full items-center justify-center">
       <div className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+      <span className="sr-only">Loading calendar</span>
     </div>
   );
 }

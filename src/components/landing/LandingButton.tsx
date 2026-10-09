@@ -26,7 +26,8 @@ export default function LandingButton({
 
     event.preventDefault();
     window.history.replaceState(null, "", href);
-    emailInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    emailInput.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
     emailInput.focus({ preventScroll: true });
   }
 

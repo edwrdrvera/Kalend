@@ -61,14 +61,14 @@ describe("SpacePanelHeader", () => {
     await renderHeader(GROUP);
 
     expect(container?.textContent).toContain("School");
-    expect(container?.querySelector("h2")?.textContent).toBe("CS 340");
+    expect(container?.querySelector("h2")?.getAttribute("aria-label")).toBe("CS 340");
     expect(container?.textContent).not.toContain("Databases & Information Systems");
   });
 
   it("shows only the Space name as the heading for a Space", async () => {
     await renderHeader(SPACE);
 
-    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
     const paragraphs = Array.from(document.querySelectorAll("p"));
     expect(paragraphs.map((p) => p.textContent)).toEqual(["Space"]);
   });
@@ -84,7 +84,7 @@ describe("SpacePanelHeader", () => {
 
   it("renames a Group once when Enter is followed by the box losing focus", async () => {
     const interactions = await renderHeader(GROUP);
-    await act(() => byLabel("Rename CS 340")?.click());
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
     const input = byLabel("CS 340 name") as HTMLInputElement;
     await act(() => typeInto(input, "CS 341"));
     await act(async () => {
@@ -113,7 +113,7 @@ describe("SpacePanelHeader rename across a panel switch", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     await mount(GROUP);
-    await act(() => byLabel("Rename CS 340")?.click());
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
     const input = byLabel("CS 340 name") as HTMLInputElement;
     await act(() => typeInto(input, "CS 341"));
     await act(async () => {
@@ -123,7 +123,7 @@ describe("SpacePanelHeader rename across a panel switch", () => {
     await mount(SPACE);
     await act(async () => finishRename(false));
 
-    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
     expect(container?.textContent).not.toContain("Couldn't rename");
   });
 });
