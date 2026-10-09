@@ -77,6 +77,20 @@ describe("ContextMenu", () => {
     expect(menuItems().length).toBe(2);
   });
 
+  it("focuses the first item after a keyboard open, so ArrowDown then Enter runs Delete", async () => {
+    const deleted: string[][] = [];
+    await mount(deleted);
+    const target = container!.querySelector<HTMLElement>('[data-testid="event"]')!;
+    target.focus();
+    await key(target, { key: "F10", shiftKey: true });
+    await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    expect(document.activeElement?.textContent).toBe("Open details");
+    await key(document.activeElement!, { key: "ArrowDown" });
+    expect(document.activeElement?.textContent).toBe("Delete 3 events");
+    await key(document.activeElement!, { key: "Enter" });
+    expect(deleted).toEqual([["evt-1", "evt-2", "evt-3"]]);
+  });
+
   it("opens on the ContextMenu key", async () => {
     await mount([]);
     const target = container!.querySelector<HTMLElement>('[data-testid="event"]')!;

@@ -25,16 +25,28 @@ export function useContextMenu() {
   const [items, setItems] = useState<ContextMenuItem[]>([]);
   const [open, setOpen] = useState(false);
   const claimed = useRef(false);
+  const fromKeyboard = useRef(false);
 
   return {
     items,
     open,
+    markKeyboardOpen: () => {
+      fromKeyboard.current = true;
+    },
+    takeKeyboardOpen: () => {
+      const was = fromKeyboard.current;
+      fromKeyboard.current = false;
+      return was;
+    },
     show: (next: ContextMenuItem[]) => {
       claimed.current = true;
       setItems(next);
     },
     onOpenChange: (next: boolean) => {
-      if (next && !claimed.current) return;
+      if (next && !claimed.current) {
+        fromKeyboard.current = false;
+        return;
+      }
       claimed.current = false;
       setOpen(next);
     },
@@ -68,20 +80,30 @@ interface ContextMenuProps {
 /** Wraps the calendar grid. Right-click, long press, Shift+F10 and the
  *  ContextMenu key open the menu for the target the grid reports to `menu`. */
 export default function ContextMenu({ menu, className, triggerRef, children }: ContextMenuProps) {
+  const popupRef = useRef<HTMLDivElement>(null);
   return (
-    <Menu open={menu.open} onOpenChange={menu.onOpenChange}>
+    <Menu
+      open={menu.open}
+      onOpenChange={menu.onOpenChange}
+      onOpenChangeComplete={(open) => {
+        if (open && menu.takeKeyboardOpen()) {
+          popupRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+        }
+      }}
+    >
       <ContextMenuTrigger
         ref={triggerRef}
         className={cn("select-text", className)}
         onKeyDown={(e) => {
           if (!isMenuKey(e) || !e.currentTarget.contains(e.target as Node)) return;
           e.preventDefault();
+          menu.markKeyboardOpen();
           openFromKeyboard(e.target as HTMLElement);
         }}
       >
         {children}
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-46" side="right" align="start" sideOffset={0} alignOffset={0}>
+      <ContextMenuContent ref={popupRef} className="w-46" side="right" align="start" sideOffset={0} alignOffset={0}>
         {menu.items.map((item) => (
           <ContextMenuItem
             key={item.label}
