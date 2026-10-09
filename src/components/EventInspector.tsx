@@ -182,7 +182,7 @@ export default function EventInspector({
               categories={categories}
               groups={groups}
               onChange={(colorState) => update({ colorState })}
-              className="h-7 border border-transparent text-xs text-foreground"
+              className="w-full"
             />
           </DetailRow>
           <DetailRow icon={<Palette />} label="Color" className="justify-between">

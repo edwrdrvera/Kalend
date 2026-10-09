@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import { Tag } from "lucide-react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { groupsOfSpace } from "@/lib/group-state";
 import type { Membership } from "@/lib/membership";
@@ -47,10 +47,7 @@ export default function MembershipSelect({
       <SelectTrigger
         size="sm"
         aria-label={`Space: ${space ? (group ? `${space.name} / ${group.name}` : space.name) : "No Space"}`}
-        className={cn(
-          "min-w-0 border-transparent px-2 text-xs text-muted-foreground hover:bg-hover hover:text-foreground",
-          className
-        )}
+        className={cn("min-w-0 text-[13px]", className)}
       >
         <SelectValue>
           {space ? (
@@ -66,21 +63,17 @@ export default function MembershipSelect({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
+      <SelectContent>
         <SelectGroup>
+          <SelectLabel>Spaces</SelectLabel>
           <SelectItem value={NONE}>No Space</SelectItem>
           {categories.length > 0 && <SelectSeparator />}
           {categories.map((category) => (
             <Fragment key={category.id}>
-              <SelectItem value={spaceValue(category.id)}>
-                <span className="flex min-w-0 items-center gap-2">
-                  <SpaceDot color={category.color} />
-                  <span className="truncate">{category.name}</span>
-                </span>
-              </SelectItem>
+              <SelectItem value={spaceValue(category.id)}>{category.name}</SelectItem>
               {groupsOfSpace(groups, category.id).map((g) => (
                 <SelectItem key={g.id} value={groupValue(g.id)} className="pl-6">
-                  <span className="truncate">{g.name}</span>
+                  {g.name}
                 </SelectItem>
               ))}
             </Fragment>

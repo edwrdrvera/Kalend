@@ -1,9 +1,8 @@
 "use client";
 
 import { ALERT_OFFSETS, OFFSET_LABEL, isAlertOffset, type AlertOffset } from "@/lib/alerts";
-import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FIELD_LABEL_CLS } from "./InspectorParts";
 
 const NONE = "none";
@@ -18,7 +17,7 @@ interface AlertFieldProps {
   onChange: (offset: AlertOffset | null) => void;
   /** Why the choice is turned off, or null when it is available. */
   disabledReason?: string | null;
-  /** Borderless select for a label/value row that supplies its own visible label. */
+  /** For a label/value row that supplies its own visible label. */
   inline?: boolean;
 }
 
@@ -42,12 +41,14 @@ export default function AlertField({ id, value, onChange, disabledReason = null,
         <SelectTrigger
           id={id}
           aria-describedby={disabledReason ? noteId : undefined}
-          className={cn("w-full", inline && "h-7 border-transparent bg-transparent pl-1 pr-2 text-xs hover:bg-hover")}
+          size="sm"
+          className="w-full text-[13px]"
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent alignItemWithTrigger={false} align="start" className="min-w-48">
+        <SelectContent>
           <SelectGroup>
+            <SelectLabel>Alert</SelectLabel>
             {ITEMS.map((item) => (
               <SelectItem key={item.value} value={item.value}>
                 {item.label}

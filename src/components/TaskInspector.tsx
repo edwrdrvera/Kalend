@@ -140,7 +140,7 @@ export default function TaskInspector({
             groups={groups}
             membership={membershipOf({ category_id: draft.categoryId, group_id: draft.groupId })}
             onChange={(next) => update({ categoryId: next.category_id, groupId: next.group_id })}
-            className="-mx-2 w-fit"
+            className="w-full"
           />
         </div>
 
