@@ -2,9 +2,8 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import KalendMark, { type KalendMarkAnimation } from "./KalendMark";
 
-// Brand-only display face for the wordmark. Scoped to this component via a
-// CSS variable rather than replacing the app's --font-sans (see
-// src/app/globals.css for why that stays the system SF Pro stack).
+// The wordmark uses the same Plus Jakarta Sans as the app UI. This component
+// loads only the 700 and 800 weights, scoped to it through a CSS variable.
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   weight: ["700", "800"],
