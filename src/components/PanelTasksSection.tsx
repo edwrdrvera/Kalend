@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Bell, Check, Plus } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { addDays, format, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks } from "@/lib/task-buckets";
-import { PRESS_CLS } from "./InspectorParts";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { CHIP_CLS, QUIET_LINK_CLS } from "./control-styles";
+import TaskCheckbox from "./TaskCheckbox";
 
 /** Rows shown before "Show more", so a long backlog doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -56,16 +58,7 @@ function dueState(task: CalendarTask, now: Date): DueState {
 /** The dashboard names the later buckets "Later" and "No date". */
 const BUCKET_LABELS: Partial<Record<string, string>> = { month: "Later", unscheduled: "No date" };
 
-const PILL_CLS = cn(
-  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold focus-ring",
-  PRESS_CLS
-);
-const TEXT_BTN_CLS = cn(
-  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-hover focus-ring",
-  PRESS_CLS
-);
-const LINK_BTN_CLS =
-  "rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-ring";
+const TEXT_BTN_CLS = "h-[26px] px-2.5 text-[12px] font-semibold";
 
 export default function PanelTasksSection({
   tasks,
@@ -107,26 +100,12 @@ export default function PanelTasksSection({
     return (
       <div key={task.id} className="-mx-4 border-b border-border/60 px-4 py-1.5 last:border-b-0">
         <div className="flex items-start gap-2.5">
-          <button
-            type="button"
-            onClick={() => onToggleComplete(task)}
-            aria-pressed={task.completed}
-            aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
-            className={cn(
-              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-[background-color,border-color,transform] duration-150 ease-snappy focus-ring motion-safe:active:scale-90",
-              task.completed
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border hover:border-muted-foreground"
-            )}
-          >
-            <Check
-              className={cn(
-                "size-2.5 transition-[opacity,transform] duration-150 ease-snappy",
-                task.completed ? "scale-100 opacity-100" : "scale-50 opacity-0"
-              )}
-              strokeWidth={3}
-            />
-          </button>
+          <TaskCheckbox
+            title={task.title}
+            checked={task.completed}
+            onToggle={() => onToggleComplete(task)}
+            className="mt-0.5"
+          />
           <button
             type="button"
             aria-expanded={expanded}
@@ -164,49 +143,46 @@ export default function PanelTasksSection({
                   ? !!task.due_at && isSameDay(new Date(task.due_at), day)
                   : task.due_at === null;
                 return (
-                  <button
+                  <Toggle
                     key={label}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => onChangeDue(task, day)}
-                    className={cn(
-                      PILL_CLS,
-                      on
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:bg-hover"
-                    )}
+                    pressed={on}
+                    onPressedChange={() => onChangeDue(task, day)}
+                    className={cn(CHIP_CLS, "aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:hover:bg-foreground aria-pressed:hover:text-background")}
                   >
                     {label}
-                  </button>
+                  </Toggle>
                 );
               })}
             </div>
             <div className="mt-2 flex items-center gap-1.5">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setAlertIdx((q) => ({ ...q, [task.id]: (alertAt + 1) % ALERT_CHOICES.length }))}
-                className={cn(PILL_CLS, "border-border bg-card text-foreground hover:bg-hover")}
+                className={cn(CHIP_CLS, "bg-card text-foreground")}
               >
                 Alert: {ALERT_CHOICES[alertAt]}
-              </button>
+              </Button>
               <div className="flex-1" />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => onOpenTask(task)}
                 aria-label={`Open task ${task.title}`}
-                className={cn(TEXT_BTN_CLS, "text-muted-foreground hover:text-foreground")}
+                className={cn(TEXT_BTN_CLS, "text-muted-foreground")}
               >
                 Details
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   if (window.confirm(`Delete "${task.title}"?`)) onDelete(task);
                 }}
-                className={cn(TEXT_BTN_CLS, "text-destructive")}
+                className={cn(TEXT_BTN_CLS, "text-destructive hover:text-destructive")}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -221,17 +197,16 @@ export default function PanelTasksSection({
           Tasks
           <span className="font-normal"> · {tasks.length} open</span>
         </h3>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           aria-label="Add task"
           onClick={onAddTask}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground",
-            PRESS_CLS
-          )}
+          className="text-muted-foreground hover:text-foreground"
         >
           <Plus aria-hidden className="size-3.5" />
-        </button>
+        </Button>
       </div>
       {children}
       {tasks.length === 0 && <p className="mt-2 text-[13px] text-muted-foreground">All caught up.</p>}
@@ -250,23 +225,15 @@ export default function PanelTasksSection({
         ))}
       </div>
       {hidden > 0 || showAll ? (
-        <button
-          type="button"
-          onClick={() => setShowAll(!showAll)}
-          className={cn(LINK_BTN_CLS, "mt-2")}
-        >
+        <Button type="button" variant="link" onClick={() => setShowAll(!showAll)} className={cn(QUIET_LINK_CLS, "mt-2")}>
           {showAll ? "Show fewer" : `Show ${hidden} more`}
-        </button>
+        </Button>
       ) : null}
       {completed.length > 0 && (
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setShowCompleted(!showCompleted)}
-            className={LINK_BTN_CLS}
-          >
+          <Button type="button" variant="link" onClick={() => setShowCompleted(!showCompleted)} className={QUIET_LINK_CLS}>
             {showCompleted ? "Hide" : "Show"} completed ({completed.length})
-          </button>
+          </Button>
           {showCompleted && (
             <div className="animate-reveal-down">
               {completed.map(renderRow)}

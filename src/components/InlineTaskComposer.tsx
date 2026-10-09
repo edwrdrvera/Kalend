@@ -2,14 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { dueAtFromDate } from "@/lib/task-draft";
 import { spaceMembership, type Membership } from "@/lib/membership";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import MembershipSelect from "./MembershipSelect";
 import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface TaskDraft {
   title: string;
@@ -103,21 +102,24 @@ export default function InlineTaskComposer({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onClose}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs text-muted-foreground hover:text-foreground")}
+          className="text-xs text-muted-foreground hover:text-foreground"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          size="sm"
           disabled={!draft.title.trim() || submitting}
           aria-label="Add task"
-          className={cn(buttonVariants({ size: "sm" }), "text-xs disabled:pointer-events-none disabled:opacity-40")}
+          className="text-xs"
         >
           Add task
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}

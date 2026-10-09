@@ -63,17 +63,19 @@ function numberFrom(path: string, pattern: RegExp): number {
   return Number(match[1]);
 }
 
+/** The token the unchecked task checkbox border uses, read from its source so a class change cannot drift from the check. */
+function checkboxBorderToken(): string {
+  const source = readFileSync("src/components/TaskCheckbox.tsx", "utf8");
+  const match = source.match(/(?<![:\w-])border-(muted-foreground|border|input)(?![\w/-])/);
+  if (!match) throw new Error("src/components/TaskCheckbox.tsx has no solid border-<token> class on its unchecked box");
+  return `--${match[1]}`;
+}
+
 export function buildPairs(): Pair[] {
   const switchAlpha = numberFrom("src/components/PanelAlertsTab.tsx", /"bg-muted-foreground\/(\d+)"/) / 100;
   const dimOpacity = numberFrom("src/lib/space-focus.ts", /"opacity-(\d+) transition-opacity/) / 100;
   const pairs: Pair[] = [
-    {
-      name: "Unchecked checkbox border on card",
-      fg: "--border",
-      bg: "--card",
-      min: 3,
-      knownGap: "task checkboxes use the hairline border color; not in PR C's scope",
-    },
+    { name: "Unchecked checkbox border on card", fg: checkboxBorderToken(), bg: "--card", min: 3 },
     { name: "Focus ring on card", fg: "--ring", bg: "--card", min: 3 },
     { name: "Focus ring on background", fg: "--ring", bg: "--background", min: 3 },
     { name: "Focus ring on muted", fg: "--ring", bg: "--muted", min: 3 },

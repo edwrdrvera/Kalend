@@ -6,8 +6,8 @@ import { addDays, format, isSameDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
 import { cn } from "@/lib/utils";
 import { groupByDay, type UpcomingDay } from "@/lib/space-overview";
-import { PRESS_CLS } from "./InspectorParts";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { QUIET_LINK_CLS } from "./control-styles";
 
 /** Rows shown before "Show more", so a busy Space doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -39,17 +39,16 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
     <section aria-label="Upcoming" className="px-4 py-3">
       <div className="flex items-center justify-between">
         <h3 className="label-caps">Upcoming</h3>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           aria-label="Add event"
           onClick={(e) => onCreateEvent(e.currentTarget.getBoundingClientRect())}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground",
-            PRESS_CLS
-          )}
+          className="text-muted-foreground hover:text-foreground"
         >
           <Plus aria-hidden className="size-3.5" />
-        </button>
+        </Button>
       </div>
       {total === 0 && <p className="mt-2 text-[13px] text-muted-foreground">Nothing scheduled.</p>}
       <div className="mt-2 flex flex-col gap-2.5">
@@ -77,13 +76,9 @@ export default function PanelUpcomingSection({ days, onOpenEvent, onCreateEvent 
         ))}
       </div>
       {hidden > 0 || expanded ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="mt-2 rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-ring"
-        >
+        <Button type="button" variant="link" onClick={() => setExpanded(!expanded)} className={cn(QUIET_LINK_CLS, "mt-2")}>
           {expanded ? "Show less" : `Show ${hidden} more`}
-        </button>
+        </Button>
       ) : null}
     </section>
   );

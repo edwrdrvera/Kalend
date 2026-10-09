@@ -12,6 +12,9 @@ import {
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 import type { CalendarCategory } from "@/lib/calendar-types";
 import KalendMark from "./KalendMark";
+import { Separator } from "./ui/separator";
+import { Toggle } from "./ui/toggle";
+import SpaceDot from "./SpaceDot";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface IconRailProps {
@@ -69,7 +72,7 @@ export default function IconRail({
         </Tooltip>
 
         {/* Divider */}
-        <div className="my-[11px] h-px w-6 bg-border" />
+        <Separator className="my-[11px] w-6" />
 
         {/* View all spaces (this used to be the app mark's job). */}
         <Tooltip>
@@ -101,18 +104,18 @@ export default function IconRail({
               <Tooltip key={cat.id}>
                 <TooltipTrigger
                   render={
-                    <button
-                  type="button"
+                    <Toggle
                   aria-label={cat.name}
-                  onClick={() => onSelectSpace(isActive ? null : cat.id)}
+                  pressed={isActive}
+                  onPressedChange={() => onSelectSpace(isActive ? null : cat.id)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     onEditSpace(cat);
                   }}
-                  aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "relative grid size-[34px] place-items-center rounded-[10px] border-[1.5px] text-sm font-semibold transition-[filter] hover:brightness-110",
-                    isActive ? RAIL_TILE_PRESSED_CLASSES[color].replace(/aria-pressed:/g,"") : "bg-muted text-muted-foreground hover:bg-hover hover:text-foreground",
+                    "relative size-[34px] min-w-0 rounded-[10px] border-[1.5px] border-transparent p-0 text-sm font-semibold",
+                    "bg-muted text-muted-foreground hover:bg-hover hover:text-foreground",
+                    RAIL_TILE_PRESSED_CLASSES[color],
                     // Open-Space marker on the rail's left edge.
                     "before:absolute before:top-1/2 before:-left-[15px] before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-r-full before:bg-foreground before:opacity-0 before:transition-[opacity,transform] before:duration-150 before:ease-snappy",
                     isActive ? "before:scale-y-100 before:opacity-100" : "before:scale-y-50"
@@ -121,13 +124,7 @@ export default function IconRail({
                   }
                 >
                   {spaceAbbreviation(cat.name)}
-                  {!isActive && (
-                    <span
-                      aria-hidden
-                      className="absolute right-[3px] bottom-[3px] size-1.5 rounded-full"
-                      style={{ background: `var(--evt-${color}-solid)` }}
-                    />
-                  )}
+                  {!isActive && <SpaceDot color={color} className="absolute right-[3px] bottom-[3px]" />}
                 </TooltipTrigger>
                 <TooltipContent side="right">{cat.name}</TooltipContent>
               </Tooltip>

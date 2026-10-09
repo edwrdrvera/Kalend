@@ -2,20 +2,24 @@
 
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowLeft, Trash2, X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { QUIET_LINK_CLS } from "./control-styles";
 
-/** Press feedback for anything clickable: a small scale-down the moment it is
- *  pressed, so the UI confirms it heard the click. */
-export const PRESS_CLS =
-  "transition-[color,background-color,border-color,opacity,transform] duration-150 ease-snappy motion-safe:active:scale-[0.97]";
-
-export const ICON_BUTTON_CLS = cn(
-  buttonVariants({ variant: "outline", size: "icon" }),
-  "shrink-0 text-muted-foreground hover:text-foreground",
-  PRESS_CLS
-);
+/** An inspector or panel action that shows only an icon. */
+export function IconButton({ className, ...props }: ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon-sm"
+      className={cn("text-muted-foreground hover:text-foreground", className)}
+      {...props}
+    />
+  );
+}
 
 /** One label/value row of an inspector: icon and label on the left, the control on the right. */
 export function DetailRow({
@@ -33,12 +37,12 @@ export function DetailRow({
 }) {
   return (
     <div className={cn("flex min-h-11 items-center gap-3 border-t border-border", className)}>
-      <label htmlFor={labelFor} className="flex w-20 shrink-0 items-center gap-2 text-xs text-muted-foreground">
+      <Label htmlFor={labelFor} className={cn(FIELD_LABEL_CLS, "w-20 shrink-0")}>
         <span aria-hidden className="shrink-0 [&>svg]:size-3.5">
           {icon}
         </span>
         {label}
-      </label>
+      </Label>
       <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
     </div>
   );
@@ -71,15 +75,15 @@ export function InspectorHeader({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {back && (
-            <button type="button" aria-label={`Back to ${back.label}`} onClick={back.onBack} className={ICON_BUTTON_CLS}>
+            <IconButton aria-label={`Back to ${back.label}`} onClick={back.onBack}>
               <ArrowLeft className="size-4" />
-            </button>
+            </IconButton>
           )}
           <h2 className="text-[13px] font-semibold text-foreground">{title}</h2>
         </div>
-        <button type="button" aria-label={`Close ${title.toLowerCase()}`} onClick={onClose} className={ICON_BUTTON_CLS}>
+        <IconButton aria-label={`Close ${title.toLowerCase()}`} onClick={onClose}>
           <X className="size-4" />
-        </button>
+        </IconButton>
       </div>
       <nav aria-label="Breadcrumb">
         <ol className="flex min-w-0 items-center gap-1 text-[12px] text-muted-foreground">
@@ -88,13 +92,14 @@ export function InspectorHeader({
               crumb && (
                 <Fragment key={index}>
                   <li className="min-w-0">
-                    <button
+                    <Button
                       type="button"
+                      variant="link"
                       onClick={crumb.onOpen}
-                      className="max-w-full truncate rounded-sm font-medium transition-colors hover:text-foreground focus-ring"
+                      className={cn(QUIET_LINK_CLS, "block max-w-full truncate font-medium")}
                     >
                       {crumb.name}
-                    </button>
+                    </Button>
                   </li>
                   <li aria-hidden="true">/</li>
                 </Fragment>

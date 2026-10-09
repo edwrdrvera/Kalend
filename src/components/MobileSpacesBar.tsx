@@ -5,10 +5,13 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_EVENT_COLOR,
-  EVENT_COLOR_SWATCH_CLASSES,
+  GROUP_CHIP_PRESSED_CLASSES,
   isEventColor,
   type EventColor,
 } from "@/lib/event-colors";
+import { Toggle } from "@/components/ui/toggle";
+import { CHIP_CLS } from "./control-styles";
+import SpaceDot from "./SpaceDot";
 import type { CalendarCategory } from "@/lib/calendar-types";
 
 interface MobileSpacesBarProps {
@@ -42,28 +45,16 @@ export default function MobileSpacesBar({
             ? cat.color
             : DEFAULT_EVENT_COLOR;
           return (
-            <button
+            <Toggle
               key={cat.id}
-              type="button"
               aria-label={cat.name}
-              aria-pressed={isActive}
-              onClick={() => onSelectSpace(isActive ? null : cat.id)}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[13px] transition-colors",
-                isActive
-                  ? "border-transparent bg-muted font-medium text-foreground"
-                  : "border-border text-muted-foreground hover:bg-hover"
-              )}
+              pressed={isActive}
+              onPressedChange={() => onSelectSpace(isActive ? null : cat.id)}
+              className={cn(CHIP_CLS, "shrink-0", GROUP_CHIP_PRESSED_CLASSES[color])}
             >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "size-[10px] shrink-0 rounded-[3px]",
-                  EVENT_COLOR_SWATCH_CLASSES[color]
-                )}
-              />
+              <SpaceDot color={color} />
               <span className="max-w-[9rem] truncate">{cat.name}</span>
-            </button>
+            </Toggle>
           );
         })}
       </div>

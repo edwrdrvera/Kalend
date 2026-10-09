@@ -2,13 +2,10 @@
 
 import { isPast } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Checkbox } from "@/components/ui/checkbox";
+import TaskCheckbox from "./TaskCheckbox";
+import SpaceDot from "./SpaceDot";
 import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
-import {
-  EVENT_COLOR_SWATCH_CLASSES,
-  isEventColor,
-  resolveDisplayColor,
-} from "@/lib/event-colors";
+import { resolveDisplayColor } from "@/lib/event-colors";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskChipProps {
@@ -56,25 +53,14 @@ export default function TaskChip({
         className
       )}
     >
-      <Checkbox
+      <TaskCheckbox
+        title={task.title}
         checked={task.completed}
-        onCheckedChange={() => onToggleComplete(task)}
+        onToggle={() => onToggleComplete(task)}
         onClick={(e) => e.stopPropagation()}
-        aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
-        className={cn(
-          "size-3.5 rounded-[3px] border-muted-foreground/70 data-checked:border-muted-foreground data-checked:bg-muted-foreground data-checked:text-background dark:data-checked:bg-muted-foreground",
-          overdue && "border-destructive"
-        )}
+        overdue={Boolean(overdue)}
       />
-      <span
-        aria-hidden="true"
-        className={cn(
-          "size-1.5 shrink-0 rounded-[2px]",
-          isEventColor(displayColor)
-            ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
-            : "bg-muted-foreground/70"
-        )}
-      />
+      <SpaceDot color={displayColor} overdue={Boolean(overdue)} />
       <button
         type="button"
         title={task.title}

@@ -39,6 +39,21 @@ describe("globals.css", () => {
     expect(failing).toEqual([]);
   });
 
+  test("the unchecked checkbox border is a checked pair at 3:1, not a known gap", () => {
+    const rows = results.filter((r) => r.pair.name === "Unchecked checkbox border on card");
+    expect(rows.map((r) => r.mode)).toEqual(["light", "dark"]);
+    for (const row of rows) {
+      expect(row.pair.knownGap).toBeUndefined();
+      expect(row.ok).toBe(true);
+    }
+  });
+
+  test("the checkbox border fails the check when it falls back to the hairline token", () => {
+    const hairline = css.replace("--muted-foreground: #6b6b6b;", "--muted-foreground: #e0e0e0;");
+    const failing = checkPairs(hairline, buildPairs()).filter((r) => !r.ok && !r.pair.knownGap);
+    expect(failing.some((r) => r.pair.name === "Unchecked checkbox border on card")).toBe(true);
+  });
+
   test("the check fails when a token is made too light", () => {
     const broken = css.replace("--muted-foreground: #6b6b6b;", "--muted-foreground: #a0a0a0;");
     const failing = checkPairs(broken, buildPairs()).filter((r) => !r.ok && !r.pair.knownGap);

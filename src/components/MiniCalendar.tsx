@@ -12,7 +12,7 @@ import {
   addDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface MiniCalendarProps {
   currentDate: Date;
@@ -37,22 +37,12 @@ function MiniCalendarHeader({
         {format(browseDate, "MMMM yyyy")}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
-        <button
-          type="button"
-          onClick={onPrevMonth}
-          className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
-          aria-label="Previous month"
-        >
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label="Previous month">
           <ChevronLeft size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={onNextMonth}
-          className={buttonVariants({ variant: "ghost", size: "icon-xs" })}
-          aria-label="Next month"
-        >
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label="Next month">
           <ChevronRight size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -57,7 +57,7 @@ describe("TaskChip", () => {
   it("renders an accessible checkbox and a named title button", async () => {
     const { checkbox, title, chip } = await renderTask(defaultTask);
 
-    expect(checkbox.getAttribute("aria-label")).toBe("Mark as done: Finish lab report");
+    expect(checkbox.getAttribute("aria-label")).toBe("Mark Finish lab report as done");
     expect(checkbox.getAttribute("aria-checked")).toBe("false");
     expect(title.textContent).toBe("Finish lab report");
     expect(chip.className).toContain("min-h-7");
@@ -66,7 +66,7 @@ describe("TaskChip", () => {
 
   it("uses clear completed and overdue states", async () => {
     let rendered = await renderTask({ ...defaultTask, completed: true });
-    expect(rendered.checkbox.getAttribute("aria-label")).toBe("Mark as not done: Finish lab report");
+    expect(rendered.checkbox.getAttribute("aria-label")).toBe("Mark Finish lab report as not done");
     expect(rendered.checkbox.getAttribute("aria-checked")).toBe("true");
     expect(rendered.title.className).toContain("line-through");
 
@@ -79,6 +79,10 @@ describe("TaskChip", () => {
     expect(rendered.chip.className).toContain("text-destructive");
     expect(rendered.title.className).not.toContain("line-through");
     expect(rendered.title.getAttribute("aria-label")).toBe("Open task Finish lab report, Overdue");
+    const alertIcon = rendered.chip.querySelector('svg.lucide-triangle-alert');
+    expect(alertIcon).not.toBeNull();
+    expect(alertIcon?.parentElement?.className).toContain("size-1.5");
+    expect(rendered.chip.querySelector('[class*="evt-green-solid"]')).toBeNull();
   });
 
   it("leaves Overdue out of the name of a task that is not overdue", async () => {

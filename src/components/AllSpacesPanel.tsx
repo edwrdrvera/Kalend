@@ -6,7 +6,7 @@ import type { CalendarCategory, CalendarGroup, CalendarTask } from "@/lib/calend
 import type { WeekLoadDay } from "@/lib/space-overview";
 import type { Membership } from "@/lib/membership";
 import InlineTaskComposer from "./InlineTaskComposer";
-import { ICON_BUTTON_CLS } from "./InspectorParts";
+import { IconButton } from "./InspectorParts";
 import PanelAlertsTab from "./PanelAlertsTab";
 import PanelShell from "./PanelShell";
 import PanelTabs from "./PanelTabs";
@@ -74,9 +74,9 @@ export default function AllSpacesPanel({
           <h2 className="min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground">
             All tasks
           </h2>
-          <button type="button" aria-label="Close panel" onClick={onClose} className={ICON_BUTTON_CLS}>
+          <IconButton aria-label="Close panel" onClick={onClose}>
             <X className="size-4" />
-          </button>
+          </IconButton>
         </div>
         <PanelTabs tabs={TABS} value={tab} onChange={setTab} />
       </header>

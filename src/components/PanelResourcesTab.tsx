@@ -5,9 +5,8 @@ import { Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_INPUT_CLS, FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 import { parseWebLink } from "@/lib/web-link";
-import { PRESS_CLS } from "./InspectorParts";
 import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 // Placeholder: links and files live in component state only, nothing is saved
 // or uploaded yet. Swap in real storage when Resources get a backend.
@@ -30,15 +29,8 @@ const SAMPLE_FILES: Omit<ResourceFile, "id">[] = [
   { name: "Notes.docx", ext: "DOC", size: "32 KB" },
 ];
 
-const HEADER_BTN = cn(
-  buttonVariants({ variant: "outline", size: "sm" }),
-  "text-[12px] font-semibold",
-  PRESS_CLS
-);
-const REMOVE_BTN = cn(
-  buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground shrink-0",
-  PRESS_CLS
-);
+const HEADER_BTN = "text-[12px] font-semibold";
+const REMOVE_BTN = "text-muted-foreground hover:text-foreground";
 
 export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "Group" }) {
   const [links, setLinks] = useState<ResourceLink[]>([]);
@@ -80,10 +72,10 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
           <h3 className="label-caps">
             Links<span className="ml-1.5 font-normal">{links.length}</span>
           </h3>
-          <button type="button" onClick={() => setLinkOpen(true)} className={HEADER_BTN}>
+          <Button type="button" variant="outline" size="sm" onClick={() => setLinkOpen(true)} className={HEADER_BTN}>
             <Plus aria-hidden className="size-3.5" />
             Add link
-          </button>
+          </Button>
         </div>
         {linkOpen && (
           <form onSubmit={commitLink} className="mt-2">
@@ -134,14 +126,16 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                 </span>
                 <span className="min-w-0 truncate text-[13px]">{link.host}</span>
               </a>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 aria-label={`Remove ${link.host}`}
                 onClick={() => setLinks((q) => q.filter((l) => l.id !== link.id))}
                 className={REMOVE_BTN}
               >
                 <X aria-hidden className="size-3.5" />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -152,10 +146,10 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
           <h3 className="label-caps">
             Files<span className="ml-1.5 font-normal">{files.length}</span>
           </h3>
-          <button type="button" onClick={addFile} className={HEADER_BTN}>
+          <Button type="button" variant="outline" size="sm" onClick={addFile} className={HEADER_BTN}>
             <Plus aria-hidden className="size-3.5" />
             Add file
-          </button>
+          </Button>
         </div>
         {files.length === 0 && (
           <div className="mt-3 rounded-xl border border-dashed border-border px-4 py-7 text-center text-[13px] text-muted-foreground">
@@ -178,14 +172,16 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                   <span className="block text-[11.5px] text-muted-foreground">{file.size}</span>
                 </span>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 aria-label={`Remove ${file.name}`}
                 onClick={() => setFiles((q) => q.filter((f) => f.id !== file.id))}
                 className={REMOVE_BTN}
               >
                 <X aria-hidden className="size-3.5" />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>

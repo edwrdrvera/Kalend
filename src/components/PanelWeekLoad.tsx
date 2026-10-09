@@ -4,7 +4,7 @@ import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
 import type { WeekLoadDay } from "@/lib/space-overview";
-import { PRESS_CLS } from "./InspectorParts";
+import { Button } from "@/components/ui/button";
 
 /** Hours in a day at or above which the bar turns to the warning color. */
 const HEAVY_HOURS = 8;
@@ -43,13 +43,13 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
           const today = isSameDay(day, now);
           return (
             <li key={day.toISOString()} className="flex flex-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
               onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-hover focus-ring",
-                PRESS_CLS,
+                "h-auto flex-1 flex-col gap-1 px-0 pb-1.5 pt-1.5 font-normal",
                 today && "bg-primary/10 hover:bg-primary/15"
               )}
             >
@@ -74,7 +74,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
               <span className={cn("text-[11px]", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
-            </button>
+            </Button>
             </li>
           );
         })}

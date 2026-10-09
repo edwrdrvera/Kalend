@@ -9,7 +9,7 @@ import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -140,14 +140,16 @@ export default function CalendarSidebar({
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-lg"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className={cn(buttonVariants({ variant: "ghost", size: "icon-lg" }), "absolute right-4 top-4 z-10 bg-muted/50 text-muted-foreground hover:text-foreground")}
+          className="absolute right-4 top-4 z-10 bg-muted/50 text-muted-foreground hover:text-foreground"
         >
           <X className="size-4" />
-        </button>
+        </Button>
 
         <div className="flex min-h-0 flex-1 flex-col pt-14">
           <MobileSpacesBar

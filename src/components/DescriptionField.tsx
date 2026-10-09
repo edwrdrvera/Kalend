@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { descriptionProblem } from "@/lib/description";
 import { APP_INPUT_CLS } from "./DateField";
+import { Label } from "@/components/ui/label";
 import { FIELD_LABEL_CLS } from "./InspectorParts";
 import NotesView from "./NotesView";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,9 +34,9 @@ export function DescriptionTextarea({
   const problem = descriptionProblem(value);
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className={FIELD_LABEL_CLS}>
+      <Label htmlFor={id} className={FIELD_LABEL_CLS}>
         {label}
-      </label>
+      </Label>
       <Textarea
         id={id}
         value={value}

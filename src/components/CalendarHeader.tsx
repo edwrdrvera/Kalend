@@ -2,8 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const VIEW_UNIT: Record<CalendarView, string> = { month: "month", week: "week", day: "day" };
 
@@ -33,28 +32,32 @@ export default function CalendarHeader({
     <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 pl-14 h-[53px] md:pl-4">
       <div className="flex items-center">
         <div className="flex items-center gap-1.5">
-          <button
+          <Button
+            variant="outline"
+            size="icon-lg"
             onClick={onPrev}
-            className={buttonVariants({ variant: "outline", size: "icon-lg" })}
             aria-label={`Previous ${unit}`}
             title={`Previous ${unit}`}
           >
             <ChevronLeft size={17} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
             onClick={onToday}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "hidden text-xs font-semibold md:inline-flex")}
+            className="hidden text-xs font-semibold md:inline-flex"
           >
             Today
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-lg"
             onClick={onNext}
-            className={buttonVariants({ variant: "outline", size: "icon-lg" })}
             aria-label={`Next ${unit}`}
             title={`Next ${unit}`}
           >
             <ChevronRight size={17} />
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex min-w-0 items-center">
