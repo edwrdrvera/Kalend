@@ -79,14 +79,12 @@ describe("TaskChip", () => {
     expect(rendered.chip.className).toContain("text-destructive");
     expect(rendered.title.className).not.toContain("line-through");
     expect(rendered.title.getAttribute("aria-label")).toBe("Open task Finish lab report, Overdue");
-    expect(rendered.chip.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("leaves Overdue out of the name of a task that is not overdue", async () => {
-    const { title, chip } = await renderTask(defaultTask);
+    const { title } = await renderTask(defaultTask);
 
     expect(title.getAttribute("aria-label")).toBe("Open task Finish lab report");
-    expect(chip.querySelector("svg")).toBeNull();
   });
 
   it("opens the task from its title without completing it", async () => {

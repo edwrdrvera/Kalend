@@ -1,7 +1,6 @@
 "use client";
 
 import { isPast } from "date-fns";
-import { CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
@@ -91,7 +90,6 @@ export default function TaskChip({
       >
         {task.title}
       </button>
-      {overdue && <CircleAlert aria-hidden="true" className="size-3 shrink-0" />}
     </div>
   );
 }
