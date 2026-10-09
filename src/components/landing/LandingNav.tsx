@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import KalendWordmark from "@/components/KalendWordmark";
+import { cn } from "@/lib/utils";
 import LandingButton from "./LandingButton";
 
 const NAV_LINKS = [
@@ -10,6 +11,12 @@ const NAV_LINKS = [
   { label: "Features", id: "features" },
   { label: "How it works", id: "how" },
 ] as const;
+
+// The menu and close icons crossfade in place with a touch of blur, so the
+// swap reads as one icon changing rather than two icons trading places.
+const ICON_CLS =
+  "absolute inset-0 size-5 transition-[opacity,transform,filter] duration-150 ease-out";
+const ICON_HIDDEN = "scale-75 opacity-0 blur-[2px] motion-reduce:scale-100";
 
 function scrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
@@ -68,26 +75,34 @@ export default function LandingNav() {
             onClick={() => setOpen((v) => !v)}
             className="focus-ring grid size-10 place-items-center rounded-lg text-[var(--kal-muted)] transition-colors hover:bg-[var(--kal-border)]/50 hover:text-[var(--kal-ink)] min-[760px]:hidden"
           >
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            <span className="relative size-5">
+              <Menu className={cn(ICON_CLS, open && ICON_HIDDEN)} />
+              <X className={cn(ICON_CLS, !open && ICON_HIDDEN)} />
+            </span>
           </button>
         </div>
       </nav>
 
-      {/* Mobile dropdown — slides in below the nav bar */}
-      {open && (
-        <div className="border-t border-[var(--kal-border)]/70 bg-[var(--kal-bg)] px-5 pb-4 pt-2 min-[760px]:hidden">
-          {NAV_LINKS.map(({ label, id }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => { scrollTo(id); close(); }}
-              className="focus-ring flex h-11 w-full items-center rounded-md text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mobile dropdown: stays mounted so it can fade, and is taken out of the
+          tab order and the page flow while closed. Closing is faster than opening. */}
+      <div
+        inert={!open}
+        className={cn(
+          "absolute inset-x-0 top-full border-b border-[var(--kal-border)]/70 bg-[var(--kal-bg)] px-5 pb-4 pt-2 transition-[opacity,transform,visibility] ease-out min-[760px]:hidden motion-reduce:translate-y-0",
+          open ? "visible translate-y-0 opacity-100 duration-150" : "invisible -translate-y-1 opacity-0 duration-100"
+        )}
+      >
+        {NAV_LINKS.map(({ label, id }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => { scrollTo(id); close(); }}
+            className="focus-ring flex h-11 w-full items-center rounded-md text-sm font-medium text-[var(--kal-muted)] transition-colors hover:text-[var(--kal-ink)]"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </header>
   );
 }
