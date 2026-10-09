@@ -92,7 +92,7 @@ function getCellClasses(day: Date, viewMonth: Date): string {
 
   // Weekends get a slightly darker fill than weekdays, in-month only.
   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-hover cursor-pointer`;
+  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:border-foreground/25 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
