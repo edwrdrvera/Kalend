@@ -52,7 +52,7 @@ interface EventInspectorProps {
   onStay: () => void;
 }
 
-const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-lg px-2 text-xs md:text-xs focus-visible:ring-1 focus-visible:ring-ring/60";
+const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-lg px-2 text-xs md:text-xs focus-ring";
 
 /** Spaces the native picker icon off the digits, and dims it until hovered. */
 const TIME_INPUT_CLS = "w-28 shrink-0 dark:scheme-dark hover:bg-hover [&::-webkit-calendar-picker-indicator]:ml-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-150 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
@@ -123,7 +123,7 @@ export default function EventInspector({
             value={draft.title}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={draft.title.trim() === "" || undefined}
-            className="h-9 rounded-lg px-3 text-base md:text-base font-semibold tracking-tight focus-visible:ring-1 focus-visible:ring-ring/60"
+            className="h-9 rounded-lg px-3 text-base md:text-base font-semibold tracking-tight focus-ring"
           />
         </div>
 
@@ -165,7 +165,7 @@ export default function EventInspector({
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className="h-7 w-full border-transparent bg-transparent px-2 text-xs md:text-xs hover:bg-hover focus:border-input dark:bg-transparent focus-visible:ring-1 focus-visible:ring-ring/60"
+              className="h-7 w-full border-transparent bg-transparent px-2 text-xs md:text-xs hover:bg-hover focus:border-input dark:bg-transparent focus-ring"
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">

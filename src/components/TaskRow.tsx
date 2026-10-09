@@ -51,7 +51,7 @@ export default function TaskRow({
           aria-pressed={task.completed}
           aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
           className={cn(
-            "flex size-[15px] translate-y-[1px] items-center justify-center rounded-[4px] border-[1.5px] transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+            "flex size-[15px] translate-y-[1px] items-center justify-center rounded-[4px] border-[1.5px] transition-transform active:scale-[0.97] focus-ring",
             task.completed
               ? "border-primary bg-primary text-primary-foreground"
               : "border-border text-transparent hover:border-muted-foreground"
@@ -71,7 +71,7 @@ export default function TaskRow({
           onClick={() => onOpenTask(task)}
           aria-label={`Open task ${task.title}`}
           className={cn(
-            "block w-full rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+            "block w-full rounded-sm text-left text-[12.5px] leading-[18px] hover:underline focus-ring",
             task.completed ? "line-through opacity-50" : "text-foreground"
           )}
         >

@@ -124,7 +124,7 @@ export default function PanelResourcesTab({ kindWord }: { kindWord: "Space" | "G
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg py-1 transition-colors hover:bg-hover focus-ring"
               >
                 <span
                   aria-hidden="true"

@@ -48,7 +48,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
               onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-hover focus-ring",
                 PRESS_CLS,
                 today && "bg-primary/10 hover:bg-primary/15"
               )}

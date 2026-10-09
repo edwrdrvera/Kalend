@@ -72,7 +72,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "flex justify-center items-center w-7 h-7 text-[11.5px] font-medium cursor-pointer";
+  const baseClasses = "focus-ring flex justify-center items-center w-7 h-7 text-[11.5px] font-medium cursor-pointer";
 
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);

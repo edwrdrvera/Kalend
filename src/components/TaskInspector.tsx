@@ -159,7 +159,7 @@ export default function TaskInspector({
           role="checkbox"
           aria-checked={task.completed}
           onClick={() => onToggleComplete(task)}
-          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-ring"
         >
           <span
             aria-hidden="true"

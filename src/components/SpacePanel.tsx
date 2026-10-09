@@ -191,7 +191,7 @@ export default function SpacePanel({
               <button
                 type="button"
                 onClick={() => setTab("resources")}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-ring"
               >
                 <span>
                   <span className="block text-[12px] font-semibold text-muted-foreground">Files and links</span>

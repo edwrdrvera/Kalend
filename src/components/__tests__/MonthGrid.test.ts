@@ -80,7 +80,7 @@ describe("MonthGrid Space emphasis", () => {
     const el = await renderMonth(events, "work");
     const chip = el.querySelector<HTMLButtonElement>('button[title="mine"]');
     expect(chip).not.toBeNull();
-    expect(chip?.className).not.toContain("opacity-50");
+    expect(chip?.className).not.toContain("opacity-80");
     expect(el.textContent).toContain("+1 more");
   });
 

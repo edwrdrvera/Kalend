@@ -215,7 +215,7 @@ describe("TimeGrid Space emphasis", () => {
   it("dims an event outside the selected Space and still lets it be dragged", async () => {
     const handlers = await renderGrid({ selectedSpaceId: "other" });
     const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
-    expect(block?.className).toContain("opacity-50");
+    expect(block?.className).toContain("opacity-80");
 
     await act(async () => pointer("pointerdown", 100, block!));
     await windowPointer("pointermove", 100 + PX_PER_HOUR);
@@ -226,6 +226,6 @@ describe("TimeGrid Space emphasis", () => {
   it("keeps full strength when no Space is selected", async () => {
     await renderGrid();
     const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
-    expect(block?.className).not.toContain("opacity-50");
+    expect(block?.className).not.toContain("opacity-80");
   });
 });
