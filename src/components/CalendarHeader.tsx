@@ -2,6 +2,8 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CalendarHeaderProps {
   title: string;
@@ -30,20 +32,20 @@ export default function CalendarHeader({
         <div className="flex items-center gap-1.5">
           <button
             onClick={onPrev}
-            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
+            className={buttonVariants({ variant: "outline", size: "icon-lg" })}
             aria-label="Previous"
           >
             <ChevronLeft size={17} />
           </button>
           <button
             onClick={onToday}
-            className="hidden h-8 items-center rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "hidden text-xs font-semibold md:inline-flex")}
           >
             Today
           </button>
           <button
             onClick={onNext}
-            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
+            className={buttonVariants({ variant: "outline", size: "icon-lg" })}
             aria-label="Next"
           >
             <ChevronRight size={17} />
@@ -51,7 +53,7 @@ export default function CalendarHeader({
         </div>
       </div>
       <div className="flex min-w-0 items-center">
-        <h1 className="min-w-0 truncate text-base font-extrabold tracking-[-0.035em] text-foreground md:text-xl">
+        <h1 className="min-w-0 truncate text-base font-bold tracking-[-0.02em] [word-spacing:0.06em] text-foreground md:text-xl">
           {title}
         </h1>
       </div>

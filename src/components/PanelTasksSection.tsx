@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks } from "@/lib/task-buckets";
 import { PRESS_CLS } from "./InspectorParts";
+import { buttonVariants } from "@/components/ui/button";
 
 /** Rows shown before "Show more", so a long backlog doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -60,7 +61,7 @@ const PILL_CLS = cn(
   PRESS_CLS
 );
 const TEXT_BTN_CLS = cn(
-  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
   PRESS_CLS
 );
 const LINK_BTN_CLS =
@@ -131,7 +132,7 @@ export default function PanelTasksSection({
             aria-expanded={expanded}
             aria-label={`Edit task ${task.title}`}
             onClick={() => setExpandedId(expanded ? null : task.id)}
-            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left hover:bg-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
           >
             <span
               className={cn(
@@ -172,7 +173,7 @@ export default function PanelTasksSection({
                       PILL_CLS,
                       on
                         ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                        : "border-border bg-card text-muted-foreground hover:bg-hover"
                     )}
                   >
                     {label}
@@ -184,7 +185,7 @@ export default function PanelTasksSection({
               <button
                 type="button"
                 onClick={() => setAlertIdx((q) => ({ ...q, [task.id]: (alertAt + 1) % ALERT_CHOICES.length }))}
-                className={cn(PILL_CLS, "border-border bg-card text-foreground hover:bg-muted")}
+                className={cn(PILL_CLS, "border-border bg-card text-foreground hover:bg-hover")}
               >
                 Alert: {ALERT_CHOICES[alertAt]}
               </button>
@@ -216,7 +217,7 @@ export default function PanelTasksSection({
   return (
     <section aria-label="Tasks" className="px-4 py-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold text-muted-foreground">
+        <h3 className="label-caps">
           Tasks
           <span className="font-normal"> · {tasks.length} open</span>
         </h3>
@@ -225,7 +226,7 @@ export default function PanelTasksSection({
           aria-label="Add task"
           onClick={onAddTask}
           className={cn(
-            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+            buttonVariants({ variant: "ghost", size: "icon-xs" }), "text-muted-foreground hover:text-foreground",
             PRESS_CLS
           )}
         >

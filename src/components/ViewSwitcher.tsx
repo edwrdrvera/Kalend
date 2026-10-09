@@ -25,12 +25,12 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
         if (next) onViewChange(next.value);
       }}
     >
-      <TabsList variant="contrast" className="group-data-horizontal/tabs:h-auto">
+      <TabsList className="group-data-horizontal/tabs:h-auto">
         {VIEWS.map(({ value, label, short }) => (
           <TabsTrigger
             key={value}
             value={value}
-            className="h-8 min-w-11 px-2.5 text-xs font-semibold md:h-7 md:min-w-0"
+            className="h-8 min-w-11 px-2.5 text-xs font-medium data-active:font-semibold md:h-7 md:min-w-0"
           >
             <span className="md:hidden">{short}</span>
             <span className="hidden md:inline">{label}</span>

@@ -79,7 +79,7 @@ describe("MiniCalendar date selection", () => {
       (b) => b.textContent === "9" && b.className.includes("bg-primary")
     );
     expect(day9).not.toBeNull();
-    expect(day9!.className).toContain("rounded-[6px]");
+    expect(day9!.className).toContain("rounded-md");
     expect(day9!.className).not.toContain("rounded-full");
   });
 });

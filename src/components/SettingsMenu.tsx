@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
+import { buttonVariants } from "@/components/ui/button";
 
 interface SettingsMenuProps {
   /** Content rendered inside the trigger button. Defaults to a gear icon. */
@@ -29,7 +30,7 @@ interface SettingsMenuProps {
 }
 
 const DEFAULT_TRIGGER_CLS =
-  "grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  "grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-hover hover:text-foreground";
 
 /** Account controls. The trigger is customizable so the same menu serves the
  *  desktop icon rail (avatar tile) and the mobile slide-out. */
@@ -84,7 +85,7 @@ export default function SettingsMenu({
           type="button"
           onClick={toggleTheme}
           aria-label={mounted ? (theme === "dark" ? "Switch to light mode" : "Switch to dark mode") : "Toggle theme"}
-          className="mb-2 flex w-full items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mb-2 w-full justify-start gap-2 px-3 text-[13px]")}
         >
           {mounted && (theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />)}
           <span>Dark mode</span>
@@ -107,7 +108,7 @@ export default function SettingsMenu({
           type="button"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full gap-2 px-3 text-[13px] text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50")}
         >
           {isLoggingOut ? <Loader2 className="size-4 animate-spin" /> : <LogOut className="size-4" />}
           {isLoggingOut ? "Logging out..." : "Log out"}
