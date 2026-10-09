@@ -126,7 +126,7 @@ export default function SpacePanel({
           Keyed on the subject so swapping Spaces and Groups cross-fades the body. */}
       <div
         key={key}
-        className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
+        className="min-h-0 flex-1 divide-y divide-border overflow-y-auto"
       >
         {subject.kind === "space" && (
           <SpacePanelDescription

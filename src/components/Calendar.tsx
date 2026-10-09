@@ -616,11 +616,11 @@ export default function Calendar() {
                 type="button"
                 aria-label="Close panel"
                 onClick={panel.close}
-                className="absolute inset-0 z-40 bg-foreground/20 motion-safe:animate-[fadeIn_180ms_ease-out]"
+                className="absolute inset-0 z-40 bg-black/30"
               />
               <div
                 className={cn(
-                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)] motion-reduce:animate-[fadeIn_180ms_ease-out]",
+                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)]",
                   panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[360px]"
                 )}
               >

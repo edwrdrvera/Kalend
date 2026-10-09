@@ -106,7 +106,7 @@ export default function CalendarSidebar({
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute inset-0 z-40 bg-foreground/15 backdrop-blur-[1px] md:hidden"
+          className="absolute inset-0 z-40 bg-black/25 backdrop-blur-[1px] md:hidden"
         />
       )}
 
