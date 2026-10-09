@@ -19,7 +19,7 @@ interface ColorSwatchPickerProps {
  *  `disabled` renders a plain, non-interactive dot instead (e.g. when a
  *  linked category governs the color and this swatch would otherwise be
  *  misleading to click). Shared by the event editor's color field and
- *  CategoryManager's category color picker. */
+ *  the Space editor. */
 export default function ColorSwatchPicker({
   color,
   onColorChange,

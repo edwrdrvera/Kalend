@@ -2,7 +2,7 @@
 
 User-facing name for categories: colored groups that events and tasks belong to. API: `/api/categories`.
 
-All create/edit/delete goes through one dialog, `SpaceEditorDialog`. (`CategoryManager.tsx` still exists with `Create a Space` / `Rename <name>` / `More actions for <name>` labels, but nothing renders it; don't target those.)
+All create/edit/delete goes through one dialog, `SpaceEditorDialog`.
 
 ## Sub-features
 - Create: icon rail `+` (`Create space`) or the mobile Spaces bar `+` (same label) → dialog "New Space", input `Space name`, color swatch `Change color, currently <color>`, submit `Create` (Return submits).
