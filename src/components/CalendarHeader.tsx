@@ -5,6 +5,8 @@ import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const VIEW_UNIT: Record<CalendarView, string> = { month: "month", week: "week", day: "day" };
+
 interface CalendarHeaderProps {
   title: string;
   onPrev: () => void;
@@ -26,6 +28,7 @@ export default function CalendarHeader({
   view,
   onViewChange,
 }: CalendarHeaderProps) {
+  const unit = VIEW_UNIT[view];
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 pl-14 h-[53px] md:pl-4">
       <div className="flex items-center">
@@ -33,7 +36,8 @@ export default function CalendarHeader({
           <button
             onClick={onPrev}
             className={buttonVariants({ variant: "outline", size: "icon-lg" })}
-            aria-label="Previous"
+            aria-label={`Previous ${unit}`}
+            title={`Previous ${unit}`}
           >
             <ChevronLeft size={17} />
           </button>
@@ -46,7 +50,8 @@ export default function CalendarHeader({
           <button
             onClick={onNext}
             className={buttonVariants({ variant: "outline", size: "icon-lg" })}
-            aria-label="Next"
+            aria-label={`Next ${unit}`}
+            title={`Next ${unit}`}
           >
             <ChevronRight size={17} />
           </button>

@@ -30,6 +30,7 @@ export default function ViewSwitcher({ view, onViewChange }: ViewSwitcherProps) 
           <TabsTrigger
             key={value}
             value={value}
+            aria-label={label}
             className="h-8 min-w-11 px-2.5 text-xs font-medium data-active:font-semibold md:h-7 md:min-w-0"
           >
             <span className="md:hidden">{short}</span>
