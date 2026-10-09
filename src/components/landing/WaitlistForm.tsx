@@ -55,7 +55,7 @@ export default function WaitlistForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-describedby="waitlist-consent waitlist-error"
-          className="min-w-0 flex-1 rounded-[10px] border border-[var(--kal-border)] bg-white px-4 py-3 text-base text-[var(--kal-ink)] shadow-sm placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-[10px] border border-[var(--kal-border)] bg-[var(--kal-surface)] px-4 py-3 text-base text-[var(--kal-ink)] shadow-sm placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60"
         />
         <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
           <label htmlFor="waitlist-website">Website</label>
@@ -91,7 +91,7 @@ export default function WaitlistForm() {
         We’ll use your email only to send Kalend launch and access updates.
       </p>
       {error && (
-        <p id="waitlist-error" role="alert" className="text-sm text-red-700">
+        <p id="waitlist-error" role="alert" className="text-sm text-[var(--destructive)]">
           {error}
         </p>
       )}

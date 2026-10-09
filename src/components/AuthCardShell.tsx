@@ -22,7 +22,7 @@ export default function AuthCardShell({ title, subtitle, error, children }: Auth
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[var(--kal-bg)] px-4 py-12">
-      <div className="w-full max-w-sm rounded-2xl border border-[var(--kal-border)] bg-[var(--kal-surface)] p-8 shadow-[0_20px_48px_-24px_rgba(28,26,22,0.18)]">
+      <div className="w-full max-w-sm rounded-2xl border border-[var(--kal-border)] bg-[var(--kal-surface)] p-8 shadow-[0_20px_48px_-24px_color-mix(in_srgb,var(--kal-ink)_18%,transparent)]">
         <div className="mb-6 flex flex-col items-center text-center">
           <KalendMark size={40} tone="ink" label="Kalend" className="mb-4" />
           <h1 className="text-xl font-extrabold tracking-tight text-[var(--kal-ink)]">{title}</h1>
@@ -38,7 +38,7 @@ export default function AuthCardShell({ title, subtitle, error, children }: Auth
           <div className="overflow-hidden">
             <div
               role="alert"
-              className="mb-4 rounded-[10px] border border-red-200 bg-red-50 p-3 text-xs text-red-700"
+              className="mb-4 rounded-[10px] border border-[var(--destructive)]/30 bg-[var(--kal-surface)] p-3 text-xs text-[var(--destructive)]"
             >
               {shownError}
             </div>

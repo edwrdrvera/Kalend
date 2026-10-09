@@ -31,7 +31,7 @@ export default function LandingButton({
     emailInput.focus({ preventScroll: true });
     if (!reduceMotion) {
       emailInput.animate(
-        [{ boxShadow: "0 0 0 0 rgba(234, 88, 12, 0.35)" }, { boxShadow: "0 0 0 8px rgba(234, 88, 12, 0)" }],
+        [{ boxShadow: "0 0 0 0 color-mix(in srgb, var(--kal-primary) 35%, transparent)" }, { boxShadow: "0 0 0 8px color-mix(in srgb, var(--kal-primary) 0%, transparent)" }],
         { duration: 500, easing: "cubic-bezier(0.23, 1, 0.32, 1)" }
       );
     }

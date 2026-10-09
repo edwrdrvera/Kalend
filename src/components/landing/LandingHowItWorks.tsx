@@ -74,7 +74,7 @@ export default function LandingHowItWorks() {
             key={step.number}
             className={`grid grid-cols-[44px_minmax(0,1fr)_auto] gap-x-4 border-b border-[var(--kal-border)] py-7 min-[860px]:grid-cols-[52px_minmax(0,1fr)_auto] min-[860px]:gap-x-5 ${index === 1 ? "min-[760px]:ml-[18px]" : index === 2 ? "min-[760px]:ml-9" : ""}`}
           >
-            <span className="pt-0.5 text-[1.15rem] font-extrabold tracking-[-0.03em] text-[#938b7b]">
+            <span className="pt-0.5 text-[1.15rem] font-extrabold tracking-[-0.03em] text-[var(--kal-muted)]/80">
               {step.number}
             </span>
             <div>
@@ -82,11 +82,11 @@ export default function LandingHowItWorks() {
                 {step.label}
               </p>
               <p className="text-sm leading-relaxed text-[var(--kal-muted)]">{step.desc}</p>
-              <p className="mt-3 w-fit rounded-full bg-[#f5f2eb] px-3 py-1.5 text-[11px] font-medium text-[#6b6557]">
+              <p className="mt-3 w-fit rounded-full bg-[var(--kal-border)]/30 px-3 py-1.5 text-[11px] font-medium text-[var(--kal-ink)]/75">
                 {step.example}
               </p>
             </div>
-            <div className="flex size-9 items-center justify-center rounded-full bg-[#fff3e0] text-[var(--kal-accent)]">
+            <div className="flex size-9 items-center justify-center rounded-full bg-[var(--kal-cat-orange-tint)] text-[var(--kal-accent-hover)]">
               {step.icon}
             </div>
           </li>

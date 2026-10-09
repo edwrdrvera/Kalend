@@ -14,7 +14,7 @@ export const landingButtonVariants = cva(
         primary:
           "bg-[var(--kal-cta)] text-white font-semibold hover:bg-[var(--kal-cta-hover)]",
         secondary:
-          "border border-[var(--kal-border)] bg-transparent text-[var(--kal-ink)] font-medium hover:bg-[#f2efe6] hover:border-[#d8d2c2]",
+          "border border-[var(--kal-border)] bg-transparent text-[var(--kal-ink)] font-medium hover:bg-[var(--kal-border)]/50 hover:border-[var(--kal-muted)]/40",
       },
       size: {
         default: "px-[22px] py-3 text-sm",
