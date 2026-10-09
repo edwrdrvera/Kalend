@@ -25,7 +25,7 @@ interface AlertFieldProps {
 export default function AlertField({ id, value, onChange, disabledReason = null, inline = false }: AlertFieldProps) {
   const noteId = `${id}-note`;
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex w-full flex-col gap-1.5">
       <Label htmlFor={id} className={inline ? "sr-only" : FIELD_LABEL_CLS}>
         Alert
       </Label>
