@@ -274,7 +274,7 @@ export default function EventCreatePopover({
               placeholder="New event"
               required
               autoFocus
-              className="h-8 w-full bg-transparent text-[15px] font-semibold placeholder:text-muted-foreground focus-ring"
+              className="h-8 w-full bg-transparent text-[15px] font-semibold placeholder:text-muted-foreground outline-none"
             />
           </div>
 
