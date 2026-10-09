@@ -78,7 +78,7 @@ function ProblemItem({ label, desc }: Point) {
       <XIcon />
       <div>
         <p className="text-sm font-semibold text-[var(--kal-muted)]">{label}</p>
-        <p className="mt-0.5 text-sm leading-relaxed text-[var(--kal-muted)] opacity-75">{desc}</p>
+        <p className="mt-0.5 text-sm leading-relaxed text-[var(--kal-muted)]">{desc}</p>
       </div>
     </div>
   );
@@ -119,7 +119,7 @@ export default function LandingProblemSolution() {
         </div>
 
         <div className="rounded-[22px] border border-[#f0e1d2] bg-[#fffbf6] p-6 min-[860px]:p-9">
-          <p className="mb-1 text-xs font-medium text-[var(--kal-accent)]">
+          <p className="mb-1 text-xs font-medium text-[var(--kal-accent-hover)]">
             The calmer version
           </p>
           <h3 className="mt-3 mb-4 max-w-[420px] text-[1.45rem] leading-tight font-bold tracking-[-0.025em] text-[var(--kal-ink)]">

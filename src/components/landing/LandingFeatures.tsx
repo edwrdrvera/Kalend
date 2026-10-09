@@ -26,7 +26,7 @@ export default function LandingFeatures() {
           />
           <span className="pointer-events-none absolute top-7 right-7 h-px w-28 -rotate-6 bg-white/60" aria-hidden />
           <FeatureIcon kind="spaces" />
-          <p className="mt-7 text-sm font-medium opacity-65">01 · Give it a Space</p>
+          <p className="mt-7 text-sm font-medium opacity-80">01 · Give it a Space</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
             A place for every<br />part of your life.
           </h3>
@@ -53,7 +53,7 @@ export default function LandingFeatures() {
           />
           <span className="pointer-events-none absolute top-5 left-5 h-px w-32 -rotate-6 bg-white/55" aria-hidden />
           <FeatureIcon kind="tasks" />
-          <p className="mt-7 text-sm font-medium opacity-65">02 · See the whole picture</p>
+          <p className="mt-7 text-sm font-medium opacity-80">02 · See the whole picture</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
             Deadlines meet<br />your actual day.
           </h3>
@@ -61,7 +61,7 @@ export default function LandingFeatures() {
             Put tasks beside your events. Add a due date when there is one. Leave it off when “sometime this week” is the plan.
           </p>
           <div className="mt-auto translate-y-7 rounded-t-[14px] bg-white/90 px-5 pt-4 pb-5 shadow-[0_12px_30px_rgba(23,19,16,0.08)] min-[860px]:translate-y-8">
-            <p className="mb-2 text-xs font-medium opacity-55">
+            <p className="mb-2 text-xs font-medium opacity-70">
               Wednesday, September 9
             </p>
             <div className="flex items-center gap-2 border-t border-black/10 py-2.5 text-xs">
@@ -102,7 +102,7 @@ function SpaceRow({ color, label, detail }: { color: string; label: string; deta
     <div className="flex items-center gap-2.5 py-2.5 text-xs min-[860px]:text-sm">
       <span className="size-2 rounded-[2px]" style={{ background: color }} aria-hidden />
       <span className="font-medium">{label}</span>
-      <span className="ml-auto opacity-55">{detail}</span>
+      <span className="ml-auto opacity-70">{detail}</span>
     </div>
   );
 }
@@ -112,7 +112,7 @@ function TaskRow({ label, detail, urgent = false }: { label: string; detail: str
     <div className="flex items-center gap-2 border-t border-black/10 py-2.5 text-xs">
       <span className="size-3.5 rounded-[3px] border border-black/40" aria-hidden />
       <span>{label}</span>
-      <span className={urgent ? "ml-auto rounded bg-orange-100 px-1.5 py-0.5" : "ml-auto opacity-55"}>{detail}</span>
+      <span className={urgent ? "ml-auto rounded bg-orange-100 px-1.5 py-0.5" : "ml-auto opacity-70"}>{detail}</span>
     </div>
   );
 }
