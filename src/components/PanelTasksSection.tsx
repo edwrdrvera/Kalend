@@ -146,7 +146,7 @@ export default function PanelTasksSection({
               <span className="block truncate text-[11.5px] text-muted-foreground">{pathOf(task)}</span>
             ) : null}
           </button>
-          {alertAt > 0 && <Bell aria-label="Alert on" className="mt-0.5 size-3 shrink-0 text-muted-foreground" />}
+          {alertAt > 0 && <Bell role="img" aria-label="Alert on"className="mt-0.5 size-3 shrink-0 text-muted-foreground" />}
           <span
             className={cn(
               "shrink-0 whitespace-nowrap text-[11.5px] tabular-nums",

@@ -79,10 +79,9 @@ export default function SpacePanelHeader({
           className={cn("size-[10px] shrink-0 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[subject.color])}
         />
         {text === null ? (
-          <h2 className="min-w-0 flex-1">
+          <h2 aria-label={subject.name} className="min-w-0 flex-1">
             <button
               type="button"
-              aria-label={`Rename ${subject.name}`}
               title="Click to rename"
               onClick={() => setDraft({ key, text: subject.name })}
               className={cn(
@@ -91,6 +90,7 @@ export default function SpacePanelHeader({
               )}
             >
               {subject.name}
+              <span className="sr-only"> Rename</span>
             </button>
           </h2>
         ) : (

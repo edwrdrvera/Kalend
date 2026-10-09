@@ -1,6 +1,7 @@
 "use client";
 
 import { isPast } from "date-fns";
+import { CircleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
@@ -82,7 +83,7 @@ export default function TaskChip({
           e.stopPropagation();
           onOpen(task);
         }}
-        aria-label={`Open task ${task.title}`}
+        aria-label={overdue ? `Open task ${task.title}, Overdue` : `Open task ${task.title}`}
         className={cn(
           "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
           task.completed && "line-through"
@@ -90,6 +91,7 @@ export default function TaskChip({
       >
         {task.title}
       </button>
+      {overdue && <CircleAlert aria-hidden="true" className="size-3 shrink-0" />}
     </div>
   );
 }
