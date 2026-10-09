@@ -196,10 +196,9 @@ export default function SpacePanel({
         )}
       </div>
 
-      <SpacePanelFooter
-        label={subject.kind === "group" ? "Group settings" : "Space settings"}
-        onOpenSettings={onOpenSettings}
-      />
+      {subject.kind === "group" && (
+        <SpacePanelFooter label="Group settings" onOpenSettings={onOpenSettings} />
+      )}
     </PanelShell>
   );
 }

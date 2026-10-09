@@ -254,6 +254,14 @@ describe("SpacePanel description", () => {
   });
 });
 
+describe("SpacePanel for a Space", () => {
+  it("has no settings footer, because the title renames the Space", async () => {
+    await render(SPACE);
+    expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
+    expect(document.querySelector("footer")).toBeNull();
+  });
+});
+
 describe("SpacePanel for a Group", () => {
   it("has no description section, because Groups have none", async () => {
     await render(GROUP);
