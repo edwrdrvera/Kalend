@@ -396,6 +396,10 @@
   --kal-primary: #ea580c;
   --kal-accent: #ea580c;
   --kal-accent-hover: #c2410c;
+  /* Filled CTA fill. White 14-15px semibold labels need 4.5:1, which the
+   * brighter --kal-accent (3.56:1) fails, so the CTA uses these darker shades. */
+  --kal-cta: #c2410c;
+  --kal-cta-hover: #9a3412;
 
   --kal-cat-blue: #3b82f6;
   --kal-cat-blue-tint: #dbeafe;
