@@ -95,7 +95,7 @@ export default function CalendarSidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Open sidebar"
-        className="absolute left-3 top-[19px] z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
+        className="absolute left-3 top-2.5 z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
       >
         <Menu className="size-4" />
       </button>
@@ -132,7 +132,7 @@ export default function CalendarSidebar({
         )}
       </div>
 
-      {/* Mobile sidebar: slide-out overlay with agenda + mini calendar */}
+      {/* Mobile sidebar: slide-out overlay with the agenda (no mini calendar) */}
       <aside
         className={cn(
           "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:hidden",
@@ -159,7 +159,6 @@ export default function CalendarSidebar({
           <div className="min-h-0 flex-1 overflow-hidden">
             <AgendaColumn {...agendaProps} />
           </div>
-          <MiniCalendar {...miniCalProps} />
         </div>
       </aside>
     </>
