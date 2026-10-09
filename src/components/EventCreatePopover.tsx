@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, type FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +30,17 @@ const SIDE_GAP = 10;
 const CHIP_CLS =
   "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-hover";
 const DASHED_CHIP_CLS = "border-dashed border-muted-foreground/40 text-muted-foreground";
+const FOCUSABLE =
+  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/** Tab stops inside the panel, skipping disabled controls and the collapsed
+ *  (inert) time section. */
+function tabStops(root: HTMLElement): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+    (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1 && !el.closest("[inert]")
+  );
+}
+
 /** First-render guess for vertical centering, replaced by the measured height. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
 
@@ -100,6 +118,46 @@ export default function EventCreatePopover({
   }, []);
   const panelHeight = measuredHeight ?? POPOVER_HEIGHT_ESTIMATE;
 
+  // Library motion: scale up from 0.96 over 150ms. The flag flips one frame
+  // after mount so the starting style is painted first.
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Whatever had focus when the panel opened (the slot or cell the user was on)
+  // gets focus back when the panel goes away. The microtask skips the
+  // simulated unmount that React Strict Mode runs in development.
+  const [opener] = useState(() => document.activeElement);
+  useEffect(
+    () => () => {
+      queueMicrotask(() => {
+        if (!panelRef.current?.isConnected && opener instanceof HTMLElement && opener.isConnected) {
+          opener.focus();
+        }
+      });
+    },
+    [opener]
+  );
+
+  // Tab and Shift+Tab wrap inside the panel instead of reaching the calendar
+  // behind it. Pickers portaled out of the panel handle their own Tab.
+  const trapTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !panelRef.current) return;
+    const stops = tabStops(panelRef.current);
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (!first || !last) return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   // Fixed position: vertically centered on the anchor, horizontally offset
   // to the chosen side.
   const anchorCenterY = anchorRect.top + anchorRect.height / 2;
@@ -165,7 +223,9 @@ export default function EventCreatePopover({
       <div
         ref={panelRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Create event"
+        onKeyDown={trapTab}
         style={{
           position: "fixed",
           top,
@@ -174,7 +234,11 @@ export default function EventCreatePopover({
           zIndex: 50,
           filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.08))",
         }}
-        className="animate-in fade-in-0 zoom-in-95 duration-100 motion-reduce:animate-none"
+        className={cn(
+          "transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none",
+          side === "right" ? "origin-left" : "origin-right",
+          !entered && "scale-[0.96] opacity-0"
+        )}
       >
       <div className="relative rounded-xl border border-border bg-popover text-popover-foreground">
         {!wasClamped && (
