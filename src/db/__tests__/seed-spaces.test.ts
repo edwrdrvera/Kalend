@@ -42,7 +42,7 @@ describe.skipIf(!url)("seed scripts", () => {
     const userId = await seededUser();
     const backwards = await sql`
       select title, start_at, end_at from events where user_id = ${userId} and end_at <= start_at`;
-    expect(backwards).toEqual([]);
+    expect([...backwards]).toEqual([]);
 
     const [due] = await sql`
       select start_at, end_at from events where user_id = ${userId} and title = 'Algorithms Problem Set Due'`;
@@ -73,7 +73,7 @@ describe.skipIf(!url)("seed scripts", () => {
       select category_id, group_id from events where id = ${event.id}
       union all
       select category_id, group_id from tasks where id = ${task.id}`;
-    expect(grouped).toEqual([
+    expect([...grouped]).toEqual([
       { category_id: personal.id, group_id: group.id },
       { category_id: personal.id, group_id: group.id },
     ]);
