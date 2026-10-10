@@ -23,12 +23,15 @@ async function renderPanel(modal: boolean) {
   root = createRoot(container);
   await act(() =>
     root?.render(
-      createElement(
-        PanelShell,
-        { label: "Space", modal, onClose: () => {} },
-        createElement("button", { id: "first" }, "first"),
-        createElement("button", { id: "last" }, "last")
-      )
+      createElement(PanelShell, {
+        label: "Space",
+        modal,
+        onClose: () => {},
+        children: [
+          createElement("button", { id: "first", key: "first" }, "first"),
+          createElement("button", { id: "last", key: "last" }, "last"),
+        ],
+      })
     )
   );
   const panel = container.querySelector<HTMLElement>('[aria-label="Space"]');
