@@ -3,8 +3,8 @@ import { act, createElement, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
-import { MAX_TITLE_LENGTH } from "@/lib/api/parse-fields";
 import { panelReducer, initialPanelState } from "@/lib/panel-state";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 import { selectOptionLabels, alertValue, chooseAlert, typeInto } from "./test-dom";
 
 const { createRoot } = await import("react-dom/client");

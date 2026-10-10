@@ -1,6 +1,7 @@
 import { MAX_DESCRIPTION_LENGTH, descriptionProblem, normalizeDescription } from "@/lib/description";
 import { isEventColor } from "@/lib/event-colors";
 import { MAX_GROUP_NAME_LENGTH, groupNameProblem } from "@/lib/group-name";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 import { isUuid } from "@/lib/uuid";
 
 /**
@@ -21,8 +22,6 @@ export function asBodyObject(json: unknown): ParseResult<Record<string, unknown>
   }
   return parsed(json as Record<string, unknown>);
 }
-
-export const MAX_TITLE_LENGTH = 200;
 
 /** A title is stored trimmed and must be non-blank and at most MAX_TITLE_LENGTH characters. */
 export function title(value: unknown): ParseResult<string> {
