@@ -418,6 +418,25 @@
   --kal-tile-ink: #171310;
 }
 
+/* Dark landing and login: the page palette follows the app's own dark tokens,
+ * so the two stay one system. --kal-cta, the tiles and the bright category
+ * hues are left alone: the CTA is a fixed decision, and the tiles are
+ * decorative colour that works on both grounds. */
+.dark {
+  --kal-bg: var(--background);
+  --kal-surface: var(--card);
+  --kal-border: var(--border);
+  --kal-ink: var(--foreground);
+  --kal-muted: var(--muted-foreground);
+  --kal-primary: var(--primary);
+  --kal-accent: var(--primary);
+  --kal-accent-hover: var(--primary-text);
+  --kal-cat-orange-tint: var(--evt-orange-bg);
+  --kal-cat-yellow-tint: var(--evt-yellow-bg);
+  --kal-cat-teal-tint: var(--evt-teal-bg);
+  --kal-cat-green-tint: var(--evt-green-bg);
+}
+
 /* The built-in ease-out starts too gently for UI, so `ease-out` is the strong
  * curve the kalend-ui primitives use. `ease-snappy` is the same curve under its
  * older name; `ease-drawer` is the iOS sheet curve for the overlay panel. */

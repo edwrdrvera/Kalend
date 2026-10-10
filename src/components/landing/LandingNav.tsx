@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import KalendWordmark from "@/components/KalendWordmark";
 import { cn } from "@/lib/utils";
 import LandingButton from "./LandingButton";
+import ThemeToggle from "./ThemeToggle";
 
 const NAV_LINKS = [
   { label: "Why Kalend", id: "why" },
@@ -58,6 +59,7 @@ export default function LandingNav() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2 min-[420px]:gap-2.5">
+          <ThemeToggle />
           <LandingButton href="/login" variant="secondary" className="hidden min-[420px]:inline-flex">
             Log in
           </LandingButton>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import KalendMark from "./KalendMark";
+import ThemeToggle from "./landing/ThemeToggle";
 
 interface AuthCardShellProps {
   title: string;
@@ -21,7 +22,8 @@ export default function AuthCardShell({ title, subtitle, error, children }: Auth
   const shownError = error ?? lastError;
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-[var(--kal-bg)] px-4 py-12">
+    <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-[var(--kal-bg)] px-4 py-12">
+      <ThemeToggle className="absolute top-3 right-3" />
       <div className="w-full max-w-sm rounded-2xl border border-[var(--kal-border)] bg-[var(--kal-surface)] p-8 shadow-[0_20px_48px_-24px_color-mix(in_srgb,var(--kal-ink)_18%,transparent)]">
         <div className="mb-6 flex flex-col items-center text-center">
           <KalendMark size={40} tone="ink" label="Kalend" className="mb-4" />

@@ -1,237 +1,209 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { EVENT_COLOR_CLASSES, EVENT_COLOR_SWATCH_CLASSES, RAIL_SPACE_CLASSES, type EventColor } from "@/lib/event-colors";
-import KalendMark from "@/components/KalendMark";
+"use client";
 
-// A dragged event is "picked up": a solid fill with white text instead of the
-// usual soft tint, so it reads as the one you're moving. Uses the -deep token
-// (not -solid) so white text clears WCAG AA. Only Calculus II drags in this
-// mock, so this is a single literal class string Tailwind's scanner can see.
-const DRAG_CLASS = "border-[var(--evt-indigo-deep)] bg-[var(--evt-indigo-deep)] text-white";
+import { useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Layers, Plus, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { EVENT_COLOR_SWATCH_CLASSES, getEventColorClasses, type EventColor } from "@/lib/event-colors";
+import { spaceAbbreviation } from "@/lib/space-abbreviation";
+import { buttonVariants } from "@/components/ui/button";
+import { QUIET_LINK_CLS } from "@/components/control-styles";
+import KalendMark from "@/components/KalendMark";
+import CalendarWeekdayLabel from "@/components/CalendarWeekdayLabel";
+import SpaceDot from "@/components/SpaceDot";
+import TaskCheckbox from "@/components/TaskCheckbox";
+
+// A static copy of the app's week view, drawn with the same classes as IconRail,
+// AgendaColumn, MiniCalendar, CalendarHeader, WeekGrid, AllDayRow and TimeGrid.
+// The week is Sun Sep 6 to Sat Sep 12, 2026, and Wednesday is today and selected.
+// On wide screens the whole app is drawn at a fixed size and scaled down to fit,
+// the way a screenshot would be. Narrower screens get the grid alone, unscaled.
+
+const SPACES = {
+  bio: { name: "BIO 102", color: "blue" },
+  math: { name: "MATH 201", color: "indigo" },
+  cafe: { name: "Campus café", color: "orange" },
+  design: { name: "Design project", color: "purple" },
+} as const satisfies Record<string, { name: string; color: EventColor }>;
+type SpaceKey = keyof typeof SPACES;
 
 const DAYS = [
-  { label: "Sun", date: 7, selected: false },
-  { label: "Mon", date: 8, selected: true },
-  { label: "Tue", date: 9, selected: false },
-  { label: "Wed", date: 10, selected: false },
-  { label: "Thu", date: 11, selected: false },
-  { label: "Fri", date: 12, selected: false },
-  { label: "Sat", date: 13, selected: false },
+  { label: "Sun", initial: "S", date: 6 },
+  { label: "Mon", initial: "M", date: 7 },
+  { label: "Tue", initial: "T", date: 8 },
+  { label: "Wed", initial: "W", date: 9 },
+  { label: "Thu", initial: "T", date: 10 },
+  { label: "Fri", initial: "F", date: 11 },
+  { label: "Sat", initial: "S", date: 12 },
 ] as const;
+const TODAY = 3;
 
-// The real sidebar is an icon rail + an agenda column (Schedule + Tasks) with a
-// mini calendar pinned below — see CalendarSidebar / IconRail / AgendaColumn.
-// These constants drive the static mock of that layout. Colors are EventColor
-// keys (the app's "sunset warm" palette), rendered via the same
-// EVENT_COLOR_* helpers the real sidebar uses so the mock can't drift.
+type Clock = readonly [hour: number, minute: number];
+interface MockEvent {
+  day: number;
+  start: Clock;
+  end: Clock;
+  title: string;
+  space: SpaceKey;
+  group?: string;
+  location?: string;
+}
 
-// Rail space tiles: initials like the app's spaceAbbreviation().
-const RAIL_SPACES: { abbr: string; color: EventColor; active?: boolean }[] = [
-  { abbr: "S", color: "indigo", active: true },
-  { abbr: "W", color: "orange" },
-  { abbr: "P", color: "purple" },
-  { abbr: "H", color: "green" },
+const EVENTS: MockEvent[] = [
+  { day: 1, start: [10, 0], end: [11, 15], title: "Calculus II", space: "math", location: "Hall B" },
+  { day: 1, start: [13, 0], end: [14, 30], title: "Study group", space: "bio" },
+  { day: 2, start: [9, 0], end: [10, 15], title: "Biology lecture", space: "bio", group: "Lectures" },
+  { day: 2, start: [11, 0], end: [13, 0], title: "Biology lab", space: "bio", location: "Science 204" },
+  { day: 2, start: [14, 0], end: [15, 30], title: "Design critique", space: "design", group: "Studio" },
+  { day: 3, start: [9, 0], end: [10, 15], title: "Biology lecture", space: "bio", group: "Lectures" },
+  { day: 3, start: [11, 0], end: [12, 15], title: "Calculus II", space: "math", location: "Hall B" },
+  { day: 3, start: [14, 0], end: [15, 0], title: "Design critique", space: "design", group: "Studio" },
+  { day: 4, start: [10, 0], end: [11, 30], title: "Project kickoff", space: "design", location: "Studio 3" },
+  { day: 4, start: [13, 0], end: [14, 0], title: "Office hours", space: "math" },
+  { day: 4, start: [16, 0], end: [20, 0], title: "Café shift", space: "cafe" },
+  { day: 5, start: [10, 0], end: [11, 15], title: "Calculus II", space: "math", location: "Hall B" },
+  { day: 5, start: [13, 0], end: [17, 0], title: "Café shift", space: "cafe" },
+  { day: 6, start: [10, 0], end: [14, 0], title: "Café shift", space: "cafe" },
 ];
 
-// Agenda "Schedule" section: the selected day's timed events.
-const SCHEDULE: { time: string; title: string; color: EventColor }[] = [
-  { time: "9:00 AM", title: "Midterm Exam – Algorithms", color: "indigo" },
-  { time: "12:00 PM", title: "Lunch with Edward", color: "orange" },
-  { time: "1:00 PM", title: "Data Structures Lab", color: "blue" },
+interface MockTask {
+  /** Day of the week it is due, or null when it is due outside this week or has no date. */
+  day: number | null;
+  /** Due label for a task due outside this week. */
+  due?: string;
+  title: string;
+  space: SpaceKey;
+  group?: string;
+  done?: boolean;
+}
+
+const TASKS: MockTask[] = [
+  { day: 1, title: "Read chapter 4", space: "bio", done: true },
+  { day: 3, title: "Problem set 5", space: "math", group: "Homework" },
+  { day: 4, title: "Draft case study", space: "design" },
+  { day: 5, title: "Finish lab report", space: "bio" },
+  { day: 2, title: "Return library books", space: "bio", done: true },
+  { day: null, due: "Sep 21", title: "Midterm study guide", space: "math" },
+  { day: null, due: "Sep 28", title: "Submit portfolio draft", space: "design" },
+  { day: null, title: "Plan summer shifts", space: "cafe" },
 ];
 
-// Agenda "Tasks" section: the persistent to-do list, grouped into due-date
-// buckets (mirrors bucketTasks in task-buckets.ts). Completed tasks show a filled
-// checkbox + strikethrough; the header count is open tasks only (here: 4).
-const TASK_BUCKETS: {
-  label: string;
-  tasks: { title: string; color: EventColor; done?: boolean }[];
-}[] = [
-  {
-    label: "Today",
-    tasks: [
-      { title: "Line up a hackathon team", color: "indigo", done: true },
-      { title: "Finish algorithms problem set", color: "blue", done: true },
-    ],
-  },
-  {
-    label: "This week",
-    tasks: [
-      { title: "Clear the code review backlog", color: "blue" },
-      { title: "Draft the hackathon pitch", color: "orange" },
-      { title: "Book a dentist follow-up", color: "green" },
-      { title: "Prepare for the algorithms midterm", color: "purple" },
-    ],
-  },
-];
+const ALL_DAY_EVENTS = [{ title: "Design sprint", space: "design" as SpaceKey, startCol: 5, endCol: 6 }];
 
-const MINI_CALENDAR_DAYS = [
-  31, 1, 2, 3, 4, 5, 6,
-  7, 8, 9, 10, 11, 12, 13,
-  14, 15, 16, 17, 18, 19, 20,
-  21, 22, 23, 24, 25, 26, 27,
-  28, 29, 30, 1, 2, 3, 4,
-] as const;
+const DESIGN_WIDTH = 1520;
+const DESIGN_HEIGHT = 840;
+const FULL_MIN_WIDTH = 900;
+const HOUR_HEIGHT_PX = 64;
+const FIRST_HOUR = 8;
+const HOURS = Array.from({ length: 10 }, (_, i) => FIRST_HOUR + i);
+const LANE_HEIGHT_PX = 28;
+const NOW: Clock = [10, 40];
 
-// Times carry am/pm on BOTH ends, matching the app's week/day event blocks
-// (format "h:mm a – h:mm a", e.g. "10:00 AM – 11:00 AM").
-const EVENTS: { day: number; top: number; height: number; title: string; time: string; color: EventColor; dragging?: boolean }[] = [
-  { day: 1, top: 82, height: 44, title: "Calculus II", time: "10:00 AM – 11:00 AM", color: "indigo" },
-  { day: 1, top: 158, height: 108, title: "Work shift", time: "12:00 PM – 3:00 PM", color: "orange" },
-  { day: 1, top: 344, height: 58, title: "English Lit", time: "5:00 PM – 6:30 PM", color: "green" },
-  { day: 2, top: 6, height: 52, title: "Physics I", time: "8:00 AM – 9:15 AM", color: "blue" },
-  { day: 2, top: 82, height: 44, title: "Team meeting", time: "10:00 AM – 11:00 AM", color: "orange" },
-  { day: 2, top: 196, height: 50, title: "Psychology", time: "1:00 PM – 2:15 PM", color: "purple" },
-  { day: 2, top: 272, height: 52, title: "Study group", time: "3:00 PM – 4:00 PM", color: "blue" },
-  { day: 3, top: 44, height: 52, title: "Calculus II", time: "9:00 AM – 10:15 AM", color: "indigo", dragging: true },
-  { day: 3, top: 120, height: 84, title: "Physics lab", time: "11:00 AM – 1:00 PM", color: "blue" },
-  { day: 3, top: 234, height: 150, title: "Work shift", time: "2:00 PM – 6:00 PM", color: "orange" },
-  { day: 4, top: 82, height: 52, title: "English Lit", time: "10:00 AM – 11:15 AM", color: "green" },
-  { day: 4, top: 196, height: 50, title: "Psychology", time: "1:00 PM – 2:15 PM", color: "purple" },
-  { day: 4, top: 272, height: 76, title: "Project kickoff", time: "3:00 PM – 4:30 PM", color: "orange" },
-  { day: 5, top: 6, height: 52, title: "Physics I", time: "8:00 AM – 9:15 AM", color: "blue" },
-  { day: 5, top: 82, height: 44, title: "Calculus II", time: "10:00 AM – 11:00 AM", color: "indigo" },
-  { day: 5, top: 158, height: 58, title: "English Lit", time: "12:00 PM – 1:15 PM", color: "green" },
-  { day: 5, top: 310, height: 58, title: "Psychology", time: "4:00 PM – 5:15 PM", color: "purple" },
-  { day: 6, top: 44, height: 160, title: "Work shift", time: "9:00 AM – 1:00 PM", color: "orange" },
-  { day: 6, top: 234, height: 48, title: "Office hours", time: "2:00 PM – 3:00 PM", color: "blue" },
-  { day: 6, top: 292, height: 54, title: "Writing center", time: "3:30 PM – 4:30 PM", color: "green" },
-];
+const MINI_CALENDAR_WEEKS: { date: number; outside?: boolean }[][] = [
+  [30, 31, 1, 2, 3, 4, 5],
+  [6, 7, 8, 9, 10, 11, 12],
+  [13, 14, 15, 16, 17, 18, 19],
+  [20, 21, 22, 23, 24, 25, 26],
+  [27, 28, 29, 30, 1, 2, 3],
+  [4, 5, 6, 7, 8, 9, 10],
+].map((week, weekIndex) =>
+  week.map((date) => ({ date, outside: (weekIndex === 0 && date > 7) || (weekIndex >= 4 && date < 15) }))
+);
+const SELECTED_DATE = 9;
 
-const ALL_DAY_TASKS: { title: string; color: EventColor }[] = [
-  { title: "Read chapter 4", color: "indigo" },
-  { title: "Problem set 2", color: "blue" },
-  { title: "Lab report", color: "green" },
-  { title: "Essay draft", color: "purple" },
-  { title: "Study for quiz", color: "orange" },
-  { title: "Plan next week", color: "blue" },
-  { title: "Grocery run", color: "teal" },
-];
+function minutes([hour, minute]: Clock): number {
+  return hour * 60 + minute;
+}
 
-const HOURS = ["8 am", "9 am", "10 am", "11 am", "12 pm", "1 pm", "2 pm", "3 pm", "4 pm", "5 pm", "6 pm"];
+function offsetPx(time: Clock): number {
+  return ((minutes(time) - FIRST_HOUR * 60) / 60) * HOUR_HEIGHT_PX;
+}
+
+function clock([hour, minute]: Clock): string {
+  const suffix = hour >= 12 ? "PM" : "AM";
+  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function hourLabel(hour: number): string {
+  return `${hour % 12 || 12} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+function pathOf(space: SpaceKey, group?: string): string {
+  return [SPACES[space].name, group].filter(Boolean).join(" · ");
+}
+
+const TODAY_EVENTS = EVENTS.filter((event) => event.day === TODAY);
+const TODAY_TASKS = TASKS.filter((task) => task.day === TODAY);
+
+const WEEK_LOAD = DAYS.map((_, index) =>
+  EVENTS.filter((event) => event.day === index).reduce((hours, event) => hours + (minutes(event.end) - minutes(event.start)) / 60, 0)
+);
+
+function dueLabel(task: MockTask): string {
+  if (task.day === TODAY) return "Due today";
+  if (task.day !== null) return `Sep ${DAYS[task.day].date}`;
+  return task.due ?? "No date";
+}
+
+const OPEN_TASKS = TASKS.filter((task) => !task.done);
+const PANEL_BUCKETS = [
+  { label: "Today", tasks: OPEN_TASKS.filter((task) => task.day === TODAY) },
+  { label: "This week", tasks: OPEN_TASKS.filter((task) => task.day !== null && task.day > TODAY) },
+  { label: "Later", tasks: OPEN_TASKS.filter((task) => task.day === null && task.due) },
+  { label: "No date", tasks: OPEN_TASKS.filter((task) => task.day === null && !task.due) },
+].filter((bucket) => bucket.tasks.length > 0);
+const COMPLETED_COUNT = TASKS.length - OPEN_TASKS.length;
 
 export default function CalendarMockup() {
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = fitRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setWidth(el.clientWidth));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const full = width === null || width >= FULL_MIN_WIDTH;
+  const scale = width === null ? 0.72 : Math.min(1, width / DESIGN_WIDTH);
+
   return (
     <figure className="relative isolate w-full max-w-[1180px] px-3 py-7 min-[640px]:px-9 min-[640px]:py-10">
       <span
         className="pointer-events-none absolute top-0 left-0 h-40 w-48 opacity-35"
-        style={{ backgroundImage: "linear-gradient(#75aee0 1px, transparent 1px), linear-gradient(90deg, #75aee0 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+        style={{ backgroundImage: "linear-gradient(var(--kal-cat-blue) 1px, transparent 1px), linear-gradient(90deg, var(--kal-cat-blue) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
         aria-hidden
       />
       <span
         className="pointer-events-none absolute right-0 bottom-2 h-36 w-44 opacity-30"
-        style={{ backgroundImage: "linear-gradient(#75aee0 1px, transparent 1px), linear-gradient(90deg, #75aee0 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+        style={{ backgroundImage: "linear-gradient(var(--kal-cat-blue) 1px, transparent 1px), linear-gradient(90deg, var(--kal-cat-blue) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute bottom-3 left-0 h-28 w-48 -rotate-6 bg-[#eadbbd]/65"
+        className="pointer-events-none absolute bottom-3 left-0 h-28 w-48 -rotate-6 bg-[var(--kal-tile-mustard)]/35"
         style={{ clipPath: "polygon(0 9%, 89% 0, 100% 78%, 18% 100%)" }}
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute top-24 -right-2 h-36 w-32 rotate-6 bg-[#dcd9f8]/65"
+        className="pointer-events-none absolute top-24 -right-2 h-36 w-32 rotate-6 bg-[var(--kal-cat-indigo)]/20"
         style={{ clipPath: "polygon(14% 0, 100% 12%, 86% 100%, 0 84%)" }}
         aria-hidden
       />
 
-      <div
-        className="relative z-10 flex h-[560px] overflow-hidden rounded-[24px] border border-[var(--mock-line)] bg-[var(--mock-bg)] text-left text-[var(--mock-text)] shadow-[0_28px_65px_-28px_rgba(28,26,22,0.3)] transition-colors min-[1100px]:h-[640px]"
-        style={{
-          "--mock-bg": "#ffffff",
-          "--mock-sidebar": "#ffffff",
-          "--mock-surface": "#ffffff",
-          "--mock-soft": "#f5f5f5",
-          "--mock-line": "#e5e5e5",
-          "--mock-text": "#171717",
-          "--mock-muted": "#737373",
-        } as React.CSSProperties}
-      >
-        <CalendarSidebarMockup />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex min-h-[52px] items-center gap-2 border-b border-[var(--mock-line)] px-3 min-[700px]:px-4">
-            <div className="flex items-center gap-1">
-              <span className="grid size-6 place-items-center rounded-md border border-[var(--mock-line)] text-[var(--mock-text)]" aria-hidden>
-                <ChevronLeft size={13} />
-              </span>
-              <span className="hidden h-6 items-center rounded-md border border-[var(--mock-line)] px-2 text-[10px] font-semibold text-[var(--mock-text)] min-[520px]:inline-flex">
-                Today
-              </span>
-              <span className="grid size-6 place-items-center rounded-md border border-[var(--mock-line)] text-[var(--mock-text)]" aria-hidden>
-                <ChevronRight size={13} />
-              </span>
-            </div>
-            <h1 className="min-w-0 truncate text-xs font-extrabold tracking-[-0.03em] text-[var(--mock-text)] min-[700px]:text-sm">
-              September 2026
-            </h1>
-            <div className="ml-auto hidden items-center gap-0.5 rounded-lg bg-[var(--mock-soft)] p-0.5 text-[10px] font-semibold text-[var(--mock-muted)] min-[520px]:flex">
-              <span className="grid h-5 place-items-center rounded-md bg-[var(--mock-surface)] px-2 text-[var(--mock-text)] shadow-sm">Week</span>
-              <span className="grid h-5 place-items-center rounded-md px-2">Month</span>
-              <span className="grid h-5 place-items-center rounded-md px-2">Day</span>
-            </div>
-          </div>
-
-          <div className="grid h-[64px] shrink-0 grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-[var(--mock-line)]">
-            <span />
-            {DAYS.map((day) => (
-              <div key={day.date} className="flex flex-col items-start justify-center pl-1.5 min-[520px]:pl-2.5 min-[900px]:pl-4">
-                <span className="text-[8px] font-semibold tracking-wide text-[var(--mock-muted)] uppercase min-[520px]:text-[10px]">{day.label}</span>
-                <span className={day.selected ? "mt-1 grid size-7 place-items-center rounded-full bg-[var(--kal-accent)] text-xs font-bold text-white" : "mt-1 text-sm font-bold"}>
-                  {day.date}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid h-[44px] shrink-0 grid-cols-[42px_repeat(7,minmax(0,1fr))] border-b border-[var(--mock-line)]">
-            <span className="self-center text-center text-[8px] text-[var(--mock-muted)]">all-day</span>
-            {ALL_DAY_TASKS.map((task) => (
-              <div key={task.title} className="mx-1 my-2 flex min-w-0 items-center gap-1 overflow-hidden rounded-sm px-1 py-1 text-[7px] font-medium text-[var(--mock-text)] min-[520px]:gap-1.5 min-[520px]:px-1.5 min-[520px]:text-[8px]">
-                <span className="size-2.5 shrink-0 rounded-[2px] border border-[var(--mock-muted)]/70" aria-hidden />
-                <span className={`size-1 shrink-0 rounded-[1px] ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} aria-hidden />
-                <span className="truncate">{task.title}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex min-h-0 flex-1">
-            <div className="grid w-[42px] shrink-0 grid-rows-11 pt-1 text-center text-[8px] text-[var(--mock-muted)] min-[520px]:text-[9px]">
-              {HOURS.map((time) => <span key={time}>{time}</span>)}
-            </div>
+      <div ref={fitRef} className="relative z-10 w-full">
+        {full ? (
+          <div className="relative" style={{ height: DESIGN_HEIGHT * scale }}>
             <div
-              className="relative flex-1"
-              style={{ backgroundImage: "repeating-linear-gradient(to bottom, transparent 0, transparent 37px, var(--mock-line) 37px, var(--mock-line) 38px)" }}
+              className="absolute top-0 left-0 origin-top-left"
+              style={{ width: DESIGN_WIDTH, height: DESIGN_HEIGHT, transform: `scale(${scale})` }}
             >
-              <div className="absolute inset-0 grid grid-cols-7">
-                {DAYS.map((day) => <span key={day.date} className="border-l border-[var(--mock-line)]" />)}
-              </div>
-              {EVENTS.map((event) => (
-                <div
-                  key={`${event.day}-${event.title}`}
-                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${event.dragging ? `z-20 overflow-visible shadow-[0_8px_16px_rgba(63,82,160,0.28)] ${DRAG_CLASS}` : `overflow-hidden ${EVENT_COLOR_CLASSES[event.color]}`}`}
-                  style={{
-                    left: `calc((100% / 7) * ${event.day - 1} + 3px)`,
-                    width: "calc(100% / 7 - 6px)",
-                    top: event.top,
-                    height: event.height,
-                  }}
-                >
-                  {/* Floating inset accent bar hugging the left edge, matching
-                      the app's week/day events. The dragged event is solid so
-                      it needs no bar. */}
-                  {!event.dragging && (
-                    <span
-                      aria-hidden
-                      className={`pointer-events-none absolute left-1 top-1 bottom-1 w-[2px] rounded-full ${EVENT_COLOR_SWATCH_CLASSES[event.color]}`}
-                    />
-                  )}
-                  <strong className={`block truncate ${event.dragging ? "" : "pl-1.5"}`}>{event.title}</strong>
-                  <span className={`mt-0.5 block truncate text-[7px] opacity-70 min-[520px]:text-[9px] ${event.dragging ? "" : "pl-1.5"}`}>{event.time}</span>
-                  {event.dragging && <DragHand />}
-                </div>
-              ))}
+              <AppFrame full />
             </div>
           </div>
-        </div>
+        ) : (
+          <AppFrame full={false} />
+        )}
       </div>
       <figcaption className="relative z-10 mt-3 text-center text-[12px] text-[var(--kal-muted)]">
         Tasks and events, together in a real Kalend week.
@@ -240,195 +212,454 @@ export default function CalendarMockup() {
   );
 }
 
-function DragHand() {
+function AppFrame({ full }: { full: boolean }) {
   return (
-    <svg
-      className="absolute -right-2 -bottom-3 size-7 drop-shadow-[0_2px_2px_rgba(0,0,0,0.28)]"
-      viewBox="0 0 28 28"
-      fill="none"
-      aria-hidden
+    <div
+      inert
+      className={cn(
+        "flex w-full overflow-hidden rounded-[24px] border border-border bg-card text-left text-foreground shadow-[0_28px_65px_-28px_color-mix(in_srgb,var(--kal-tile-ink)_30%,transparent)]",
+        full ? "h-full" : "h-[600px]"
+      )}
     >
-      <path
-        d="M9.2 13.2V7.4a1.45 1.45 0 0 1 2.9 0v4.2-6.1a1.45 1.45 0 0 1 2.9 0v6.1-4.7a1.45 1.45 0 0 1 2.9 0v5.4-2.6a1.45 1.45 0 0 1 2.9 0v7.1c0 4.3-2.7 7.2-7 7.2h-.8a6.6 6.6 0 0 1-5.2-2.5l-4.1-5.2a1.6 1.6 0 0 1 2.4-2.1l3.1 3.1v-4.1Z"
-        fill="white"
-        stroke="#292524"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+      {full && (
+        <div className="flex h-full shrink-0">
+          <IconRailMock />
+          <div className="flex h-full w-[272px] flex-col border-r border-border">
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <AgendaColumnMock />
+            </div>
+            <MiniCalendarMock />
+          </div>
+        </div>
+      )}
 
-function CalendarSidebarMockup() {
-  return (
-    <aside className="hidden w-[256px] shrink-0 border-r border-[var(--mock-line)] bg-[var(--mock-sidebar)] transition-colors min-[900px]:flex">
-      <RailMockup />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AgendaColumnMockup />
-        <MiniCalendarMockup />
+      <div className="flex h-full min-w-0 flex-1 flex-col">
+        <CalendarHeaderMock />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <WeekDaysHeaderMock />
+          <AllDayRowMock />
+          <TimeGridMock />
+        </div>
       </div>
-    </aside>
+
+      {full && (
+        <div className="h-full w-[360px] shrink-0">
+          <AllTasksPanelMock />
+        </div>
+      )}
+    </div>
   );
 }
 
-// Icon rail: app mark, "all spaces", Space tiles, add, account avatar.
-function RailMockup() {
+function IconRailMock() {
   return (
-    <nav
-      className="flex w-[46px] shrink-0 flex-col items-center border-r border-[var(--mock-line)] bg-[var(--mock-surface)] pt-3.5 pb-3"
-      aria-hidden
-    >
-      <span className="grid size-7 place-items-center rounded-[8px] bg-[var(--kal-accent)]">
-        <KalendMark size={15} tone="white" />
+    <nav className="flex w-16 shrink-0 flex-col items-center border-r border-border bg-card pb-3.5 pt-4">
+      <span className="grid size-[30px] place-items-center rounded-[10px] bg-primary">
+        <KalendMark size={18} tone="white" />
       </span>
-      <div className="my-2.5 h-px w-5 bg-[var(--mock-line)]" />
-
-      {/* View all spaces (stacked-layers glyph) */}
-      <span className="mb-2 grid size-7 place-items-center rounded-[8px] text-[var(--mock-muted)]">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m12 2 9 5-9 5-9-5 9-5Z" />
-          <path d="m3 12 9 5 9-5" />
-          <path d="m3 17 9 5 9-5" />
-        </svg>
+      <span className="my-[11px] h-px w-6 shrink-0 bg-border" />
+      <span className="mb-[9px] grid size-[30px] place-items-center rounded-[10px] text-muted-foreground ring-2 ring-primary/35 ring-offset-2 ring-offset-card">
+        <Layers className="size-4" />
       </span>
-
-      <div className="flex flex-col items-center gap-1.5">
-        {RAIL_SPACES.map((space) => (
+      <div className="flex flex-col items-center gap-[5px]">
+        {Object.values(SPACES).map((space) => (
           <span
-            key={space.abbr}
-            className={`grid size-7 place-items-center rounded-[9px] border-[1.5px] text-[11px] font-bold ${RAIL_SPACE_CLASSES[space.color]} ${space.active ? "ring-2 ring-white/40 ring-offset-1 ring-offset-[var(--mock-surface)]" : ""}`}
+            key={space.name}
+            className="relative grid size-[34px] place-items-center rounded-[10px] border-[1.5px] border-transparent bg-muted text-sm font-semibold text-muted-foreground"
           >
-            {space.abbr}
+            {spaceAbbreviation(space.name)}
+            <SpaceDot color={space.color} className="absolute right-[3px] bottom-[3px]" />
           </span>
         ))}
       </div>
-
-      <span className="mt-1.5 grid size-7 place-items-center rounded-[9px] border border-dashed border-[var(--mock-line)] text-base font-light text-[var(--mock-muted)]">
-        +
+      <span className="mt-[5px] grid size-[34px] place-items-center rounded-[10px] border border-dashed border-border text-muted-foreground">
+        <Plus className="size-4" />
       </span>
-
       <div className="flex-1" />
-      <span className="grid size-7 place-items-center rounded-full bg-[var(--mock-soft)] text-[9px] font-semibold text-[var(--mock-muted)]">
-        AR
+      <span className="grid size-[30px] place-items-center rounded-full bg-muted text-body font-semibold text-muted-foreground">
+        E
       </span>
     </nav>
   );
 }
 
-// Agenda column: date header, Schedule section, Tasks section (bucketed).
-function AgendaColumnMockup() {
+function AgendaColumnMock() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="shrink-0 border-b border-[var(--mock-line)] px-3.5 pt-3 pb-2.5">
-        <h3 className="text-[12px] font-semibold leading-tight tracking-[-0.02em]">Monday, Sep 8</h3>
-        <p className="mt-0.5 text-[9px] text-[var(--mock-muted)]">3 events · 4 tasks</p>
+    <div className="flex h-full w-full flex-col bg-card">
+      <div className="shrink-0 px-4 pt-4 pb-2.5">
+        <h2 className="text-title font-semibold leading-tight tracking-[-0.02em] text-foreground">
+          Today · Wed Sep 9
+        </h2>
+        <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
+          {TODAY_EVENTS.length} events, {TODAY_TASKS.filter((task) => !task.done).length} due · all spaces
+        </p>
       </div>
-
-      <div className="min-h-0 flex-1 overflow-hidden px-3 py-3">
-        {/* Schedule */}
-        <section aria-hidden>
-          <h4 className="px-1 pb-1 text-[8px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Schedule</h4>
-          <div className="flex flex-col">
-            {SCHEDULE.map((event) => (
-              <div key={event.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
-                <span className="w-[44px] shrink-0 whitespace-nowrap text-[9px] font-medium tabular-nums text-[var(--mock-muted)]">
-                  {event.time}
+      <div className="min-h-0 flex-1 overflow-hidden px-4 pb-3">
+        <div className="flex flex-col">
+          {TODAY_EVENTS.map((event) => (
+            <div key={`${event.title}-${event.start[0]}`} className="flex items-start gap-1">
+              <div className="-mx-1.5 flex min-w-0 flex-1 items-start gap-2.5 rounded-lg px-1.5 py-[7px] text-left">
+                <span className="w-14 shrink-0 whitespace-nowrap text-body tabular-nums text-muted-foreground">
+                  {clock(event.start)}
                 </span>
-                <span className={`w-[2.5px] self-stretch rounded-full ${EVENT_COLOR_SWATCH_CLASSES[event.color]}`} />
-                <span className="min-w-0 flex-1 truncate text-[10px]">{event.title}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Tasks: one "+" for the whole list in the section header; buckets no
-            longer carry their own "+". */}
-        <section aria-hidden className="mt-3">
-          <div className="flex items-center justify-between px-1 pb-1">
-            <h4 className="text-[8px] font-semibold uppercase tracking-[0.04em] text-[var(--mock-muted)]">Tasks</h4>
-            <span className="grid size-3.5 place-items-center rounded text-[var(--mock-muted)]">
-              <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                <path d="M6 2.5v7M2.5 6h7" />
-              </svg>
-            </span>
-          </div>
-          {TASK_BUCKETS.map((bucket) => (
-            <div key={bucket.label} className="mt-2 first:mt-0">
-              <div className="flex items-center gap-1.5 px-1">
-                <svg width="8" height="8" viewBox="0 0 12 12" fill="none" className="text-[var(--mock-muted)]">
-                  <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="text-[9px] font-medium text-[var(--mock-text)]/90">{bucket.label}</span>
-                <span className="text-[9px] font-medium tabular-nums text-[var(--mock-muted)]">{bucket.tasks.length}</span>
-              </div>
-              <div className="mt-0.5 flex flex-col gap-1">
-                {bucket.tasks.map((task) => (
-                  <div key={task.title} className="flex items-center gap-2 rounded-sm px-1 py-1">
-                    {task.done ? (
-                      <span className="grid size-3 shrink-0 translate-y-[1px] place-items-center rounded-[4px] bg-[var(--kal-accent)] text-white">
-                        <svg width="7" height="7" viewBox="0 0 12 12" fill="none">
-                          <path d="m2.5 6 2.5 2.5 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                    ) : (
-                      <span className="size-3 shrink-0 translate-y-[1px] rounded-[4px] border-[1.5px] border-[var(--mock-line)]" />
-                    )}
-                    {!task.done && (
-                      <span className={`size-1.5 shrink-0 translate-y-[1px] rounded-full ${EVENT_COLOR_SWATCH_CLASSES[task.color]}`} />
-                    )}
-                    <span
-                      className={
-                        task.done
-                          ? "min-w-0 flex-1 truncate text-[10px] text-[var(--mock-muted)] line-through"
-                          : "min-w-0 flex-1 truncate text-[10px]"
-                      }
-                    >
-                      {task.title}
-                    </span>
-                  </div>
-                ))}
+                <span
+                  aria-hidden
+                  className={cn("mt-1 size-[9px] shrink-0 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[SPACES[event.space].color])}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-body text-foreground">{event.title}</span>
+                  <span className="block truncate text-xs leading-normal text-muted-foreground">
+                    {pathOf(event.space, event.group)}
+                  </span>
+                </span>
               </div>
             </div>
           ))}
-        </section>
+        </div>
       </div>
     </div>
   );
 }
 
-// Mini calendar pinned at the bottom of the agenda column.
-function MiniCalendarMockup() {
+function MiniCalendarMock() {
   return (
-    <div className="shrink-0 border-t border-[var(--mock-line)] px-3 pt-2.5 pb-3">
-      <div className="mb-2 flex items-center text-[11px] font-semibold tracking-[-0.01em]">
-        <span>September 2026</span>
-        <span className="ml-auto flex items-center gap-2.5 text-[var(--mock-muted)]" aria-hidden>
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-            <path d="m8.5 3-4 4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-            <path d="m5.5 3 4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <div className="shrink-0 border-t border-border bg-[var(--mini-cal-bg)] px-3 pt-3 pb-3">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xs leading-normal font-semibold tracking-[-0.02em] text-foreground">September 2026</h2>
+        <div className="flex gap-1 text-muted-foreground">
+          <span className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+            <ChevronLeft size={16} />
+          </span>
+          <span className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+            <ChevronRight size={16} />
+          </span>
+        </div>
+      </div>
+      <div className="mb-2 flex w-full justify-between">
+        {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+          <div key={index} className="w-7 text-center text-meta font-medium text-muted-foreground">
+            {day}
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col">
+        {MINI_CALENDAR_WEEKS.map((week) => (
+          <div key={week[0].date + (week[0].outside ? "o" : "")} className="mb-1 flex w-full justify-between">
+            {week.map(({ date, outside }) => (
+              <span
+                key={`${date}-${outside ? "o" : "i"}`}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-md text-xs leading-normal font-medium",
+                  outside
+                    ? "text-muted-foreground"
+                    : date === SELECTED_DATE
+                      ? "bg-primary font-semibold text-primary-foreground"
+                      : "text-foreground"
+                )}
+              >
+                {date}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CalendarHeaderMock() {
+  return (
+    <div className="flex h-[53px] shrink-0 items-center gap-3 border-b border-border bg-card px-4">
+      <div className="flex items-center gap-1.5">
+        <span className={buttonVariants({ variant: "outline", size: "icon-lg" })}>
+          <ChevronLeft size={17} />
+        </span>
+        <span className={cn(buttonVariants({ variant: "outline", size: "lg" }), "hidden text-xs font-semibold min-[520px]:inline-flex")}>
+          Today
+        </span>
+        <span className={buttonVariants({ variant: "outline", size: "icon-lg" })}>
+          <ChevronRight size={17} />
         </span>
       </div>
-      <div className="grid auto-rows-[19px] grid-cols-7 gap-y-0.5 text-center text-[9px] leading-none text-[var(--mock-muted)]">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-          <span key={`${day}-${index}`} className="mx-auto grid size-5 place-items-center font-semibold">{day}</span>
-        ))}
-        {MINI_CALENDAR_DAYS.map((day, index) => {
-          const muted = index === 0 || index > 30;
-          const selected = day === 8 && index < 15;
-          return (
+      <h1 className="min-w-0 truncate text-base font-bold tracking-[-0.02em] [word-spacing:0.06em] text-foreground min-[900px]:text-xl">
+        September 2026
+      </h1>
+      <div className="ml-auto hidden min-[520px]:block">
+        <div className="inline-flex items-center rounded-lg bg-muted p-0.5 text-muted-foreground">
+          {(["Week", "Month", "Day"] as const).map((label) => (
             <span
-              key={`${day}-${index}`}
-              className={`mx-auto grid size-5 place-items-center rounded-[5px] ${selected ? "bg-[var(--kal-accent)] font-semibold text-white" : muted ? "opacity-40" : ""}`}
+              key={label}
+              className={cn(
+                "inline-flex h-7 items-center justify-center rounded-md border border-transparent px-2.5 text-xs whitespace-nowrap",
+                label === "Week"
+                  ? "bg-background font-semibold text-foreground ring-1 ring-foreground/10 dark:bg-foreground/10"
+                  : "font-medium text-foreground/60 dark:text-muted-foreground"
+              )}
             >
-              {day}
+              {label}
             </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WeekDaysHeaderMock() {
+  return (
+    <div className="flex h-14 shrink-0 border-b border-border bg-card sm:h-[74px]">
+      <div className="w-10 shrink-0 sm:w-16" />
+      <div className="grid flex-1 grid-cols-7">
+        {DAYS.map((day, index) => (
+          <div key={day.date} className="flex flex-col items-start justify-center gap-0.5 pl-1 sm:pl-4 lg:pl-5">
+            <CalendarWeekdayLabel className="hidden w-9 text-center sm:block">{day.label}</CalendarWeekdayLabel>
+            <CalendarWeekdayLabel className="block w-6 text-center sm:hidden">{day.initial}</CalendarWeekdayLabel>
+            <span
+              className={cn(
+                "flex size-6 items-center justify-center rounded-full text-sm font-bold tracking-[-0.03em] sm:size-9 sm:text-lg",
+                index === TODAY ? "bg-primary text-primary-foreground" : "text-foreground"
+              )}
+            >
+              {day.date}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AllDayRowMock() {
+  return (
+    <div className="flex min-h-[50px] shrink-0 border-b border-border bg-card">
+      <div className="flex w-10 shrink-0 items-start justify-end border-r border-border pr-1 pt-4 sm:w-16 sm:pr-3">
+        <span className="text-meta leading-none text-muted-foreground sm:text-xs">all-day</span>
+      </div>
+      <div className="relative flex flex-1 flex-col py-1">
+        <div aria-hidden className="pointer-events-none absolute inset-0 grid grid-cols-7 divide-x divide-border">
+          {DAYS.map((day) => (
+            <span key={day.date} />
+          ))}
+        </div>
+        <div
+          className="relative grid grid-cols-7"
+          style={{ gridTemplateRows: `repeat(${ALL_DAY_EVENTS.length}, ${LANE_HEIGHT_PX}px)` }}
+        >
+          {ALL_DAY_EVENTS.map((event) => (
+            <span
+              key={event.title}
+              style={{ gridColumn: `${event.startCol + 1} / ${event.endCol + 2}`, gridRow: 1 }}
+              className={cn(
+                "mx-1.5 my-0.5 overflow-hidden truncate rounded-md border px-2 py-0.5 text-left text-meta font-semibold",
+                getEventColorClasses(SPACES[event.space].color)
+              )}
+            >
+              {event.title}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TimeGridMock() {
+  const gridHeight = HOURS.length * HOUR_HEIGHT_PX;
+  const nowTop = offsetPx(NOW);
+
+  return (
+    <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
+        {HOURS.map((hour) => (
+          <div
+            key={hour}
+            style={{ height: HOUR_HEIGHT_PX }}
+            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-meta"
+          >
+            <span className="relative -top-2 block truncate">{hourLabel(hour)}</span>
+          </div>
+        ))}
+        <div
+          className="absolute right-1 z-10 -translate-y-1/2 rounded bg-now-label px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+          style={{ top: nowTop }}
+        >
+          {NOW[0] % 12 || 12}:{String(NOW[1]).padStart(2, "0")}
+        </div>
+      </div>
+      <div className="relative grid flex-1 grid-cols-7 divide-x divide-border border-r border-border">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-now/50"
+          style={{ top: nowTop }}
+        />
+        {DAYS.map((day, index) => {
+          const weekend = index === 0 || index === 6;
+          return (
+            <div
+              key={day.date}
+              className={cn(
+                "relative border-r border-border last:border-r-0",
+                index === TODAY ? "bg-primary/5" : weekend ? "bg-muted/30" : "bg-card"
+              )}
+              style={{ height: gridHeight }}
+            >
+              {HOURS.map((hour) => (
+                <div key={hour} style={{ height: HOUR_HEIGHT_PX }} className="border-b border-border/40" />
+              ))}
+              {index === TODAY && (
+                <div className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center" style={{ top: nowTop }}>
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-now" />
+                  <div className="h-[2px] flex-1 bg-now" />
+                </div>
+              )}
+              {EVENTS.filter((event) => event.day === index).map((event) => (
+                <EventBlockMock key={`${event.title}-${event.start[0]}`} event={event} />
+              ))}
+            </div>
           );
         })}
       </div>
     </div>
   );
 }
+
+function EventBlockMock({ event }: { event: MockEvent }) {
+  const space = SPACES[event.space];
+  const top = offsetPx(event.start);
+  const height = ((minutes(event.end) - minutes(event.start)) / 60) * HOUR_HEIGHT_PX;
+  // Matches TimeGrid: the location line needs a block at least 45 minutes tall.
+  const showLocation = Boolean(event.location) && height >= (45 / 1440) * 24 * HOUR_HEIGHT_PX;
+
+  return (
+    <div
+      className={cn("absolute overflow-hidden rounded-sm border text-left text-xs font-semibold", getEventColorClasses(space.color))}
+      style={{ top, height, left: 5, width: "calc(100% - 10px)" }}
+    >
+      <span
+        aria-hidden
+        className={cn("absolute left-1 top-1 bottom-1 w-[3px] rounded-full", EVENT_COLOR_SWATCH_CLASSES[space.color])}
+      />
+      <span className="absolute left-[13px] right-1.5 top-0.5 truncate">{event.title}</span>
+      <span className="absolute left-[13px] right-1.5 top-5 truncate text-meta font-medium">
+        {clock(event.start)} – {clock(event.end)}
+      </span>
+      {showLocation && (
+        <span className="absolute left-[13px] right-1.5 top-9 truncate text-meta font-medium">{event.location}</span>
+      )}
+    </div>
+  );
+}
+
+function AllTasksPanelMock() {
+  const total = WEEK_LOAD.reduce((sum, hours) => sum + hours, 0);
+  const max = Math.max(1, ...WEEK_LOAD);
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+
+  return (
+    <div className="flex h-full w-full flex-col border-l border-border bg-card">
+      <header className="border-b border-border px-4 pt-4">
+        <div className="flex items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground">All tasks</h2>
+          <span className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), "text-muted-foreground")}>
+            <X className="size-4" />
+          </span>
+        </div>
+        <div className="mt-2 inline-flex h-8 items-center gap-1 p-[3px]">
+          <span className="relative inline-flex h-[calc(100%-1px)] items-center rounded-md px-1.5 py-0.5 text-body font-semibold text-foreground after:absolute after:inset-x-0 after:bottom-[-5px] after:h-0.5 after:bg-foreground">
+            Tasks
+          </span>
+          <span className="inline-flex h-[calc(100%-1px)] items-center rounded-md px-1.5 py-0.5 text-body font-semibold text-foreground/60 dark:text-muted-foreground">
+            Alerts
+          </span>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 divide-y divide-border overflow-hidden">
+        <section className="px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="label-caps">This week</h3>
+            <span className="truncate pl-3 text-xs leading-normal text-muted-foreground">
+              {round1(total)}h booked in all spaces
+            </span>
+          </div>
+          <ul className="mt-1.5 flex gap-1">
+            {DAYS.map((day, index) => {
+              const hours = WEEK_LOAD[index];
+              const today = index === TODAY;
+              return (
+                <li key={day.date} className="flex flex-1">
+                  <span
+                    className={cn(
+                      buttonVariants({ variant: "ghost" }),
+                      "h-auto flex-1 flex-col gap-1 px-0 pb-1.5 pt-1.5 font-normal",
+                      today && "bg-primary/10"
+                    )}
+                  >
+                    <span className="text-meta tabular-nums text-muted-foreground">{round1(hours)}h</span>
+                    <span className="flex h-9 items-end">
+                      <span
+                        style={{ height: Math.max(3, Math.round((hours / max) * 36)) }}
+                        className={cn("w-3.5 rounded-[3px]", today ? "bg-primary" : "bg-muted-foreground/50 opacity-60")}
+                      />
+                    </span>
+                    <span className={cn("text-meta", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
+                      {day.initial}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h3 className="label-caps">
+              Tasks
+              <span className="font-normal"> · {OPEN_TASKS.length} open</span>
+            </h3>
+            <span className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "text-muted-foreground")}>
+              <Plus className="size-3.5" />
+            </span>
+          </div>
+          <div className="mt-1 flex flex-col">
+            {PANEL_BUCKETS.map((bucket) => (
+              <div key={bucket.label}>
+                <h4 className="mb-0.5 mt-3 text-xs leading-normal font-semibold text-foreground">
+                  {bucket.label}
+                  <span className="ml-1.5 font-normal text-muted-foreground">{bucket.tasks.length}</span>
+                </h4>
+                {bucket.tasks.map((task) => (
+                  <div key={task.title} className="-mx-4 px-4 py-1.5">
+                    <div className="flex items-start gap-2.5">
+                      <TaskCheckbox title={task.title} checked={false} onToggle={noop} className="mt-0.5" />
+                      <span className="-my-0.5 min-w-0 flex-1 px-1.5 py-0.5 text-left">
+                        <span className="block truncate text-body text-foreground">{task.title}</span>
+                        <span className="block truncate text-xs leading-normal text-muted-foreground">
+                          {pathOf(task.space, task.group)}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "shrink-0 whitespace-nowrap text-xs leading-normal tabular-nums",
+                          task.day === TODAY ? "text-warning" : "text-muted-foreground"
+                        )}
+                      >
+                        {dueLabel(task)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <span className={cn(buttonVariants({ variant: "link" }), QUIET_LINK_CLS, "mt-3 inline-flex")}>
+            Show completed ({COMPLETED_COUNT})
+          </span>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function noop() {}

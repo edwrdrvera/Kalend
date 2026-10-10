@@ -5,7 +5,6 @@ import CalendarMockup from "./CalendarMockup";
 export default function LandingHero() {
   return (
     <section id="top" className="relative isolate overflow-hidden border-b border-[var(--kal-border)]/70">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[680px] bg-[radial-gradient(circle_at_16%_24%,color-mix(in_srgb,var(--kal-tile-mint)_10%,transparent),transparent_24%),radial-gradient(circle_at_84%_22%,color-mix(in_srgb,var(--kal-tile-coral)_8%,transparent),transparent_25%)]" aria-hidden />
       <div className="mx-auto flex max-w-[1200px] scroll-mt-24 flex-col items-center px-6 pt-16 pb-20 text-center min-[860px]:px-8 min-[860px]:pt-20 min-[860px]:pb-28">
         <div className="w-full max-w-[920px]">
           <h1

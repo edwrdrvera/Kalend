@@ -40,7 +40,7 @@ export default function KalendMark({
   label,
   className,
 }: KalendMarkProps) {
-  const fill = tone === "white" ? "#ffffff" : "#1c1a16";
+  const fill = tone === "white" ? "#ffffff" : "var(--kal-ink)";
 
   return (
     <span

@@ -31,7 +31,7 @@ export default function KalendWordmark({
   className,
 }: KalendWordmarkProps) {
   const spec = SIZE_SPEC[size];
-  const color = tone === "white" ? "#ffffff" : "#1c1a16";
+  const color = tone === "white" ? "#ffffff" : "var(--kal-ink)";
 
   return (
     <span
