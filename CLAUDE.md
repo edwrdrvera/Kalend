@@ -39,11 +39,11 @@ All three are safe to re-run.
   | 1. Confidence report | One `Verified:` line in the PR body | Short form | Full | Full, with a real Rollback (a reverse migration for schema changes) |
   | 2. Open PR with `Closes #<issue>`, then `pstack:make-pr-easy-to-review` | Open PR only | Open PR only | Both | Both |
   | 3. Post the report as the first PR comment | No | Yes | Yes | Yes |
-  | 4. `bun run review:pr <number> --post` | Skip | Skip | Ask me first | Ask me first |
-  | 5. Fix, then log each finding with `bun run review:log add` | n/a | n/a | If reviewed | If reviewed |
+  | 4. `bun run review:pr <number> --post` | Skip | Skip | Skip | Ask me first |
+  | 5. Fix, then log each finding with `bun run review:log add` | n/a | n/a | n/a | If reviewed |
   | 6. `pstack:babysit` | No, CI must pass | Only if CI fails | Yes | Yes |
 
-  For medium and high, tell me the tier and what the PR touches, and ask whether to run the review. Don't run it until I say yes. `review:pr` skips trivial and low PRs unless given `--force`. On medium it runs `/code-review`; on high it adds `/security-review`.
+  For high, tell me the tier and what the PR touches, and ask whether to run the review. Don't run it until I say yes. Medium PRs don't get a fresh-session review unless I ask for one. `review:pr` skips trivial, low, and medium PRs unless given `--force`. On high it runs `/code-review` and adds `/security-review`.
 
   The report forms are in `guides/github-writing.md`, and the PR description follows it too. `review:pr` starts a new Claude process that sees only the PR and the linked issue's acceptance criteria, and posts a report without changing anything. Don't run those reviews in the session that wrote the code. A PR gets at most 2 reviews (one first review, one re-run after fixes), and the script refuses a third. Don't re-run just to confirm small fixes. Fix what the report confirms within the task's scope, apply its judgment calls, and update the confidence report. List a restructuring that goes beyond the task in the final summary instead of doing it. babysit fixes high-confidence findings with new commits, re-runs CI, and brings ambiguous decisions back to me instead of guessing.
 - Log every finding a review reports, with its outcome (`real-fixed`, `real-deferred`, `false-positive`, `ignored`). When a bug turns up later in code a review passed, log it against that PR as `missed`. `bun run review:log stats` compares reviewer versions, so check it before changing the review prompt or skills.
