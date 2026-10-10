@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { wrapTabTarget } from "@/lib/tab-stops";
 
 interface PanelShellProps {
   label: string;
@@ -31,19 +32,11 @@ export default function PanelShell({ label, modal, onClose, children }: PanelShe
       onClose();
       return;
     }
-    if (!modal || e.key !== "Tab") return;
-    const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
-      'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
-    );
-    if (!focusables || focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
+    if (!modal || e.key !== "Tab" || !panelRef.current) return;
+    const target = wrapTabTarget(panelRef.current, document.activeElement, e.shiftKey);
+    if (target) {
       e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
+      target.focus();
     }
   }
 
