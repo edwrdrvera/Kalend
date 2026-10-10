@@ -1,10 +1,12 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Layers, Plus } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Layers, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, getEventColorClasses, type EventColor } from "@/lib/event-colors";
 import { spaceAbbreviation } from "@/lib/space-abbreviation";
 import { buttonVariants } from "@/components/ui/button";
+import { QUIET_LINK_CLS } from "@/components/control-styles";
 import KalendMark from "@/components/KalendMark";
 import CalendarWeekdayLabel from "@/components/CalendarWeekdayLabel";
 import SpaceDot from "@/components/SpaceDot";
@@ -13,6 +15,8 @@ import TaskCheckbox from "@/components/TaskCheckbox";
 // A static copy of the app's week view, drawn with the same classes as IconRail,
 // AgendaColumn, MiniCalendar, CalendarHeader, WeekGrid, AllDayRow and TimeGrid.
 // The week is Sun Sep 6 to Sat Sep 12, 2026, and Wednesday is today and selected.
+// On wide screens the whole app is drawn at a fixed size and scaled down to fit,
+// the way a screenshot would be. Narrower screens get the grid alone, unscaled.
 
 const SPACES = {
   bio: { name: "BIO 102", color: "blue" },
@@ -62,7 +66,10 @@ const EVENTS: MockEvent[] = [
 ];
 
 interface MockTask {
-  day: number;
+  /** Day of the week it is due, or null when it is due outside this week or has no date. */
+  day: number | null;
+  /** Due label for a task due outside this week. */
+  due?: string;
   title: string;
   space: SpaceKey;
   group?: string;
@@ -74,10 +81,17 @@ const TASKS: MockTask[] = [
   { day: 3, title: "Problem set 5", space: "math", group: "Homework" },
   { day: 4, title: "Draft case study", space: "design" },
   { day: 5, title: "Finish lab report", space: "bio" },
+  { day: 2, title: "Return library books", space: "bio", done: true },
+  { day: null, due: "Sep 21", title: "Midterm study guide", space: "math" },
+  { day: null, due: "Sep 28", title: "Submit portfolio draft", space: "design" },
+  { day: null, title: "Plan summer shifts", space: "cafe" },
 ];
 
 const ALL_DAY_EVENTS = [{ title: "Design sprint", space: "design" as SpaceKey, startCol: 5, endCol: 6 }];
 
+const DESIGN_WIDTH = 1520;
+const DESIGN_HEIGHT = 840;
+const FULL_MIN_WIDTH = 900;
 const HOUR_HEIGHT_PX = 64;
 const FIRST_HOUR = 8;
 const HOURS = Array.from({ length: 10 }, (_, i) => FIRST_HOUR + i);
@@ -120,7 +134,40 @@ function pathOf(space: SpaceKey, group?: string): string {
 const TODAY_EVENTS = EVENTS.filter((event) => event.day === TODAY);
 const TODAY_TASKS = TASKS.filter((task) => task.day === TODAY);
 
+const WEEK_LOAD = DAYS.map((_, index) =>
+  EVENTS.filter((event) => event.day === index).reduce((hours, event) => hours + (minutes(event.end) - minutes(event.start)) / 60, 0)
+);
+
+function dueLabel(task: MockTask): string {
+  if (task.day === TODAY) return "Due today";
+  if (task.day !== null) return `Sep ${DAYS[task.day].date}`;
+  return task.due ?? "No date";
+}
+
+const OPEN_TASKS = TASKS.filter((task) => !task.done);
+const PANEL_BUCKETS = [
+  { label: "Today", tasks: OPEN_TASKS.filter((task) => task.day === TODAY) },
+  { label: "This week", tasks: OPEN_TASKS.filter((task) => task.day !== null && task.day > TODAY) },
+  { label: "Later", tasks: OPEN_TASKS.filter((task) => task.day === null && task.due) },
+  { label: "No date", tasks: OPEN_TASKS.filter((task) => task.day === null && !task.due) },
+].filter((bucket) => bucket.tasks.length > 0);
+const COMPLETED_COUNT = TASKS.length - OPEN_TASKS.length;
+
 export default function CalendarMockup() {
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = fitRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setWidth(el.clientWidth));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const full = width === null || width >= FULL_MIN_WIDTH;
+  const scale = width === null ? 0.72 : Math.min(1, width / DESIGN_WIDTH);
+
   return (
     <figure className="relative isolate w-full max-w-[1180px] px-3 py-7 min-[640px]:px-9 min-[640px]:py-10">
       <span
@@ -144,11 +191,38 @@ export default function CalendarMockup() {
         aria-hidden
       />
 
-      <div
-        inert
-        className="relative z-10 flex h-[600px] overflow-hidden rounded-[24px] border border-border bg-card text-left text-foreground shadow-[0_28px_65px_-28px_color-mix(in_srgb,var(--kal-tile-ink)_30%,transparent)] min-[1100px]:h-[680px]"
-      >
-        <div className="hidden h-full shrink-0 min-[900px]:flex">
+      <div ref={fitRef} className="relative z-10 w-full">
+        {full ? (
+          <div className="relative" style={{ height: DESIGN_HEIGHT * scale }}>
+            <div
+              className="absolute top-0 left-0 origin-top-left"
+              style={{ width: DESIGN_WIDTH, height: DESIGN_HEIGHT, transform: `scale(${scale})` }}
+            >
+              <AppFrame full />
+            </div>
+          </div>
+        ) : (
+          <AppFrame full={false} />
+        )}
+      </div>
+      <figcaption className="relative z-10 mt-3 text-center text-[12px] text-[var(--kal-muted)]">
+        Tasks and events, together in a real Kalend week.
+      </figcaption>
+    </figure>
+  );
+}
+
+function AppFrame({ full }: { full: boolean }) {
+  return (
+    <div
+      inert
+      className={cn(
+        "flex w-full overflow-hidden rounded-[24px] border border-border bg-card text-left text-foreground shadow-[0_28px_65px_-28px_color-mix(in_srgb,var(--kal-tile-ink)_30%,transparent)]",
+        full ? "h-full" : "h-[600px]"
+      )}
+    >
+      {full && (
+        <div className="flex h-full shrink-0">
           <IconRailMock />
           <div className="flex h-full w-[272px] flex-col border-r border-border">
             <div className="min-h-0 flex-1 overflow-hidden">
@@ -157,20 +231,23 @@ export default function CalendarMockup() {
             <MiniCalendarMock />
           </div>
         </div>
+      )}
 
-        <div className="flex h-full min-w-0 flex-1 flex-col">
-          <CalendarHeaderMock />
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <WeekDaysHeaderMock />
-            <AllDayRowMock />
-            <TimeGridMock />
-          </div>
+      <div className="flex h-full min-w-0 flex-1 flex-col">
+        <CalendarHeaderMock />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <WeekDaysHeaderMock />
+          <AllDayRowMock />
+          <TimeGridMock />
         </div>
       </div>
-      <figcaption className="relative z-10 mt-3 text-center text-[12px] text-[var(--kal-muted)]">
-        Tasks and events, together in a real Kalend week.
-      </figcaption>
-    </figure>
+
+      {full && (
+        <div className="h-full w-[360px] shrink-0">
+          <AllTasksPanelMock />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -505,6 +582,118 @@ function EventBlockMock({ event }: { event: MockEvent }) {
       {showLocation && (
         <span className="absolute left-[13px] right-1.5 top-9 truncate text-meta font-medium">{event.location}</span>
       )}
+    </div>
+  );
+}
+
+function AllTasksPanelMock() {
+  const total = WEEK_LOAD.reduce((sum, hours) => sum + hours, 0);
+  const max = Math.max(1, ...WEEK_LOAD);
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+
+  return (
+    <div className="flex h-full w-full flex-col border-l border-border bg-card">
+      <header className="border-b border-border px-4 pt-4">
+        <div className="flex items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground">All tasks</h2>
+          <span className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }), "text-muted-foreground")}>
+            <X className="size-4" />
+          </span>
+        </div>
+        <div className="mt-2 inline-flex h-8 items-center gap-1 p-[3px]">
+          <span className="relative inline-flex h-[calc(100%-1px)] items-center rounded-md px-1.5 py-0.5 text-body font-semibold text-foreground after:absolute after:inset-x-0 after:bottom-[-5px] after:h-0.5 after:bg-foreground">
+            Tasks
+          </span>
+          <span className="inline-flex h-[calc(100%-1px)] items-center rounded-md px-1.5 py-0.5 text-body font-semibold text-foreground/60 dark:text-muted-foreground">
+            Alerts
+          </span>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 divide-y divide-border overflow-hidden">
+        <section className="px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="label-caps">This week</h3>
+            <span className="truncate pl-3 text-xs leading-normal text-muted-foreground">
+              {round1(total)}h booked in all spaces
+            </span>
+          </div>
+          <ul className="mt-1.5 flex gap-1">
+            {DAYS.map((day, index) => {
+              const hours = WEEK_LOAD[index];
+              const today = index === TODAY;
+              return (
+                <li key={day.date} className="flex flex-1">
+                  <span
+                    className={cn(
+                      buttonVariants({ variant: "ghost" }),
+                      "h-auto flex-1 flex-col gap-1 px-0 pb-1.5 pt-1.5 font-normal",
+                      today && "bg-primary/10"
+                    )}
+                  >
+                    <span className="text-meta tabular-nums text-muted-foreground">{round1(hours)}h</span>
+                    <span className="flex h-9 items-end">
+                      <span
+                        style={{ height: Math.max(3, Math.round((hours / max) * 36)) }}
+                        className={cn("w-3.5 rounded-[3px]", today ? "bg-primary" : "bg-muted-foreground/50 opacity-60")}
+                      />
+                    </span>
+                    <span className={cn("text-meta", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
+                      {day.initial}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h3 className="label-caps">
+              Tasks
+              <span className="font-normal"> · {OPEN_TASKS.length} open</span>
+            </h3>
+            <span className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "text-muted-foreground")}>
+              <Plus className="size-3.5" />
+            </span>
+          </div>
+          <div className="mt-1 flex flex-col">
+            {PANEL_BUCKETS.map((bucket) => (
+              <div key={bucket.label}>
+                <h4 className="mb-0.5 mt-3 text-xs leading-normal font-semibold text-foreground">
+                  {bucket.label}
+                  <span className="ml-1.5 font-normal text-muted-foreground">{bucket.tasks.length}</span>
+                </h4>
+                {bucket.tasks.map((task) => (
+                  <div key={task.title} className="-mx-4 border-b border-border/60 px-4 py-1.5 last:border-b-0">
+                    <div className="flex items-start gap-2.5">
+                      <TaskCheckbox title={task.title} checked={false} onToggle={noop} className="mt-0.5" />
+                      <span className="-my-0.5 min-w-0 flex-1 px-1.5 py-0.5 text-left">
+                        <span className="block truncate text-body text-foreground">{task.title}</span>
+                        <span className="block truncate text-xs leading-normal text-muted-foreground">
+                          {pathOf(task.space, task.group)}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          "shrink-0 whitespace-nowrap text-xs leading-normal tabular-nums",
+                          task.day === TODAY ? "text-warning" : "text-muted-foreground"
+                        )}
+                      >
+                        {dueLabel(task)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <span className={cn(buttonVariants({ variant: "link" }), QUIET_LINK_CLS, "mt-3 inline-flex")}>
+            Show completed ({COMPLETED_COUNT})
+          </span>
+        </section>
+      </div>
     </div>
   );
 }
