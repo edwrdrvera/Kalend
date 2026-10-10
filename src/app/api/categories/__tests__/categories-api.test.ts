@@ -207,6 +207,16 @@ describe("Categories API Endpoints", () => {
       expect(mockDbState.rows).toEqual(before);
     });
 
+    it.each([
+      [{ name: "Bio", colour: "red" }, "Unknown field: colour"],
+      [{ name: "x".repeat(101) }, "name must be at most 100 characters"],
+    ])("rejects %j with 400 without inserting a category", async (body, error) => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const response = await POST(new Request("http://localhost/api/categories", { method: "POST", body: JSON.stringify(body) }));
+      expect({ status: response.status, body: await response.json() }).toEqual({ status: 400, body: { success: false, error } });
+      expect(mockDbState.rows).toEqual(before);
+    });
+
     it("returns 400 when name is missing", async () => {
       const req = new Request("http://localhost/api/categories", {
         method: "POST",
@@ -379,6 +389,20 @@ describe("Categories API Endpoints", () => {
         expect((await response.json()).error).toBe("name must be a string");
       }
 
+      expect(mockDbState.rows).toEqual(before);
+    });
+
+    it.each([
+      [{ name: "Bio", colour: "red" }, "Unknown field: colour"],
+      [{ name: "x".repeat(101) }, "name must be at most 100 characters"],
+    ])("rejects %j with 400 without updating the category", async (body, error) => {
+      const before = mockDbState.rows.map((row) => ({ ...row }));
+      const id = mockDbState.rows[0].id;
+      const response = await PATCH(
+        new Request(`http://localhost/api/categories/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+        { params: Promise.resolve({ id }) }
+      );
+      expect({ status: response.status, body: await response.json() }).toEqual({ status: 400, body: { success: false, error } });
       expect(mockDbState.rows).toEqual(before);
     });
 
