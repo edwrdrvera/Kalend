@@ -91,4 +91,54 @@ describe("useEventEditor", () => {
     expect(result.current.submitting).toBe(false);
     expect(result.current.target).not.toBeNull();
   });
+
+  it("a slow create that finishes after the user opened another slot leaves that editor open", async () => {
+    const pending = Promise.withResolvers<CalendarEvent>();
+    const { result, act, onOpenCreated } = await setup(mock(() => pending.promise));
+    await act(() => result.current.openCreate(new Date("2026-10-01T09:00:00Z"), rect));
+    let submitted!: Promise<void>;
+    await act(() => {
+      submitted = result.current.submit(VALUES, true);
+    });
+    const second = new Date("2026-10-02T09:00:00Z");
+    await act(() => result.current.openCreate(second, rect));
+    pending.resolve(EVENT);
+    await act(() => submitted);
+    expect(result.current.target?.start).toEqual(second);
+    expect(result.current.submitting).toBe(false);
+    expect(onOpenCreated).not.toHaveBeenCalled();
+  });
+
+  it("a slow create that fails after the user opened another slot keeps its error off that editor", async () => {
+    const pending = Promise.withResolvers<CalendarEvent>();
+    const { result, act } = await setup(mock(() => pending.promise));
+    await act(() => result.current.openCreate(new Date("2026-10-01T09:00:00Z"), rect));
+    let submitted!: Promise<void>;
+    await act(() => {
+      submitted = result.current.submit(VALUES);
+    });
+    await act(() => result.current.openCreate(new Date("2026-10-02T09:00:00Z"), rect));
+    pending.reject(new Error("Network down"));
+    await act(() => submitted);
+    expect(result.current.target).not.toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it("a second submit while the first is in flight sends one create", async () => {
+    const pending = Promise.withResolvers<CalendarEvent>();
+    const { result, act, events } = await setup(mock(() => pending.promise));
+    await act(() => result.current.openCreate(new Date(), rect));
+    let first!: Promise<void>;
+    let second!: Promise<void>;
+    await act(() => {
+      first = result.current.submit(VALUES);
+      second = result.current.submit(VALUES);
+    });
+    pending.resolve(EVENT);
+    await act(async () => {
+      await Promise.all([first, second]);
+    });
+    expect(events.createEvent).toHaveBeenCalledTimes(1);
+    expect(result.current.target).toBeNull();
+  });
 });
