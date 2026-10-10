@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
+import { holdRequests } from "./controlled-fetch";
 import type {
   CalendarCategory,
   CalendarEvent,
@@ -366,6 +367,37 @@ describe("useCategories", () => {
     });
 
     expect(result.current.data).toEqual([CAT_B]);
+    unmount();
+  });
+});
+
+describe("useCategories with overlapping requests", () => {
+  it("keeps a rename that saved when a recolor sent after it fails", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useCategories());
+    await act(() => {});
+    requests[0].respond({ success: true, data: [CAT_A] });
+    await act(() => {});
+    const space = result.current.data[0];
+
+    let rename!: Promise<boolean>;
+    let recolor!: Promise<boolean>;
+    await act(() => {
+      rename = result.current.updateCategory(space, { name: "Renamed" });
+    });
+    await act(() => {
+      recolor = result.current.updateCategory(space, { color: "red" });
+    });
+    requests[1].respond({ success: true, data: { ...CAT_A, name: "Renamed" } });
+    await act(async () => {
+      await rename;
+    });
+    requests[2].respond({ success: false, error: "boom" }, 500);
+    await act(async () => {
+      await recolor;
+    });
+
+    expect(result.current.data[0]).toEqual({ ...CAT_A, name: "Renamed" });
     unmount();
   });
 });

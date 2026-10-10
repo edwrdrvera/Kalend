@@ -34,7 +34,10 @@ beforeEach(() => {
     if (method === "GET") return json({ success: true, data: server });
     if (method === "POST") {
       const body = JSON.parse(String(init?.body));
-      const created = stored(`new-${body.offset_minutes}`, body.offset_minutes);
+      const created = {
+        ...stored(`new-${body.event_id}-${body.offset_minutes}`, body.offset_minutes),
+        event_id: body.event_id,
+      };
       server = [...server, created];
       return json({ success: true, data: created }, 201);
     }
@@ -106,5 +109,21 @@ describe("useAlerts syncAlert", () => {
 
     await act(() => result.current.syncAlert(EVENT, 15));
     expect(requests).toEqual([]);
+  });
+});
+
+describe("useAlerts with overlapping saves", () => {
+  it("keeps both alerts when two items save their alerts at the same time", async () => {
+    server = [];
+    const { result, act } = await mountLoaded();
+
+    await act(async () => {
+      await Promise.all([
+        result.current.syncAlert({ kind: "event", id: "A" }, 15),
+        result.current.syncAlert({ kind: "event", id: "B" }, 15),
+      ]);
+    });
+
+    expect([...result.current.byItem.keys()].sort()).toEqual(["A", "B"]);
   });
 });
