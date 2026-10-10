@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "../globals.css";
 import { cn } from "@/lib/utils";
 import { noFlashScript } from "@/lib/theme-no-flash";
+import { ThemeProvider } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Kalend",
@@ -39,7 +40,7 @@ export default function MarketingLayout({
           "bg-[var(--kal-bg)] text-[var(--kal-ink)] selection:bg-[var(--kal-accent)]/30"
         )}
       >
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
