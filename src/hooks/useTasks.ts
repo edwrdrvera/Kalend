@@ -54,6 +54,15 @@ export function createRowLog(): RowLog {
     };
   };
 
+  const holdWhile = async <R,>(id: string, work: () => Promise<R>): Promise<R> => {
+    const release = hold(id);
+    try {
+      return await work();
+    } finally {
+      release();
+    }
+  };
+
   return {
     mark: () => ++clock,
     keepSince(since) {
@@ -70,20 +79,14 @@ export function createRowLog(): RowLog {
       savedIds.set(tempId, new Promise((r) => (resolve = r)));
       return { land: resolve, fail: () => resolve(null) };
     },
-    async settle(id, send) {
-      const release = hold(id);
-      try {
-        const savedId = await (savedIds.get(id) ?? id);
-        if (savedId === null) return null;
-        const releaseSaved = hold(savedId);
-        try {
-          return await send(savedId);
-        } finally {
-          releaseSaved();
-        }
-      } finally {
-        release();
-      }
+    settle(id, send) {
+      const created = savedIds.get(id);
+      // Saved rows send in the same tick, so their request timing is unchanged.
+      if (!created) return holdWhile(id, () => send(id));
+      return holdWhile(id, async () => {
+        const savedId = await created;
+        return savedId === null ? null : holdWhile(savedId, () => send(savedId));
+      });
     },
   };
 }
