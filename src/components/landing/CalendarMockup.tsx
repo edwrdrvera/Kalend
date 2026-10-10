@@ -114,35 +114,35 @@ export default function CalendarMockup() {
     <figure className="relative isolate w-full max-w-[1180px] px-3 py-7 min-[640px]:px-9 min-[640px]:py-10">
       <span
         className="pointer-events-none absolute top-0 left-0 h-40 w-48 opacity-35"
-        style={{ backgroundImage: "linear-gradient(#75aee0 1px, transparent 1px), linear-gradient(90deg, #75aee0 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+        style={{ backgroundImage: "linear-gradient(var(--kal-cat-blue) 1px, transparent 1px), linear-gradient(90deg, var(--kal-cat-blue) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
         aria-hidden
       />
       <span
         className="pointer-events-none absolute right-0 bottom-2 h-36 w-44 opacity-30"
-        style={{ backgroundImage: "linear-gradient(#75aee0 1px, transparent 1px), linear-gradient(90deg, #75aee0 1px, transparent 1px)", backgroundSize: "18px 18px" }}
+        style={{ backgroundImage: "linear-gradient(var(--kal-cat-blue) 1px, transparent 1px), linear-gradient(90deg, var(--kal-cat-blue) 1px, transparent 1px)", backgroundSize: "18px 18px" }}
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute bottom-3 left-0 h-28 w-48 -rotate-6 bg-[#eadbbd]/65"
+        className="pointer-events-none absolute bottom-3 left-0 h-28 w-48 -rotate-6 bg-[var(--kal-tile-mustard)]/35"
         style={{ clipPath: "polygon(0 9%, 89% 0, 100% 78%, 18% 100%)" }}
         aria-hidden
       />
       <span
-        className="pointer-events-none absolute top-24 -right-2 h-36 w-32 rotate-6 bg-[#dcd9f8]/65"
+        className="pointer-events-none absolute top-24 -right-2 h-36 w-32 rotate-6 bg-[var(--kal-cat-indigo)]/20"
         style={{ clipPath: "polygon(14% 0, 100% 12%, 86% 100%, 0 84%)" }}
         aria-hidden
       />
 
       <div
-        className="relative z-10 flex h-[560px] overflow-hidden rounded-[24px] border border-[var(--mock-line)] bg-[var(--mock-bg)] text-left text-[var(--mock-text)] shadow-[0_28px_65px_-28px_rgba(28,26,22,0.3)] transition-colors min-[1100px]:h-[640px]"
+        className="relative z-10 flex h-[560px] overflow-hidden rounded-[24px] border border-[var(--mock-line)] bg-[var(--mock-bg)] text-left text-[var(--mock-text)] shadow-[0_28px_65px_-28px_color-mix(in_srgb,var(--kal-tile-ink)_30%,transparent)] transition-colors min-[1100px]:h-[640px]"
         style={{
-          "--mock-bg": "#ffffff",
-          "--mock-sidebar": "#ffffff",
-          "--mock-surface": "#ffffff",
-          "--mock-soft": "#f5f5f5",
-          "--mock-line": "#e5e5e5",
-          "--mock-text": "#171717",
-          "--mock-muted": "#737373",
+          "--mock-bg": "var(--card)",
+          "--mock-sidebar": "var(--card)",
+          "--mock-surface": "var(--card)",
+          "--mock-soft": "var(--muted)",
+          "--mock-line": "var(--border)",
+          "--mock-text": "var(--foreground)",
+          "--mock-muted": "var(--muted-foreground)",
         } as React.CSSProperties}
       >
         <CalendarSidebarMockup />
@@ -207,7 +207,7 @@ export default function CalendarMockup() {
               {EVENTS.map((event) => (
                 <div
                   key={`${event.day}-${event.title}`}
-                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${event.dragging ? `z-20 overflow-visible shadow-[0_8px_16px_rgba(63,82,160,0.28)] ${DRAG_CLASS}` : `overflow-hidden ${EVENT_COLOR_CLASSES[event.color]}`}`}
+                  className={`absolute rounded-md border px-1.5 py-1 text-[8px] leading-tight min-[520px]:px-2 min-[520px]:text-[10px] ${event.dragging ? `z-20 overflow-visible shadow-[0_8px_16px_color-mix(in_srgb,var(--evt-indigo-deep)_28%,transparent)] ${DRAG_CLASS}` : `overflow-hidden ${EVENT_COLOR_CLASSES[event.color]}`}`}
                   style={{
                     left: `calc((100% / 7) * ${event.day - 1} + 3px)`,
                     width: "calc(100% / 7 - 6px)",
@@ -243,7 +243,7 @@ export default function CalendarMockup() {
 function DragHand() {
   return (
     <svg
-      className="absolute -right-2 -bottom-3 size-7 drop-shadow-[0_2px_2px_rgba(0,0,0,0.28)]"
+      className="absolute -right-2 -bottom-3 size-7 drop-shadow-[0_2px_2px_color-mix(in_srgb,var(--kal-tile-ink)_28%,transparent)]"
       viewBox="0 0 28 28"
       fill="none"
       aria-hidden
@@ -251,7 +251,7 @@ function DragHand() {
       <path
         d="M9.2 13.2V7.4a1.45 1.45 0 0 1 2.9 0v4.2-6.1a1.45 1.45 0 0 1 2.9 0v6.1-4.7a1.45 1.45 0 0 1 2.9 0v5.4-2.6a1.45 1.45 0 0 1 2.9 0v7.1c0 4.3-2.7 7.2-7 7.2h-.8a6.6 6.6 0 0 1-5.2-2.5l-4.1-5.2a1.6 1.6 0 0 1 2.4-2.1l3.1 3.1v-4.1Z"
         fill="white"
-        stroke="#292524"
+        stroke="var(--kal-tile-ink)"
         strokeWidth="1.25"
         strokeLinecap="round"
         strokeLinejoin="round"
