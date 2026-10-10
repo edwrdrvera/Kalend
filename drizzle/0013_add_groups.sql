@@ -19,8 +19,8 @@ ALTER TABLE "events" ADD COLUMN "group_id" uuid;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "group_id" uuid;--> statement-breakpoint
 ALTER TABLE "groups" ADD CONSTRAINT "groups_space_owner_fk" FOREIGN KEY ("category_id","user_id") REFERENCES "public"."categories"("id","user_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "groups_user_space_idx" ON "groups" USING btree ("user_id","category_id");--> statement-breakpoint
-ALTER TABLE "events" ADD CONSTRAINT "events_group_membership_fk" FOREIGN KEY ("group_id","category_id","user_id") REFERENCES "public"."groups"("id","category_id","user_id") ON DELETE set null ("group_id") ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tasks" ADD CONSTRAINT "tasks_group_membership_fk" FOREIGN KEY ("group_id","category_id","user_id") REFERENCES "public"."groups"("id","category_id","user_id") ON DELETE set null ("group_id") ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "events" ADD CONSTRAINT "events_group_membership_fk" FOREIGN KEY ("group_id","category_id","user_id") REFERENCES "public"."groups"("id","category_id","user_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tasks" ADD CONSTRAINT "tasks_group_membership_fk" FOREIGN KEY ("group_id","category_id","user_id") REFERENCES "public"."groups"("id","category_id","user_id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "events_group_idx" ON "events" USING btree ("group_id") WHERE "events"."group_id" is not null;--> statement-breakpoint
 CREATE INDEX "tasks_group_idx" ON "tasks" USING btree ("group_id") WHERE "tasks"."group_id" is not null;--> statement-breakpoint
 ALTER TABLE "events" ADD CONSTRAINT "events_group_needs_space" CHECK ("events"."group_id" is null or "events"."category_id" is not null);--> statement-breakpoint
