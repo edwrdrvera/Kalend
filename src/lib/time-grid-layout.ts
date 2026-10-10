@@ -57,10 +57,14 @@ export function layoutDayEvents(day: Date, events: CalendarEvent[]): TimeGridBlo
       const start = new Date(event.start_at);
       const end = new Date(event.end_at);
 
-      // Wall-clock minutes, not elapsed ones, so a 10:00 event sits on the
-      // 10:00 row on a daylight-saving day, where the day is 23 or 25 hours.
+      // The top comes from the wall clock so a 10:00 event sits on the 10:00
+      // row on a 23- or 25-hour day. The height comes from elapsed time, since
+      // wall-clock minutes repeat or skip an hour on those days.
+      const visibleStart = start < dayStart ? dayStart : start;
+      const visibleEnd = end > dayEnd ? dayEnd : end;
       const startMinutes = start < dayStart ? 0 : minutesFromMidnight(start);
-      const endMinutes = end >= dayEnd ? MINUTES_PER_DAY : minutesFromMidnight(end);
+      const elapsedMinutes = (visibleEnd.getTime() - visibleStart.getTime()) / 60_000;
+      const endMinutes = Math.min(startMinutes + elapsedMinutes, MINUTES_PER_DAY);
 
       return { event, startMinutes, endMinutes: Math.max(endMinutes, startMinutes + 1) };
     })
