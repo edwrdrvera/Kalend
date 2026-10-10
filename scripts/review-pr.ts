@@ -119,9 +119,9 @@ async function main() {
     files: ChangedFile[];
   };
 
-  // Trivial and low tier are covered by CI and a browser check.
+  // Only high tier gets a fresh-session review by default. Lower tiers are covered by CI and a browser check.
   const tier = prTier(view.files);
-  if ((tier === "trivial" || tier === "low") && !force) {
+  if (tier !== "high" && !force) {
     console.log(`PR ${pr} is ${tier} tier, so the fresh-session review is skipped. Pass --force to run it anyway.`);
     return;
   }
