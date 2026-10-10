@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { createElement, act } from "react";
+import { createElement, act, type ComponentProps } from "react";
 import type { Root } from "react-dom/client";
 import "./test-dom";
 
@@ -23,15 +23,12 @@ async function renderPanel(modal: boolean) {
   root = createRoot(container);
   await act(() =>
     root?.render(
-      createElement(PanelShell, {
-        label: "Space",
-        modal,
-        onClose: () => {},
-        children: [
-          createElement("button", { id: "first", key: "first" }, "first"),
-          createElement("button", { id: "last", key: "last" }, "last"),
-        ],
-      })
+      createElement(
+        PanelShell,
+        { label: "Space", modal, onClose: () => {} } as ComponentProps<typeof PanelShell>,
+        createElement("button", { id: "first" }, "first"),
+        createElement("button", { id: "last" }, "last")
+      )
     )
   );
   const panel = container.querySelector<HTMLElement>('[aria-label="Space"]');
