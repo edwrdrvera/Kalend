@@ -6,7 +6,7 @@ import { mutateResource } from "@/lib/api";
 import { eventFormPayload, type EventFormValues } from "@/lib/event-form";
 import { reconcileDetachedEvents } from "@/lib/event-color-state";
 import { releaseGroup } from "@/lib/group-state";
-import { createRowLog, mergeFetched, rollbackFields } from "./useTasks";
+import { createRowLog, mergeFetched, rollbackFields } from "./row-log";
 
 export interface UseCalendarEventsReturn {
   data: CalendarEvent[];

@@ -15,7 +15,7 @@ import {
   finishCategoryDeletion,
   isCompletedCategoryDeletion,
 } from "@/lib/category-deletion";
-import { createRowLog, landCreate, mergeFetched, rollbackFields } from "./useTasks";
+import { createRowLog, landCreate, mergeFetched, rollbackFields } from "./row-log";
 
 export type ReconcileSpaceRemoval = (
   detachedEvents: CalendarEvent[],
