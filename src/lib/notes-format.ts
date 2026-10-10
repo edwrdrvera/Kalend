@@ -8,9 +8,14 @@ export type NotesBlock =
   | { type: "paragraph"; lines: NotesInline[][] }
   | { type: "list"; items: NotesInline[][] };
 
-const INLINE = /\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|(https?:\/\/[^\s<]+)/g;
+// A URL may hold balanced parentheses one level deep, as in Wikipedia's Foo_(bar).
+const URL_BODY = String.raw`(?:[^\s<()]|\([^\s<()]*\))+`;
+const INLINE = new RegExp(
+  String.raw`\[([^\]\n]+)\]\((https?:\/\/${URL_BODY})\)|\*\*([^*\n]+)\*\*|(https?:\/\/${URL_BODY})`,
+  "g"
+);
 const BULLET = /^\s*[-*]\s+(.*)$/;
-const TRAILING_PUNCTUATION = /[.,;:!?)]+$/;
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 
 export function parseInline(line: string): NotesInline[] {
   const out: NotesInline[] = [];
