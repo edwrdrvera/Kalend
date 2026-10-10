@@ -60,8 +60,8 @@ export function prTier(files: readonly ChangedFile[]): PrTier {
 // --no-renames splits a move into a delete in the old folder and an add in the
 // new one. With rename detection the old path is lost, so a move out of src/db
 // would take the new folder's tier and count only the edited lines.
-export function changedFiles(base: string, head = "HEAD", cwd?: string): ChangedFile[] {
-  const diff = Bun.spawnSync(["git", "diff", "--numstat", "--no-renames", `${base}...${head}`], { cwd, stderr: "pipe" });
+export function changedFiles(base: string, head = "HEAD"): ChangedFile[] {
+  const diff = Bun.spawnSync(["git", "diff", "--numstat", "--no-renames", `${base}...${head}`], { stderr: "pipe" });
   if (diff.exitCode !== 0) throw new Error(diff.stderr.toString());
   // Binary files report "-" for both counts, which counts as 0 lines.
   return diff.stdout
