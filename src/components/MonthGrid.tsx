@@ -9,8 +9,6 @@ import {
   startOfMonth,
   endOfWeek,
   endOfMonth,
-  startOfDay,
-  endOfDay,
   isSameMonth,
   isSameDay,
   addDays,
@@ -22,6 +20,7 @@ import { createWheelPager } from "@/lib/wheel-pager";
 import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
 import { eventAccessibleName } from "@/lib/event-accessible-name";
+import { eventOnDay } from "@/lib/time-grid-layout";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import type { CalendarView } from "./ViewSwitcher";
@@ -47,17 +46,9 @@ interface MonthGridProps {
 
 const MAX_VISIBLE_EVENTS = 3;
 
-/** Events whose [start_at, end_at] range overlaps this day at all — so a
- *  multi-day event shows up on every day it spans, not just the first. */
+/** A multi-day event shows up on every day it spans, not just the first. */
 function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
-  const dayStart = startOfDay(day);
-  const dayEnd = endOfDay(day);
-
-  return events.filter((event) => {
-    const eventStart = new Date(event.start_at);
-    const eventEnd = new Date(event.end_at);
-    return eventStart <= dayEnd && eventEnd >= dayStart;
-  });
+  return events.filter((event) => eventOnDay(event, day));
 }
 
 /** Tasks due on this exact day. Unlike events, a task's due date is a

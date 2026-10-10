@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, Loader2 } from "lucide-react";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type {
   CalendarAlert,
@@ -11,6 +11,7 @@ import type {
   CalendarTask,
 } from "@/lib/calendar-types";
 import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
+import { eventOnDay } from "@/lib/time-grid-layout";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
 import TaskRow from "./TaskRow";
@@ -44,15 +45,7 @@ export default function AgendaColumn({
   onOpenTask,
   onEventClick,
 }: AgendaColumnProps) {
-  const dayStart = startOfDay(selectedDate);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setHours(23, 59, 59, 999);
-
-  const dayEvents = events.filter((ev) => {
-    const start = new Date(ev.start_at);
-    const end = new Date(ev.end_at);
-    return start <= dayEnd && end >= dayStart;
-  });
+  const dayEvents = events.filter((ev) => eventOnDay(ev, selectedDate));
   const dayTasks = tasksDueOn(tasks, selectedDate);
 
   const eventCount = dayEvents.length;

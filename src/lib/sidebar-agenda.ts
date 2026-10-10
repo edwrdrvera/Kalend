@@ -1,6 +1,6 @@
-import { compareAsc, endOfDay, format, isSameDay, startOfDay } from "date-fns";
+import { compareAsc, format, isSameDay, startOfDay } from "date-fns";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
-import { isMultiDayEvent } from "@/lib/time-grid-layout";
+import { eventOnDay, isMultiDayEvent } from "@/lib/time-grid-layout";
 
 export type SidebarAgendaItem =
   | { kind: "event"; event: CalendarEvent; allDay: boolean }
@@ -44,13 +44,10 @@ export function buildSidebarAgenda(
   selectedDate: Date
 ): SidebarAgendaSection[] {
   const dayStart = startOfDay(selectedDate);
-  const dayEnd = endOfDay(selectedDate);
   const items: SidebarAgendaItem[] = [];
 
   for (const event of events) {
-    const eventStart = new Date(event.start_at);
-    const eventEnd = new Date(event.end_at);
-    if (eventStart > dayEnd || eventEnd < dayStart) continue;
+    if (!eventOnDay(event, dayStart)) continue;
 
     items.push({
       kind: "event",
