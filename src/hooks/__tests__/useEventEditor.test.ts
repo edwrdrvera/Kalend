@@ -66,6 +66,7 @@ describe("useEventEditor", () => {
     await act(() => result.current.submit(VALUES));
     expect(events.createEvent).toHaveBeenCalledWith(VALUES);
     expect(result.current.target).toBeNull();
+    expect(result.current.submitting).toBe(false);
   });
 
   it("submitting with openDetails hands the saved event to the panel", async () => {
@@ -140,5 +141,22 @@ describe("useEventEditor", () => {
     });
     expect(events.createEvent).toHaveBeenCalledTimes(1);
     expect(result.current.target).toBeNull();
+  });
+
+  it("a create that finishes after the user cancelled does not open the panel", async () => {
+    const pending = Promise.withResolvers<CalendarEvent>();
+    const { result, act, events, onOpenCreated } = await setup(mock(() => pending.promise));
+    await act(() => result.current.openCreate(new Date(), rect));
+    let submitted!: Promise<void>;
+    await act(() => {
+      submitted = result.current.submit(VALUES, true);
+    });
+    await act(() => result.current.close());
+    pending.resolve(EVENT);
+    await act(() => submitted);
+    expect(events.createEvent).toHaveBeenCalledTimes(1);
+    expect(result.current.target).toBeNull();
+    expect(result.current.submitting).toBe(false);
+    expect(onOpenCreated).not.toHaveBeenCalled();
   });
 });
