@@ -14,9 +14,10 @@
 // show. Run with `bun run db:seed:spaces`.
 //
 // Safe to run more than once: Spaces are matched by (user_id, name) and only
-// created when missing; event/task links are recomputed from the title map;
-// the extra backlog tasks are only inserted when the user doesn't already have
-// a task with that exact title. Nothing is deleted. All writes share one transaction,
+// created when missing; event/task links are recomputed from the title map,
+// except for items already in a Group, whose Space the Group pins; the extra
+// backlog tasks are only inserted when the user doesn't already have a task
+// with that exact title. Nothing is deleted. All writes share one transaction,
 // so a run that fails partway changes nothing.
 //
 // User selection: pass SEED_USER_ID=<uuid> to target a specific account,
@@ -207,7 +208,11 @@ async function seedSpaces(tx: Tx, userId: string) {
       .update(events)
       .set({ category_id: spaceIds.get(space.name)! })
       .where(
-        and(eq(events.user_id, userId), inArray(events.title, space.eventTitles))
+        and(
+          eq(events.user_id, userId),
+          inArray(events.title, space.eventTitles),
+          isNull(events.group_id)
+        )
       );
     eventsLinked += res.count ?? 0;
   }
@@ -227,7 +232,9 @@ async function seedSpaces(tx: Tx, userId: string) {
     const res = await tx
       .update(tasks)
       .set({ category_id: spaceIds.get(spaceName)! })
-      .where(and(eq(tasks.user_id, userId), eq(tasks.title, title)));
+      .where(
+        and(eq(tasks.user_id, userId), eq(tasks.title, title), isNull(tasks.group_id))
+      );
     tasksLinked += res.count ?? 0;
   }
   // Any other unlinked tasks fall back to the default Space.
