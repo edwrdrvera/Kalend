@@ -6,6 +6,7 @@ import { mutateResource } from "@/lib/api";
 import { eventFormPayload, type EventFormValues } from "@/lib/event-form";
 import { reconcileDetachedEvents } from "@/lib/event-color-state";
 import { releaseGroup } from "@/lib/group-state";
+import { createRowLog, mergeFetched, rollbackFields } from "./useTasks";
 
 export interface UseCalendarEventsReturn {
   data: CalendarEvent[];
@@ -35,6 +36,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
   // first load re-shows the spinner.
   const hasLoadedOnce = useRef(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [log] = useState(createRowLog);
 
   // Re-fetches on mount and whenever the visible month changes. GET
   // /api/events isn't date-filtered yet, so this currently re-fetches
@@ -46,6 +48,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     async function fetchEvents() {
       setLoading(true);
       setError(null);
+      const since = log.mark();
 
       try {
         const res = await fetch("/api/events");
@@ -55,8 +58,9 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
           throw new Error(json.error ?? "Failed to load events");
         }
 
+        const fetched = json.data;
         if (!cancelled) {
-          setEvents(json.data);
+          setEvents((local) => mergeFetched(fetched, local, log.keepSince(since)));
           if (!hasLoadedOnce.current) {
             hasLoadedOnce.current = true;
             setInitialLoading(false);
@@ -80,7 +84,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     return () => {
       cancelled = true;
     };
-  }, [viewDate, retryKey]);
+  }, [viewDate, retryKey, log]);
 
   const retry = () => {
     setRetryKey((k) => k + 1);
@@ -99,6 +103,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     }
 
     const savedEvent = json.data;
+    log.touch([savedEvent.id]);
     setEvents((prev) => [...prev, savedEvent]);
     return savedEvent;
   };
@@ -116,6 +121,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     }
 
     const savedEvent = json.data;
+    log.touch([savedEvent.id]);
     setEvents((prev) =>
       prev.map((event) => (event.id === savedEvent.id ? savedEvent : event))
     );
@@ -124,6 +130,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
 
   // Optimistic: remove from state immediately, roll back on failure.
   const deleteEvent = async (event: CalendarEvent): Promise<boolean> => {
+    const release = log.hold(event.id);
     setEvents((prev) => prev.filter((e) => e.id !== event.id));
 
     try {
@@ -140,6 +147,8 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
         err instanceof Error ? err.message : "Failed to delete event"
       );
       return false;
+    } finally {
+      release();
     }
   };
 
@@ -148,23 +157,18 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
   // and end_at are rolled back (not the whole event) so a concurrent edit
   // that succeeded isn't discarded with the failed move.
   const changeEventTime = async (event: CalendarEvent, start: Date, end: Date): Promise<void> => {
-    const previousStartAt = event.start_at;
-    const previousEndAt = event.end_at;
-    const optimisticEvent: CalendarEvent = {
-      ...event,
-      start_at: start.toISOString(),
-      end_at: end.toISOString(),
-    };
+    const attempted = { start_at: start.toISOString(), end_at: end.toISOString() };
+    const release = log.hold(event.id);
 
     setEvents((prev) =>
-      prev.map((e) => (e.id === event.id ? optimisticEvent : e))
+      prev.map((e) => (e.id === event.id ? { ...e, ...attempted } : e))
     );
 
     try {
       const json = await mutateResource<CalendarEvent>(
         `/api/events/${event.id}`,
         "PATCH",
-        { start_at: optimisticEvent.start_at, end_at: optimisticEvent.end_at },
+        attempted,
         "Failed to update event"
       );
 
@@ -178,15 +182,13 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
       );
     } catch (err) {
       setEvents((prev) =>
-        prev.map((e) =>
-          e.id === event.id
-            ? { ...e, start_at: previousStartAt, end_at: previousEndAt }
-            : e
-        )
+        prev.map((e) => (e.id === event.id ? rollbackFields(e, event, attempted) : e))
       );
       setError(
         err instanceof Error ? err.message : "Failed to update event"
       );
+    } finally {
+      release();
     }
   };
 
@@ -197,8 +199,14 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
     initialLoading,
     setError,
     retry,
-    reconcileSpaceRemoval: (detached, categoryId) => setEvents((current) => reconcileDetachedEvents(current, detached, categoryId)),
-    reconcileGroupRemoval: (groupId) => setEvents((current) => releaseGroup(current, groupId)),
+    reconcileSpaceRemoval: (detached, categoryId) => {
+      log.touch(detached.map((e) => e.id));
+      setEvents((current) => reconcileDetachedEvents(current, detached, categoryId));
+    },
+    reconcileGroupRemoval: (groupId) => {
+      log.touch(events.filter((e) => e.group_id === groupId).map((e) => e.id));
+      setEvents((current) => releaseGroup(current, groupId));
+    },
     createEvent,
     updateEvent,
     deleteEvent,
