@@ -15,6 +15,7 @@ import {
   finishCategoryDeletion,
   isCompletedCategoryDeletion,
 } from "@/lib/category-deletion";
+import { createRowLog, landCreate, mergeFetched, rollbackFields } from "./row-log";
 
 export type ReconcileSpaceRemoval = (
   detachedEvents: CalendarEvent[],
@@ -42,6 +43,7 @@ export function useCategories(
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const deletingCategoryIds = useRef(new Set<string>());
+  const [log] = useState(createRowLog);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,6 +51,7 @@ export function useCategories(
     async function fetchCategories() {
       setLoading(true);
       setError(null);
+      const since = log.mark();
 
       try {
         const res = await fetch("/api/categories");
@@ -58,8 +61,9 @@ export function useCategories(
           throw new Error(json.error ?? "Failed to load Spaces");
         }
 
+        const fetched = json.data;
         if (!cancelled) {
-          setCategories(json.data);
+          setCategories((local) => mergeFetched(fetched, local, log.keepSince(since)));
         }
       } catch (err) {
         if (!cancelled) {
@@ -79,7 +83,7 @@ export function useCategories(
     return () => {
       cancelled = true;
     };
-  }, [retryKey]);
+  }, [retryKey, log]);
 
   const retry = () => {
     setRetryKey((k) => k + 1);
@@ -87,10 +91,13 @@ export function useCategories(
 
   // Optimistic: adds a temp-ID category immediately so the form can close
   // right away, replaces it with the server's row on success, removes it and
-  // surfaces the error on failure (same rollback approach as updateCategory).
+  // surfaces the error on failure. Edits made on the temp row meanwhile wait
+  // in `log.settle` and go to the saved id.
   const createCategory = async (name: string, color: string): Promise<void> => {
     const tempId = crypto.randomUUID();
     const optimisticCategory: CalendarCategory = { id: tempId, name, color, description: null };
+    const pending = log.createPending(tempId);
+    const release = log.hold(tempId);
 
     setCategories((prev) => [...prev, optimisticCategory]);
 
@@ -107,52 +114,55 @@ export function useCategories(
       }
 
       const savedCategory = json.data;
-      setCategories((prev) =>
-        prev.map((c) => (c.id === tempId ? savedCategory : c))
-      );
+      log.touch([savedCategory.id]);
+      setCategories((prev) => landCreate(prev, tempId, optimisticCategory, savedCategory));
+      pending.land(savedCategory.id);
     } catch (err) {
       setCategories((prev) => prev.filter((c) => c.id !== tempId));
+      pending.fail();
       setError(err instanceof Error ? err.message : "Failed to create Space");
+    } finally {
+      release();
     }
   };
 
-  // Optimistic: applies the change immediately, rolls back on failure so the
-  // UI doesn't flash stale data.
+  // Optimistic: applies the change immediately, rolls back only the changed
+  // fields on failure.
   const updateCategory = async (
     category: CalendarCategory,
     updates: CategoryPatchRequest
   ): Promise<boolean> => {
-    const previousCategory = category;
-    const optimisticCategory: CalendarCategory = { ...category, ...updates };
-
     setCategories((prev) =>
-      prev.map((c) => (c.id === category.id ? optimisticCategory : c))
+      prev.map((c) => (c.id === category.id ? { ...c, ...updates } : c))
     );
 
-    try {
-      const json = await mutateResource<CalendarCategory>(
-        `/api/categories/${category.id}`,
-        "PATCH",
-        updates,
-        "Failed to update Space"
-      );
+    const saved = await log.settle(category.id, async (id) => {
+      try {
+        const json = await mutateResource<CalendarCategory>(
+          `/api/categories/${id}`,
+          "PATCH",
+          updates,
+          "Failed to update Space"
+        );
 
-      if (!json.data) {
-        throw new Error("Failed to update Space");
+        if (!json.data) {
+          throw new Error("Failed to update Space");
+        }
+
+        const savedCategory = json.data;
+        setCategories((prev) =>
+          prev.map((c) => (c.id === savedCategory.id ? savedCategory : c))
+        );
+        return true;
+      } catch (err) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === id ? rollbackFields(c, category, updates) : c))
+        );
+        setError(err instanceof Error ? err.message : "Failed to update Space");
+        return false;
       }
-
-      const savedCategory = json.data;
-      setCategories((prev) =>
-        prev.map((c) => (c.id === savedCategory.id ? savedCategory : c))
-      );
-      return true;
-    } catch (err) {
-      setCategories((prev) =>
-        prev.map((c) => (c.id === category.id ? previousCategory : c))
-      );
-      setError(err instanceof Error ? err.message : "Failed to update Space");
-      return false;
-    }
+    });
+    return saved ?? false;
   };
 
   // Wait for the server's detached-item snapshots before removing the Space.
@@ -161,17 +171,19 @@ export function useCategories(
     if (!beginCategoryDeletion(deletingCategoryIds.current, category.id)) return;
 
     try {
-      const result = await mutateResource<CalendarCategory, CategoryDeleteApiResponse>(
-        `/api/categories/${category.id}`,
-        "DELETE",
-        undefined,
-        "Failed to delete Space"
-      );
-      if (!isCompletedCategoryDeletion(result)) {
-        throw new Error("Failed to reconcile deleted Space");
-      }
-      onSpaceDeletion?.(result.events, result.tasks, category.id);
-      setCategories((prev) => prev.filter((c) => c.id !== category.id));
+      await log.settle(category.id, async (id) => {
+        const result = await mutateResource<CalendarCategory, CategoryDeleteApiResponse>(
+          `/api/categories/${id}`,
+          "DELETE",
+          undefined,
+          "Failed to delete Space"
+        );
+        if (!isCompletedCategoryDeletion(result)) {
+          throw new Error("Failed to reconcile deleted Space");
+        }
+        onSpaceDeletion?.(result.events, result.tasks, id);
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete Space");
     } finally {

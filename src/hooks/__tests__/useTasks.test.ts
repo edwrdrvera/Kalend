@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, mock } from "bun:test";
 import { renderHook } from "@/test-utils/render-hook";
+import { holdRequests } from "./controlled-fetch";
 import type { CalendarTask } from "@/lib/calendar-types";
 
 // ── Fixtures ───────────────────────────────────────────────────────────
@@ -411,6 +412,114 @@ describe("useTasks", () => {
         category_id: null,
       },
     ]);
+    unmount();
+  });
+});
+
+describe("useTasks with overlapping requests", () => {
+  it("holds a tick on a task still being created and sends it to the saved id", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    requests[0].respond({ success: true, data: [] });
+    await act(() => {});
+
+    let create!: Promise<void>;
+    await act(() => {
+      create = result.current.createTask("Lab report");
+    });
+    const draft = result.current.data[0];
+    let tick!: Promise<void>;
+    await act(() => {
+      tick = result.current.toggleComplete(draft);
+    });
+    expect(requests.filter((r) => r.url.includes(draft.id))).toEqual([]);
+    expect(result.current.data[0].completed).toBe(true);
+
+    requests[1].respond({ success: true, data: { ...TASK_A, id: "saved", title: "Lab report", completed: false } });
+    await act(async () => {
+      await create;
+    });
+    const patch = requests.find((r) => r.method === "PATCH");
+    expect(patch?.url).toBe("/api/tasks/saved");
+    expect(patch?.body).toEqual({ completed: true });
+
+    patch?.respond({ success: true, data: { ...TASK_A, id: "saved", title: "Lab report", completed: true } });
+    await act(async () => {
+      await tick;
+    });
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data[0]).toMatchObject({ id: "saved", completed: true });
+    unmount();
+  });
+
+  it("keeps a tick that saved when a title edit sent before it fails", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    requests[0].respond({ success: true, data: [TASK_A] });
+    await act(() => {});
+    const task = result.current.data[0];
+
+    let rename!: Promise<boolean>;
+    let tick!: Promise<void>;
+    await act(() => {
+      rename = result.current.updateTask(task, { title: "Renamed" });
+    });
+    await act(() => {
+      tick = result.current.toggleComplete(task);
+    });
+    requests[2].respond({ success: true, data: { ...TASK_A, completed: true } });
+    await act(async () => {
+      await tick;
+    });
+    requests[1].respond({ success: false, error: "boom" }, 500);
+    await act(async () => {
+      await rename;
+    });
+
+    expect(result.current.data[0]).toMatchObject({ title: TASK_A.title, completed: true });
+    unmount();
+  });
+
+  it("sends nothing for a tick on a task whose create failed", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    requests[0].respond({ success: true, data: [] });
+    await act(() => {});
+
+    let create!: Promise<void>;
+    await act(() => {
+      create = result.current.createTask("Lab report");
+    });
+    let tick!: Promise<void>;
+    await act(() => {
+      tick = result.current.toggleComplete(result.current.data[0]);
+    });
+    requests[1].respond({ success: false, error: "boom" }, 500);
+    await act(async () => {
+      await Promise.all([create, tick]);
+    });
+
+    expect(requests.map((r) => r.method)).toEqual(["GET", "POST"]);
+    expect(result.current.data).toEqual([]);
+    unmount();
+  });
+
+  it("keeps a task being created when an older list load lands", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    const load = requests[0];
+
+    await act(() => {
+      void result.current.createTask("Lab report");
+    });
+    load.respond({ success: true, data: [TASK_B] });
+    await act(() => {});
+
+    expect(result.current.data.map((t) => t.title)).toEqual([TASK_B.title, "Lab report"]);
     unmount();
   });
 });
