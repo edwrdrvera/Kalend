@@ -137,7 +137,7 @@ export default function AuthCard() {
           {loading ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Signing in...
+              Signing in&hellip;
             </>
           ) : (
             "Sign in"
