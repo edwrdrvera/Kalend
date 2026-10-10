@@ -16,7 +16,8 @@
 // Safe to run more than once: Spaces are matched by (user_id, name) and only
 // created when missing; event/task links are recomputed from the title map;
 // the extra backlog tasks are only inserted when the user doesn't already have
-// a task with that exact title. Nothing is deleted.
+// a task with that exact title. Nothing is deleted. All writes share one transaction,
+// so a run that fails partway changes nothing.
 //
 // User selection: pass SEED_USER_ID=<uuid> to target a specific account,
 // otherwise it resolves the single Supabase Auth user automatically (and
@@ -27,6 +28,7 @@ import { db } from "./index";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";
+import type { Tx } from "../lib/api/alert-sync";
 import type { EventColor } from "../lib/event-colors";
 
 // Each Space: a display name, a palette color (from EVENT_COLORS), the event
@@ -166,15 +168,15 @@ async function resolveUserId(): Promise<string> {
 }
 
 /** Insert the Space if the user doesn't have one by that name; return its id. */
-async function ensureSpace(userId: string, name: string, color: EventColor): Promise<string> {
-  const existing = await db
+async function ensureSpace(tx: Tx, userId: string, name: string, color: EventColor): Promise<string> {
+  const existing = await tx
     .select({ id: categories.id })
     .from(categories)
     .where(and(eq(categories.user_id, userId), eq(categories.name, name)));
 
   if (existing.length > 0) return existing[0].id;
 
-  const [created] = await db
+  const [created] = await tx
     .insert(categories)
     .values({ user_id: userId, name, color })
     .returning({ id: categories.id });
@@ -189,13 +191,10 @@ function dueDate(dueInDays?: number): Date | null {
   return d;
 }
 
-async function main() {
-  const userId = await resolveUserId();
-  console.log(`Seeding Space relations for user ${userId}\n`);
-
+async function seedSpaces(tx: Tx, userId: string) {
   const spaceIds = new Map<string, string>();
   for (const space of SPACES) {
-    const id = await ensureSpace(userId, space.name, space.color);
+    const id = await ensureSpace(tx, userId, space.name, space.color);
     spaceIds.set(space.name, id);
   }
   console.log(`Spaces ready: ${[...spaceIds.keys()].join(", ")}`);
@@ -204,7 +203,7 @@ async function main() {
   let eventsLinked = 0;
   for (const space of SPACES) {
     if (space.eventTitles.length === 0) continue;
-    const res = await db
+    const res = await tx
       .update(events)
       .set({ category_id: spaceIds.get(space.name)! })
       .where(
@@ -214,7 +213,7 @@ async function main() {
   }
   // Any leftover unlinked events go to the default Space.
   const defaultId = spaceIds.get(DEFAULT_SPACE)!;
-  const leftover = await db
+  const leftover = await tx
     .update(events)
     .set({ category_id: defaultId })
     .where(and(eq(events.user_id, userId), isNull(events.category_id)));
@@ -225,14 +224,14 @@ async function main() {
   // Link the existing free-floating tasks by title.
   let tasksLinked = 0;
   for (const [title, spaceName] of Object.entries(TASK_TITLE_TO_SPACE)) {
-    const res = await db
+    const res = await tx
       .update(tasks)
       .set({ category_id: spaceIds.get(spaceName)! })
       .where(and(eq(tasks.user_id, userId), eq(tasks.title, title)));
     tasksLinked += res.count ?? 0;
   }
   // Any other unlinked tasks fall back to the default Space.
-  const leftoverTasks = await db
+  const leftoverTasks = await tx
     .update(tasks)
     .set({ category_id: defaultId })
     .where(and(eq(tasks.user_id, userId), isNull(tasks.category_id)));
@@ -245,13 +244,13 @@ async function main() {
   for (const space of SPACES) {
     const spaceId = spaceIds.get(space.name)!;
     for (const t of space.tasks) {
-      const already = await db
+      const already = await tx
         .select({ id: tasks.id })
         .from(tasks)
         .where(and(eq(tasks.user_id, userId), eq(tasks.title, t.title)));
       if (already.length > 0) continue;
 
-      await db.insert(tasks).values({
+      await tx.insert(tasks).values({
         user_id: userId,
         title: t.title,
         due_at: dueDate(t.dueInDays),
@@ -262,7 +261,12 @@ async function main() {
     }
   }
   console.log(`Backlog tasks created: ${tasksCreated}`);
+}
 
+async function main() {
+  const userId = await resolveUserId();
+  console.log(`Seeding Space relations for user ${userId}\n`);
+  await db.transaction((tx) => seedSpaces(tx, userId));
   console.log("\nSpace relations seed complete.");
   process.exit(0);
 }
