@@ -37,7 +37,7 @@ describe("isMultiDayEvent", () => {
   });
 });
 
-const DAY = new Date("2026-08-20");
+const DAY = new Date(2026, 7, 20);
 
 describe("layoutDayEvents", () => {
   it("returns an empty array when there are no events", () => {
@@ -141,7 +141,7 @@ describe("layoutDayEvents", () => {
 });
 
 // A week of days for layoutAllDayEvents tests
-const WEEK = Array.from({ length: 7 }, (_, i) => new Date(`2026-08-${17 + i}`));
+const WEEK = Array.from({ length: 7 }, (_, i) => new Date(2026, 7, 17 + i));
 
 describe("layoutAllDayEvents", () => {
   it("returns an empty array when there are no events", () => {
