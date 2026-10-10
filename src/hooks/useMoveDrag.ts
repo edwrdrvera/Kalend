@@ -165,7 +165,7 @@ export function useMoveDrag({
     dayIndex: number,
     day: Date
   ) {
-    if (!onEventMove || blockedByResize) return;
+    if (!onEventMove || e.button !== 0 || blockedByResize) return;
     e.stopPropagation();
 
     const dayStart = startOfDay(day);

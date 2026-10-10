@@ -91,6 +91,7 @@ export function useResizeDrag({ dayHeight, onEventResize }: UseResizeDragParams)
     top: number,
     height: number
   ) {
+    if (e.button !== 0) return;
     e.stopPropagation();
 
     const originalStartMinutes = (top / 100) * MINUTES_PER_DAY;
