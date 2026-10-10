@@ -630,7 +630,7 @@ function AllTasksPanelMock() {
                   <span className="ml-1.5 font-normal text-muted-foreground">{bucket.tasks.length}</span>
                 </h4>
                 {bucket.tasks.map((task) => (
-                  <div key={task.title} className="-mx-4 border-b border-border/60 px-4 py-1.5 last:border-b-0">
+                  <div key={task.title} className="-mx-4 px-4 py-1.5">
                     <div className="flex items-start gap-2.5">
                       <TaskCheckbox title={task.title} checked={false} onToggle={noop} className="mt-0.5" />
                       <span className="-my-0.5 min-w-0 flex-1 px-1.5 py-0.5 text-left">
