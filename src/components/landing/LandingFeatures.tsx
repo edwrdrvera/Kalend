@@ -26,14 +26,14 @@ export default function LandingFeatures() {
           />
           <span className="pointer-events-none absolute top-7 right-7 h-px w-28 -rotate-6 bg-[var(--kal-tile-ink)]/20" aria-hidden />
           <FeatureIcon kind="spaces" />
-          <p className="mt-7 text-sm font-medium opacity-80">01 · Give it a Space</p>
+          <p className="mt-7 text-sm font-medium opacity-90">01 · Give it a Space</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
             A place for every<br />part of your life.
           </h3>
-          <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-75">
+          <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-90">
             Make a Space for each class, project, or job. Its tasks and events stay together, with a color you can spot at a glance.
           </p>
-          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 py-3 text-[var(--kal-ink)] shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
+          <div className="mt-auto translate-y-7 rounded-t-[14px] border border-b-0 border-[var(--kal-border)] bg-[var(--kal-surface)] px-5 py-3 text-[var(--kal-ink)] shadow-[0_-8px_30px_color-mix(in_srgb,var(--kal-tile-ink)_22%,transparent)] min-[860px]:translate-y-8">
             <SpaceRow color="var(--kal-cat-blue)" label="BIO 102" detail="Class" />
             <SpaceRow color="var(--kal-cat-orange)" label="Campus café" detail="Work" />
             <SpaceRow color="var(--kal-cat-purple)" label="Design project" detail="Project" />
@@ -53,21 +53,21 @@ export default function LandingFeatures() {
           />
           <span className="pointer-events-none absolute top-5 left-5 h-px w-32 -rotate-6 bg-[var(--kal-tile-ink)]/20" aria-hidden />
           <FeatureIcon kind="tasks" />
-          <p className="mt-7 text-sm font-medium opacity-80">02 · See the whole picture</p>
+          <p className="mt-7 text-sm font-medium opacity-90">02 · See the whole picture</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
             Deadlines meet<br />your actual day.
           </h3>
-          <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-75">
+          <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-90">
             Put tasks beside your events. Add a due date when there is one. Leave it off when “sometime this week” is the plan.
           </p>
-          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 pt-4 pb-5 text-[var(--kal-ink)] shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
-            <p className="mb-2 text-xs font-medium opacity-70">
+          <div className="mt-auto translate-y-7 rounded-t-[14px] border border-b-0 border-[var(--kal-border)] bg-[var(--kal-surface)] px-5 pt-4 pb-5 text-[var(--kal-ink)] shadow-[0_-8px_30px_color-mix(in_srgb,var(--kal-tile-ink)_22%,transparent)] min-[860px]:translate-y-8">
+            <p className="mb-2 text-xs font-medium text-[var(--kal-muted)]">
               Wednesday, September 9
             </p>
             <div className="flex items-center gap-2 border-t border-[var(--kal-border)] py-2.5 text-xs">
               <span className="size-2 rounded-[2px] bg-[var(--kal-cat-blue)]" aria-hidden />
               <strong>Biology lecture</strong>
-              <span className="ml-auto">9 am</span>
+              <span className="ml-auto text-[var(--kal-muted)]">9 am</span>
             </div>
             <TaskRow label="Finish lab report" detail="Due today" urgent />
             <TaskRow label="Read chapter 4" detail="No due date" />
@@ -102,7 +102,7 @@ function SpaceRow({ color, label, detail }: { color: string; label: string; deta
     <div className="flex items-center gap-2.5 py-2.5 text-xs min-[860px]:text-sm">
       <span className="size-2 rounded-[2px]" style={{ background: color }} aria-hidden />
       <span className="font-medium">{label}</span>
-      <span className="ml-auto opacity-70">{detail}</span>
+      <span className="ml-auto text-[var(--kal-muted)]">{detail}</span>
     </div>
   );
 }
@@ -112,7 +112,7 @@ function TaskRow({ label, detail, urgent = false }: { label: string; detail: str
     <div className="flex items-center gap-2 border-t border-[var(--kal-border)] py-2.5 text-xs">
       <span className="size-3.5 rounded-[3px] border border-[var(--kal-muted)]" aria-hidden />
       <span>{label}</span>
-      <span className={urgent ? "ml-auto rounded bg-[var(--kal-cat-orange-tint)] px-1.5 py-0.5" : "ml-auto opacity-70"}>{detail}</span>
+      <span className={urgent ? "ml-auto rounded bg-[var(--kal-cat-orange-tint)] px-1.5 py-0.5" : "ml-auto text-[var(--kal-muted)]"}>{detail}</span>
     </div>
   );
 }
