@@ -60,7 +60,9 @@ describe("a two-day event", () => {
 });
 
 describe("time-grid placement on a daylight-saving day", () => {
-  const originalTz = process.env.TZ;
+  // Assigning undefined or deleting TZ leaves Bun on New York, so restore the
+  // zone it resolved, or later test files in this process run in New York.
+  const originalTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   beforeAll(() => {
     process.env.TZ = "America/New_York";
   });
