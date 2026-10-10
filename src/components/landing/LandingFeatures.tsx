@@ -15,7 +15,7 @@ export default function LandingFeatures() {
       <div className="grid grid-cols-1 gap-3.5 min-[640px]:grid-cols-2">
         <article className="relative isolate flex min-h-[440px] flex-col overflow-hidden rounded-[18px] bg-[var(--kal-tile-mint)] p-7 text-[var(--kal-tile-ink)] min-[860px]:p-8">
           <span
-            className="pointer-events-none absolute -top-12 -right-12 h-36 w-56 -rotate-6 bg-[var(--kal-surface)]/35"
+            className="pointer-events-none absolute -top-12 -right-12 h-36 w-56 -rotate-6 bg-[var(--kal-tile-mustard)]/25"
             style={{ clipPath: "polygon(7% 18%, 100% 0, 92% 86%, 24% 100%, 0 67%)" }}
             aria-hidden
           />
@@ -24,7 +24,7 @@ export default function LandingFeatures() {
             style={{ clipPath: "polygon(0 10%, 86% 0, 100% 72%, 22% 100%)" }}
             aria-hidden
           />
-          <span className="pointer-events-none absolute top-7 right-7 h-px w-28 -rotate-6 bg-[var(--kal-surface)]/60" aria-hidden />
+          <span className="pointer-events-none absolute top-7 right-7 h-px w-28 -rotate-6 bg-[var(--kal-tile-ink)]/20" aria-hidden />
           <FeatureIcon kind="spaces" />
           <p className="mt-7 text-sm font-medium opacity-80">01 · Give it a Space</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
@@ -33,7 +33,7 @@ export default function LandingFeatures() {
           <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-75">
             Make a Space for each class, project, or job. Its tasks and events stay together, with a color you can spot at a glance.
           </p>
-          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 py-3 shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
+          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 py-3 text-[var(--kal-ink)] shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
             <SpaceRow color="var(--kal-cat-blue)" label="BIO 102" detail="Class" />
             <SpaceRow color="var(--kal-cat-orange)" label="Campus café" detail="Work" />
             <SpaceRow color="var(--kal-cat-purple)" label="Design project" detail="Project" />
@@ -47,11 +47,11 @@ export default function LandingFeatures() {
             aria-hidden
           />
           <span
-            className="pointer-events-none absolute -right-12 -bottom-9 h-40 w-48 rotate-3 bg-[var(--kal-surface)]/30"
+            className="pointer-events-none absolute -right-12 -bottom-9 h-40 w-48 rotate-3 bg-[var(--kal-tile-mint)]/30"
             style={{ clipPath: "polygon(18% 0, 100% 14%, 86% 100%, 0 78%)" }}
             aria-hidden
           />
-          <span className="pointer-events-none absolute top-5 left-5 h-px w-32 -rotate-6 bg-[var(--kal-surface)]/55" aria-hidden />
+          <span className="pointer-events-none absolute top-5 left-5 h-px w-32 -rotate-6 bg-[var(--kal-tile-ink)]/20" aria-hidden />
           <FeatureIcon kind="tasks" />
           <p className="mt-7 text-sm font-medium opacity-80">02 · See the whole picture</p>
           <h3 className="mt-2 text-[1.7rem] leading-[1.08] font-extrabold tracking-[-0.025em]">
@@ -60,11 +60,11 @@ export default function LandingFeatures() {
           <p className="mt-3 max-w-[440px] text-sm leading-[1.55] opacity-75">
             Put tasks beside your events. Add a due date when there is one. Leave it off when “sometime this week” is the plan.
           </p>
-          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 pt-4 pb-5 shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
+          <div className="mt-auto translate-y-7 rounded-t-[14px] bg-[var(--kal-surface)]/90 px-5 pt-4 pb-5 text-[var(--kal-ink)] shadow-[0_12px_30px_color-mix(in_srgb,var(--kal-tile-ink)_8%,transparent)] min-[860px]:translate-y-8">
             <p className="mb-2 text-xs font-medium opacity-70">
               Wednesday, September 9
             </p>
-            <div className="flex items-center gap-2 border-t border-[var(--kal-tile-ink)]/10 py-2.5 text-xs">
+            <div className="flex items-center gap-2 border-t border-[var(--kal-border)] py-2.5 text-xs">
               <span className="size-2 rounded-[2px] bg-[var(--kal-cat-blue)]" aria-hidden />
               <strong>Biology lecture</strong>
               <span className="ml-auto">9 am</span>
@@ -80,7 +80,7 @@ export default function LandingFeatures() {
 
 function FeatureIcon({ kind }: { kind: "spaces" | "tasks" }) {
   return (
-    <div className="flex size-[38px] items-center justify-center rounded-[10px] bg-[var(--kal-surface)]/55">
+    <div className="flex size-[38px] items-center justify-center rounded-[10px] bg-[var(--kal-tile-ink)]/10">
       {kind === "spaces" ? (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
           <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -109,8 +109,8 @@ function SpaceRow({ color, label, detail }: { color: string; label: string; deta
 
 function TaskRow({ label, detail, urgent = false }: { label: string; detail: string; urgent?: boolean }) {
   return (
-    <div className="flex items-center gap-2 border-t border-[var(--kal-tile-ink)]/10 py-2.5 text-xs">
-      <span className="size-3.5 rounded-[3px] border border-[var(--kal-tile-ink)]/40" aria-hidden />
+    <div className="flex items-center gap-2 border-t border-[var(--kal-border)] py-2.5 text-xs">
+      <span className="size-3.5 rounded-[3px] border border-[var(--kal-muted)]" aria-hidden />
       <span>{label}</span>
       <span className={urgent ? "ml-auto rounded bg-[var(--kal-cat-orange-tint)] px-1.5 py-0.5" : "ml-auto opacity-70"}>{detail}</span>
     </div>

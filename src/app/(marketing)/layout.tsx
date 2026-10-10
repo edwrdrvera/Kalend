@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "../globals.css";
 import { cn } from "@/lib/utils";
+import { noFlashScript } from "@/lib/theme-no-flash";
 
 export const metadata: Metadata = {
   title: "Kalend",
@@ -9,9 +10,9 @@ export const metadata: Metadata = {
     "Group deadlines, blockers, and reminders into Spaces, then focus your calendar on one part of your life at a time.",
 };
 
-// The marketing site is a deliberately light-themed lockup, separate from
-// the app's own dark theme (see the (app) route group's layout). It's a
-// second Next.js "root layout" — its own <html>/<body> — which is how a
+// The marketing site has its own palette (--kal-*), separate from the app's
+// (see the (app) route group's layout), and it follows the same light or dark
+// setting the app does. It's a second Next.js "root layout" — its own <html>/<body> — which is how a
 // single App Router project renders two routes with different themes
 // without one inheriting from the other. See the "multiple root layouts"
 // pattern: https://nextjs.org/docs/app/building-your-application/routing/route-groups
@@ -27,7 +28,10 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={plusJakartaSans.variable}>
+    <html lang="en" className={plusJakartaSans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
+      </head>
       <body
         className={cn(
           plusJakartaSans.variable,
