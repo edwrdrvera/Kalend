@@ -9,6 +9,7 @@ import {
   startOfMonth,
   isSameMonth,
   isSameDay,
+  isSameWeek,
   addDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -109,7 +110,14 @@ function MiniCalendarGrid({
     <div className="flex flex-col">
       {weeks.map((weekStart) => (
         <div
-          className="flex justify-between w-full mb-1"
+          // The week the main calendar is showing gets a quiet band, so the
+          // sidebar answers "which week am I in", not only "which day". The
+          // negative margin cancels the padding, so days stay aligned with
+          // the weekday header.
+          className={`-mx-1.5 mb-1 flex justify-between rounded-lg px-1.5 ${
+            isSameWeek(weekStart, currentDate) ? "bg-muted" : ""
+          }`}
+          data-current-week={isSameWeek(weekStart, currentDate) || undefined}
           key={`week-${weekStart.getTime()}`}
         >
           {Array.from({ length: 7 }).map((_, i) => {

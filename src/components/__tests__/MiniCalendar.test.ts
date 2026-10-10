@@ -161,3 +161,22 @@ describe("MiniCalendar out-of-month dates", () => {
     expect(outOfMonthCells.length).toBeGreaterThan(0);
   });
 });
+
+describe("MiniCalendar current week", () => {
+  it("marks only the week of the selected date", async () => {
+    await renderMiniCalendar(new Date(2030, 8, 11));
+
+    const rows = document.querySelectorAll("[data-current-week]");
+    expect(rows.length).toBe(1);
+    const labels = [...rows[0].querySelectorAll("button")].map((b) => b.getAttribute("aria-label"));
+    expect(labels[0]).toBe("Sunday, September 8, 2030");
+    expect(labels[6]).toBe("Saturday, September 14, 2030");
+  });
+
+  it("moves the mark when another date is selected", async () => {
+    await renderMiniCalendar(new Date(2030, 8, 20), new Date(2030, 8, 20));
+
+    const row = document.querySelector("[data-current-week]");
+    expect(row?.querySelector('[aria-label="Friday, September 20, 2030"]')).not.toBeNull();
+  });
+});

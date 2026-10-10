@@ -62,7 +62,7 @@ export default function IconRail({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
             onClick={onToggleCollapse}
-            className="grid size-[30px] place-items-center rounded-[10px] bg-primary transition-shadow hover:bg-primary/90"
+            className="grid size-[30px] place-items-center rounded-[10px] bg-primary transition-colors hover:bg-[#ff7d38]"
               />
             }
           >

@@ -138,13 +138,13 @@ export function resolveDisplayColor(
 
 // kalend-ui SpaceTile: unpressed tiles are muted; the open Space fills solid.
 export const RAIL_TILE_PRESSED_CLASSES: Record<EventColor, string> = {
-  blue: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-blue-deep)] aria-pressed:bg-[var(--evt-blue-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-blue-deep)] aria-pressed:hover:text-white",
-  green: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-green-deep)] aria-pressed:bg-[var(--evt-green-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-green-deep)] aria-pressed:hover:text-white",
-  purple: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-purple-deep)] aria-pressed:bg-[var(--evt-purple-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-purple-deep)] aria-pressed:hover:text-white",
-  orange: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-orange-deep)] aria-pressed:bg-[var(--evt-orange-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-orange-deep)] aria-pressed:hover:text-white",
-  red: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-red-deep)] aria-pressed:bg-[var(--evt-red-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-red-deep)] aria-pressed:hover:text-white",
-  indigo: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-indigo-deep)] aria-pressed:bg-[var(--evt-indigo-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-indigo-deep)] aria-pressed:hover:text-white",
-  pink: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-pink-deep)] aria-pressed:bg-[var(--evt-pink-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-pink-deep)] aria-pressed:hover:text-white",
-  yellow: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-yellow-deep)] aria-pressed:bg-[var(--evt-yellow-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-yellow-deep)] aria-pressed:hover:text-white",
-  teal: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-teal-deep)] aria-pressed:bg-[var(--evt-teal-deep)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-teal-deep)] aria-pressed:hover:text-white",
+  blue: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-blue-solid)] aria-pressed:bg-[var(--evt-blue-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-blue-solid)] aria-pressed:hover:text-white",
+  green: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-green-solid)] aria-pressed:bg-[var(--evt-green-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-green-solid)] aria-pressed:hover:text-white",
+  purple: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-purple-solid)] aria-pressed:bg-[var(--evt-purple-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-purple-solid)] aria-pressed:hover:text-white",
+  orange: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-orange-solid)] aria-pressed:bg-[var(--evt-orange-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-orange-solid)] aria-pressed:hover:text-white",
+  red: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-red-solid)] aria-pressed:bg-[var(--evt-red-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-red-solid)] aria-pressed:hover:text-white",
+  indigo: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-indigo-solid)] aria-pressed:bg-[var(--evt-indigo-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-indigo-solid)] aria-pressed:hover:text-white",
+  pink: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-pink-solid)] aria-pressed:bg-[var(--evt-pink-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-pink-solid)] aria-pressed:hover:text-white",
+  yellow: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-yellow-solid)] aria-pressed:bg-[var(--evt-yellow-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-yellow-solid)] aria-pressed:hover:text-white",
+  teal: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-teal-solid)] aria-pressed:bg-[var(--evt-teal-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-teal-solid)] aria-pressed:hover:text-white",
 }

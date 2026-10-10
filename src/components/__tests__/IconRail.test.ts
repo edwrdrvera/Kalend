@@ -144,9 +144,9 @@ describe("IconRail", () => {
 
     const schoolBtn = byLabel("School");
     expect(schoolBtn).not.toBeNull();
-    // Active blue Space tile should have the deep blue rail fill (white-legible).
-    expect(schoolBtn?.className).toContain("bg-[var(--evt-blue-deep)]");
-    expect(schoolBtn?.className).toContain("border-[var(--evt-blue-deep)]");
+    // Active blue Space tile should have the solid blue rail fill (same as the Space dot).
+    expect(schoolBtn?.className).toContain("bg-[var(--evt-blue-solid)]");
+    expect(schoolBtn?.className).toContain("border-[var(--evt-blue-solid)]");
   });
 
   it("renders the '+' add button; clicking calls onCreateSpace", async () => {
