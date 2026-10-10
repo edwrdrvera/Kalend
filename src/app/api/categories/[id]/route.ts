@@ -4,8 +4,7 @@ import { events } from "@/db/schema/events";
 import { groups } from "@/db/schema/groups";
 import { tasks } from "@/db/schema/tasks";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
-import * as field from "@/lib/api/parse-fields";
-import { isEventColor } from "@/lib/event-colors";
+import { parseCategoryPatch } from "@/lib/api/category-body";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -15,56 +14,15 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-interface UpdateCategoryBody {
-  name?: unknown;
-  color?: unknown;
-  description?: unknown;
-}
-
-const badRequest = (error: string) => fail(error, 400);
-
 export const PATCH = withUser(async (request, { params }: RouteContext, user) => {
   const { id } = await params;
   if (!isUuid(id)) return fail("Space not found", 404);
-  const parsed: unknown = await request.json();
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return badRequest("Request body must be an object");
-  }
-  const body = parsed as UpdateCategoryBody;
-
-  const updates: Partial<typeof categories.$inferInsert> = {};
-
-  if (body.name !== undefined) {
-    if (typeof body.name !== "string") {
-      return badRequest("name must be a string");
-    }
-    if (!body.name.trim()) {
-      return fail("name is required", 400);
-    }
-    updates.name = body.name.trim();
-  }
-
-  if (body.color !== undefined) {
-    if (typeof body.color !== "string" || !isEventColor(body.color)) {
-      return fail("color must be a supported color", 400);
-    }
-    updates.color = body.color as string;
-  }
-
-  if (body.description !== undefined) {
-    const description = field.description(body.description);
-    if (!description.ok) return badRequest(description.error);
-    updates.description = description.value;
-  }
-
-  if (Object.keys(updates).length === 0) {
-    return fail("No updatable fields provided", 400);
-  }
+  const parsed = parseCategoryPatch(await request.json());
+  if (!parsed.ok) return fail(parsed.error, 400);
 
   const [updatedCategory] = await db
     .update(categories)
-    .set(updates)
+    .set(parsed.value)
     .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
     .returning();
 
