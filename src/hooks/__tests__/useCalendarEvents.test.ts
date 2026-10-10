@@ -63,6 +63,33 @@ describe("useCalendarEvents", () => {
     unmount();
   });
 
+  it("shows a created event once when a list load that already has it lands before the create reply", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useCalendarEvents(VIEW));
+    await act(() => {});
+    requests[0].respond({ success: true, data: [] });
+    await act(() => {});
+
+    let created!: Promise<CalendarEvent>;
+    await act(() => {
+      created = result.current.createEvent(VALUES);
+    });
+    const post = requests[1];
+    await act(() => {
+      result.current.retry();
+    });
+    requests[2].respond({ success: true, data: [event("new")] });
+    await act(() => {});
+
+    post.respond({ success: true, data: event("new") });
+    await act(async () => {
+      await created;
+    });
+
+    expect(result.current.data.map((e) => e.id)).toEqual(["new"]);
+    unmount();
+  });
+
   it("keeps a moved event at its new time when an older list load lands after the move", async () => {
     const requests = holdRequests();
     const { result, act, unmount } = renderHook(() => useCalendarEvents(VIEW));
