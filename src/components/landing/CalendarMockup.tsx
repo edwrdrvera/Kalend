@@ -441,25 +441,6 @@ function AllDayRowMock() {
             <span key={day.date} />
           ))}
         </div>
-        <div className="relative grid grid-cols-7">
-          {DAYS.map((day, index) => (
-            <div key={day.date} className="flex min-w-0 flex-col gap-1 px-1.5 py-1">
-              {TASKS.filter((task) => task.day === index).map((task) => (
-                <div
-                  key={task.title}
-                  className={cn(
-                    "flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-meta font-medium",
-                    task.done ? "text-muted-foreground" : "text-foreground"
-                  )}
-                >
-                  <TaskCheckbox title={task.title} checked={Boolean(task.done)} onToggle={noop} />
-                  <SpaceDot color={SPACES[task.space].color} />
-                  <span className={cn("min-w-0 flex-1 truncate text-left", task.done && "line-through")}>{task.title}</span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
         <div
           className="relative grid grid-cols-7"
           style={{ gridTemplateRows: `repeat(${ALL_DAY_EVENTS.length}, ${LANE_HEIGHT_PX}px)` }}
