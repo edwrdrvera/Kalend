@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { formatRow, parseAddArgs, parseLog, type Row, stats } from "../review-log";
+import { formatRow, parseAddArgs, parseLog, reviewerVersionFrom, type Row, stats } from "../review-log";
+import { reviewComment } from "../review-pr";
 
 const row = (overrides: Partial<Row>): Row => ({
   pr: "1",
@@ -37,6 +38,25 @@ describe("stats", () => {
       { version: "aaa1111", prs: 2, findings: 2, real: 1, falsePositives: 1, missed: 1 },
       { version: "bbb2222", prs: 1, findings: 1, real: 0, falsePositives: 0, missed: 0 },
     ]);
+  });
+});
+
+describe("reviewerVersionFrom", () => {
+  test("reads the version stamped into the posted review", () => {
+    expect(reviewerVersionFrom(["**Confidence report**", reviewComment("Verdict: ok", "abc1234")])).toBe("abc1234");
+  });
+
+  test("takes the latest review when there are two", () => {
+    expect(reviewerVersionFrom([reviewComment("A", "aaa1111"), reviewComment("B", "bbb2222")])).toBe("bbb2222");
+  });
+
+  test("is unknown for a review with no stamp, or no review", () => {
+    expect(reviewerVersionFrom(["## Fresh-session review\n\nRun by `bun run review:pr` with no author context.\n\nVerdict"])).toBe("unknown");
+    expect(reviewerVersionFrom(["LGTM"])).toBe("unknown");
+  });
+
+  test("ignores a version named inside the report itself", () => {
+    expect(reviewerVersionFrom(["## Fresh-session review\n\nRun by hand.\n\nReviewer version: `abc1234`"])).toBe("unknown");
   });
 });
 

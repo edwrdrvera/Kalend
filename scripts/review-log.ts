@@ -3,6 +3,7 @@
 //   bun run review:log add <pr> <severity> <outcome> <finding...>
 //   bun run review:log stats
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { reportHeading, unknownReviewerVersion } from "./review-pr";
 import { type ChangedFile, prTier } from "./review-tier";
 
 export const logPath = "guides/review-log.tsv";
@@ -23,8 +24,14 @@ export type Row = {
   outcome: string;
 };
 
-// The files that decide what a review finds. Their last commit names the reviewer version.
-export const reviewerFiles = ["scripts/review-pr.ts", ".claude/skills/code-review", ".claude/skills/security-review"];
+const stampedVersion = new RegExp(`^${reportHeading}\\n\\n[^\\n]*Reviewer version: \`([0-9a-f]{4,40})\``);
+
+// The reviewer version comes from the posted review, not from the base branch at
+// logging time, so a finding logged after the reviewer changed keeps its own version.
+export function reviewerVersionFrom(commentBodies: readonly string[]): string {
+  const latest = commentBodies.filter((body) => body.startsWith(reportHeading)).at(-1);
+  return latest?.match(stampedVersion)?.[1] ?? unknownReviewerVersion;
+}
 
 export function formatRow(row: Row): string {
   const finding = row.finding.replace(/\s+/g, " ").trim();
@@ -77,12 +84,15 @@ function run(cmd: string[]): string {
 
 function add(argv: readonly string[]) {
   const { pr, severity, outcome, finding } = parseAddArgs(argv);
-  const { files } = JSON.parse(run(["gh", "pr", "view", pr, "--json", "files"])) as { files: ChangedFile[] };
+  const { files, comments } = JSON.parse(run(["gh", "pr", "view", pr, "--json", "files,comments"])) as {
+    files: ChangedFile[];
+    comments: { body: string }[];
+  };
   const row: Row = {
     pr,
     date: new Date().toISOString().slice(0, 10),
     tier: prTier(files),
-    reviewerVersion: run(["git", "log", "-1", "--format=%h", "origin/develop", "--", ...reviewerFiles]),
+    reviewerVersion: reviewerVersionFrom(comments.map((comment) => comment.body)),
     finding,
     severity,
     outcome,

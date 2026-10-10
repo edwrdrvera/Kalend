@@ -10,10 +10,19 @@ import { type ChangedFile, prTier } from "./review-tier";
 // Each run is a full multi-agent review, so re-runs are capped: one review,
 // then at most one more after fixing what it found.
 export const maxReviewsPerPr = 2;
-const reportHeading = "## Fresh-session review";
+export const reportHeading = "## Fresh-session review";
 
 export function countPostedReviews(commentBodies: readonly string[]): number {
   return commentBodies.filter((body) => body.startsWith(reportHeading)).length;
+}
+
+// The files that decide what a review finds. Their last commit on the base names the reviewer version.
+export const reviewerFiles = ["scripts/review-pr.ts", ".claude/skills/code-review", ".claude/skills/security-review"];
+
+export const unknownReviewerVersion = "unknown";
+
+export function reviewComment(report: string, reviewerVersion: string): string {
+  return `${reportHeading}\n\nRun by \`bun run review:pr\` with no author context. Reviewer version: \`${reviewerVersion}\`.\n\n${report}`;
 }
 
 export type LinkedIssue = { number: number; title: string; body: string | null };
@@ -146,6 +155,7 @@ async function main() {
   run(["git", "fetch", "origin", view.baseRefName]);
   run(["git", "fetch", "origin", `pull/${pr}/head`]);
   const head = run(["git", "rev-parse", "FETCH_HEAD"]).trim();
+  const reviewerVersion = run(["git", "log", "-1", "--format=%h", base, "--", ...reviewerFiles]).trim() || unknownReviewerVersion;
   const dir = join(mkdtempSync(join(tmpdir(), `kalend-review-${pr}-`)), "repo");
   run(["git", "worktree", "add", "--detach", dir, head]);
 
@@ -176,7 +186,7 @@ async function main() {
     if ((await reviewer.exited) !== 0) throw new Error("The reviewer exited with an error.");
 
     if (post) {
-      const body = `${reportHeading}\n\nRun by \`bun run review:pr\` with no author context.\n\n${report}`;
+      const body = reviewComment(report, reviewerVersion);
       const comment = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
         stdin: new TextEncoder().encode(body),
         stderr: "pipe",
