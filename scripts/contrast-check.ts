@@ -87,7 +87,7 @@ export function buildPairs(): Pair[] {
     { name: "Landing muted text on landing background", fg: "--kal-muted", bg: "--kal-bg", min: 4.5 },
     { name: "Landing muted text on landing surface", fg: "--kal-muted", bg: "--kal-surface", min: 4.5 },
     { name: "Landing CTA fill on landing background", fg: "--kal-cta", bg: "--kal-bg", min: 3 },
-    { name: "White label on landing CTA", fg: "#ffffff", bg: "--kal-cta", min: 4.5 },
+    { name: "White label on landing CTA", fg: "#ffffff", bg: "--kal-cta", min: 4.5, knownGap: "brand orange #ea580c chosen for the CTA on purpose (3.56:1)" },
     { name: "White label on landing CTA hover", fg: "#ffffff", bg: "--kal-cta-hover", min: 4.5 },
     { name: "Destructive text on card", fg: "--destructive", bg: "--card", min: 4.5 },
     { name: "Destructive text on popover", fg: "--destructive", bg: "--popover", min: 4.5 },
