@@ -3,19 +3,18 @@
  * in-memory mock of the Drizzle `db` object and the auth helper, so each
  * test file only needs to define its row type and seed data.
  *
- * The mock stores rows in a plain array and matches IDs via a BFS walk
- * of Drizzle's condition tree (the opaque object `eq()` / `and()` produce).
- * ID strings are matched by a caller-supplied prefix (e.g. "evt-", "task-")
- * or the substring "existent" (used for not-found test cases).
+ * The mock stores rows in a plain array and finds the target row by the
+ * value the route's condition compares to the `id` column.
  *
  * Crucially, the mock does NOT apply its own user_id filter. Instead it
- * checks whether the route handler's `where` condition actually contains
- * the authenticated user's ID. If the handler forgot `eq(table.user_id,
+ * checks whether the route handler's `where` condition compares `user_id`
+ * to the authenticated user's ID. If the handler forgot `eq(table.user_id,
  * user.id)`, the mock returns all rows (including other users'), causing
  * test assertions to fail and surfacing the missing filter.
  */
 import { mock } from "bun:test";
 import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { rowMatcher } from "./where-matcher";
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -49,57 +48,18 @@ export interface MockAuthUser {
 
 // ── Condition introspection ─────────────────────────────────────────────
 
-/** BFS walk that collects every string value from a Drizzle condition tree. */
-function collectStrings(condition: unknown): Set<string> {
-  const strings = new Set<string>();
-  if (!condition) return strings;
-  if (typeof condition === "string") {
-    strings.add(condition);
-    return strings;
-  }
-
-  const seen = new Set<unknown>();
-  const queue: unknown[] = [condition];
-  while (queue.length > 0) {
-    const curr = queue.shift();
-    if (!curr || typeof curr !== "object" || seen.has(curr)) continue;
-    seen.add(curr);
-
-    const record = curr as Record<string, unknown>;
-    for (const key of Object.keys(record)) {
-      const val = record[key];
-      if (typeof val === "string") {
-        strings.add(val);
-      } else if (val && typeof val === "object") {
-        queue.push(val);
-      }
-    }
-  }
-  return strings;
-}
+const dialect = new PgDialect();
 
 /**
- * Returns the first string in the condition matching `idPrefix` or
- * containing "existent". This is how the mock resolves which row a
- * PATCH/DELETE targets.
+ * The value the condition compares `column` to with `=`, on whichever table
+ * the query reads, or undefined. Reading the SQL Drizzle would send keeps a
+ * uuid in another column (a user id, a Space id) from passing as the row id.
  */
-export function extractIdFromCondition(
-  condition: unknown,
-  idPrefix: string
-): string | null {
-  for (const s of collectStrings(condition)) {
-    if (
-      s.startsWith(idPrefix) ||
-      s.includes("existent") ||
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
-    ) return s;
-  }
-  return null;
-}
-
-/** True if `value` appears somewhere in the condition tree. */
-function conditionContains(condition: unknown, value: string): boolean {
-  return collectStrings(condition).has(value);
+export function comparedValue(condition: unknown, column: string): unknown {
+  if (!condition) return undefined;
+  const { sql, params } = dialect.sqlToQuery(condition as SQL);
+  const match = new RegExp(`"\\w+"\\."${column}" = \\$(\\d+)`).exec(sql);
+  return match ? params[Number(match[1]) - 1] : undefined;
 }
 
 // ── Mock setup ──────────────────────────────────────────────────────────
@@ -121,8 +81,8 @@ function tableNameOf(table: unknown): string | null {
  * wiring both to the provided mutable state objects. Call this at the top
  * of each test file, before importing route handlers.
  *
- * @param idPrefix  The string prefix used to identify row IDs in
- *                  condition objects (e.g. "evt-", "task-", "category-").
+ * @param idPrefix  Prefix of the id given to an inserted row, and "category-"
+ *                  marks the categories table as the primary one.
  * @param dbState   Mutable state holding the in-memory row array and the
  *                  `shouldFail` flag for simulating DB errors.
  * @param getUser   A function returning the current mock user (or null for
@@ -158,14 +118,6 @@ export function setupMockDb<T extends BaseRow>(
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
-    const primaryPrefixFor = (table: unknown) => {
-      const name = tableNameOf(table);
-      if (name === "events") return "evt-";
-      if (name === "categories") return "category-";
-      if (name === "tasks") return "task-";
-      return idPrefix;
-    };
-
     const queryClient = {
       select: () => ({
         from: (table: unknown) => ({
@@ -187,7 +139,7 @@ export function setupMockDb<T extends BaseRow>(
             if (selectedState.evaluateWhere) {
               return selectedState.rows.filter(rowMatcher(condition as SQL));
             }
-            const scopedByUser = conditionContains(condition, user.id);
+            const scopedByUser = comparedValue(condition, "user_id") === user.id;
             // Only delegate to getCategoryRows for secondary category-
             // ownership lookups. When this mock IS the categories table
             // (idPrefix === "category-"), the primary rows already hold
@@ -197,15 +149,15 @@ export function setupMockDb<T extends BaseRow>(
               // The condition carries both a category id and the user id.
               // Filter by both so a nonexistent or foreign-owned category
               // correctly yields an empty result.
-              const catId = extractIdFromCondition(condition, "category-");
+              const catId = comparedValue(condition, "id");
               let filtered = scopedByUser
                 ? catRows.filter((r) => r.user_id === user.id)
                 : catRows;
               if (catId) filtered = filtered.filter((r) => r.id === catId);
               return filtered;
             }
-            const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
-            const categoryId = extractIdFromCondition(condition, "category-");
+            const targetId = comparedValue(condition, "id");
+            const categoryId = comparedValue(condition, "category_id");
             let rows = scopedByUser
               ? selectedState.rows.filter((r) => r.user_id === user.id)
               : selectedState.rows;
@@ -270,10 +222,10 @@ export function setupMockDb<T extends BaseRow>(
               const selectedState = stateFor(table);
               if (selectedState.shouldFail) throw new Error("DB Update failed");
               const matches = selectedState.evaluateWhere ? rowMatcher(condition as SQL) : null;
-              const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
+              const targetId = comparedValue(condition, "id");
               const user = getUser();
-              const scopedByUser = user && conditionContains(condition, user.id);
-              const categoryId = extractIdFromCondition(condition, "category-");
+              const scopedByUser = user && comparedValue(condition, "user_id") === user.id;
+              const categoryId = comparedValue(condition, "category_id");
               const indexes = selectedState.rows
                 .map((r, index) => ({ r, index }))
                 .filter(({ r }) => matches ? matches(r) :
@@ -307,9 +259,9 @@ export function setupMockDb<T extends BaseRow>(
               removed.forEach((row) => selectedState.cascadeOn?.(row));
               return removed;
             }
-            const targetId = extractIdFromCondition(condition, primaryPrefixFor(table));
+            const targetId = comparedValue(condition, "id");
             const user = getUser();
-            const scopedByUser = user && conditionContains(condition, user.id);
+            const scopedByUser = user && comparedValue(condition, "user_id") === user.id;
             const idx = selectedState.rows.findIndex(
               (r) => r.id === targetId && (!scopedByUser || r.user_id === user!.id)
             );
