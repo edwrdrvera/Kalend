@@ -14,11 +14,16 @@ export const tasks = pgTable(
     created_at: timestamp("created_at").defaultNow(),
     color: text("color").default("blue"),
     color_overridden: boolean("color_overridden").notNull().default(false),
-    category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    category_id: uuid("category_id"),
     group_id: uuid("group_id")
   },
   (table) => [
-    // Same pair of rules as events: see events.ts.
+    // Same rules as events: see events.ts.
+    foreignKey({
+      name: "tasks_space_owner_fk",
+      columns: [table.category_id, table.user_id],
+      foreignColumns: [categories.id, categories.user_id]
+    }).onDelete("set null"),
     foreignKey({
       name: "tasks_group_membership_fk",
       columns: [table.group_id, table.category_id, table.user_id],
