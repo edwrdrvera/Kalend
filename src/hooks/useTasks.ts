@@ -81,7 +81,8 @@ export function createRowLog(): RowLog {
     },
     settle(id, send) {
       const created = savedIds.get(id);
-      // Saved rows send in the same tick, so their request timing is unchanged.
+      // Saved rows send in the same tick, so the request has started by the
+      // time the caller's call returns.
       if (!created) return holdWhile(id, () => send(id));
       return holdWhile(id, async () => {
         const savedId = await created;
