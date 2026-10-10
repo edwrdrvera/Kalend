@@ -104,7 +104,7 @@ export function useCalendarEvents(viewDate: Date): UseCalendarEventsReturn {
 
     const savedEvent = json.data;
     log.touch([savedEvent.id]);
-    setEvents((prev) => [...prev, savedEvent]);
+    setEvents((prev) => [...prev.filter((event) => event.id !== savedEvent.id), savedEvent]);
     return savedEvent;
   };
 
