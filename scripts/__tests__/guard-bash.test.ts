@@ -36,6 +36,9 @@ describe("gateFor", () => {
     "bun run review:tier",
     "bun run review:log add 212 real-fixed",
     "git push origin feat/x && echo --force",
+    "git push origin HEAD:refs/heads/feat/x",
+    "git checkout -b fix/review-pr-gate",
+    "git branch -d feat/merged",
   ])("lets %s through", (command) => {
     expect(gateFor(command)).toBeNull();
   });
