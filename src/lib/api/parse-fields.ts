@@ -1,6 +1,7 @@
 import { MAX_DESCRIPTION_LENGTH, descriptionProblem, normalizeDescription } from "@/lib/description";
 import { isEventColor } from "@/lib/event-colors";
 import { MAX_GROUP_NAME_LENGTH, groupNameProblem } from "@/lib/group-name";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 import { isUuid } from "@/lib/uuid";
 
 /**
@@ -22,15 +23,23 @@ export function asBodyObject(json: unknown): ParseResult<Record<string, unknown>
   return parsed(json as Record<string, unknown>);
 }
 
-/** A title must be a string that is non-blank once trimmed; it is stored trimmed. */
+/** A title is stored trimmed and must be non-blank and at most MAX_TITLE_LENGTH characters. */
 export function title(value: unknown): ParseResult<string> {
   if (typeof value !== "string") return rejected("title must be a string");
   const trimmed = value.trim();
-  return trimmed ? parsed(trimmed) : rejected("title is required");
+  if (!trimmed) return rejected("title is required");
+  return trimmed.length > MAX_TITLE_LENGTH
+    ? rejected(`title must be at most ${MAX_TITLE_LENGTH} characters`)
+    : parsed(trimmed);
 }
 
+// A four-digit year keeps every accepted date inside Postgres's timestamp range,
+// and the required offset stops the server's own time zone from changing the meaning.
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?(Z|[+-]\d{2}:\d{2})$/;
+
+/** A full ISO 8601 timestamp with a time zone, as `Date.prototype.toISOString` writes it. */
 export function date(value: unknown, field: string): ParseResult<Date> {
-  const result = typeof value === "string" ? new Date(value) : null;
+  const result = typeof value === "string" && ISO_TIMESTAMP.test(value) ? new Date(value) : null;
   if (!result || Number.isNaN(result.getTime())) return rejected(`${field} must be a valid date`);
   return parsed(result);
 }
@@ -61,8 +70,8 @@ export function groupId(value: unknown): ParseResult<string | null> {
     : rejected("Group must be a valid identifier");
 }
 
-/** A Group name is stored trimmed and must be non-blank and at most MAX_GROUP_NAME_LENGTH characters. */
-export function groupName(value: unknown): ParseResult<string> {
+/** A Space or Group name is stored trimmed and must be non-blank and at most MAX_GROUP_NAME_LENGTH characters. */
+export function name(value: unknown): ParseResult<string> {
   if (typeof value !== "string") return rejected("name must be a string");
   const problem = groupNameProblem(value);
   if (problem === "blank") return rejected("name is required");

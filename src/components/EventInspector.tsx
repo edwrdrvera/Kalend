@@ -31,6 +31,7 @@ import {
   UnsavedChangesPrompt,
 } from "./InspectorParts";
 import { Input } from "@/components/ui/input";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface EventInspectorProps {
   event: CalendarEvent;
@@ -121,6 +122,7 @@ export default function EventInspector({
           <Input
             id="event-inspector-title"
             value={draft.title}
+            maxLength={MAX_TITLE_LENGTH}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={draft.title.trim() === "" || undefined}
             className="h-9 rounded-lg px-3 text-base md:text-base font-semibold tracking-tight focus-ring"

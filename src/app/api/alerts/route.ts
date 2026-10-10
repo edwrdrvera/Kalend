@@ -23,26 +23,31 @@ export const POST = withUser(async (request, _context, user) => {
     if (!item.exists) return { notFound: true } as const;
     if (item.at === null) return { undated: true } as const;
 
-    const [created] = await tx
-      .insert(alerts)
-      .values({
-        event_id: target.kind === "event" ? target.id : null,
-        task_id: target.kind === "task" ? target.id : null,
-        offset_minutes,
-        fire_at: fireAtFor(item.at, offset_minutes),
-        user_id: user.id,
-      })
-      .onConflictDoNothing()
-      .returning();
-    if (created) return { alert: created, status: 201 } as const;
-
-    // The same alert already exists, so asking again returns it unchanged.
     const itemColumn = target.kind === "event" ? alerts.event_id : alerts.task_id;
-    const [existing] = await tx
-      .select()
-      .from(alerts)
-      .where(and(eq(itemColumn, target.id), eq(alerts.offset_minutes, offset_minutes), eq(alerts.user_id, user.id)));
-    return { alert: existing, status: 200 } as const;
+    // A conflicting alert can be deleted between the insert and the read, so
+    // insert again once rather than answer with no alert.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const [created] = await tx
+        .insert(alerts)
+        .values({
+          event_id: target.kind === "event" ? target.id : null,
+          task_id: target.kind === "task" ? target.id : null,
+          offset_minutes,
+          fire_at: fireAtFor(item.at, offset_minutes),
+          user_id: user.id,
+        })
+        .onConflictDoNothing()
+        .returning();
+      if (created) return { alert: created, status: 201 } as const;
+
+      // The same alert already exists, so asking again returns it unchanged.
+      const [existing] = await tx
+        .select()
+        .from(alerts)
+        .where(and(eq(itemColumn, target.id), eq(alerts.offset_minutes, offset_minutes), eq(alerts.user_id, user.id)));
+      if (existing) return { alert: existing, status: 200 } as const;
+    }
+    throw new Error("Alert was removed twice while it was being added");
   }));
 
   if ("notFound" in result) return fail(`${parsed.value.target.kind === "event" ? "Event" : "Task"} not found`, 404);

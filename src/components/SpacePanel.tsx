@@ -19,6 +19,7 @@ import PanelResourcesTab from "./PanelResourcesTab";
 import PanelAlertsTab from "./PanelAlertsTab";
 import SpacePanelFooter from "./SpacePanelFooter";
 import { Input } from "@/components/ui/input";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface SpacePanelProps {
   subject: PanelSubject;
@@ -168,6 +169,7 @@ export default function SpacePanel({
                   <Input
                     autoFocus
                     value={newTitle}
+                    maxLength={MAX_TITLE_LENGTH}
                     onChange={(e) => setNewTitle(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") {

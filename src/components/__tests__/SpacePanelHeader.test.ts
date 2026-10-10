@@ -9,6 +9,7 @@ const { typeInto } = await import("./test-dom");
 const { createRoot } = await import("react-dom/client");
 const { default: SpacePanelHeader } = await import("../SpacePanelHeader");
 import type { PanelSubject } from "@/lib/panel-subject";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 
 const SPACE: PanelSubject = { kind: "space", spaceId: "school", name: "School", color: "blue", description: "Databases & Information Systems." };
 const GROUP: PanelSubject = { kind: "group", groupId: "cs340", name: "CS 340", spaceId: "school", spaceName: "School", color: "blue" };
@@ -80,6 +81,12 @@ describe("SpacePanelHeader", () => {
       new MouseEvent("click", { bubbles: true })
     );
     expect(interactions.closed).toBe(true);
+  });
+
+  it("stops a Space name at the length the server accepts", async () => {
+    await renderHeader(SPACE);
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
+    expect((byLabel("School name") as HTMLInputElement).maxLength).toBe(MAX_GROUP_NAME_LENGTH);
   });
 
   it("renames a Group once when Enter is followed by the box losing focus", async () => {

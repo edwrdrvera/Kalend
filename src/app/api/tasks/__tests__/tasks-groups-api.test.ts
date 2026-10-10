@@ -62,10 +62,10 @@ beforeEach(() => {
   ];
   const base = { user_id: ME, title: "t", completed: false, color: "blue", color_overridden: false };
   taskState.rows = [
-    { ...base, id: "task-grouped", category_id: SCHOOL, group_id: BIO },
-    { ...base, id: "task-direct", category_id: SCHOOL, group_id: null },
-    { ...base, id: "task-loose", category_id: null, group_id: null },
-    { ...base, id: "task-foreign", user_id: OTHER, category_id: THEIRS, group_id: THEIR_GROUP },
+    { ...base, id: "a0000000-0000-4000-8000-000000000001", category_id: SCHOOL, group_id: BIO },
+    { ...base, id: "a0000000-0000-4000-8000-000000000002", category_id: SCHOOL, group_id: null },
+    { ...base, id: "a0000000-0000-4000-8000-000000000003", category_id: null, group_id: null },
+    { ...base, id: "a0000000-0000-4000-8000-000000000004", user_id: OTHER, category_id: THEIRS, group_id: THEIR_GROUP },
   ];
 });
 
@@ -118,58 +118,58 @@ describe("POST /api/tasks with a Group", () => {
 
 describe("PATCH /api/tasks/[id] with a Group", () => {
   it("joins a Group and takes its Space", async () => {
-    const response = await PATCH(request("PATCH", { group_id: HIST }), ctx("task-loose"));
+    const response = await PATCH(request("PATCH", { group_id: HIST }), ctx("a0000000-0000-4000-8000-000000000003"));
     expect(response.status).toBe(200);
-    expect(stored("task-loose")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
+    expect(stored("a0000000-0000-4000-8000-000000000003")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
   });
 
   it("moves between Groups of one Space", async () => {
-    await PATCH(request("PATCH", { group_id: HIST }), ctx("task-grouped"));
-    expect(stored("task-grouped")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
+    await PATCH(request("PATCH", { group_id: HIST }), ctx("a0000000-0000-4000-8000-000000000001"));
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
   });
 
   it("clears the Group when the Space changes", async () => {
-    const response = await PATCH(request("PATCH", { category_id: WORK }), ctx("task-grouped"));
+    const response = await PATCH(request("PATCH", { category_id: WORK }), ctx("a0000000-0000-4000-8000-000000000001"));
     expect(response.status).toBe(200);
-    expect(stored("task-grouped")).toMatchObject({ category_id: WORK, group_id: null });
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: WORK, group_id: null });
   });
 
   it("keeps the Group when the same Space is sent again", async () => {
-    await PATCH(request("PATCH", { category_id: SCHOOL }), ctx("task-grouped"));
-    expect(stored("task-grouped")).toMatchObject({ category_id: SCHOOL, group_id: BIO });
+    await PATCH(request("PATCH", { category_id: SCHOOL }), ctx("a0000000-0000-4000-8000-000000000001"));
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: BIO });
   });
 
   it("leaves the Group and stays in the Space when group_id is null", async () => {
-    await PATCH(request("PATCH", { group_id: null }), ctx("task-grouped"));
-    expect(stored("task-grouped")).toMatchObject({ category_id: SCHOOL, group_id: null });
+    await PATCH(request("PATCH", { group_id: null }), ctx("a0000000-0000-4000-8000-000000000001"));
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: null });
   });
 
   it("clears Space and Group when category_id is null", async () => {
-    await PATCH(request("PATCH", { category_id: null }), ctx("task-grouped"));
-    expect(stored("task-grouped")).toMatchObject({ category_id: null, group_id: null });
+    await PATCH(request("PATCH", { category_id: null }), ctx("a0000000-0000-4000-8000-000000000001"));
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: null, group_id: null });
   });
 
   it("keeps the Group on an edit that does not name membership", async () => {
-    await PATCH(request("PATCH", { title: "Renamed" }), ctx("task-grouped"));
-    expect(stored("task-grouped")).toMatchObject({ title: "Renamed", category_id: SCHOOL, group_id: BIO });
+    await PATCH(request("PATCH", { title: "Renamed" }), ctx("a0000000-0000-4000-8000-000000000001"));
+    expect(stored("a0000000-0000-4000-8000-000000000001")).toMatchObject({ title: "Renamed", category_id: SCHOOL, group_id: BIO });
   });
 
   it("rejects a conflicting Space and Group with no partial write", async () => {
-    const response = await PATCH(request("PATCH", { group_id: BIO, category_id: WORK, title: "Changed" }), ctx("task-direct"));
+    const response = await PATCH(request("PATCH", { group_id: BIO, category_id: WORK, title: "Changed" }), ctx("a0000000-0000-4000-8000-000000000002"));
     expect(response.status).toBe(400);
-    expect(stored("task-direct")).toMatchObject({ title: "t", category_id: SCHOOL, group_id: null });
+    expect(stored("a0000000-0000-4000-8000-000000000002")).toMatchObject({ title: "t", category_id: SCHOOL, group_id: null });
   });
 
   it("rejects another user's Group and leaves the task as it was", async () => {
-    const response = await PATCH(request("PATCH", { group_id: THEIR_GROUP, title: "Changed" }), ctx("task-direct"));
+    const response = await PATCH(request("PATCH", { group_id: THEIR_GROUP, title: "Changed" }), ctx("a0000000-0000-4000-8000-000000000002"));
     expect(response.status).toBe(400);
     expect((await response.json()).error).toBe("The selected Group is unavailable");
-    expect(stored("task-direct")).toMatchObject({ title: "t", group_id: null });
+    expect(stored("a0000000-0000-4000-8000-000000000002")).toMatchObject({ title: "t", group_id: null });
   });
 
   it("returns 404 for another user's task even with my Group", async () => {
-    const response = await PATCH(request("PATCH", { group_id: BIO }), ctx("task-foreign"));
+    const response = await PATCH(request("PATCH", { group_id: BIO }), ctx("a0000000-0000-4000-8000-000000000004"));
     expect(response.status).toBe(404);
-    expect(stored("task-foreign")?.group_id).toBe(THEIR_GROUP);
+    expect(stored("a0000000-0000-4000-8000-000000000004")?.group_id).toBe(THEIR_GROUP);
   });
 });

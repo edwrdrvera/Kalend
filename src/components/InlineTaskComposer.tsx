@@ -9,6 +9,7 @@ import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import MembershipSelect from "./MembershipSelect";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface TaskDraft {
   title: string;
@@ -69,6 +70,7 @@ export default function InlineTaskComposer({
       <Input
         ref={inputRef}
         value={draft.title}
+        maxLength={MAX_TITLE_LENGTH}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"

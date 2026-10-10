@@ -7,6 +7,7 @@ import { membershipOf, touchesMembership } from "@/lib/membership";
 import { rescheduleAlerts } from "@/lib/api/alert-sync";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
+import { isUuid } from "@/lib/uuid";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -14,6 +15,7 @@ interface RouteContext {
 
 export const PATCH = withUser(async (request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Task not found", 404);
   const parsed = parseTaskPatch(await request.json());
   if (!parsed.ok) return fail(parsed.error, 400);
   const updates = parsed.value;
@@ -60,6 +62,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
 
 export const DELETE = withUser(async (_request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Task not found", 404);
 
   const [deletedTask] = await db
     .delete(tasks)
