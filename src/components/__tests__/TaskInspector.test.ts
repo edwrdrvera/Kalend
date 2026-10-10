@@ -3,6 +3,7 @@ import { act, createElement, useReducer, useState } from "react";
 import type { Root } from "react-dom/client";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
+import { MAX_TITLE_LENGTH } from "@/lib/api/parse-fields";
 import { panelReducer, initialPanelState } from "@/lib/panel-state";
 import { selectOptionLabels, alertValue, chooseAlert, typeInto } from "./test-dom";
 
@@ -113,6 +114,11 @@ async function editTitle(value: string) {
 }
 
 describe("TaskInspector", () => {
+  it("stops the title at the length the server accepts", async () => {
+    await renderInspector();
+    expect(titleInput().maxLength).toBe(MAX_TITLE_LENGTH);
+  });
+
   it("disables Save until something changes", async () => {
     await renderInspector();
     expect(button("Save")?.disabled).toBe(true);
