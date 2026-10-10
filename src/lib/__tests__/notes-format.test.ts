@@ -24,6 +24,25 @@ describe("parseInline", () => {
     ]);
   });
 
+  it("keeps balanced parentheses inside a named link's URL", () => {
+    expect(parseInline("[x](https://a.b/c_(d))")).toEqual([
+      { type: "link", text: "x", href: "https://a.b/c_(d)" },
+    ]);
+  });
+
+  it("keeps balanced parentheses inside a bare link", () => {
+    const url = "https://en.wikipedia.org/wiki/Foo_(bar)";
+    expect(parseInline(url)).toEqual([{ type: "link", text: url, href: url }]);
+  });
+
+  it("leaves an unbalanced closing parenthesis outside a bare link", () => {
+    expect(parseInline("(see https://example.com/a)")).toEqual([
+      { type: "text", text: "(see " },
+      { type: "link", text: "https://example.com/a", href: "https://example.com/a" },
+      { type: "text", text: ")" },
+    ]);
+  });
+
   it("does not link javascript: URLs", () => {
     expect(parseInline("[x](javascript:alert(1))")).toEqual([{ type: "text", text: "[x](javascript:alert(1))" }]);
   });
