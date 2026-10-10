@@ -23,21 +23,12 @@ import {
 } from "@/lib/event-draft";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import { POPOVER_WIDTH, clampPopoverTop } from "@/lib/popover-position";
+import { wrapTabTarget } from "@/lib/tab-stops";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
-const FOCUSABLE =
-  'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-/** Tab stops inside the panel, skipping disabled controls and the collapsed
- *  (inert) time section. */
-function tabStops(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
-    (el) => !el.hasAttribute("disabled") && el.tabIndex !== -1 && !el.closest("[inert]")
-  );
-}
 
 /** First-render guess for vertical centering, replaced by the measured height. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
@@ -143,16 +134,10 @@ export default function EventCreatePopover({
   // behind it. Pickers portaled out of the panel handle their own Tab.
   const trapTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "Tab" || !panelRef.current) return;
-    const stops = tabStops(panelRef.current);
-    const first = stops[0];
-    const last = stops[stops.length - 1];
-    if (!first || !last) return;
-    if (e.shiftKey && document.activeElement === first) {
+    const target = wrapTabTarget(panelRef.current, document.activeElement, e.shiftKey);
+    if (target) {
       e.preventDefault();
-      last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
-      first.focus();
+      target.focus();
     }
   };
 
