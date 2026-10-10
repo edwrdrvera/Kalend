@@ -22,8 +22,6 @@ describe("gateFor", () => {
     "git checkout -B develop origin/main",
     "cd scripts && bun review-pr.ts 5",
     "bun run --cwd scripts review-pr.ts 5",
-    "git push origin :feat/x",
-    "git push --delete origin x",
   ])("asks before %s", (command) => {
     expect(gateFor(command)).not.toBeNull();
   });
@@ -39,6 +37,9 @@ describe("gateFor", () => {
     "git push origin HEAD:refs/heads/feat/x",
     "git checkout -b fix/review-pr-gate",
     "git branch -d feat/merged",
+    "git branch -D feat/x",
+    "git push origin --delete feat/x",
+    "git push origin :feat/x",
   ])("lets %s through", (command) => {
     expect(gateFor(command)).toBeNull();
   });

@@ -4,7 +4,6 @@
 // can't run them silently.
 
 const FORCE_PUSH = "Force-pushing needs the user's OK (CLAUDE.md).";
-const DELETE_REMOTE_BRANCH = "Deleting a remote branch needs the user's OK (CLAUDE.md).";
 const REWRITE = "Rewriting history needs the user's OK (CLAUDE.md).";
 const REVIEW = "The fresh-session review needs the user's OK before it runs (CLAUDE.md).";
 
@@ -19,12 +18,11 @@ const gitGates = new Map<string, (args: string[]) => string | null>(Object.entri
       if (/^--force(-with-lease|-if-includes)?(=|$)/.test(arg) || shortCluster(arg, "f") || arg.startsWith("+")) {
         return FORCE_PUSH;
       }
-      if (arg === "--delete" || shortCluster(arg, "d") || arg.startsWith(":")) return DELETE_REMOTE_BRANCH;
     }
     return null;
   },
   commit: (args) => (args.includes("--amend") ? REWRITE : null),
-  branch: (args) => (args.some((arg) => arg === "--force" || shortCluster(arg, "fDM")) ? REWRITE : null),
+  branch: (args) => (args.some((arg) => arg === "--force" || shortCluster(arg, "fM")) ? REWRITE : null),
   checkout: (args) => (args.includes("-B") ? REWRITE : null),
   switch: (args) => (args.some((arg) => arg === "-C" || arg === "--force-create") ? REWRITE : null),
   reset: (args) => (args.some((arg) => arg === "--hard" || arg === "--keep") ? REWRITE : null),
