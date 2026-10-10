@@ -10,6 +10,12 @@ import { createAlert, deleteAlert, fetchAlerts } from "./alert-requests";
 const belongsTo = (alert: CalendarAlert, target: AlertTarget) =>
   (target.kind === "event" ? alert.event_id : alert.task_id) === target.id;
 
+/** The alerts of `targets` taken from `fresh`, every other item's from `rest`. */
+const replaceTargets = (rest: CalendarAlert[], fresh: CalendarAlert[], targets: AlertTarget[]) => [
+  ...rest.filter((alert) => !targets.some((target) => belongsTo(alert, target))),
+  ...fresh.filter((alert) => targets.some((target) => belongsTo(alert, target))),
+];
+
 const currentSupport = (): NotificationSupport =>
   typeof Notification === "undefined" ? "unsupported" : Notification.permission;
 
@@ -27,11 +33,16 @@ export function useAlerts(notify: (text: string) => void) {
     latestNotify.current = notify;
   });
 
+  // Items saved since the page opened. The first load may land after their
+  // saves, and its copy of them is older.
+  const synced = useRef<AlertTarget[]>([]);
+
   useEffect(() => {
     let cancelled = false;
     fetchAlerts().then(
       (list) => {
-        if (!cancelled) setAlerts(list);
+        const savedMeanwhile = [...synced.current];
+        if (!cancelled) setAlerts((local) => replaceTargets(list, local, savedMeanwhile));
       },
       () => {
         if (!cancelled) latestNotify.current("Couldn't load your alerts.");
@@ -81,7 +92,10 @@ export function useAlerts(notify: (text: string) => void) {
         current = current.filter((alert) => alert.id !== step.id);
       }
     }
-    setAlerts(current);
+    // Only this item's alerts, so a save for another item running at the same
+    // time keeps its own.
+    synced.current.push(target);
+    setAlerts((local) => replaceTargets(local, current, [target]));
     if (steps.some((step) => step.type === "create")) askForNotifications();
   }
 
