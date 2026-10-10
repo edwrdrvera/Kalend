@@ -385,3 +385,18 @@ describe("AgendaColumn alert bell", () => {
     expect(interactions.eventClicks).toEqual(["e1"]);
   });
 });
+
+describe("AgendaColumn day boundary", () => {
+  it("leaves out an event that ended at midnight as the day began", async () => {
+    await renderColumn({
+      events: [
+        makeEvent({
+          title: "Late study session",
+          start_at: new Date(2030, 8, 16, 22).toISOString(),
+          end_at: new Date(2030, 8, 17, 0).toISOString(),
+        }),
+      ],
+    });
+    expect(byTestId("agenda-column")?.textContent).not.toContain("Late study session");
+  });
+});
