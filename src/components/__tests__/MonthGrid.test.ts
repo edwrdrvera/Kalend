@@ -195,3 +195,15 @@ describe("MonthGrid keyboard structure", () => {
     expect(picked.map((d) => d.getDate())).toEqual([10]);
   });
 });
+
+describe("MonthGrid day boundary", () => {
+  it("shows an event that ends at midnight on its start day only", async () => {
+    const late: CalendarEvent = {
+      ...makeEvent("late", "work"),
+      start_at: new Date(2030, 8, 9, 22).toISOString(),
+      end_at: new Date(2030, 8, 10, 0).toISOString(),
+    };
+    const el = await renderMonth([late], null);
+    expect(chipTitles(el)).toEqual(["late"]);
+  });
+});
