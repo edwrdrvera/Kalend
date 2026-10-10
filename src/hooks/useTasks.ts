@@ -12,6 +12,128 @@ import { reconcileDetachedTasks } from "@/lib/task-color-state";
 import { releaseGroup } from "@/lib/group-state";
 import { UNASSIGNED, type Membership } from "@/lib/membership";
 
+type Row = { id: string };
+
+/**
+ * What each list hook needs to know so a slow response can't undo a newer
+ * change: which rows a list load must leave alone, and the saved id behind
+ * each optimistic create. Bookkeeping only, so it never causes a render.
+ */
+export interface RowLog {
+  /** The stamp a list load takes when it starts. */
+  mark(): number;
+  /** Rows a load stamped `since` must not overwrite: a request on them is in flight, or settled after the load began. */
+  keepSince(since: number): ReadonlySet<string>;
+  /** Marks rows changed now, for changes that need no request of their own. */
+  touch(ids: Iterable<string>): void;
+  /** Holds a row against list loads until the returned release is called. */
+  hold(id: string): () => void;
+  /** Registers an optimistic create. Edits on `tempId` wait until it lands or fails. */
+  createPending(tempId: string): { land: (savedId: string) => void; fail: () => void };
+  /**
+   * Runs `send` with the row's saved id, holding the row until it settles.
+   * For a row still being created this waits for the create, and resolves
+   * null without sending anything if the create failed.
+   */
+  settle<R>(id: string, send: (savedId: string) => Promise<R>): Promise<R | null>;
+}
+
+export function createRowLog(): RowLog {
+  let clock = 0;
+  const inFlight = new Map<string, number>();
+  const settledAt = new Map<string, number>();
+  const savedIds = new Map<string, Promise<string | null>>();
+
+  const hold = (id: string) => {
+    inFlight.set(id, (inFlight.get(id) ?? 0) + 1);
+    return () => {
+      const left = (inFlight.get(id) ?? 1) - 1;
+      if (left === 0) inFlight.delete(id);
+      else inFlight.set(id, left);
+      settledAt.set(id, ++clock);
+    };
+  };
+
+  return {
+    mark: () => ++clock,
+    keepSince(since) {
+      const keep = new Set(inFlight.keys());
+      for (const [id, at] of settledAt) if (at > since) keep.add(id);
+      return keep;
+    },
+    touch(ids) {
+      for (const id of ids) hold(id)();
+    },
+    hold,
+    createPending(tempId) {
+      let resolve!: (savedId: string | null) => void;
+      savedIds.set(tempId, new Promise((r) => (resolve = r)));
+      return { land: resolve, fail: () => resolve(null) };
+    },
+    async settle(id, send) {
+      const release = hold(id);
+      try {
+        const savedId = await (savedIds.get(id) ?? id);
+        if (savedId === null) return null;
+        const releaseSaved = hold(savedId);
+        try {
+          return await send(savedId);
+        } finally {
+          releaseSaved();
+        }
+      } finally {
+        release();
+      }
+    },
+  };
+}
+
+/**
+ * The server's list, except rows in `keep`: those keep their local copy, stay
+ * gone if they were deleted locally, and are appended if the server doesn't
+ * have them yet.
+ */
+export function mergeFetched<T extends Row>(server: T[], local: T[], keep: ReadonlySet<string>): T[] {
+  if (keep.size === 0) return server;
+  const localById = new Map(local.map((row) => [row.id, row]));
+  const serverIds = new Set(server.map((row) => row.id));
+  const merged = server.flatMap((row) => {
+    if (!keep.has(row.id)) return [row];
+    const mine = localById.get(row.id);
+    return mine ? [mine] : [];
+  });
+  return [...merged, ...local.filter((row) => keep.has(row.id) && !serverIds.has(row.id))];
+}
+
+/**
+ * Undoes a failed edit: restores only the fields it wrote, and only where the
+ * row still shows what it wrote, so a later edit to the same field wins.
+ */
+export function rollbackFields<T>(row: T, before: T, attempted: Partial<T>): T {
+  const restored = { ...row };
+  for (const key of Object.keys(attempted) as (keyof T)[]) {
+    if (Object.is(row[key], attempted[key])) restored[key] = before[key];
+  }
+  return restored;
+}
+
+/**
+ * Swaps an optimistic row for the saved one. Fields the user changed while the
+ * create was in flight stay, because their own requests are still on the way.
+ */
+export function landCreate<T extends Row>(rows: T[], tempId: string, sent: T, saved: T): T[] {
+  return rows
+    .filter((row) => row.id !== saved.id)
+    .map((row) => {
+      if (row.id !== tempId) return row;
+      const landed = { ...saved };
+      for (const key of Object.keys(row) as (keyof T)[]) {
+        if (key !== "id" && !Object.is(row[key], sent[key])) landed[key] = row[key];
+      }
+      return landed;
+    });
+}
+
 export interface UseTasksReturn {
   data: CalendarTask[];
   loading: boolean;
@@ -33,6 +155,7 @@ export function useTasks(): UseTasksReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [log] = useState(createRowLog);
 
   // Fetched once on mount. The task list panel shows everything (undated +
   // all due dates) rather than a date-scoped window, so there's no viewDate
@@ -43,6 +166,7 @@ export function useTasks(): UseTasksReturn {
     async function fetchTasks() {
       setLoading(true);
       setError(null);
+      const since = log.mark();
 
       try {
         const res = await fetch("/api/tasks");
@@ -52,8 +176,9 @@ export function useTasks(): UseTasksReturn {
           throw new Error(json.error ?? "Failed to load tasks");
         }
 
+        const fetched = json.data;
         if (!cancelled) {
-          setTasks(json.data);
+          setTasks((local) => mergeFetched(fetched, local, log.keepSince(since)));
         }
       } catch (err) {
         if (!cancelled) {
@@ -73,7 +198,7 @@ export function useTasks(): UseTasksReturn {
     return () => {
       cancelled = true;
     };
-  }, [retryKey]);
+  }, [retryKey, log]);
 
   const retry = () => {
     setRetryKey((k) => k + 1);
@@ -81,7 +206,8 @@ export function useTasks(): UseTasksReturn {
 
   // Optimistic: adds a temp-ID task immediately so the form can close right
   // away, replaces it with the server's row on success, removes it and
-  // surfaces the error on failure (same rollback approach as toggleComplete).
+  // surfaces the error on failure. Edits made on the temp row meanwhile wait
+  // in `log.settle` and go to the saved id.
   const createTask = async (
     title: string,
     dueAt?: string,
@@ -98,6 +224,8 @@ export function useTasks(): UseTasksReturn {
       category_id: membership.category_id,
       group_id: membership.group_id,
     };
+    const pending = log.createPending(tempId);
+    const release = log.hold(tempId);
 
     setTasks((prev) => [...prev, optimisticTask]);
 
@@ -119,52 +247,54 @@ export function useTasks(): UseTasksReturn {
       }
 
       const savedTask = json.data;
-      setTasks((prev) =>
-        prev.map((t) => (t.id === tempId ? savedTask : t))
-      );
+      log.touch([savedTask.id]);
+      setTasks((prev) => landCreate(prev, tempId, optimisticTask, savedTask));
+      pending.land(savedTask.id);
     } catch (err) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      pending.fail();
       setError(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      release();
     }
   };
 
   // Optimistic: flips the checkbox immediately, rolls back just the
   // `completed` field on failure.
   const toggleComplete = async (task: CalendarTask): Promise<void> => {
-    const previousCompleted = task.completed;
-    const optimisticTask: CalendarTask = { ...task, completed: !task.completed };
+    const attempted = { completed: !task.completed } satisfies TaskPatchRequest;
 
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? optimisticTask : t))
+      prev.map((t) => (t.id === task.id ? { ...t, ...attempted } : t))
     );
 
-    try {
-      const json = await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "PATCH",
-        { completed: optimisticTask.completed } satisfies TaskPatchRequest,
-        "Failed to update task"
-      );
+    await log.settle(task.id, async (id) => {
+      try {
+        const json = await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "PATCH",
+          attempted,
+          "Failed to update task"
+        );
 
-      if (!json.data) {
-        throw new Error("Failed to update task");
+        if (!json.data) {
+          throw new Error("Failed to update task");
+        }
+
+        const savedTask = json.data;
+        setTasks((prev) =>
+          prev.map((t) => (t.id === savedTask.id ? savedTask : t))
+        );
+      } catch (err) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? rollbackFields(t, task, attempted) : t))
+        );
+        setError(err instanceof Error ? err.message : "Failed to update task");
       }
-
-      const savedTask = json.data;
-      setTasks((prev) =>
-        prev.map((t) => (t.id === savedTask.id ? savedTask : t))
-      );
-    } catch (err) {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id ? { ...t, completed: previousCompleted } : t
-        )
-      );
-      setError(err instanceof Error ? err.message : "Failed to update task");
-    }
+    });
   };
 
-  // Optimistic: applies the patch immediately, restores the previous row on
+  // Optimistic: applies the patch immediately, restores the patched fields on
   // failure.
   const updateTask = async (
     task: CalendarTask,
@@ -172,52 +302,60 @@ export function useTasks(): UseTasksReturn {
   ): Promise<boolean> => {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
 
-    try {
-      const json = await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "PATCH",
-        patch,
-        "Failed to update task"
-      );
-      if (!json.data) throw new Error("Failed to update task");
-      const savedTask = json.data;
-      setTasks((prev) => prev.map((t) => (t.id === savedTask.id ? savedTask : t)));
-      return true;
-    } catch {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-      return false;
-    }
+    const saved = await log.settle(task.id, async (id) => {
+      try {
+        const json = await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "PATCH",
+          patch,
+          "Failed to update task"
+        );
+        if (!json.data) throw new Error("Failed to update task");
+        const savedTask = json.data;
+        setTasks((prev) => prev.map((t) => (t.id === savedTask.id ? savedTask : t)));
+        return true;
+      } catch {
+        setTasks((prev) => prev.map((t) => (t.id === id ? rollbackFields(t, task, patch) : t)));
+        return false;
+      }
+    });
+    return saved ?? false;
   };
 
   // Optimistic: removes from state immediately, rolls back on failure.
   const deleteTask = async (task: CalendarTask): Promise<boolean> => {
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
 
-    try {
-      await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "DELETE",
-        undefined,
-        "Failed to delete task"
-      );
-      return true;
-    } catch (err) {
-      setTasks((prev) => [...prev, task]);
-      setError(err instanceof Error ? err.message : "Failed to delete task");
-      return false;
-    }
+    const deleted = await log.settle(task.id, async (id) => {
+      try {
+        await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "DELETE",
+          undefined,
+          "Failed to delete task"
+        );
+        return true;
+      } catch (err) {
+        setTasks((prev) => [...prev, { ...task, id }]);
+        setError(err instanceof Error ? err.message : "Failed to delete task");
+        return false;
+      }
+    });
+    return deleted ?? true;
   };
 
   const reconcileSpaceRemoval = (
     detachedTasks: CalendarTask[],
     categoryId: string
   ): void => {
+    log.touch(detachedTasks.map((t) => t.id));
     setTasks((current) =>
       reconcileDetachedTasks(current, detachedTasks, categoryId)
     );
   };
 
   const reconcileGroupRemoval = (groupId: string): void => {
+    log.touch(tasks.filter((t) => t.group_id === groupId).map((t) => t.id));
     setTasks((current) => releaseGroup(current, groupId));
   };
 
