@@ -83,6 +83,66 @@ describe.skipIf(!url)("Groups schema constraints", () => {
     for (const row of rows) expect(row.def).toContain("ON DELETE SET NULL (group_id)");
   });
 
+  it("keeps ON DELETE SET NULL (category_id) on both Space keys", async () => {
+    const rows = await sql`
+      select conname, pg_get_constraintdef(oid) as def from pg_constraint
+      where conname in ('events_space_owner_fk', 'tasks_space_owner_fk')`;
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(row.def).toContain("ON DELETE SET NULL (category_id)");
+  });
+
+  it("rejects an item in another user's Space", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const alicesSpace = await space(tx, ALICE, "School");
+      await rejected(tx, (t) => event(t, BOB, alicesSpace, null), "events_space_owner_fk");
+      await rejected(tx, (t) => task(t, BOB, alicesSpace, null), "tasks_space_owner_fk");
+      const bobsEvent = await event(tx, BOB, null, null);
+      await rejected(
+        tx,
+        (t) => t`update events set category_id = ${alicesSpace} where id = ${bobsEvent}`,
+        "events_space_owner_fk"
+      );
+    });
+  });
+
+  it("moves an item between two of its owner's Spaces", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const school = await space(tx, ALICE, "School");
+      const work = await space(tx, ALICE, "Work");
+      const id = await event(tx, ALICE, school, null);
+      await tx`update events set category_id = ${work} where id = ${id}`;
+      const [e] = await tx`select category_id from events where id = ${id}`;
+      expect(e.category_id).toBe(work);
+    });
+  });
+
+  it("deleting a Space keeps its ungrouped items and their owner", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const school = await space(tx, ALICE, "School");
+      const eventId = await event(tx, ALICE, school, null);
+      const taskId = await task(tx, ALICE, school, null);
+      await tx`delete from categories where id = ${school}`;
+      const [e] = await tx`select user_id, category_id from events where id = ${eventId}`;
+      const [t] = await tx`select user_id, category_id from tasks where id = ${taskId}`;
+      expect(e).toEqual({ user_id: ALICE, category_id: null });
+      expect(t).toEqual({ user_id: ALICE, category_id: null });
+    });
+  });
+
+  // Postgres clears the item's Space before the Group cascade clears its group_id,
+  // so the item briefly has a Group and no Space. Only the delete route can remove a
+  // Space that still has grouped items, because it detaches them first.
+  it("rejects a raw delete of a Space that still has grouped items and changes nothing", async () => {
+    await inRolledBackTransaction(async (tx) => {
+      const school = await space(tx, ALICE, "School");
+      const bio = await group(tx, ALICE, school);
+      const eventId = await event(tx, ALICE, school, bio);
+      await rejected(tx, (t) => t`delete from categories where id = ${school}`, "events_group_needs_space");
+      const [e] = await tx`select category_id, group_id from events where id = ${eventId}`;
+      expect(e).toEqual({ category_id: school, group_id: bio });
+    });
+  });
+
   it("rejects a Group under another user's Space", async () => {
     await inRolledBackTransaction(async (tx) => {
       const bobsSpace = await space(tx, BOB, "Other");
