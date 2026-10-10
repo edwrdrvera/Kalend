@@ -20,6 +20,7 @@ import {
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { Input } from "@/components/ui/input";
 import { FIELD_SIZE_CLS } from "@/components/DateField";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 
 /**
  * Create or edit one Space (name + color), with delete in edit mode. A single
@@ -189,6 +190,7 @@ export default function SpaceEditorDialog({
             />
             <Input
               value={name}
+              maxLength={MAX_GROUP_NAME_LENGTH}
               onChange={(event) => setName(event.target.value)}
               placeholder="Space name"
               aria-label="Space name"

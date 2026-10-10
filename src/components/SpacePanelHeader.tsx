@@ -100,7 +100,7 @@ export default function SpacePanelHeader({
             aria-label={`${subject.name} name`}
             aria-invalid={failed || undefined}
             value={text}
-            maxLength={subject.kind === "group" ? MAX_GROUP_NAME_LENGTH : undefined}
+            maxLength={MAX_GROUP_NAME_LENGTH}
             onChange={(e) => {
               setDraft({ key, text: e.target.value });
               setFailedKey(null);
