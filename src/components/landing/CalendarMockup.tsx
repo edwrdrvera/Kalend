@@ -315,23 +315,6 @@ function AgendaColumnMock() {
               </div>
             </div>
           ))}
-          <section className="mt-3 border-t border-border pt-2.5">
-            <h3 className="label-caps pb-1">Due today</h3>
-            {TODAY_TASKS.map((task) => (
-              <div key={task.title} className="flex items-start gap-2 rounded-sm px-1 py-1">
-                <span className="flex h-[18px] shrink-0 items-center">
-                  <TaskCheckbox title={task.title} checked={Boolean(task.done)} onToggle={noop} className="translate-y-[1px]" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span className="block w-full text-left text-body leading-[18px] text-foreground">{task.title}</span>
-                  <span className="block truncate text-xs leading-[18px] text-muted-foreground">
-                    <SpaceDot color={SPACES[task.space].color} className="mr-1.5 inline-block align-middle" />
-                    {pathOf(task.space, task.group)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </section>
         </div>
       </div>
     </div>
