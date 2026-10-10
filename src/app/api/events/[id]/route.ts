@@ -8,12 +8,14 @@ import { membershipOf, touchesMembership } from "@/lib/membership";
 import { rescheduleAlerts } from "@/lib/api/alert-sync";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
+import { isUuid } from "@/lib/uuid";
 
 interface RouteContext { params: Promise<{ id: string }>; }
 const badRequest = (error: string) => fail(error, 400);
 
 export const PATCH = withUser(async (request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Event not found", 404);
   const parsed = parseEventPatch(await request.json());
   if (!parsed.ok) return badRequest(parsed.error);
   const body = parsed.value;
@@ -54,6 +56,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
 
 export const DELETE = withUser(async (_request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Event not found", 404);
   const [deletedEvent] = await db.delete(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning();
   if (!deletedEvent) return fail("Event not found", 404);
   return ok(deletedEvent);

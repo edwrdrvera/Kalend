@@ -45,7 +45,7 @@ const mockAlertState: MockDbState<MockAlert> = { rows: [], shouldFail: false, ev
 const alert = (id: string, over: Partial<MockAlert>): MockAlert => ({
   id,
   user_id: "user-uuid-123",
-  event_id: "evt-uuid-1",
+  event_id: "e0000000-0000-4000-8000-000000000001",
   task_id: null,
   offset_minutes: 15,
   fire_at: new Date("2026-08-10T09:45:00Z"),
@@ -69,7 +69,7 @@ describe("Events API Endpoints", () => {
     };
     mockDbState.rows = [
       {
-        id: "evt-uuid-1",
+        id: "e0000000-0000-4000-8000-000000000001",
         title: "CS 101 Lecture",
         start_at: new Date("2026-08-10T10:00:00Z"),
         end_at: new Date("2026-08-10T11:00:00Z"),
@@ -79,7 +79,7 @@ describe("Events API Endpoints", () => {
         icon: "🎓",
       },
       {
-        id: "evt-uuid-other",
+        id: "e0000000-0000-4000-8000-000000000002",
         title: "Other User Private Event",
         start_at: new Date("2026-08-10T12:00:00Z"),
         end_at: new Date("2026-08-10T13:00:00Z"),
@@ -558,23 +558,23 @@ describe("Events API Endpoints", () => {
   describe("PATCH /api/events/[id]", () => {
     it("returns 401 when user is unauthenticated", async () => {
       mockCurrentUser = null;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated Title" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(401);
     });
 
     it("returns 400 for malformed JSON without updating an event", async () => {
       const before = mockDbState.rows.map((row) => ({ ...row }));
-      const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+      const response = await PATCH(new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: '{"title":',
-      }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      }), { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
 
       expect(response.status).toBe(400);
       expect(await response.json()).toEqual({
@@ -588,11 +588,11 @@ describe("Events API Endpoints", () => {
       const before = mockDbState.rows.map((row) => ({ ...row }));
 
       for (const title of ["", "   "]) {
-        const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+        const response = await PATCH(new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title }),
-        }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+        }), { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
 
         expect(response.status).toBe(400);
         expect(await response.json()).toEqual({ success: false, error: "title is required" });
@@ -601,11 +601,11 @@ describe("Events API Endpoints", () => {
     });
 
     it("trims the title on update", async () => {
-      const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+      const response = await PATCH(new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "  Renamed  " }),
-      }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      }), { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
 
       expect(response.status).toBe(200);
       expect((await response.json()).data.title).toBe("Renamed");
@@ -615,11 +615,11 @@ describe("Events API Endpoints", () => {
       const before = mockDbState.rows.map((row) => ({ ...row }));
 
       for (const body of ["null", "[]", '\"Updated\"', "42"]) {
-        const response = await PATCH(new Request("http://localhost/api/events/evt-uuid-1", {
+        const response = await PATCH(new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body,
-        }), { params: Promise.resolve({ id: "evt-uuid-1" }) });
+        }), { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
 
         expect(response.status).toBe(400);
         expect((await response.json()).error).toBe("Request body must be an object");
@@ -629,13 +629,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 400 when no updatable fields are provided", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
 
       const json = await response.json();
@@ -644,25 +644,25 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 400 when an updated color is outside the supported palette", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ color: "chartreuse" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("color must be a supported color");
     });
 
     it("returns 400 when start_at date is invalid", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ start_at: "bad-start-date" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
 
       const json = await response.json();
@@ -671,13 +671,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 400 when end_at date is invalid", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ end_at: "bad-end-date" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
 
       const json = await response.json();
@@ -686,7 +686,7 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 400 when start_at is not before end_at", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -695,7 +695,7 @@ describe("Events API Endpoints", () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
 
       const json = await response.json();
@@ -704,13 +704,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("allows a valid partial start_at update after comparing with the locked row", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ start_at: "2026-08-10T09:00:00Z" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
       expect(mockDbState.transactionCount).toBeGreaterThan(0);
       expect(mockDbState.lockCount).toBeGreaterThan(0);
@@ -718,44 +718,44 @@ describe("Events API Endpoints", () => {
 
     it("rejects a partial start_at equal to the existing end without mutation", async () => {
       const original = mockDbState.rows[0].start_at;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ start_at: "2026-08-10T11:00:00Z" }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect(mockDbState.rows[0].start_at).toEqual(original);
     });
 
     it("rejects a partial end_at before the existing start without mutation", async () => {
       const original = mockDbState.rows[0].end_at;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ end_at: "2026-08-10T09:00:00Z" }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect(mockDbState.rows[0].end_at).toEqual(original);
     });
 
     it("rejects non-boolean color_overridden", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ color_overridden: "false" }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("color_overridden must be a boolean");
     });
 
     it("returns 404 when event id does not exist", async () => {
-      const req = new Request("http://localhost/api/events/non-existent-id", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-999999999999", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Updated Title" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "non-existent-id" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-999999999999" }) });
       expect(response.status).toBe(404);
 
       const json = await response.json();
@@ -764,13 +764,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 404 when attempting to update an event owned by another user", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-other", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000002", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Hacked Title" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-other" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000002" }) });
       expect(response.status).toBe(404);
 
       const json = await response.json();
@@ -779,7 +779,7 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 200 with updated event data when owned by user", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -788,7 +788,7 @@ describe("Events API Endpoints", () => {
         }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -798,13 +798,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("sets category_id when given", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: OWNED_CATEGORY_ID }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -813,13 +813,13 @@ describe("Events API Endpoints", () => {
 
     it("rejects a malformed category_id before starting a transaction", async () => {
       const before = mockDbState.rows.map((event) => ({ ...event }));
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: "category-not-a-uuid" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
 
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("Space must be a valid identifier");
@@ -831,13 +831,13 @@ describe("Events API Endpoints", () => {
       mockDbState.rows[0].category_id = OWNED_CATEGORY_ID;
       mockDbState.rows[0].color = "blue";
       mockDbState.rows[0].color_overridden = false;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: null }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -850,24 +850,24 @@ describe("Events API Endpoints", () => {
       mockDbState.rows[0].category_id = OWNED_CATEGORY_ID;
       mockDbState.rows[0].color = "purple";
       mockDbState.rows[0].color_overridden = true;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ category_id: null }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       const json = await response.json();
       expect(json.data.color).toBe("purple");
       expect(json.data.color_overridden).toBe(true);
     });
 
     it("sets location and icon when given", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ location: "Library, Room 3", icon: "📚" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -878,13 +878,13 @@ describe("Events API Endpoints", () => {
     it("clears location and icon when explicitly set to null", async () => {
       mockDbState.rows[0].location = "Old Room";
       mockDbState.rows[0].icon = "📖";
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ location: null, icon: null }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -900,34 +900,34 @@ describe("Events API Endpoints", () => {
         );
 
       it("sets a trimmed description", async () => {
-        const response = await patch("evt-uuid-1", { description: "  Bring ID " });
+        const response = await patch("e0000000-0000-4000-8000-000000000001", { description: "  Bring ID " });
         expect(response.status).toBe(200);
         expect((await response.json()).data.description).toBe("Bring ID");
       });
 
       it("clears the description with null or blank text", async () => {
         mockDbState.rows[0].description = "Old note";
-        expect((await (await patch("evt-uuid-1", { description: null })).json()).data.description).toBeNull();
+        expect((await (await patch("e0000000-0000-4000-8000-000000000001", { description: null })).json()).data.description).toBeNull();
         mockDbState.rows[0].description = "Old note";
-        expect((await (await patch("evt-uuid-1", { description: "   " })).json()).data.description).toBeNull();
+        expect((await (await patch("e0000000-0000-4000-8000-000000000001", { description: "   " })).json()).data.description).toBeNull();
       });
 
       it("leaves the description alone when omitted", async () => {
         mockDbState.rows[0].description = "Keep me";
-        const response = await patch("evt-uuid-1", { title: "Renamed" });
+        const response = await patch("e0000000-0000-4000-8000-000000000001", { title: "Renamed" });
         expect((await response.json()).data.description).toBe("Keep me");
       });
 
       it("rejects an over-long description and keeps the stored one", async () => {
         mockDbState.rows[0].description = "Keep me";
-        const response = await patch("evt-uuid-1", { description: "x".repeat(2001) });
+        const response = await patch("e0000000-0000-4000-8000-000000000001", { description: "x".repeat(2001) });
         expect(response.status).toBe(400);
         expect(mockDbState.rows[0].description).toBe("Keep me");
       });
 
       it("returns 404 for another user's event and leaves its description untouched", async () => {
         mockDbState.rows[1].description = "Private";
-        const response = await patch("evt-uuid-other", { description: "Hacked" });
+        const response = await patch("e0000000-0000-4000-8000-000000000002", { description: "Hacked" });
         expect(response.status).toBe(404);
         expect(mockDbState.rows[1].description).toBe("Private");
       });
@@ -936,13 +936,13 @@ describe("Events API Endpoints", () => {
     it("leaves location and icon unchanged when omitted", async () => {
       mockDbState.rows[0].location = "Existing Room";
       mockDbState.rows[0].icon = "🎓";
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "CS 101 Lecture - Moved" }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
@@ -951,41 +951,41 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 400 when an updated location is not a string", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ location: 42 }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
     });
 
     it("returns 400 when an updated location exceeds the max length", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ location: "x".repeat(501) }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("location must be a string of at most 500 characters");
     });
 
     it("returns 400 when an updated icon is not a string", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ icon: 42 }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
     });
 
     it("returns 400 when an updated icon exceeds the max length", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         body: JSON.stringify({ icon: "x".repeat(11) }),
       });
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe("icon must be a string of at most 10 characters");
     });
@@ -1038,13 +1038,13 @@ describe("Events API Endpoints", () => {
       mockCategoryRows.length = 0;
       mockCategoryRows.push({ id: OWNED_CATEGORY_ID, user_id: "other-user-456", color: "red" });
 
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: OWNED_CATEGORY_ID }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(400);
       expect((await response.json()).error).toBe(
         "The selected Space is unavailable"
@@ -1052,13 +1052,13 @@ describe("Events API Endpoints", () => {
     });
 
     it("PATCH succeeds when clearing category_id with null (no ownership check needed)", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category_id: null }),
       });
 
-      const response = await PATCH(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await PATCH(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
       expect((await response.json()).data.category_id).toBeNull();
     });
@@ -1067,20 +1067,20 @@ describe("Events API Endpoints", () => {
   describe("DELETE /api/events/[id]", () => {
     it("returns 401 when user is unauthenticated", async () => {
       mockCurrentUser = null;
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "DELETE",
       });
 
-      const response = await DELETE(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await DELETE(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(401);
     });
 
     it("returns 404 when event id does not exist", async () => {
-      const req = new Request("http://localhost/api/events/non-existent-id", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-999999999999", {
         method: "DELETE",
       });
 
-      const response = await DELETE(req, { params: Promise.resolve({ id: "non-existent-id" }) });
+      const response = await DELETE(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-999999999999" }) });
       expect(response.status).toBe(404);
 
       const json = await response.json();
@@ -1089,11 +1089,11 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 404 when attempting to delete an event owned by another user", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-other", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000002", {
         method: "DELETE",
       });
 
-      const response = await DELETE(req, { params: Promise.resolve({ id: "evt-uuid-other" }) });
+      const response = await DELETE(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000002" }) });
       expect(response.status).toBe(404);
 
       const json = await response.json();
@@ -1102,26 +1102,26 @@ describe("Events API Endpoints", () => {
     });
 
     it("returns 200 with deleted event data on success", async () => {
-      const req = new Request("http://localhost/api/events/evt-uuid-1", {
+      const req = new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
         method: "DELETE",
       });
 
-      const response = await DELETE(req, { params: Promise.resolve({ id: "evt-uuid-1" }) });
+      const response = await DELETE(req, { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) });
       expect(response.status).toBe(200);
 
       const json = await response.json();
       expect(json.success).toBe(true);
-      expect(json.data.id).toBe("evt-uuid-1");
+      expect(json.data.id).toBe("e0000000-0000-4000-8000-000000000001");
     });
 
     it("removes the event's alerts and leaves everyone else's", async () => {
       mockAlertState.rows = [
-        alert("alert-mine", { event_id: "evt-uuid-1" }),
-        alert("alert-theirs", { user_id: "other-user-456", event_id: "evt-uuid-other" }),
+        alert("alert-mine", { event_id: "e0000000-0000-4000-8000-000000000001" }),
+        alert("alert-theirs", { user_id: "other-user-456", event_id: "e0000000-0000-4000-8000-000000000002" }),
       ];
       const response = await DELETE(
-        new Request("http://localhost/api/events/evt-uuid-1", { method: "DELETE" }),
-        { params: Promise.resolve({ id: "evt-uuid-1" }) }
+        new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", { method: "DELETE" }),
+        { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) }
       );
       expect(response.status).toBe(200);
       expect(mockAlertState.rows.map((a) => a.id)).toEqual(["alert-theirs"]);
@@ -1144,14 +1144,14 @@ describe("Events API Endpoints", () => {
 
     beforeEach(() => {
       mockAlertState.rows = [
-        alert("alert-hour", { event_id: "evt-uuid-1", offset_minutes: 60 }),
-        alert("alert-start", { event_id: "evt-uuid-1", offset_minutes: 0 }),
-        alert("alert-theirs", { user_id: "other-user-456", event_id: "evt-uuid-other" }),
+        alert("alert-hour", { event_id: "e0000000-0000-4000-8000-000000000001", offset_minutes: 60 }),
+        alert("alert-start", { event_id: "e0000000-0000-4000-8000-000000000001", offset_minutes: 0 }),
+        alert("alert-theirs", { user_id: "other-user-456", event_id: "e0000000-0000-4000-8000-000000000002" }),
       ];
     });
 
     it("moves each alert by its own offset", async () => {
-      const response = await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      const response = await patchStart("e0000000-0000-4000-8000-000000000001", "2099-08-20T10:00:00Z");
       expect(response.status).toBe(200);
       expect(stored("alert-hour").fire_at.toISOString()).toBe("2099-08-20T09:00:00.000Z");
       expect(stored("alert-start").fire_at.toISOString()).toBe("2099-08-20T10:00:00.000Z");
@@ -1159,32 +1159,32 @@ describe("Events API Endpoints", () => {
 
     it("lets a fired alert fire again once it lands in the future", async () => {
       stored("alert-hour").fired_at = new Date("2026-08-10T09:00:00Z");
-      await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      await patchStart("e0000000-0000-4000-8000-000000000001", "2099-08-20T10:00:00Z");
       expect(stored("alert-hour").fired_at).toBeNull();
     });
 
     it("keeps an alert fired when the event moves to a time already past", async () => {
       const firedAt = new Date("2026-08-10T09:00:00Z");
       stored("alert-hour").fired_at = firedAt;
-      await patchStart("evt-uuid-1", "2020-01-01T10:00:00Z");
+      await patchStart("e0000000-0000-4000-8000-000000000001", "2020-01-01T10:00:00Z");
       expect(stored("alert-hour").fired_at).toEqual(firedAt);
       expect(stored("alert-hour").fire_at.toISOString()).toBe("2020-01-01T09:00:00.000Z");
     });
 
     it("leaves other users' alerts alone", async () => {
       const before = stored("alert-theirs").fire_at.toISOString();
-      await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      await patchStart("e0000000-0000-4000-8000-000000000001", "2099-08-20T10:00:00Z");
       expect(stored("alert-theirs").fire_at.toISOString()).toBe(before);
     });
 
     it("does not touch alerts when the start did not change", async () => {
       const before = stored("alert-hour").fire_at.toISOString();
       const response = await PATCH(
-        new Request("http://localhost/api/events/evt-uuid-1", {
+        new Request("http://localhost/api/events/e0000000-0000-4000-8000-000000000001", {
           method: "PATCH",
           body: JSON.stringify({ title: "Renamed", start_at: "2026-08-10T10:00:00Z" }),
         }),
-        { params: Promise.resolve({ id: "evt-uuid-1" }) }
+        { params: Promise.resolve({ id: "e0000000-0000-4000-8000-000000000001" }) }
       );
       expect(response.status).toBe(200);
       expect(stored("alert-hour").fire_at.toISOString()).toBe(before);
@@ -1192,9 +1192,9 @@ describe("Events API Endpoints", () => {
 
     it("rolls the event move back when the alerts cannot be updated", async () => {
       mockAlertState.shouldFail = true;
-      const response = await patchStart("evt-uuid-1", "2099-08-20T10:00:00Z");
+      const response = await patchStart("e0000000-0000-4000-8000-000000000001", "2099-08-20T10:00:00Z");
       expect(response.status).toBe(500);
-      expect(mockDbState.rows.find((e) => e.id === "evt-uuid-1")?.start_at.toISOString()).toBe(
+      expect(mockDbState.rows.find((e) => e.id === "e0000000-0000-4000-8000-000000000001")?.start_at.toISOString()).toBe(
         "2026-08-10T10:00:00.000Z"
       );
     });

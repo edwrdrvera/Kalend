@@ -9,6 +9,7 @@ import { isEventColor } from "@/lib/event-colors";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { isUuid } from "@/lib/uuid";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -24,6 +25,7 @@ const badRequest = (error: string) => fail(error, 400);
 
 export const PATCH = withUser(async (request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Space not found", 404);
   const parsed: unknown = await request.json();
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -75,6 +77,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
 
 export const DELETE = withUser(async (_request, { params }: RouteContext, user) => {
   const { id } = await params;
+  if (!isUuid(id)) return fail("Space not found", 404);
 
   const result = await retryTransaction(() => db.transaction(async (tx) => {
     const [ownedCategory] = await tx
