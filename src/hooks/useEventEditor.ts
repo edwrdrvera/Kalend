@@ -1,4 +1,4 @@
-import { useState, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
 import type { EventFormValues } from "@/lib/event-form";
 import type { UseCalendarEventsReturn } from "@/hooks/useCalendarEvents";
 import { computePopoverSide } from "@/lib/popover-position";
@@ -29,12 +29,18 @@ export function useEventEditor(
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState(0);
+  // Each open or close starts a new editor session. A create that resolves
+  // after its session ended must not touch the editor now on screen.
+  const session = useRef(0);
+  const submittingSession = useRef<number | null>(null);
 
   const open = (next: Omit<EventEditorTarget, "side">) => {
     const containerRect = containerRef.current?.getBoundingClientRect();
     const side = containerRect ? computePopoverSide(next.rect, containerRect) : "right";
+    session.current += 1;
     setTarget({ ...next, side });
     setError(null);
+    setSubmitting(false);
     setKey((k) => k + 1);
   };
 
@@ -55,24 +61,31 @@ export function useEventEditor(
   };
 
   const close = () => {
+    session.current += 1;
     setTarget(null);
     setPendingRange(null);
+    setSubmitting(false);
   };
 
   // `openDetails` hands the saved event to the right panel, for the fields the
   // quick popover doesn't have (description, reminder).
   const submit = async (values: EventFormValues, openDetails = false) => {
-    if (!target) return;
+    const mine = session.current;
+    if (!target || submittingSession.current === mine) return;
+    submittingSession.current = mine;
     setSubmitting(true);
     setError(null);
     try {
       const created = await events.createEvent(values);
+      if (session.current !== mine) return;
       close();
       if (openDetails) onOpenCreated(created);
     } catch (err) {
+      if (session.current !== mine) return;
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setSubmitting(false);
+      if (submittingSession.current === mine) submittingSession.current = null;
+      if (session.current === mine) setSubmitting(false);
     }
   };
 

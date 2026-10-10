@@ -4,7 +4,7 @@ interface InspectorSaveOptions {
   dirty: boolean;
   /** Why the draft can't be saved yet, or null when it can. */
   invalidReason: string | null;
-  /** Resolves false when the save failed, so the draft stays. */
+  /** Resolves false or rejects when the save failed, so the draft stays. */
   persist: () => Promise<boolean>;
   onDirtyChange: (dirty: boolean) => void;
   onProceed: () => void;
@@ -34,7 +34,7 @@ export function useInspectorSave({
     }
     setSaving(true);
     setSaveError(null);
-    const ok = await persist();
+    const ok = await persist().catch(() => false);
     setSaving(false);
     if (!ok) setSaveError("Couldn't save your changes.");
     return ok;
