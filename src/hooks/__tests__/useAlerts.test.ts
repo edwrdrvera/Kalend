@@ -126,4 +126,21 @@ describe("useAlerts with overlapping saves", () => {
 
     expect([...result.current.byItem.keys()].sort()).toEqual(["A", "B"]);
   });
+
+  it("keeps an alert saved before the first load lands", async () => {
+    server = [];
+    const firstLoad = Promise.withResolvers<Response>();
+    const serve = globalThis.fetch;
+    let loads = 0;
+    globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+      !init?.method && loads++ === 0 ? firstLoad.promise : serve(input, init)) as typeof fetch;
+    const { result, act } = renderHook(() => useAlerts(() => {}));
+    await act(() => {});
+
+    await act(() => result.current.syncAlert(EVENT, 15));
+    firstLoad.resolve(json({ success: true, data: [] }));
+    await act(() => {});
+
+    expect(result.current.byItem.get("e1")?.offset_minutes).toBe(15);
+  });
 });

@@ -481,4 +481,45 @@ describe("useTasks with overlapping requests", () => {
     expect(result.current.data[0]).toMatchObject({ title: TASK_A.title, completed: true });
     unmount();
   });
+
+  it("sends nothing for a tick on a task whose create failed", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    requests[0].respond({ success: true, data: [] });
+    await act(() => {});
+
+    let create!: Promise<void>;
+    await act(() => {
+      create = result.current.createTask("Lab report");
+    });
+    let tick!: Promise<void>;
+    await act(() => {
+      tick = result.current.toggleComplete(result.current.data[0]);
+    });
+    requests[1].respond({ success: false, error: "boom" }, 500);
+    await act(async () => {
+      await Promise.all([create, tick]);
+    });
+
+    expect(requests.map((r) => r.method)).toEqual(["GET", "POST"]);
+    expect(result.current.data).toEqual([]);
+    unmount();
+  });
+
+  it("keeps a task being created when an older list load lands", async () => {
+    const requests = holdRequests();
+    const { result, act, unmount } = renderHook(() => useTasks());
+    await act(() => {});
+    const load = requests[0];
+
+    await act(() => {
+      void result.current.createTask("Lab report");
+    });
+    load.respond({ success: true, data: [TASK_B] });
+    await act(() => {});
+
+    expect(result.current.data.map((t) => t.title)).toEqual([TASK_B.title, "Lab report"]);
+    unmount();
+  });
 });
