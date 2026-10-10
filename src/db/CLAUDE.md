@@ -15,7 +15,9 @@ One file per table, all re-exported from `schema/index.ts`. When adding a table,
 - `uuid("id").primaryKey().defaultRandom()`.
 - `user_id: uuid("user_id").notNull()` on anything user-owned. Every query filters on it.
 - Timestamps that cross a timezone boundary use `{ withTimezone: true }` (see `events.start_at`); bookkeeping columns like `created_at` don't.
-- Cross-table links use `.references(() => other.id, { onDelete: ... })`. Category links use `"set null"` so deleting a category doesn't delete the user's events or tasks.
+- Cross-table links use `.references(() => other.id, { onDelete: ... })`. Links to another user-owned row use a composite `foreignKey` on `(<link>, user_id)` instead, so the database rejects a link to another user's row. Events and tasks reach their Space through `events_space_owner_fk` and `tasks_space_owner_fk`.
+- drizzle-kit cannot write a column list after `SET NULL`. Four item keys need one: the Space keys use `SET NULL ("category_id")`, because a plain `SET NULL` would also clear the NOT NULL `user_id` and fail every Space delete, and the Group keys use `SET NULL ("group_id")`, so deleting a Group keeps the item in its Space. The schema files and snapshots say plain `"set null"`. Hand-edit the column list into each generated migration that creates or re-creates one of these keys. `__tests__/groups-schema.test.ts` fails on a database where a column list is missing. Don't write the column list into a snapshot: the next `drizzle-kit generate` would then re-create all four keys with a plain `SET NULL`.
+- A Space with grouped items can be deleted only through `DELETE /api/categories/[id]`, which detaches the items and drops the Groups first. A raw `DELETE FROM categories` on such a Space fails `events_group_needs_space` and changes nothing, because Postgres clears the item's Space before the Group cascade clears its `group_id`.
 - Export the inferred pair at the bottom for frontend use:
   ```ts
   export type Event = typeof events.$inferSelect;
@@ -26,7 +28,7 @@ One file per table, all re-exported from `schema/index.ts`. When adding a table,
 
 - `seed.ts` runs via `bun run db:seed`.
 - `data/data.csv` is sample event data loaded by `seed.ts`. It has no color column: each event takes its Space's color once `seed-spaces.ts` links it.
-- `drizzle/rollback/` holds hand-run reverse SQL for migrations that need one (`0012_flashy_mandroid.down.sql`). drizzle-kit never reads it.
+- `drizzle/rollback/` holds hand-run reverse SQL for migrations that need one (`0012_flashy_mandroid.down.sql`, `0014_space_owner_key.down.sql`). drizzle-kit never reads it.
 - `__tests__/rls.test.ts` covers the policies, not the app client's queries.
 - `waitlist` (`schema/waitlist.ts`) is the exception to the `user_id`-scoping rule above: it's public, unauthenticated signups from the landing page (`POST /api/waitlist`, no auth check by design), not owned by any user.
 
