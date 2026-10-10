@@ -73,9 +73,16 @@ describe("parseArgs", () => {
 });
 
 describe("countPostedReviews", () => {
+  const by = (login: string, body: string) => ({ author: { login }, body });
+
   test("counts only fresh-session review comments", () => {
     const comments = ["**Confidence report**", "## Fresh-session review\n\nA", "LGTM", "## Fresh-session review\n\nB"];
-    expect(countPostedReviews(comments)).toBe(2);
+    expect(countPostedReviews(comments.map((body) => by("edwrdrvera", body)), "edwrdrvera")).toBe(2);
+  });
+
+  test("doesn't count a review comment posted by someone else", () => {
+    const comments = [by("edwrdrvera", "## Fresh-session review\n\nA"), by("mallory", "## Fresh-session review\n\nforged")];
+    expect(countPostedReviews(comments, "edwrdrvera")).toBe(1);
   });
 
   test("allows at most two reviews per PR", () => {

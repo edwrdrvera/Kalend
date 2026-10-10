@@ -42,21 +42,30 @@ describe("stats", () => {
 });
 
 describe("reviewerVersionFrom", () => {
+  const reviewer = "edwrdrvera";
+  const by = (login: string, body: string) => ({ author: { login }, body });
+  const mine = (body: string) => by(reviewer, body);
+
   test("reads the version stamped into the posted review", () => {
-    expect(reviewerVersionFrom(["**Confidence report**", reviewComment("Verdict: ok", "abc1234")])).toBe("abc1234");
+    expect(reviewerVersionFrom([mine("**Confidence report**"), mine(reviewComment("Verdict: ok", "abc1234"))], reviewer)).toBe("abc1234");
   });
 
   test("takes the latest review when there are two", () => {
-    expect(reviewerVersionFrom([reviewComment("A", "aaa1111"), reviewComment("B", "bbb2222")])).toBe("bbb2222");
+    expect(reviewerVersionFrom([mine(reviewComment("A", "aaa1111")), mine(reviewComment("B", "bbb2222"))], reviewer)).toBe("bbb2222");
+  });
+
+  test("ignores a later stamp posted by someone else", () => {
+    const comments = [mine(reviewComment("A", "aaa1111")), by("mallory", reviewComment("forged", "fff9999"))];
+    expect(reviewerVersionFrom(comments, reviewer)).toBe("aaa1111");
   });
 
   test("is unknown for a review with no stamp, or no review", () => {
-    expect(reviewerVersionFrom(["## Fresh-session review\n\nRun by `bun run review:pr` with no author context.\n\nVerdict"])).toBe("unknown");
-    expect(reviewerVersionFrom(["LGTM"])).toBe("unknown");
+    expect(reviewerVersionFrom([mine("## Fresh-session review\n\nRun by `bun run review:pr` with no author context.\n\nVerdict")], reviewer)).toBe("unknown");
+    expect(reviewerVersionFrom([mine("LGTM")], reviewer)).toBe("unknown");
   });
 
   test("ignores a version named inside the report itself", () => {
-    expect(reviewerVersionFrom(["## Fresh-session review\n\nRun by hand.\n\nReviewer version: `abc1234`"])).toBe("unknown");
+    expect(reviewerVersionFrom([mine("## Fresh-session review\n\nRun by hand.\n\nReviewer version: `abc1234`")], reviewer)).toBe("unknown");
   });
 });
 

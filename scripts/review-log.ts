@@ -3,7 +3,7 @@
 //   bun run review:log add <pr> <severity> <outcome> <finding...>
 //   bun run review:log stats
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { reportHeading, unknownReviewerVersion } from "./review-pr";
+import { type PrComment, postedReviews, reportHeading, unknownReviewerVersion } from "./review-pr";
 import { type ChangedFile, prTier } from "./review-tier";
 
 export const logPath = "guides/review-log.tsv";
@@ -28,8 +28,8 @@ const stampedVersion = new RegExp(`^${reportHeading}\\n\\n[^\\n]*Reviewer versio
 
 // The reviewer version comes from the posted review, not from the base branch at
 // logging time, so a finding logged after the reviewer changed keeps its own version.
-export function reviewerVersionFrom(commentBodies: readonly string[]): string {
-  const latest = commentBodies.filter((body) => body.startsWith(reportHeading)).at(-1);
+export function reviewerVersionFrom(comments: readonly PrComment[], reviewer: string): string {
+  const latest = postedReviews(comments, reviewer).at(-1)?.body;
   return latest?.match(stampedVersion)?.[1] ?? unknownReviewerVersion;
 }
 
@@ -86,13 +86,13 @@ function add(argv: readonly string[]) {
   const { pr, severity, outcome, finding } = parseAddArgs(argv);
   const { files, comments } = JSON.parse(run(["gh", "pr", "view", pr, "--json", "files,comments"])) as {
     files: ChangedFile[];
-    comments: { body: string }[];
+    comments: PrComment[];
   };
   const row: Row = {
     pr,
     date: new Date().toISOString().slice(0, 10),
     tier: prTier(files),
-    reviewerVersion: reviewerVersionFrom(comments.map((comment) => comment.body)),
+    reviewerVersion: reviewerVersionFrom(comments, run(["gh", "api", "user", "-q", ".login"])),
     finding,
     severity,
     outcome,

@@ -12,8 +12,15 @@ import { changedFiles, prTier } from "./review-tier";
 export const maxReviewsPerPr = 2;
 export const reportHeading = "## Fresh-session review";
 
-export function countPostedReviews(commentBodies: readonly string[]): number {
-  return commentBodies.filter((body) => body.startsWith(reportHeading)).length;
+export type PrComment = { author: { login: string }; body: string };
+
+// Only the account that runs review:pr posts real reviews; anyone else's comment with the heading is a forgery.
+export function postedReviews(comments: readonly PrComment[], reviewer: string): PrComment[] {
+  return comments.filter((comment) => comment.author.login === reviewer && comment.body.startsWith(reportHeading));
+}
+
+export function countPostedReviews(comments: readonly PrComment[], reviewer: string): number {
+  return postedReviews(comments, reviewer).length;
 }
 
 // The files that decide what a review finds. Their last commit on the base names the reviewer version.
@@ -140,7 +147,7 @@ async function main() {
     body: string;
     baseRefName: string;
     closingIssuesReferences: { number: number }[];
-    comments: { body: string }[];
+    comments: PrComment[];
   };
 
   const base = `origin/${view.baseRefName}`;
@@ -157,7 +164,7 @@ async function main() {
     return;
   }
 
-  const posted = countPostedReviews(view.comments.map((comment) => comment.body));
+  const posted = countPostedReviews(view.comments, run(["gh", "api", "user", "-q", ".login"]));
   if (posted >= maxReviewsPerPr) {
     throw new Error(
       `PR ${pr} already has ${posted} fresh-session reviews (the limit is ${maxReviewsPerPr}). Fix what they found without another run.`,
