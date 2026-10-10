@@ -13,9 +13,8 @@ export interface TimeGridBlock {
   width: number;
 }
 
-/** An event covers [start_at, end_at): it ends just before its end time, so
- *  one that ends at midnight stops before the next day begins. Every calendar
- *  view decides which days an event belongs to through this check. */
+/** An event covers [start_at, end_at), so one that ends at midnight stops
+ *  before the next day begins. */
 export function eventOverlaps(event: CalendarEvent, rangeStart: Date, rangeEnd: Date): boolean {
   return new Date(event.start_at) < rangeEnd && new Date(event.end_at) > rangeStart;
 }
