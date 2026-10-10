@@ -77,6 +77,32 @@ describe("time-grid placement on a daylight-saving day", () => {
       const [block] = layoutDayEvents(new Date(2026, month, date), [event]);
       expect(minutesFromMidnight(start)).toBe(600);
       expect((block.top / 100) * 1440).toBeCloseTo(600);
+      expect((block.height / 100) * 1440).toBeCloseTo(60);
     });
   }
+
+  const minutes = (block: { top: number; height: number }) => [
+    (block.top / 100) * 1440,
+    (block.height / 100) * 1440,
+  ];
+
+  it("draws an event inside the repeated hour on fall back day as tall as it lasts", () => {
+    const event = makeEvent(new Date("2026-11-01T05:30:00Z"), new Date("2026-11-01T06:30:00Z"));
+    const [top, height] = minutes(layoutDayEvents(new Date(2026, 10, 1), [event])[0]);
+    expect(top).toBeCloseTo(90);
+    expect(height).toBeCloseTo(60);
+  });
+
+  it("draws an event across the skipped hour on spring forward day as tall as it lasts", () => {
+    const event = makeEvent(new Date("2026-03-08T06:30:00Z"), new Date("2026-03-08T07:30:00Z"));
+    const [top, height] = minutes(layoutDayEvents(new Date(2026, 2, 8), [event])[0]);
+    expect(top).toBeCloseTo(90);
+    expect(height).toBeCloseTo(60);
+  });
+
+  it("stops a late event at the bottom of a 25-hour day", () => {
+    const event = makeEvent(new Date(2026, 10, 1, 22), new Date(2026, 10, 2, 0));
+    const [top, height] = minutes(layoutDayEvents(new Date(2026, 10, 1), [event])[0]);
+    expect(top + height).toBeCloseTo(1440);
+  });
 });
