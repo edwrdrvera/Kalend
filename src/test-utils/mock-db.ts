@@ -55,7 +55,7 @@ const dialect = new PgDialect();
  * the query reads, or undefined. Reading the SQL Drizzle would send keeps a
  * uuid in another column (a user id, a Space id) from passing as the row id.
  */
-export function comparedValue(condition: unknown, column: string): unknown {
+function comparedValue(condition: unknown, column: string): unknown {
   if (!condition) return undefined;
   const { sql, params } = dialect.sqlToQuery(condition as SQL);
   const match = new RegExp(`"\\w+"\\."${column}" = \\$(\\d+)`).exec(sql);
