@@ -1,5 +1,6 @@
-import { startOfDay, endOfDay, isSameDay, differenceInCalendarDays } from "date-fns";
+import { addDays, startOfDay, differenceInCalendarDays } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
+import { MINUTES_PER_DAY, minutesFromMidnight } from "@/lib/time-grid-drag-math";
 
 export interface TimeGridBlock {
   event: CalendarEvent;
@@ -12,14 +13,24 @@ export interface TimeGridBlock {
   width: number;
 }
 
-/** An event that starts and ends on different calendar days doesn't fit
- *  cleanly into a single hour column, so it belongs in the all-day row
- *  instead of `TimeGrid`. */
-export function isMultiDayEvent(event: CalendarEvent): boolean {
-  return !isSameDay(new Date(event.start_at), new Date(event.end_at));
+/** An event covers [start_at, end_at), so one that ends at midnight stops
+ *  before the next day begins. */
+export function eventOverlaps(event: CalendarEvent, rangeStart: Date, rangeEnd: Date): boolean {
+  return new Date(event.start_at) < rangeEnd && new Date(event.end_at) > rangeStart;
 }
 
-const MINUTES_PER_DAY = 24 * 60;
+export function eventOnDay(event: CalendarEvent, day: Date): boolean {
+  const dayStart = startOfDay(day);
+  return eventOverlaps(event, dayStart, addDays(dayStart, 1));
+}
+
+/** An event that runs into the day after it starts doesn't fit cleanly into
+ *  a single hour column, so it belongs in the all-day row instead of
+ *  `TimeGrid`. */
+export function isMultiDayEvent(event: CalendarEvent): boolean {
+  return eventOnDay(event, addDays(new Date(event.start_at), 1));
+}
+
 // Never render an event shorter than 15 minutes tall, so a quick
 // appointment doesn't collapse into an unreadable sliver.
 const MIN_BLOCK_HEIGHT_PERCENT = (15 / MINUTES_PER_DAY) * 100;
@@ -38,22 +49,25 @@ interface TimedEvent {
  *  instead, added alongside the Week/Day views). */
 export function layoutDayEvents(day: Date, events: CalendarEvent[]): TimeGridBlock[] {
   const dayStart = startOfDay(day);
-  const dayEnd = endOfDay(day);
+  const dayEnd = addDays(dayStart, 1);
 
   const timed = events
-    .map((event): TimedEvent | null => {
+    .filter((event) => eventOverlaps(event, dayStart, dayEnd))
+    .map((event): TimedEvent => {
       const start = new Date(event.start_at);
       const end = new Date(event.end_at);
-      if (end <= dayStart || start >= dayEnd) return null;
 
-      const clampedStart = start < dayStart ? dayStart : start;
-      const clampedEnd = end > dayEnd ? dayEnd : end;
-      const startMinutes = (clampedStart.getTime() - dayStart.getTime()) / 60_000;
-      const endMinutes = (clampedEnd.getTime() - dayStart.getTime()) / 60_000;
+      // The top comes from the wall clock so a 10:00 event sits on the 10:00
+      // row on a 23- or 25-hour day. The height comes from elapsed time, since
+      // wall-clock minutes repeat or skip an hour on those days.
+      const visibleStart = start < dayStart ? dayStart : start;
+      const visibleEnd = end > dayEnd ? dayEnd : end;
+      const startMinutes = start < dayStart ? 0 : minutesFromMidnight(start);
+      const elapsedMinutes = (visibleEnd.getTime() - visibleStart.getTime()) / 60_000;
+      const endMinutes = Math.min(startMinutes + elapsedMinutes, MINUTES_PER_DAY);
 
       return { event, startMinutes, endMinutes: Math.max(endMinutes, startMinutes + 1) };
     })
-    .filter((item): item is TimedEvent => item !== null)
     .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
 
   // Group into clusters of mutually-overlapping events: once sorted by start
@@ -132,25 +146,22 @@ export function layoutAllDayEvents(days: Date[], events: CalendarEvent[]): AllDa
   if (days.length === 0) return [];
 
   const rangeStart = startOfDay(days[0]);
-  const rangeEnd = endOfDay(days[days.length - 1]);
+  const rangeEnd = addDays(startOfDay(days[days.length - 1]), 1);
 
   const spanning = events
-    .filter(isMultiDayEvent)
+    .filter((event) => isMultiDayEvent(event) && eventOverlaps(event, rangeStart, rangeEnd))
     .map((event) => {
       const start = new Date(event.start_at);
       const end = new Date(event.end_at);
-      if (end < rangeStart || start > rangeEnd) return null;
-
       const clampedStart = start < rangeStart ? rangeStart : start;
-      const clampedEnd = end > rangeEnd ? rangeEnd : end;
+      const lastInstant = new Date(Math.min(end.getTime(), rangeEnd.getTime()) - 1);
 
       return {
         event,
         startCol: differenceInCalendarDays(clampedStart, rangeStart),
-        endCol: differenceInCalendarDays(clampedEnd, rangeStart),
+        endCol: differenceInCalendarDays(lastInstant, rangeStart),
       };
     })
-    .filter((item): item is { event: CalendarEvent; startCol: number; endCol: number } => item !== null)
     .sort((a, b) => a.startCol - b.startCol || a.endCol - b.endCol);
 
   const laneEnds: number[] = [];
