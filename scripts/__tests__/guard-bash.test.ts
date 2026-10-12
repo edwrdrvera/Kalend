@@ -13,6 +13,15 @@ describe("gateFor", () => {
     "bun run review:pr 212 --post",
     "bun scripts/review-pr.ts 212",
     "git fetch && git push --force",
+    "git -C . push --force",
+    "git -c a=b push -f",
+    "git push -fu origin x",
+    "git push -uf origin x",
+    "git commit --amend",
+    "git branch -f develop HEAD~3",
+    "git checkout -B develop origin/main",
+    "cd scripts && bun review-pr.ts 5",
+    "bun run --cwd scripts review-pr.ts 5",
   ])("asks before %s", (command) => {
     expect(gateFor(command)).not.toBeNull();
   });
@@ -25,6 +34,12 @@ describe("gateFor", () => {
     "bun run review:tier",
     "bun run review:log add 212 real-fixed",
     "git push origin feat/x && echo --force",
+    "git push origin HEAD:refs/heads/feat/x",
+    "git checkout -b fix/review-pr-gate",
+    "git branch -d feat/merged",
+    "git branch -D feat/x",
+    "git push origin --delete feat/x",
+    "git push origin :feat/x",
   ])("lets %s through", (command) => {
     expect(gateFor(command)).toBeNull();
   });

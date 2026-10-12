@@ -8,4 +8,6 @@ One file per user-facing feature. Each lists every entry point; a proof covers a
 | Tasks (All tasks panel, create, complete, inspector edit and delete) | [tasks.md](tasks.md) | `/app` |
 | Calendar events (create, edit, move, delete) | [events.md](events.md) | `/app` |
 | Spaces (categories: create, rename, filter, delete, Space panel, sidebar collapse) | [spaces.md](spaces.md) | `/app` |
+| Groups inside a Space, Space panel tabs (Overview, Resources, Alerts), week load | [groups.md](groups.md) | `/app` |
+| Alerts (set on an item, bell marker, in-app reminders, missed list) | [alerts.md](alerts.md) | `/app` |
 | Landing page waitlist | [waitlist.md](waitlist.md) | `/` |

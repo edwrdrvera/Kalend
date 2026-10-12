@@ -15,6 +15,7 @@ import {
   snapMinutes,
 } from "@/lib/time-grid-drag-math";
 import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
+import { CLICK_SUPPRESS_WINDOW_MS } from "./useMoveDrag";
 
 /** Tracks an in-progress drag across empty slots to create a new event. All
  *  minutes are relative to midnight of the column being dragged in. `anchor`
@@ -61,9 +62,9 @@ export function useCreateDrag({
   // single render, always read the latest values without stale closures.
   const createDragRef = useRef<CreateDrag | null>(null);
   const onSlotDragCreateRef = useRef(onSlotDragCreate);
-  // Suppresses the click that fires after a create-drag ends, so the drag
-  // doesn't also select the day.
-  const suppressSlotClickRef = useRef(false);
+  // Until this time, a slot click is the tail of a create-drag and must not
+  // also select the day. Expires because that click can land outside any slot.
+  const suppressSlotClickUntilRef = useRef(0);
 
   useEffect(() => {
     createDragRef.current = createDrag;
@@ -111,7 +112,7 @@ export function useCreateDrag({
 
       // A real drag happened: suppress the trailing click's day-select and
       // open the creator for the spanned range (min 15 min).
-      suppressSlotClickRef.current = true;
+      suppressSlotClickUntilRef.current = Date.now() + CLICK_SUPPRESS_WINDOW_MS;
       const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
       const dayStart = startOfDay(drag.day);
       const gridEl = gridRef.current;
@@ -146,11 +147,9 @@ export function useCreateDrag({
   });
 
   function consumeSlotClickSuppression(): boolean {
-    if (suppressSlotClickRef.current) {
-      suppressSlotClickRef.current = false;
-      return true;
-    }
-    return false;
+    const suppress = Date.now() < suppressSlotClickUntilRef.current;
+    suppressSlotClickUntilRef.current = 0;
+    return suppress;
   }
 
   return { onSlotPointerDown, preview: createDrag, consumeSlotClickSuppression };
