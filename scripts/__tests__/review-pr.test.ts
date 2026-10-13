@@ -11,6 +11,8 @@ import {
   maxReviewsPerPr,
   parseArgs,
   pinBaseConfig,
+  publishReport,
+  reportFileName,
   reviewPrompt,
 } from "../review-pr";
 
@@ -44,7 +46,8 @@ describe("reviewPrompt", () => {
     expect(prompt.startsWith("/code-review https://github.com/o/r/pull/7")).toBe(true);
     expect(prompt).toContain("<acceptance_criteria>\nCRITERIA\n</acceptance_criteria>");
     expect(prompt).toContain("fresh-session mode");
-    expect(prompt).toContain("final message is kept");
+    expect(prompt).toContain(reportFileName);
+    expect(prompt).toContain("final message is discarded");
   });
 });
 
@@ -136,5 +139,56 @@ describe("linkedIssueNumbers", () => {
 
   test("finds nothing when the body has no closing keyword", () => {
     expect(linkedIssueNumbers([], "Refs #218")).toEqual([]);
+  });
+});
+
+describe("publishReport", () => {
+  const withDir = (fn: (dir: string) => void) => {
+    const dir = mkdtempSync(join(tmpdir(), "report-test-"));
+    try {
+      fn(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  test("posts the full report from the file, whatever the reviewer's last message was", () => {
+    withDir((dir) => {
+      const path = join(dir, reportFileName);
+      const report = "### Verdict: Fix 1 thing before merging.\nBig reason.\n\n### Fix before merging\n**1. Bug**";
+      writeFileSync(path, `${report}\n`);
+      const posted: string[] = [];
+      publishReport(path, "abc123", (body) => posted.push(body));
+      expect(posted).toHaveLength(1);
+      expect(posted[0]).toContain(report);
+      expect(posted[0].startsWith("## Fresh-session review")).toBe(true);
+    });
+  });
+
+  test("posts nothing when the reviewer wrote no report file", () => {
+    withDir((dir) => {
+      const posted: string[] = [];
+      expect(() => publishReport(join(dir, reportFileName), "abc123", (body) => posted.push(body))).toThrow("no report file");
+      expect(posted).toHaveLength(0);
+    });
+  });
+
+  test("a refused report never becomes a countable review", () => {
+    withDir((dir) => {
+      const posted: string[] = [];
+      expect(() => publishReport(join(dir, reportFileName), "v", (body) => posted.push(body))).toThrow();
+      const comments = posted.map((body) => ({ author: { login: "me" }, body }));
+      expect(countPostedReviews(comments, "me")).toBe(0);
+    });
+  });
+
+  test("posts nothing when the report lacks the verdict heading", () => {
+    withDir((dir) => {
+      const path = join(dir, reportFileName);
+      writeFileSync(path, "Thanks, the helper agents finished. Nothing more to add.");
+      const posted: string[] = [];
+      expect(() => publishReport(path, "abc123", (body) => posted.push(body))).toThrow("Verdict");
+      expect(posted).toHaveLength(0);
+    });
   });
 });
