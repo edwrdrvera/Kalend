@@ -1,4 +1,4 @@
-import { format, isSameDay } from "date-fns";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
 
 /** The name a screen reader reads for an event button, such as
@@ -13,7 +13,11 @@ export function eventAccessibleName(
   const parts = [event.title];
   if (spaceName) parts.push(spaceName);
 
-  if (isSameDay(start, end)) {
+  const nextMidnight = startOfDay(addDays(start, 1));
+  const oneAllDay = start.getTime() === startOfDay(start).getTime() && end.getTime() === nextMidnight.getTime();
+  if (oneAllDay) {
+    parts.push(format(start, "EEEE MMMM d"));
+  } else if (isSameDay(start, end)) {
     parts.push(format(start, "EEEE MMMM d"), `${format(start, "h:mm a")} to ${format(end, "h:mm a")}`);
   } else {
     parts.push(`${format(start, "EEEE MMMM d")} to ${format(end, "EEEE MMMM d")}`);

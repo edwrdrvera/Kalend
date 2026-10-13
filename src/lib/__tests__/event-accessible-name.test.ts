@@ -28,6 +28,19 @@ describe("eventAccessibleName", () => {
     expect(name).toBe("Spring break, School, Saturday March 15 to Monday March 17");
   });
 
+  it("names a one-day all-day event by that day, without times", () => {
+    const name = eventAccessibleName(
+      {
+        title: "Fall break",
+        start_at: new Date(2026, 9, 15).toISOString(),
+        end_at: new Date(2026, 9, 16).toISOString(),
+      },
+      null
+    );
+
+    expect(name).toBe("Fall break, Thursday October 15");
+  });
+
   it("leaves the Space out when the event has none", () => {
     const name = eventAccessibleName(
       {

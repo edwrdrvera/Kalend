@@ -26,9 +26,14 @@ export function eventOnDay(event: CalendarEvent, day: Date): boolean {
 
 /** An event that runs into the day after it starts doesn't fit cleanly into
  *  a single hour column, so it belongs in the all-day row instead of
- *  `TimeGrid`. */
+ *  `TimeGrid`. An all-day import ends at the next local midnight, which is
+ *  the start of that next day, so the half-open check would miss it. */
 export function isMultiDayEvent(event: CalendarEvent): boolean {
-  return eventOnDay(event, addDays(new Date(event.start_at), 1));
+  const start = new Date(event.start_at);
+  const end = new Date(event.end_at);
+  const nextMidnight = startOfDay(addDays(start, 1));
+  if (start.getTime() === startOfDay(start).getTime() && end.getTime() === nextMidnight.getTime()) return true;
+  return eventOnDay(event, nextMidnight);
 }
 
 // Never render an event shorter than 15 minutes tall, so a quick
