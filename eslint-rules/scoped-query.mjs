@@ -303,26 +303,37 @@ function routeForbidsDirectDb(filename) {
   return rest !== "waitlist" && !rest.startsWith("waitlist/") && !rest.startsWith("waitlist.");
 }
 
-function templateText(node) {
-  if (node?.type !== "TaggedTemplateExpression") return null;
-  if (node.tag?.type !== "Identifier" || node.tag.name !== "sql") return null;
-  const quasis = node.quasi?.quasis;
-  if (!quasis) return null;
-  return quasis.map((quasi) => quasi.value?.cooked ?? "").join(" ");
+function isSqlTemplate(node) {
+  return node?.type === "TaggedTemplateExpression" && node.tag?.type === "Identifier" && node.tag.name === "sql";
 }
 
-// set_config(..., true) is local to the transaction. false would leak across
-// a pooled connection, so that form stays reported.
+function quasiText(quasi) {
+  return quasi?.value?.cooked ?? "";
+}
+
+// The local flag has to be the static tail of the template. A true buried in
+// a comment or an earlier argument must not count, and false would leak the
+// caller id onto a pooled connection.
+function isLocalSetConfig(node) {
+  if (!isSqlTemplate(node)) return false;
+  const quasis = node.quasi?.quasis;
+  if (!quasis || quasis.length < 2) return false;
+  const head = quasiText(quasis[0]);
+  const tail = quasiText(quasis[quasis.length - 1]).trim();
+  if (!head.includes("set_config(") || !head.includes("'app.user_id'")) return false;
+  return tail === ", true)";
+}
+
+function isCallerSettingRead(node) {
+  if (!isSqlTemplate(node)) return false;
+  const head = quasiText(node.quasi?.quasis?.[0]);
+  return head.includes("current_setting(") && head.includes("'app.user_id'");
+}
+
 function isCallerSettingExecute(argument, filename) {
-  const text = templateText(argument);
-  if (text === null || !text.includes("app.user_id")) return false;
   const path = String(filename ?? "").replaceAll("\\", "/");
-  const scopedFile = path.endsWith("/src/db/scoped.ts") || path.endsWith("src/db/scoped.ts");
-  if (scopedFile) {
-    return text.includes("set_config(") && /,\s*true\s*\)/.test(text);
-  }
-  const settingTest = path.endsWith("/src/db/__tests__/scoped.test.ts") || path.endsWith("src/db/__tests__/scoped.test.ts");
-  return settingTest && text.includes("current_setting(");
+  if (path.endsWith("src/db/scoped.ts")) return isLocalSetConfig(argument);
+  return path.endsWith("src/db/__tests__/scoped.test.ts") && isCallerSettingRead(argument);
 }
 
 function isScoped(node, table, scope) {

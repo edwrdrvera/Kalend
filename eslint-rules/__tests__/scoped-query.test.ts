@@ -256,6 +256,11 @@ ruleTester.run("scoped-query caller transaction", rule, {
       errors: [{ message: /Raw SQL cannot be checked/ }],
     },
     {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, false) -- , true)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+    {
       filename: "src/db/other.ts",
       code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`)",
       errors: [{ message: /Raw SQL cannot be checked/ }],
