@@ -216,11 +216,27 @@ function ownerIsUser(object, required, scope) {
   return isUserIdKey(decider) && isUserId(decider.value, scope);
 }
 
+// A batch insert can be rows.map(() => ({ ... })). The object each call
+// returns still has to name the signed-in user. A callback whose result
+// we cannot see fails closed.
+function mappedRowObject(node) {
+  if (node?.type !== "CallExpression" || !isMember(node.callee, "map")) return undefined;
+  const fn = node.arguments[0];
+  if (!fn || (fn.type !== "ArrowFunctionExpression" && fn.type !== "FunctionExpression")) return null;
+  if (fn.body.type === "ObjectExpression") return fn.body;
+  if (fn.body.type !== "BlockStatement") return null;
+  const returned = fn.body.body.filter((stmt) => stmt.type === "ReturnStatement");
+  if (returned.length !== 1 || returned[0].argument?.type !== "ObjectExpression") return null;
+  return returned[0].argument;
+}
+
 function valuesHaveOwner(values, scope) {
   const rows = values?.arguments[0];
   if (rows?.type === "ArrayExpression") {
     return rows.elements.length > 0 && rows.elements.every((row) => ownerIsUser(row, true, scope));
   }
+  const mapped = mappedRowObject(rows);
+  if (mapped !== undefined) return ownerIsUser(mapped, true, scope);
   return ownerIsUser(rows, true, scope);
 }
 

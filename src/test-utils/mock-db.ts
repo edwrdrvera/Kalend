@@ -30,6 +30,8 @@ export interface MockDbState<T extends BaseRow> {
   shouldFailOnDelete?: boolean;
   transactionCount?: number;
   lockCount?: number;
+  /** How many insert statements ran against this table. */
+  insertCalls?: number;
   /** Apply the route's real `where` condition to this table's rows (see
    *  where-matcher.ts) instead of the id and user_id heuristics. */
   evaluateWhere?: boolean;
@@ -63,6 +65,38 @@ function comparedValue(condition: unknown, column: string): unknown {
 }
 
 // ── Mock setup ──────────────────────────────────────────────────────────
+
+function columnName(column: unknown): string | null {
+  if (!column || typeof column !== "object" || !("name" in column)) return null;
+  return typeof column.name === "string" ? column.name : null;
+}
+
+// NULL never matches in a unique index, including the partial import identity.
+function sameIdentity(row: BaseRow, incoming: Record<string, unknown>, names: string[]): boolean {
+  return names.every((name) => {
+    const left = (row as unknown as Record<string, unknown>)[name];
+    const right = incoming[name];
+    if (left === null || left === undefined || right === null || right === undefined) return false;
+    return left === right;
+  });
+}
+
+// A set value that is not a plain column value stands in for `excluded.column`,
+// so each row in a batch keeps its own incoming value.
+function excludedPatch(set: Record<string, unknown>, incoming: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(set).map(([key, value]) => [
+    key,
+    typeof value === "object" && value !== null && !(value instanceof Date) ? incoming[key] : value,
+  ]));
+}
+
+function patchMatches(row: BaseRow, patch: Record<string, unknown>): boolean {
+  return Object.entries(patch).every(([key, value]) => {
+    const current = (row as unknown as Record<string, unknown>)[key];
+    if (current instanceof Date && value instanceof Date) return current.getTime() === value.getTime();
+    return current === value;
+  });
+}
 
 /** Drizzle table objects expose their name via `Symbol(drizzle:Name)`. */
 function tableNameOf(table: unknown): string | null {
@@ -184,33 +218,60 @@ export function setupMockDb<T extends BaseRow>(
         }),
       }),
       insert: (table: unknown) => ({
-        values: (vals: Record<string, unknown>) => {
+        values: (vals: Record<string, unknown> | Record<string, unknown>[]) => {
           let skipDuplicates = false;
+          // Set when the route uses onConflictDoUpdate. A row that matches the
+          // target is updated instead of inserted. An unchanged match is left
+          // out of the result, which is what ON CONFLICT DO UPDATE ... WHERE
+          // does when the new values are the ones already stored.
+          let conflictUpdate: { set: Record<string, unknown>; target: unknown[] } | null = null;
           const builder = {
             onConflictDoNothing: () => {
               skipDuplicates = true;
               return builder;
             },
+            onConflictDoUpdate: (config: { set?: Record<string, unknown>; target?: unknown }) => {
+              conflictUpdate = {
+                set: config.set ?? {},
+                target: Array.isArray(config.target) ? config.target : config.target ? [config.target] : [],
+              };
+              return builder;
+            },
             returning: mock(async () => {
               const insertState = stateFor(table);
+              insertState.insertCalls = (insertState.insertCalls ?? 0) + 1;
               if (insertState.shouldFail) throw new Error("DB Insert failed");
-              if (skipDuplicates && insertState.conflictsWith) {
-                const collides = insertState.conflictsWith;
-                if (insertState.rows.some((row) => collides(row, vals))) return [];
+              const incomingRows = Array.isArray(vals) ? vals : [vals];
+              const results: Array<T & { inserted?: boolean }> = [];
+              for (const incoming of incomingRows) {
+                const payload = filterUndefined
+                  ? Object.fromEntries(Object.entries(incoming).filter(([, v]) => v !== undefined))
+                  : incoming;
+                if (skipDuplicates && insertState.conflictsWith) {
+                  const collides = insertState.conflictsWith;
+                  if (insertState.rows.some((row) => collides(row, payload))) continue;
+                }
+                const names = (conflictUpdate?.target ?? []).map(columnName).filter((name) => name !== null);
+                const match = names.length > 0
+                  ? insertState.rows.find((row) => sameIdentity(row, payload, names))
+                  : undefined;
+                if (match && conflictUpdate) {
+                  const patch = excludedPatch(conflictUpdate.set, payload);
+                  if (patchMatches(match, patch)) continue;
+                  Object.assign(match, patch);
+                  results.push({ ...(match as T), inserted: false });
+                  continue;
+                }
+                const row = {
+                  id: `${idPrefix}uuid-${++inserted}`,
+                  created_at: new Date(),
+                  ...insertDefaults,
+                  ...payload,
+                } as T;
+                insertState.rows.push(row as unknown as BaseRow);
+                results.push(conflictUpdate ? { ...row, inserted: true } : row);
               }
-              const payload = filterUndefined
-                ? Object.fromEntries(
-                    Object.entries(vals).filter(([, v]) => v !== undefined)
-                  )
-                : vals;
-              const row = {
-                id: `${idPrefix}uuid-${++inserted}`,
-                created_at: new Date(),
-                ...insertDefaults,
-                ...payload,
-              } as T;
-              insertState.rows.push(row as unknown as BaseRow);
-              return [row];
+              return results;
             }),
           };
           return builder;

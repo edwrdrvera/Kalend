@@ -101,6 +101,7 @@ describe("POST /api/events/import", () => {
     ];
     mockDbState.shouldFail = false;
     mockDbState.transactionCount = 0;
+    mockDbState.insertCalls = 0;
     mockAlertState.rows = [];
     mockAlertState.shouldFail = false;
   });
@@ -267,6 +268,24 @@ END:VCALENDAR`;
     expect(mockDbState.rows).toEqual(before);
   });
 
+  it("imports one copy when two imports of the same new event run together", async () => {
+    const [first, second] = await Promise.all([post(fixture("canvas.ics")), post(fixture("canvas.ics"))]);
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    const lectures = mine().filter((row) => row.import_uid === "canvas-cs101@instructure.com");
+    const hours = mine().filter((row) => row.import_uid === "canvas-office@instructure.com");
+    expect(lectures).toHaveLength(1);
+    expect(hours).toHaveLength(1);
+    expect(lectures[0]?.user_id).toBe(ME);
+    expect(mockDbState.rows.find((row) => row.id === "other-secret")?.title).toBe("Secret");
+    expect(mockDbState.rows.find((row) => row.id === "hand-typed")?.import_uid).toBeNull();
+    const bodies = [await first.json(), await second.json()];
+    const imported = bodies.reduce((sum, body) => sum + body.data.imported, 0);
+    expect(imported).toBe(2);
+    // Both requests missed the new rows on the read, so both tried to insert.
+    expect(mockDbState.insertCalls).toBe(2);
+  });
+
   it("writes nothing when the file is larger than the limit", async () => {
     const before = snapshot();
     const byHeader = await post(fixture("canvas.ics"), { contentLength: String(MAX_ICS_BYTES + 1) });
@@ -275,6 +294,36 @@ END:VCALENDAR`;
 
     const byBody = await post("BEGIN:VCALENDAR\n" + "X".repeat(MAX_ICS_BYTES));
     expect(byBody.status).toBe(413);
+    expect(mockDbState.rows).toEqual(before);
+    expect(mockDbState.transactionCount).toBe(0);
+  });
+
+  it("stops reading a chunked file once it passes the size limit", async () => {
+    const chunk = 64 * 1024;
+    let reads = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        reads += 1;
+        // Close well past the cap so a reader that ignores the cap would keep going.
+        if (reads > 40) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(new Uint8Array(chunk));
+      },
+    });
+    const before = snapshot();
+    const init = {
+      method: "POST",
+      headers: { "content-type": "text/calendar" },
+      body: stream,
+      duplex: "half",
+    };
+    const response = await POST(new Request("http://localhost/api/events/import?tz=UTC", init));
+    expect(response.status).toBe(413);
+    expect((await response.json()).error).toBe(ICS_TOO_LARGE_MESSAGE);
+    // 32 chunks fill the cap. One more crosses it. A reader of the whole stream would pass 40.
+    expect(reads).toBeLessThanOrEqual(34);
     expect(mockDbState.rows).toEqual(before);
     expect(mockDbState.transactionCount).toBe(0);
   });

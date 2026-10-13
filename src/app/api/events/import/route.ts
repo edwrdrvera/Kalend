@@ -10,14 +10,12 @@ import {
   MAX_ICS_BYTES,
 } from "@/lib/ics-limits";
 import { retryTransaction } from "@/lib/transaction-retry";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 export const POST = withUser(async (request, _context, user) => {
-  const declaredLength = request.headers.get("content-length");
-  if (declaredLength && Number(declaredLength) > MAX_ICS_BYTES) return fail(ICS_TOO_LARGE_MESSAGE, 413);
-
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_ICS_BYTES) return fail(ICS_TOO_LARGE_MESSAGE, 413);
+  const body = await readBoundedCalendar(request);
+  if ("error" in body) return fail(body.error, 413);
+  const text = body.text;
 
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("text/calendar")) return fail(ICS_FILE_REQUIRED_MESSAGE, 400);
@@ -39,32 +37,14 @@ export const POST = withUser(async (request, _context, user) => {
       .for("update");
     const byKey = new Map(existing.map((row) => [`${row.import_uid}\0${row.import_occurrence ?? ""}`, row]));
 
-    let imported = 0;
     let updated = 0;
     let unchanged = 0;
+    const fresh: ImportedEvent[] = [];
     for (const event of parsed.events) {
       const key = `${event.importUid}\0${event.importOccurrence}`;
       const row = byKey.get(key);
       if (!row) {
-        const [created] = await tx
-          .insert(events)
-          .values({
-            title: event.title,
-            start_at: event.startAt,
-            end_at: event.endAt,
-            user_id: user.id,
-            color: DEFAULT_EVENT_COLOR,
-            color_overridden: false,
-            category_id: null,
-            group_id: null,
-            location: event.location,
-            description: event.description,
-            import_uid: event.importUid,
-            import_occurrence: event.importOccurrence,
-          })
-          .returning();
-        byKey.set(key, created);
-        imported += 1;
+        fresh.push(event);
         continue;
       }
       if (sameImportedFields(row, event)) {
@@ -87,11 +67,90 @@ export const POST = withUser(async (request, _context, user) => {
       if (saved) byKey.set(key, saved);
       updated += 1;
     }
+
+    let imported = 0;
+    if (fresh.length > 0) {
+      // One statement for the new rows. A second import of the same new event
+      // can commit between the read above and this insert. The identity index
+      // then updates that row instead of raising a unique violation. xmax is 0
+      // only for a row this statement created, so the racing one counts as an update.
+      const saved = await tx
+        .insert(events)
+        .values(fresh.map((event) => ({
+          title: event.title,
+          start_at: event.startAt,
+          end_at: event.endAt,
+          color: DEFAULT_EVENT_COLOR,
+          color_overridden: false,
+          category_id: null,
+          group_id: null,
+          location: event.location,
+          description: event.description,
+          import_uid: event.importUid,
+          import_occurrence: event.importOccurrence,
+          user_id: user.id,
+        })))
+        .onConflictDoUpdate({
+          target: [events.user_id, events.import_uid, events.import_occurrence],
+          targetWhere: sql`${events.import_uid} is not null`,
+          setWhere: sql`(${events.title}, ${events.start_at}, ${events.end_at}, ${events.location}, ${events.description}) is distinct from (excluded.title, excluded.start_at, excluded.end_at, excluded.location, excluded.description)`,
+          set: {
+            title: sql`excluded.title`,
+            start_at: sql`excluded.start_at`,
+            end_at: sql`excluded.end_at`,
+            location: sql`excluded.location`,
+            description: sql`excluded.description`,
+          },
+        })
+        .returning({
+          id: events.id,
+          start_at: events.start_at,
+          import_uid: events.import_uid,
+          import_occurrence: events.import_occurrence,
+          inserted: sql<boolean>`(xmax = 0)`.as("inserted"),
+        });
+      const freshByKey = new Map(fresh.map((event) => [`${event.importUid}\0${event.importOccurrence}`, event]));
+      for (const row of saved) {
+        if (row.inserted) {
+          imported += 1;
+          continue;
+        }
+        updated += 1;
+        const event = freshByKey.get(`${row.import_uid ?? ""}\0${row.import_occurrence ?? ""}`);
+        if (!event) continue;
+        await rescheduleAlerts(tx, user, { kind: "event", id: row.id }, event.startAt, new Date());
+      }
+      unchanged += fresh.length - saved.length;
+    }
     return { imported, updated, unchanged, skipped: parsed.skipped };
   }));
 
   return ok(counts);
 });
+
+// request.text() buffers a chunked upload before any check, so a body with no
+// Content-Length could pass the 2 MB cap. Stop reading once the cap is crossed.
+async function readBoundedCalendar(request: Request): Promise<{ text: string } | { error: string }> {
+  const declaredLength = request.headers.get("content-length");
+  if (declaredLength && Number(declaredLength) > MAX_ICS_BYTES) return { error: ICS_TOO_LARGE_MESSAGE };
+
+  const reader = request.body?.getReader();
+  if (!reader) return { text: "" };
+
+  const decoder = new TextDecoder();
+  let received = 0;
+  let text = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) return { text: text + decoder.decode() };
+    received += value.byteLength;
+    if (received > MAX_ICS_BYTES) {
+      await reader.cancel();
+      return { error: ICS_TOO_LARGE_MESSAGE };
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+}
 
 function sameImportedFields(
   row: { title: string; start_at: Date; end_at: Date; location: string | null; description: string | null },
