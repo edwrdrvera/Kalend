@@ -30,6 +30,12 @@ Three scripts build the demo account. Each one builds on the one before it, so r
 
 	If the database has one user, the script picks that user. Otherwise, set `SEED_USER_ID`.
 
+## Two database connections
+
+Migrations (`bunx drizzle-kit migrate`) and the sample-data scripts use `DATABASE_URL_MIGRATE`. When that variable is unset, they use `DATABASE_URL`. The app uses `DATABASE_URL` and still connects as the owner, which skips row policies.
+
+The restricted role is named `kalend_app`. It can log in and cannot skip row policies. Its password is not stored in this repo. Set the password on the database, then put the connection string in the host's secret store when you switch the app over. On the hosted pooler the user name may need a project suffix. That naming was not checked against the live project.
+
 ## Check your changes
 
 | Check | Command |
