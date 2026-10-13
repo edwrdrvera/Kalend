@@ -67,8 +67,16 @@ ruleTester.run("scoped-query", rule, {
     "import * as schema from '@/db/schema'; db.select().from(schema.waitlist)",
     // An aliased import is still checked, and passes when scoped.
     "import { tasks as t } from '@/db/schema/tasks'; db.select().from(t).where(eq(t.user_id, user.id))",
+    // A device subscription is user-owned too.
+    "db.select().from(pushSubscriptions).where(eq(pushSubscriptions.user_id, user.id))",
+    "db.delete(pushSubscriptions).where(and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.user_id, user.id)))",
+    "db.insert(pushSubscriptions).values({ endpoint, p256dh, auth, user_id: user.id })",
+    "db.insert(pushSubscriptions).values({ endpoint, p256dh, auth, user_id: user.id }).onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { p256dh, auth, user_id: user.id } })",
   ]),
   ...[
+    // Listing owners projects user_id and no other column, so it has no single owner to filter by.
+    "db.selectDistinct({ user_id: pushSubscriptions.user_id }).from(pushSubscriptions)",
+    "db.select({ user_id: events.user_id }).from(events)",
     // The route user may be named anything.
     "withUser(async (r, c, me) => db.select().from(tasks).where(eq(tasks.user_id, me.id)))",
     // Exported handlers are the usual shape.
@@ -91,6 +99,12 @@ ruleTester.run("scoped-query", rule, {
     { code: "db.delete(tasks).where(eq(tasks.user_id, tasks.user_id))", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // A select with no where at all.
     { code: "db.select().from(tasks)", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
+    // A device list that reads anything besides the owner id is still a leak.
+    { code: "db.select().from(pushSubscriptions)", errors: [{ message: /Query over "pushSubscriptions" is missing an eq\(pushSubscriptions\.user_id/ }] },
+    { code: "db.selectDistinct({ user_id: pushSubscriptions.user_id, endpoint: pushSubscriptions.endpoint }).from(pushSubscriptions)", errors: [{ message: /Query over "pushSubscriptions" is missing an eq\(pushSubscriptions\.user_id/ }] },
+    { code: "db.selectDistinct({ endpoint: pushSubscriptions.endpoint }).from(pushSubscriptions)", errors: [{ message: /Query over "pushSubscriptions" is missing an eq\(pushSubscriptions\.user_id/ }] },
+    { code: "db.selectDistinct({ user_id: events.user_id }).from(pushSubscriptions)", errors: [{ message: /Query over "pushSubscriptions" is missing an eq\(pushSubscriptions\.user_id/ }] },
+    { code: "db.insert(pushSubscriptions).values({ endpoint, user_id: body.user_id })", errors: [{ message: /Insert into "pushSubscriptions" must set user_id: user\.id/ }] },
     // An update with no where rewrites every user's rows.
     { code: "db.update(tasks).set({ completed: true })", errors: [{ message: /Query over "tasks" is missing an eq\(tasks\.user_id/ }] },
     // A write whose builder comes from a call or an await is still a query.

@@ -4,9 +4,11 @@
  * The app's db client bypasses RLS (see `src/db/CLAUDE.md`), so the only thing
  * keeping one user's rows away from another is the `eq(<table>.user_id,
  * user.id)` filter hand-written into every query. A query over `events`,
- * `tasks`, `categories`, `alerts`, or `groups` that does not reach a `.where(...)` holding that
+ * `tasks`, `categories`, `alerts`, `groups`, or `pushSubscriptions` that does not reach a `.where(...)` holding that
  * filter is a potential cross-tenant leak, and that includes a query with no
- * `.where` at all. An insert into those tables must chain `.values(...)` with
+ * `.where` at all. The one exception is a select that projects only `user_id`:
+ * that lists owners and no other column, which is how the alert push check
+ * finds devices without reading another user's rows. An insert into those tables must chain `.values(...)` with
  * `user_id: user.id` written inline in every row, so a row can't be written
  * into another user's account. This rule flags both at lint time so a
  * forgotten owner fails CI instead of shipping.
@@ -26,7 +28,7 @@
  * exception means changing this rule, where the change gets reviewed.
  */
 
-const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
+const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups", "pushSubscriptions"]);
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
@@ -117,7 +119,20 @@ function queryRoot(call, scope) {
   } else if (method !== "update" && method !== "delete" && method !== "insert") {
     return null;
   }
-  return { method, table: resolveTable(call.arguments[0], scope) };
+  return { method, table: resolveTable(call.arguments[0], scope), select: method === "from" ? receiver : null };
+}
+
+// select({ user_id: table.user_id }) and nothing else. The result is a list of
+// owners, so it does not need a single-owner filter. Any other column does.
+function projectsOnlyUserId(selectCall, table, scope) {
+  if (!selectCall || selectCall.arguments.length !== 1) return false;
+  const arg = selectCall.arguments[0];
+  if (arg?.type !== "ObjectExpression" || arg.properties.length !== 1) return false;
+  const prop = arg.properties[0];
+  if (prop.type !== "Property" || prop.computed) return false;
+  const key = prop.key.type === "Identifier" ? prop.key.name : prop.key.type === "Literal" ? prop.key.value : null;
+  if (key !== "user_id") return false;
+  return isMember(prop.value, "user_id") && tableName(prop.value.object, scope) === table;
 }
 
 // Climb the method chain above the query root and return its .<method>(...) call.
@@ -267,6 +282,7 @@ const scopedQuery = {
             }
           } else {
             const where = chainedCall(node, "where");
+            if (!where && method === "from" && projectsOnlyUserId(root.select, table, scope)) return;
             if (!where || !isScoped(where.arguments[0], table, scope)) {
               context.report({ node, message: ownerFilterHint(table) });
             }
