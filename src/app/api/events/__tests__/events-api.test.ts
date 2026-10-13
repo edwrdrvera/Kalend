@@ -96,6 +96,7 @@ describe("Events API Endpoints", () => {
     };
     mockDbState.transactionCount = 0;
     mockDbState.lockCount = 0;
+    mockDbState.executes = [];
     mockCategoryRows.length = 0;
     mockCategoryRows.push({
       id: OWNED_CATEGORY_ID,
@@ -127,6 +128,12 @@ describe("Events API Endpoints", () => {
       expect(json.data[0].user_id).toBe("user-uuid-123");
       expect(json.data[0].location).toBe("Main Hall");
       expect(json.data[0].icon).toBe("🎓");
+      expect(mockDbState.executes).toEqual([
+        {
+          sql: "select set_config('app.user_id', $1, true)",
+          params: ["user-uuid-123"],
+        },
+      ]);
     });
 
     it("returns 500 when database throws an error", async () => {
