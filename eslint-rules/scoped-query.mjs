@@ -28,9 +28,11 @@
  * The rule cannot be disabled inline (see eslint.config.mjs); a genuine
  * exception means changing this rule, where the change gets reviewed.
  *
- * Route files must not call the shared `db` client. Queries go through the
- * transaction `asUser` opens, which is the connection that holds the caller
- * id. The waitlist route is the exception: it has no signed-in user.
+ * Route files and helpers under `src/lib/api` must not call the shared `db`
+ * client. Queries go through the transaction `asUser` opens, which is the
+ * connection that holds the caller id. The waitlist route is the exception:
+ * it has no signed-in user. The check follows a named import, an import
+ * alias, a local alias, and `namespace.db` from `import * as namespace`.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
@@ -46,7 +48,7 @@ const DIRECT_DB_METHODS = new Set([
 ]);
 
 const directDbMessage =
-  'API routes must query through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
+  'Queries must go through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
@@ -254,18 +256,46 @@ function conflictKeepsOwner(conflict, scope) {
   return ownerIsUser(set?.value, false, scope);
 }
 
-function isAppDb(node, scope) {
-  if (node?.type !== "Identifier") return false;
-  const variable = findVariable(scope, node.name);
-  const def = variable?.defs[0];
-  if (def?.type !== "ImportBinding" || def.node.type !== "ImportSpecifier") return false;
+function importedDb(def) {
+  if (def?.type !== "ImportBinding" || def.parent?.source?.value !== "@/db") return false;
+  if (def.node.type !== "ImportSpecifier") return false;
   const imported = def.node.imported.name ?? def.node.imported.value;
-  if (imported !== "db") return false;
-  return def.parent?.source?.value === "@/db";
+  return imported === "db";
+}
+
+function isDbNamespace(node, scope) {
+  if (node?.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  return (
+    def?.type === "ImportBinding" &&
+    def.node.type === "ImportNamespaceSpecifier" &&
+    def.parent?.source?.value === "@/db"
+  );
+}
+
+// The shared client, including `import { db as database }`, `const database = db`,
+// and `import * as database from "@/db"` used as `database.db`.
+function isAppDb(node, scope, seen = new Set()) {
+  if (!node || seen.has(node)) return false;
+  seen.add(node);
+  if (node.type === "MemberExpression") {
+    if (staticKey(node) !== "db") return false;
+    return isDbNamespace(node.object, scope);
+  }
+  if (node.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  if (!def) return false;
+  if (def.type === "ImportBinding") return importedDb(def);
+  if (def.type === "Variable" && def.node.id?.type === "Identifier" && def.node.init) {
+    return isAppDb(def.node.init, scope, seen);
+  }
+  return false;
 }
 
 function routeForbidsDirectDb(filename) {
   const path = String(filename ?? "").replaceAll("\\", "/");
+  const helper = path.indexOf("src/lib/api/");
+  if (helper !== -1 && !path.slice(helper).includes("/__tests__/")) return true;
   const marker = "src/app/api/";
   const index = path.indexOf(marker);
   if (index === -1) return false;
@@ -273,26 +303,37 @@ function routeForbidsDirectDb(filename) {
   return rest !== "waitlist" && !rest.startsWith("waitlist/") && !rest.startsWith("waitlist.");
 }
 
-function templateText(node) {
-  if (node?.type !== "TaggedTemplateExpression") return null;
-  if (node.tag?.type !== "Identifier" || node.tag.name !== "sql") return null;
-  const quasis = node.quasi?.quasis;
-  if (!quasis) return null;
-  return quasis.map((quasi) => quasi.value?.cooked ?? "").join(" ");
+function isSqlTemplate(node) {
+  return node?.type === "TaggedTemplateExpression" && node.tag?.type === "Identifier" && node.tag.name === "sql";
 }
 
-// set_config(..., true) is local to the transaction. false would leak across
-// a pooled connection, so that form stays reported.
+function quasiText(quasi) {
+  return quasi?.value?.cooked ?? "";
+}
+
+// The local flag has to be the static tail of the template. A true buried in
+// a comment or an earlier argument must not count, and false would leak the
+// caller id onto a pooled connection.
+function isLocalSetConfig(node) {
+  if (!isSqlTemplate(node)) return false;
+  const quasis = node.quasi?.quasis;
+  if (!quasis || quasis.length < 2) return false;
+  const head = quasiText(quasis[0]);
+  const tail = quasiText(quasis[quasis.length - 1]).trim();
+  if (!head.includes("set_config(") || !head.includes("'app.user_id'")) return false;
+  return tail === ", true)";
+}
+
+function isCallerSettingRead(node) {
+  if (!isSqlTemplate(node)) return false;
+  const head = quasiText(node.quasi?.quasis?.[0]);
+  return head.includes("current_setting(") && head.includes("'app.user_id'");
+}
+
 function isCallerSettingExecute(argument, filename) {
-  const text = templateText(argument);
-  if (text === null || !text.includes("app.user_id")) return false;
   const path = String(filename ?? "").replaceAll("\\", "/");
-  const scopedFile = path.endsWith("/src/db/scoped.ts") || path.endsWith("src/db/scoped.ts");
-  if (scopedFile) {
-    return text.includes("set_config(") && /,\s*true\s*\)/.test(text);
-  }
-  const settingTest = path.endsWith("/src/db/__tests__/scoped.test.ts") || path.endsWith("src/db/__tests__/scoped.test.ts");
-  return settingTest && text.includes("current_setting(");
+  if (path.endsWith("src/db/scoped.ts")) return isLocalSetConfig(argument);
+  return path.endsWith("src/db/__tests__/scoped.test.ts") && isCallerSettingRead(argument);
 }
 
 function isScoped(node, table, scope) {
