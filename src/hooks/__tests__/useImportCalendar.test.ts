@@ -19,7 +19,7 @@ describe("useImportCalendar", () => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
         success: true,
-        data: { imported: 42, updated: 3, unchanged: 0, skipped: 1 },
+        data: { imported: 42, updated: 0, unchanged: 3, skipped: 1 },
       }));
     }) as unknown as typeof fetch;
     const imported = mock(() => {});
@@ -33,7 +33,7 @@ describe("useImportCalendar", () => {
     expect(calls[0].init.method).toBe("POST");
     expect(new Headers(calls[0].init.headers).get("content-type")).toBe("text/calendar");
     expect(calls[0].init.body).toBe("BEGIN:VCALENDAR\nEND:VCALENDAR\n");
-    expect(hook.result.current.result).toBe("Imported 42 events, updated 3, skipped 1");
+    expect(hook.result.current.result).toBe("Imported 42 events, left 3 unchanged, skipped 1");
     expect(hook.result.current.error).toBeNull();
     expect(hook.result.current.busy).toBe(false);
     expect(imported).toHaveBeenCalledTimes(1);

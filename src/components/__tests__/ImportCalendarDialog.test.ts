@@ -69,8 +69,8 @@ describe("ImportCalendarDialog", () => {
   });
 
   it("shows the result line from a finished import", async () => {
-    await render({ result: "Imported 42 events, updated 3, skipped 1" });
-    expect(dialogText()).toContain("Imported 42 events, updated 3, skipped 1");
+    await render({ result: "Imported 42 events, left 3 unchanged, skipped 1" });
+    expect(dialogText()).toContain("Imported 42 events, left 3 unchanged, skipped 1");
   });
 
   it("shows a plain error and stays on the file", async () => {

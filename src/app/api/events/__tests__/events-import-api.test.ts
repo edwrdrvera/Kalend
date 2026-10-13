@@ -172,12 +172,12 @@ describe("POST /api/events/import", () => {
     expect(mine().every((row) => row.user_id === ME)).toBe(true);
   });
 
-  it("keeps a Space and color when the same file is imported again", async () => {
+  it("leaves an existing event as it is and adds only the new ones", async () => {
     mockDbState.rows.push({
       id: "already",
       title: "Old title",
-      start_at: new Date("2026-10-13T15:00:00.000Z"),
-      end_at: new Date("2026-10-13T16:15:00.000Z"),
+      start_at: new Date("2026-01-01T10:00:00.000Z"),
+      end_at: new Date("2026-01-01T11:00:00.000Z"),
       user_id: ME,
       import_uid: "canvas-cs101@instructure.com",
       import_occurrence: "",
@@ -185,28 +185,39 @@ describe("POST /api/events/import", () => {
       color_overridden: true,
       category_id: "space-1",
       group_id: null,
-      location: "Main Hall 201",
-      description: "Bring the textbook",
+      location: "Room the student picked",
+      description: "Notes the student wrote",
     });
     const response = await post(fixture("canvas.ics"));
     const body = await response.json();
-    expect(body.data.updated).toBe(1);
+    expect(body.data).toMatchObject({ imported: 1, updated: 0, unchanged: 1 });
     const row = mockDbState.rows.find((event) => event.id === "already");
     expect(row).toMatchObject({
-      title: "CS 101 Lecture",
+      title: "Old title",
+      start_at: new Date("2026-01-01T10:00:00.000Z"),
+      end_at: new Date("2026-01-01T11:00:00.000Z"),
+      location: "Room the student picked",
+      description: "Notes the student wrote",
       color: "red",
       category_id: "space-1",
       user_id: ME,
     });
+    expect(mine().some((event) => event.import_uid === "canvas-office@instructure.com")).toBe(true);
   });
 
-  it("moves an alert when a second import changes the start", async () => {
+  it("keeps an occurrence the new file dropped and leaves the alert where it is", async () => {
     const original = `BEGIN:VCALENDAR
 BEGIN:VEVENT
 DTSTART:20270601T150000Z
 DTEND:20270601T160000Z
 SUMMARY:Seminar
 UID:seminar@school
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20270603T150000Z
+DTEND:20270603T160000Z
+SUMMARY:Dropped later
+UID:dropped@school
 END:VEVENT
 END:VCALENDAR`;
     await post(original);
@@ -230,15 +241,39 @@ END:VCALENDAR`;
       fired_at: null,
     });
 
-    const moved = original
-      .replace("DTSTART:20270601T150000Z", "DTSTART:20270601T170000Z")
-      .replace("DTEND:20270601T160000Z", "DTEND:20270601T180000Z");
-    const response = await post(moved);
-    expect((await response.json()).data.updated).toBe(1);
+    const again = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20270601T170000Z
+DTEND:20270601T180000Z
+SUMMARY:Seminar moved
+LOCATION:Lab 4
+DESCRIPTION:Bring notes
+UID:seminar@school
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20270602T150000Z
+DTEND:20270602T160000Z
+SUMMARY:Added later
+UID:added@school
+END:VEVENT
+END:VCALENDAR`;
+    const response = await post(again);
+    expect((await response.json()).data).toMatchObject({ imported: 1, updated: 0, unchanged: 1 });
+    const kept = mine().find((row) => row.import_uid === "seminar@school");
+    expect(kept).toMatchObject({
+      title: "Seminar",
+      start_at: new Date("2027-06-01T15:00:00.000Z"),
+      end_at: new Date("2027-06-01T16:00:00.000Z"),
+      location: null,
+      description: null,
+    });
+    const dropped = mine().find((row) => row.import_uid === "dropped@school");
+    expect(dropped).toMatchObject({ title: "Dropped later" });
+    expect(mine().some((row) => row.import_uid === "added@school" && row.title === "Added later")).toBe(true);
     const own = mockAlertState.rows.find((alert) => alert.id === "alert-1");
     const other = mockAlertState.rows.find((alert) => alert.id === "alert-other");
-    expect(own?.fire_at.toISOString()).toBe("2027-06-01T16:45:00.000Z");
-    expect(own?.fired_at).toBeNull();
+    expect(own?.fire_at.toISOString()).toBe("2027-06-01T14:45:00.000Z");
+    expect(own?.fired_at).toEqual(new Date("2027-05-01T00:00:00.000Z"));
     expect(other?.fire_at.toISOString()).toBe("2027-06-01T14:45:00.000Z");
   });
 
@@ -281,7 +316,9 @@ END:VCALENDAR`;
     expect(mockDbState.rows.find((row) => row.id === "hand-typed")?.import_uid).toBeNull();
     const bodies = [await first.json(), await second.json()];
     const imported = bodies.reduce((sum, body) => sum + body.data.imported, 0);
+    const updated = bodies.reduce((sum, body) => sum + body.data.updated, 0);
     expect(imported).toBe(2);
+    expect(updated).toBe(0);
     // Both requests missed the new rows on the read, so both tried to insert.
     expect(mockDbState.insertCalls).toBe(2);
   });

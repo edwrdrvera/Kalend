@@ -1,10 +1,7 @@
 import { db } from "@/db";
-import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
-import { rescheduleAlerts, type Tx } from "@/lib/api/alert-sync";
 import { parseIcs, type ImportedEvent } from "@/lib/api/ics-import";
 import { fail, ok, withUser } from "@/lib/api/route-handler";
-import { fireAtFor } from "@/lib/alerts";
 import { DEFAULT_EVENT_COLOR } from "@/lib/event-colors";
 import {
   ICS_FILE_REQUIRED_MESSAGE,
@@ -12,7 +9,6 @@ import {
   MAX_ICS_BYTES,
 } from "@/lib/ics-limits";
 import { retryTransaction } from "@/lib/transaction-retry";
-import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 export const POST = withUser(async (request, _context, user) => {
@@ -40,43 +36,22 @@ export const POST = withUser(async (request, _context, user) => {
       .for("update");
     const byKey = new Map(existing.map((row) => [`${row.import_uid}\0${row.import_occurrence ?? ""}`, row]));
 
-    let updated = 0;
     let unchanged = 0;
     const fresh: ImportedEvent[] = [];
     for (const event of parsed.events) {
       const key = `${event.importUid}\0${event.importOccurrence}`;
-      const row = byKey.get(key);
-      if (!row) {
-        fresh.push(event);
-        continue;
-      }
-      if (sameImportedFields(row, event)) {
+      if (byKey.has(key)) {
         unchanged += 1;
         continue;
       }
-      const startChanged = row.start_at.getTime() !== event.startAt.getTime();
-      const [saved] = await tx
-        .update(events)
-        .set({
-          title: event.title,
-          start_at: event.startAt,
-          end_at: event.endAt,
-          location: event.location,
-          description: event.description,
-        })
-        .where(and(eq(events.id, row.id), eq(events.user_id, user.id)))
-        .returning();
-      if (startChanged) await rescheduleAlerts(tx, user, { kind: "event", id: row.id }, event.startAt, new Date());
-      if (saved) byKey.set(key, saved);
-      updated += 1;
+      fresh.push(event);
     }
 
     let imported = 0;
     if (fresh.length > 0) {
       // One statement for the new rows. A second import of the same new event
       // can commit between the read above and this insert. The identity index
-      // then updates that row instead of raising a unique violation. xmax is 0
-      // only for a row this statement created, so the racing one counts as an update.
+      // then skips that row, so the first copy stays as it was stored.
       const saved = await tx
         .insert(events)
         .values(fresh.map((event) => ({
@@ -93,42 +68,15 @@ export const POST = withUser(async (request, _context, user) => {
           import_occurrence: event.importOccurrence,
           user_id: user.id,
         })))
-        .onConflictDoUpdate({
+        .onConflictDoNothing({
           target: [events.user_id, events.import_uid, events.import_occurrence],
-          targetWhere: sql`${events.import_uid} is not null`,
-          setWhere: sql`(${events.title}, ${events.start_at}, ${events.end_at}, ${events.location}, ${events.description}) is distinct from (excluded.title, excluded.start_at, excluded.end_at, excluded.location, excluded.description)`,
-          set: {
-            title: sql`excluded.title`,
-            start_at: sql`excluded.start_at`,
-            end_at: sql`excluded.end_at`,
-            location: sql`excluded.location`,
-            description: sql`excluded.description`,
-          },
+          where: sql`${events.import_uid} is not null`,
         })
-        .returning({
-          id: events.id,
-          start_at: events.start_at,
-          import_uid: events.import_uid,
-          import_occurrence: events.import_occurrence,
-          inserted: sql<boolean>`(xmax = 0)`.as("inserted"),
-        });
-      const freshByKey = new Map(fresh.map((event) => [`${event.importUid}\0${event.importOccurrence}`, event]));
-      for (const row of saved) {
-        if (row.inserted) {
-          imported += 1;
-          continue;
-        }
-        updated += 1;
-        const event = freshByKey.get(`${row.import_uid ?? ""}\0${row.import_occurrence ?? ""}`);
-        if (!event) continue;
-        // The update has already stored the new start. An alert's fire time is
-        // that start minus its offset, so a match means the start did not move
-        // and a fired alert must stay fired.
-        await rescheduleIfStartMoved(tx, user, row.id, event.startAt);
-      }
+        .returning({ id: events.id });
+      imported = saved.length;
       unchanged += fresh.length - saved.length;
     }
-    return { imported, updated, unchanged, skipped: parsed.skipped };
+    return { imported, updated: 0, unchanged, skipped: parsed.skipped };
   }));
 
   return ok(counts);
@@ -156,25 +104,4 @@ async function readBoundedCalendar(request: Request): Promise<{ text: string } |
     }
     text += decoder.decode(value, { stream: true });
   }
-}
-
-async function rescheduleIfStartMoved(tx: Tx, user: AuthenticatedUser, eventId: string, startAt: Date): Promise<void> {
-  const stored = await tx
-    .select()
-    .from(alerts)
-    .where(and(eq(alerts.event_id, eventId), eq(alerts.user_id, user.id)));
-  const startMoved = stored.some((alert) => fireAtFor(startAt, alert.offset_minutes).getTime() !== alert.fire_at.getTime());
-  if (!startMoved) return;
-  await rescheduleAlerts(tx, user, { kind: "event", id: eventId }, startAt, new Date());
-}
-
-function sameImportedFields(
-  row: { title: string; start_at: Date; end_at: Date; location: string | null; description: string | null },
-  event: ImportedEvent,
-): boolean {
-  return row.title === event.title
-    && row.start_at.getTime() === event.startAt.getTime()
-    && row.end_at.getTime() === event.endAt.getTime()
-    && (row.location ?? null) === event.location
-    && (row.description ?? null) === event.description;
 }

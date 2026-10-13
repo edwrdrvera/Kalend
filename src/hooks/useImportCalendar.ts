@@ -11,7 +11,7 @@ export interface ImportCalendarCounts {
 }
 
 export function importResultLine(counts: ImportCalendarCounts): string {
-  return `Imported ${counts.imported} events, updated ${counts.updated}, skipped ${counts.skipped}`;
+  return `Imported ${counts.imported} events, left ${counts.unchanged} unchanged, skipped ${counts.skipped}`;
 }
 
 export function useImportCalendar(onImported: () => void) {

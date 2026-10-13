@@ -146,6 +146,8 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     expect(rows.length).toBeGreaterThan(1);
     expect(new Set(rows.map((row) => row.import_occurrence)).size).toBe(rows.length);
     expect(races).toBe(2);
+    expect(first.updated).toBe(0);
+    expect(second.updated).toBe(0);
     expect(first.imported + second.imported).toBe(rows.length);
     expect(first.imported + first.updated + first.unchanged).toBe(rows.length);
     expect(second.imported + second.updated + second.unchanged).toBe(rows.length);
@@ -159,7 +161,7 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     expect(typed).toMatchObject({ title: "Typed by hand", import_uid: null });
   }, 15_000);
 
-  it("leaves an alert in place when a racing import keeps the start and changes the title", async () => {
+  it("keeps the first copy when a racing import would change the title", async () => {
     const original = `BEGIN:VCALENDAR
 BEGIN:VEVENT
 DTSTART:20270601T150000Z
@@ -183,7 +185,10 @@ END:VCALENDAR`;
     `;
     expect(rows).toHaveLength(1);
     expect(races).toBe(2);
+    expect(first.updated).toBe(0);
+    expect(second.updated).toBe(0);
     expect(first.imported + second.imported).toBe(1);
+    expect(rows[0].title).toBe(first.imported === 1 ? "Seminar" : "Seminar moved");
     expect(first.imported + first.updated + first.unchanged).toBe(1);
     expect(second.imported + second.updated + second.unchanged).toBe(1);
 

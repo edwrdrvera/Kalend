@@ -220,14 +220,18 @@ export function setupMockDb<T extends BaseRow>(
       insert: (table: unknown) => ({
         values: (vals: Record<string, unknown> | Record<string, unknown>[]) => {
           let skipDuplicates = false;
+          // Columns named by onConflictDoNothing({ target }). A match is skipped.
+          // NULL never matches, same as the partial import identity index.
+          let nothingTarget: unknown[] = [];
           // Set when the route uses onConflictDoUpdate. A row that matches the
           // target is updated instead of inserted. An unchanged match is left
           // out of the result, which is what ON CONFLICT DO UPDATE ... WHERE
           // does when the new values are the ones already stored.
           let conflictUpdate: { set: Record<string, unknown>; target: unknown[] } | null = null;
           const builder = {
-            onConflictDoNothing: () => {
+            onConflictDoNothing: (config?: { target?: unknown }) => {
               skipDuplicates = true;
+              nothingTarget = Array.isArray(config?.target) ? config.target : config?.target ? [config.target] : [];
               return builder;
             },
             onConflictDoUpdate: (config: { set?: Record<string, unknown>; target?: unknown }) => {
@@ -247,9 +251,12 @@ export function setupMockDb<T extends BaseRow>(
                 const payload = filterUndefined
                   ? Object.fromEntries(Object.entries(incoming).filter(([, v]) => v !== undefined))
                   : incoming;
-                if (skipDuplicates && insertState.conflictsWith) {
-                  const collides = insertState.conflictsWith;
-                  if (insertState.rows.some((row) => collides(row, payload))) continue;
+                if (skipDuplicates) {
+                  const names = nothingTarget.map(columnName).filter((name) => name !== null);
+                  const collides = names.length > 0
+                    ? (row: BaseRow) => sameIdentity(row, payload, names)
+                    : insertState.conflictsWith;
+                  if (collides && insertState.rows.some((row) => collides(row, payload))) continue;
                 }
                 const names = (conflictUpdate?.target ?? []).map(columnName).filter((name) => name !== null);
                 const match = names.length > 0
