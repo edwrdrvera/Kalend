@@ -16,7 +16,7 @@
 // ones instead of duplicating everything.
 
 import { and, eq } from "drizzle-orm";
-import { db } from "./index";
+import { ownerDb as db } from "./owner";
 import { events } from "./schema/events";
 
 const CSV_PATH = new URL("./data/data.csv", import.meta.url);
