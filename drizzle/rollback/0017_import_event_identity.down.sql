@@ -2,6 +2,7 @@
 -- Drops the import identity columns. Events stay. Their import markers go with the columns.
 -- Run it in one transaction.
 BEGIN;
+ALTER TABLE "events" DROP CONSTRAINT "events_import_identity_pair";
 DROP INDEX "events_import_identity_idx";
 ALTER TABLE "events" DROP COLUMN "import_occurrence";
 ALTER TABLE "events" DROP COLUMN "import_uid";

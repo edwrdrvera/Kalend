@@ -390,6 +390,10 @@
         "events_group_needs_space": {
           "name": "events_group_needs_space",
           "value": "\"events\".\"group_id\" is null or \"events\".\"category_id\" is not null"
+        },
+        "events_import_identity_pair": {
+          "name": "events_import_identity_pair",
+          "value": "(\"events\".\"import_uid\" is null) = (\"events\".\"import_occurrence\" is null)"
         }
       },
       "isRLSEnabled": true

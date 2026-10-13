@@ -20,4 +20,8 @@ describe("events import identity", () => {
       "import_occurrence",
     ]);
   });
+
+  it("requires the uid and the occurrence to be set together", () => {
+    expect(config.checks.map((entry) => entry.name)).toContain("events_import_identity_pair");
+  });
 });

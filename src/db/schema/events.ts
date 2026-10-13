@@ -50,6 +50,8 @@ export const events = pgTable(
     uniqueIndex("events_import_identity_idx")
       .on(table.user_id, table.import_uid, table.import_occurrence)
       .where(sql`${table.import_uid} is not null`),
+    // The index above ignores a row with no uid, so an occurrence on its own would not be unique.
+    check("events_import_identity_pair", sql`(${table.import_uid} is null) = (${table.import_occurrence} is null)`),
   ]
 ).enableRLS();
 
