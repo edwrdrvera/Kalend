@@ -24,16 +24,21 @@ export function eventOnDay(event: CalendarEvent, day: Date): boolean {
   return eventOverlaps(event, dayStart, addDays(dayStart, 1));
 }
 
+/** An all-day import runs from local midnight to the next local midnight.
+ *  That end is the start of the next day, so a half-open day check would miss it. */
+export function isOneDayAllDay(start: Date, end: Date): boolean {
+  const nextMidnight = startOfDay(addDays(start, 1));
+  return start.getTime() === startOfDay(start).getTime() && end.getTime() === nextMidnight.getTime();
+}
+
 /** An event that runs into the day after it starts doesn't fit cleanly into
  *  a single hour column, so it belongs in the all-day row instead of
- *  `TimeGrid`. An all-day import ends at the next local midnight, which is
- *  the start of that next day, so the half-open check would miss it. */
+ *  `TimeGrid`. */
 export function isMultiDayEvent(event: CalendarEvent): boolean {
   const start = new Date(event.start_at);
   const end = new Date(event.end_at);
-  const nextMidnight = startOfDay(addDays(start, 1));
-  if (start.getTime() === startOfDay(start).getTime() && end.getTime() === nextMidnight.getTime()) return true;
-  return eventOnDay(event, nextMidnight);
+  if (isOneDayAllDay(start, end)) return true;
+  return eventOnDay(event, startOfDay(addDays(start, 1)));
 }
 
 // Never render an event shorter than 15 minutes tall, so a quick
