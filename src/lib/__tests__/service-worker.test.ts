@@ -136,6 +136,17 @@ describe("service worker", () => {
     expect(scope.shown).toHaveLength(1);
   });
 
+  it("does nothing with a notification that has no alert", async () => {
+    const { scope, listeners } = loadWorker();
+    const hidden = client("https://kalend.test/app", "hidden");
+    scope.clientsList = [hidden];
+    await fire(listeners, "notificationclick", { notification: { close: () => {} } });
+    await fire(listeners, "notificationclick", { notification: { data: {}, close: () => {} } });
+    expect(scope.opened).toBeNull();
+    expect(hidden.focused).toBe(false);
+    expect(hidden.messages).toEqual([]);
+  });
+
   it("focuses an open calendar and tells it which item to open", async () => {
     const { scope, listeners } = loadWorker();
     const hidden = client("https://kalend.test/app?day=1", "hidden");

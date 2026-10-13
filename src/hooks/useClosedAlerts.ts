@@ -46,12 +46,6 @@ function statusMessage(status: ClosedAlertsStatus): string | null {
   return null;
 }
 
-interface BrowserSubscription {
-  endpoint: string;
-  toJSON: () => { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-  unsubscribe: () => Promise<boolean>;
-}
-
 /** Turns closed-tab alerts on or off for this browser. */
 export function useClosedAlerts(): ClosedAlertsControl {
   const [status, setStatus] = useState<ClosedAlertsStatus>("loading");
@@ -137,7 +131,7 @@ export function useClosedAlerts(): ClosedAlertsControl {
     setBusy(true);
     try {
       const registration = await navigator.serviceWorker.getRegistration();
-      const subscription = (await registration?.pushManager.getSubscription()) as BrowserSubscription | null | undefined;
+      const subscription = await registration?.pushManager.getSubscription();
       const endpoint = subscription?.endpoint;
       await subscription?.unsubscribe();
       if (endpoint) {

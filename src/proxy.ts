@@ -20,6 +20,6 @@ export const config = {
      *   An API path must always run the proxy: it is what strips a forged
      *   x-kalend-user-id header before a route handler trusts it.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/dev/sign-in|api/alerts/push-due|(?!api/).*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/dev/sign-in|api/alerts/push-due$|(?!api/).*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

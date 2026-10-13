@@ -11,7 +11,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const data = event.notification.data || {};
+  const data = event.notification.data;
+  if (!data || typeof data.kind !== "string" || typeof data.itemId !== "string") return;
   const target = "/app?alert=" + data.kind + ":" + data.itemId;
   event.waitUntil(openTarget(target, data));
 });
