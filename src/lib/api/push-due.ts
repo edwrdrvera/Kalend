@@ -3,14 +3,16 @@ import { pushSubscriptions } from "@/db/schema/push-subscriptions";
 import { claimDueAlerts } from "@/lib/api/alert-claim";
 import { sendPush } from "@/lib/api/send-push";
 import { storedUser } from "@/lib/api/stored-user";
+import { MISSED_AFTER_MS } from "@/lib/alerts";
 import { pushAlertFromClaim } from "@/lib/push-alert";
 import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 import { and, eq } from "drizzle-orm";
 
 /**
- * Claims each subscribed user's due alerts and pushes them to that user's
- * devices. Missed alerts are claimed so they cannot fire twice, and they are
- * not pushed. A send that fails for any other reason leaves the alert fired.
+ * Claims each subscribed user's alerts that are still on time and pushes them
+ * to that user's devices. An alert that is already late stays unclaimed so
+ * the open tab can list it. A send that fails for any reason other than a
+ * gone device leaves the alert fired.
  */
 export async function pushDueAlerts(): Promise<{ sent: number }> {
   const owners = await db
@@ -25,7 +27,10 @@ export async function pushDueAlerts(): Promise<{ sent: number }> {
 }
 
 async function deliverTo(user: AuthenticatedUser): Promise<number> {
-  const claim = await claimDueAlerts(user);
+  const now = new Date();
+  const claim = await claimDueAlerts(user, now, {
+    earliestFireAt: new Date(now.getTime() - MISSED_AFTER_MS),
+  });
   if (claim.due.length === 0) return 0;
   const devices = await db
     .select()

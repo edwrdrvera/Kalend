@@ -202,12 +202,19 @@ describe("POST /api/alerts/push-due", () => {
     expect(sendPushMock).not.toHaveBeenCalled();
   });
 
-  it("does not push a missed alert", async () => {
+  it("still pushes an alert that became due exactly five minutes ago", async () => {
+    alertState.rows = [alertRow("a-edge", { offset_minutes: 0, fire_at: minutesFromNow(-5) })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-edge"]);
+    expect(firedAt("a-edge")).not.toBeNull();
+  });
+
+  it("does not push a missed alert, and leaves it for the open tab", async () => {
     alertState.rows = [alertRow("a-late", { offset_minutes: 60, fire_at: minutesFromNow(-6) })];
     const response = await push(`Bearer ${SECRET}`);
     expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
     expect(sendPushMock).not.toHaveBeenCalled();
-    expect(firedAt("a-late")).not.toBeNull();
+    expect(firedAt("a-late")).toBeNull();
   });
 
   it("sends nothing and leaves the alert unfired when the device is turned off", async () => {

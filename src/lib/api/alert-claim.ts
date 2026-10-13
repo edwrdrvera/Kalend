@@ -6,7 +6,7 @@ import { isMissed } from "@/lib/alerts";
 import type { AlertClaim, ClaimedAlert } from "@/lib/calendar-types";
 import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 import { retryTransaction } from "@/lib/transaction-retry";
-import { and, eq, inArray, isNull, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
 /**
  * Hands this user every alert that is due and has not fired. The single
@@ -16,12 +16,21 @@ import { and, eq, inArray, isNull, lte } from "drizzle-orm";
  * The titles are read in the same transaction so a failure there un-claims
  * the alerts instead of losing them.
  */
-export async function claimDueAlerts(user: AuthenticatedUser, now = new Date()): Promise<AlertClaim> {
+export async function claimDueAlerts(
+  user: AuthenticatedUser,
+  now = new Date(),
+  options?: { earliestFireAt?: Date },
+): Promise<AlertClaim> {
   return retryTransaction(() => db.transaction(async (tx): Promise<AlertClaim> => {
     const claimed = await tx
       .update(alerts)
       .set({ fired_at: now })
-      .where(and(eq(alerts.user_id, user.id), isNull(alerts.fired_at), lte(alerts.fire_at, now)))
+      .where(and(
+        eq(alerts.user_id, user.id),
+        isNull(alerts.fired_at),
+        lte(alerts.fire_at, now),
+        options?.earliestFireAt ? gte(alerts.fire_at, options.earliestFireAt) : undefined,
+      ))
       .returning();
     if (claimed.length === 0) return { due: [], missed: [] };
 
