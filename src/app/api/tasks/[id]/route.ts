@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { tasks } from "@/db/schema/tasks";
+import { asUser } from "@/db/scoped";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
 import { capUnlessUnchanged, title as titleRule } from "@/lib/api/parse-fields";
@@ -24,7 +24,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   // The task and its alerts change together, so an alert never keeps a fire
   // time that no longer matches the due date. The membership check shares the
   // transaction so the Space and Group stay locked until the write commits.
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     const set: Partial<typeof tasks.$inferInsert> = { ...updates };
     // Only a membership or title change needs the stored row, so completing
     // a task stays a single update.
@@ -71,10 +71,9 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
   const { id } = await params;
   if (!isUuid(id)) return fail("Task not found", 404);
 
-  const [deletedTask] = await db
-    .delete(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.user_id, user.id)))
-    .returning();
+  const [deletedTask] = await asUser(user, (tx) =>
+    tx.delete(tasks).where(and(eq(tasks.id, id), eq(tasks.user_id, user.id))).returning(),
+  );
 
   if (!deletedTask) {
     return fail("Task not found", 404);

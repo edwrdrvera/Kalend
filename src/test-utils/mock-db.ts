@@ -119,6 +119,7 @@ export function setupMockDb<T extends BaseRow>(
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
     const queryClient = {
+      execute: async () => [],
       select: () => ({
         from: (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether

@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
+import { asUser } from "@/db/scoped";
 import { events } from "@/db/schema/events";
 import { groups } from "@/db/schema/groups";
 import { tasks } from "@/db/schema/tasks";
@@ -21,7 +21,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const parsed = parseCategoryPatch(await request.json());
   if (!parsed.ok) return fail(parsed.error, 400);
 
-  const updatedCategory = await retryTransaction(() => db.transaction(async (tx) => {
+  const updatedCategory = await retryTransaction(() => asUser(user, async (tx) => {
     const [existing] = await tx
       .select()
       .from(categories)
@@ -50,7 +50,7 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
   const { id } = await params;
   if (!isUuid(id)) return fail("Space not found", 404);
 
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     const [ownedCategory] = await tx
       .select()
       .from(categories)

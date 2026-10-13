@@ -1,12 +1,10 @@
 import { and, eq } from "drizzle-orm";
-import type { db } from "@/db";
 import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
+import type { Tx } from "@/db/scoped";
 import { fireAtFor, type AlertTarget } from "@/lib/alerts";
 import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
-
-export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Locks the caller's event or task and reads the time its alerts count back

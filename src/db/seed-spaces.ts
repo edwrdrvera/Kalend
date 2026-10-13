@@ -29,7 +29,7 @@ import { ownerDb as db } from "./owner";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";
-import type { Tx } from "../lib/api/alert-sync";
+import type { Tx } from "./scoped";
 import type { EventColor } from "../lib/event-colors";
 
 // Each Space: a display name, a palette color (from EVENT_COLORS), the event

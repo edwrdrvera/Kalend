@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { alerts } from "@/db/schema/alerts";
+import { asUser } from "@/db/scoped";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { parseAlertCreate } from "@/lib/api/alert-body";
 import { lockAlertTime } from "@/lib/api/alert-sync";
@@ -8,7 +8,7 @@ import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
 
 export const GET = withUser(async (_request, _context, user) => {
-  const userAlerts = await db.select().from(alerts).where(eq(alerts.user_id, user.id));
+  const userAlerts = await asUser(user, (tx) => tx.select().from(alerts).where(eq(alerts.user_id, user.id)));
   return ok(userAlerts);
 });
 
@@ -17,7 +17,7 @@ export const POST = withUser(async (request, _context, user) => {
   if (!parsed.ok) return fail(parsed.error, 400);
   const { target, offset_minutes } = parsed.value;
 
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     const item = await lockAlertTime(tx, user, target);
     // A foreign id looks exactly like a missing one.
     if (!item.exists) return { notFound: true } as const;

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { categories, type Category } from "@/db/schema/categories";
 import { groups } from "@/db/schema/groups";
-import type { Tx } from "@/lib/api/alert-sync";
+import type { Tx } from "@/db/scoped";
 import { reconcileMembership, type Membership, type MembershipPatch, type ReconcileError } from "@/lib/membership";
 import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 

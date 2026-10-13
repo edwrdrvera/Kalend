@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { categories } from "@/db/schema/categories";
+import { asUser } from "@/db/scoped";
 import { events } from "@/db/schema/events";
 import { groups } from "@/db/schema/groups";
 import { tasks } from "@/db/schema/tasks";
@@ -21,11 +21,13 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   // Postgres rejects a malformed uuid with an error, which would surface as a 500.
   if (!isUuid(id)) return fail("Group not found", 404);
 
-  const [updated] = await db
-    .update(groups)
-    .set({ name: parsed.value.name })
-    .where(and(eq(groups.id, id), eq(groups.user_id, user.id)))
-    .returning();
+  const [updated] = await asUser(user, (tx) =>
+    tx
+      .update(groups)
+      .set({ name: parsed.value.name })
+      .where(and(eq(groups.id, id), eq(groups.user_id, user.id)))
+      .returning(),
+  );
   if (!updated) return fail("Group not found", 404);
 
   return ok(updated);
@@ -35,7 +37,7 @@ export const DELETE = withUser(async (_request, { params }: RouteContext, user) 
   const { id } = await params;
   if (!isUuid(id)) return fail("Group not found", 404);
 
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     // Space first, then Group, then items: the order a Space delete takes, so
     // the two serialize instead of deadlocking.
     const [owned] = await tx
