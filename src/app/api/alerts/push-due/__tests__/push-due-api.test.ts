@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock, setSystemTime } from "bun:test";
 import { setupMockDb, type MockAuthUser, type MockDbState } from "@/test-utils/mock-db";
+import { MISSED_AFTER_MS } from "@/lib/alerts";
+import { PUSH_USER_CONCURRENCY, pushDueAlerts } from "@/lib/api/push-due";
 import type { PushSendResult, PushTarget } from "@/lib/api/send-push";
 
 interface MockAlert {
@@ -299,5 +301,78 @@ describe("POST /api/alerts/push-due", () => {
     for (const resolve of release) resolve({ ok: true });
     expect((await pending).status).toBe(200);
     expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("checks several users at once, and holds the rest until a slot is free", async () => {
+    const total = PUSH_USER_CONCURRENCY + 1;
+    const ids = Array.from({ length: total }, (_, index) => {
+      const suffix = String(index).padStart(12, "0");
+      return {
+        userId: `10000000-0000-4000-8000-${suffix}`,
+        eventId: `20000000-0000-4000-8000-${suffix}`,
+        endpoint: `https://push.example.com/device/user-${index}`,
+      };
+    });
+    subscriptionState.rows = ids.map((row, index) => device(`sub-${index}`, row.userId, row.endpoint));
+    eventState.rows = ids.map((row, index) => ({ id: row.eventId, user_id: row.userId, title: `Class ${index}` }));
+    alertState.rows = ids.map((row, index) => alertRow(`a-${index}`, { user_id: row.userId, event_id: row.eventId }));
+    const release: Array<(result: PushSendResult) => void> = [];
+    sendPushMock.mockImplementation(() => new Promise((resolve) => {
+      release.push(resolve);
+    }));
+    const pending = push(`Bearer ${SECRET}`);
+    for (let attempt = 0; attempt < 40 && release.length < PUSH_USER_CONCURRENCY; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(PUSH_USER_CONCURRENCY);
+    release[0]({ ok: true });
+    for (let attempt = 0; attempt < 40 && release.length < total; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(total);
+    for (const resolve of release.slice(1)) resolve({ ok: true });
+    expect((await pending).status).toBe(200);
+    expect(pushed()).toHaveLength(total);
+  });
+
+  it("stops waiting when a send hangs and leaves the alert unfired", async () => {
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(() => new Promise(() => {}));
+    const result = await pushDueAlerts({ sendTimeoutMs: 25 });
+    expect(result).toEqual({ sent: 0 });
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("sends a claim whose previous send never finished", async () => {
+    alertState.rows = [alertRow("a-stuck", { fired_at: new Date(NOW.getTime() + 60_000) })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-stuck"]);
+    expect(firedAt("a-stuck")?.toISOString()).toBe(NOW.toISOString());
+
+    sendPushMock.mockClear();
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+  });
+
+  it("does not send a claim that just started or that the open tab already took", async () => {
+    alertState.rows = [
+      alertRow("a-live", { fired_at: new Date(NOW.getTime() + MISSED_AFTER_MS) }),
+      alertRow("a-shown", { fired_at: NOW, event_id: null, task_id: TASK_ID }),
+    ];
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-live")?.getTime()).toBe(NOW.getTime() + MISSED_AFTER_MS);
+    expect(firedAt("a-shown")?.toISOString()).toBe(NOW.toISOString());
+  });
+
+  it("releases a stuck claim that is already too late to push", async () => {
+    alertState.rows = [alertRow("a-old", {
+      fire_at: minutesFromNow(-6),
+      fired_at: new Date(NOW.getTime() + 60_000),
+    })];
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-old")).toBeNull();
   });
 });

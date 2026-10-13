@@ -12,9 +12,6 @@ export type PushSendResult =
   | { ok: false; gone: true }
   | { ok: false; gone: false; status: number | null };
 
-/** How long one device send may take before the minute check moves on. */
-export const PUSH_SEND_TIMEOUT_MS = 10_000;
-
 // The browser and the sender share this one public key. A second variable
 // would let them drift, and a subscription made with one key cannot be sent
 // with the other.
@@ -35,7 +32,6 @@ export async function sendPush(target: PushTarget): Promise<PushSendResult> {
     await sendNotification(
       { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
       target.payload,
-      { timeout: PUSH_SEND_TIMEOUT_MS },
     );
     return { ok: true };
   } catch (error) {
