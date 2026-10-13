@@ -240,14 +240,11 @@ describe.skipIf(!ownerUrl || !appUrl)("row policies isolate two users", () => {
   it("lets the app role insert a waitlist row, not read it back", async () => {
     await app`insert into waitlist (email) values (${fixture.email})`;
 
-    let visible: { email: string }[] = [];
-    try {
-      visible = await app`select email from waitlist where email = ${fixture.email}`;
-    } catch (error) {
-      expect(codeOf(error)).toBe("42501");
-      visible = [];
-    }
-    expect(visible).toHaveLength(0);
+    // Insert is granted. Select is not, so a read is permission denied.
+    await expectCode(
+      () => app`select email from waitlist where email = ${fixture.email}`,
+      "42501",
+    );
 
     await expectCode(
       () => app`insert into waitlist (email) values (${fixture.email})`,
