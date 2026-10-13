@@ -16,7 +16,10 @@
  * of the same chain, directly or nested in `and(...)`. Under `or(...)` or
  * `not(...)` it would no longer restrict the rows, so it does not count.
  * `db.query.<table>` and `db.execute(...)` are reported outright because the
- * filter inside them cannot be checked. So is a select, update, delete, or
+ * filter inside them cannot be checked. The one exception is `set_config` of
+ * `app.user_id` with the local flag true, and only in `src/db/scoped.ts`,
+ * because that call stores the caller id for row policies and does not read a
+ * table. A test may read that same setting back. A select, update, delete, or
  * insert whose table the rule can't identify, such as a conditional, a
  * parameter, or a property of a runtime object: it fails closed. A filter hoisted into a variable or built
  * in an array is invisible to pure AST matching, so those legitimately-scoped
@@ -24,9 +27,26 @@
  * silent on a query it cannot prove is scoped. Inline the filter to satisfy it.
  * The rule cannot be disabled inline (see eslint.config.mjs); a genuine
  * exception means changing this rule, where the change gets reviewed.
+ *
+ * Route files must not call the shared `db` client. Queries go through the
+ * transaction `asUser` opens, which is the connection that holds the caller
+ * id. The waitlist route is the exception: it has no signed-in user.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
+
+const DIRECT_DB_METHODS = new Set([
+  "select",
+  "selectDistinct",
+  "insert",
+  "update",
+  "delete",
+  "execute",
+  "transaction",
+]);
+
+const directDbMessage =
+  'API routes must query through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
@@ -234,6 +254,47 @@ function conflictKeepsOwner(conflict, scope) {
   return ownerIsUser(set?.value, false, scope);
 }
 
+function isAppDb(node, scope) {
+  if (node?.type !== "Identifier") return false;
+  const variable = findVariable(scope, node.name);
+  const def = variable?.defs[0];
+  if (def?.type !== "ImportBinding" || def.node.type !== "ImportSpecifier") return false;
+  const imported = def.node.imported.name ?? def.node.imported.value;
+  if (imported !== "db") return false;
+  return def.parent?.source?.value === "@/db";
+}
+
+function routeForbidsDirectDb(filename) {
+  const path = String(filename ?? "").replaceAll("\\", "/");
+  const marker = "src/app/api/";
+  const index = path.indexOf(marker);
+  if (index === -1) return false;
+  const rest = path.slice(index + marker.length);
+  return rest !== "waitlist" && !rest.startsWith("waitlist/") && !rest.startsWith("waitlist.");
+}
+
+function templateText(node) {
+  if (node?.type !== "TaggedTemplateExpression") return null;
+  if (node.tag?.type !== "Identifier" || node.tag.name !== "sql") return null;
+  const quasis = node.quasi?.quasis;
+  if (!quasis) return null;
+  return quasis.map((quasi) => quasi.value?.cooked ?? "").join(" ");
+}
+
+// set_config(..., true) is local to the transaction. false would leak across
+// a pooled connection, so that form stays reported.
+function isCallerSettingExecute(argument, filename) {
+  const text = templateText(argument);
+  if (text === null || !text.includes("app.user_id")) return false;
+  const path = String(filename ?? "").replaceAll("\\", "/");
+  const scopedFile = path.endsWith("/src/db/scoped.ts") || path.endsWith("src/db/scoped.ts");
+  if (scopedFile) {
+    return text.includes("set_config(") && /,\s*true\s*\)/.test(text);
+  }
+  const settingTest = path.endsWith("/src/db/__tests__/scoped.test.ts") || path.endsWith("src/db/__tests__/scoped.test.ts");
+  return settingTest && text.includes("current_setting(");
+}
+
 function isScoped(node, table, scope) {
   if (node?.type !== "CallExpression" || node.callee.type !== "Identifier") return false;
   if (node.callee.name === "eq") return isOwnerEq(node, table, scope);
@@ -251,6 +312,16 @@ const scopedQuery = {
     return {
       CallExpression(node) {
         const scope = context.sourceCode.getScope(node);
+        const filename = context.filename ?? "";
+        if (
+          node.callee.type === "MemberExpression" &&
+          node.callee.property.type === "Identifier" &&
+          DIRECT_DB_METHODS.has(node.callee.property.name) &&
+          isAppDb(node.callee.object, scope) &&
+          routeForbidsDirectDb(filename)
+        ) {
+          context.report({ node, message: directDbMessage });
+        }
         const root = queryRoot(node, scope);
         if (root !== null) {
           const { method, table } = root;
@@ -273,7 +344,7 @@ const scopedQuery = {
           }
           return;
         }
-        if (isMember(node.callee, "execute")) {
+        if (isMember(node.callee, "execute") && !isCallerSettingExecute(node.arguments[0], filename)) {
           context.report({
             node,
             message: "Raw SQL cannot be checked for an owner filter. Use db.select()/update()/delete() with .where(eq(<table>.user_id, user.id)).",

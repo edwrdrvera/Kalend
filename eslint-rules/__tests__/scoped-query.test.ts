@@ -193,6 +193,51 @@ const typedTester = new RuleTester({
   languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" },
 });
 
+const directDb = /shared database client/;
+
+ruleTester.run("scoped-query caller transaction", rule, {
+  valid: [
+    {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`)",
+    },
+    {
+      filename: "src/db/__tests__/scoped.test.ts",
+      code: "tx.execute(sql`select current_setting('app.user_id', true) as caller`)",
+    },
+    {
+      filename: "src/app/api/waitlist/route.ts",
+      code: "import { db } from '@/db'; db.insert(waitlist).values({ email })",
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "withUser(async (request, context, user) => tx.select().from(events).where(eq(events.user_id, user.id)))",
+    },
+  ],
+  invalid: [
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/tasks/route.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.transaction(async (tx) => tx.select().from(tasks).where(eq(tasks.user_id, user.id))))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, false)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+    {
+      filename: "src/db/other.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+  ],
+});
+
 typedTester.run("scoped-query with typed helpers", rule, {
   valid: [
     "async function load(tx, user: AuthenticatedUser) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }",
