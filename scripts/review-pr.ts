@@ -2,7 +2,7 @@
 // Claude process. The caller passes only a PR number: the prompt is built here
 // from a fixed template, so the session that wrote the code has no channel to
 // hand the reviewer its reasoning.
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { changedFiles, prTier } from "./review-tier";
@@ -30,6 +30,29 @@ export const unknownReviewerVersion = "unknown";
 
 export function reviewComment(report: string, reviewerVersion: string): string {
   return `${reportHeading}\n\nRun by \`bun run review:pr\` with no author context. Reviewer version: \`${reviewerVersion}\`.\n\n${report}`;
+}
+
+// The reviewer writes its report here, inside its worktree. The script posts this file, not the reviewer's last message.
+export const reportFileName = ".review-report.md";
+
+const verdictHeading = /^### Verdict:/;
+
+// A missing or malformed file means the reviewer never produced a report. Throwing here keeps a bad run from being posted or counted.
+export function readReport(path: string): string {
+  if (!existsSync(path)) {
+    throw new Error(`The reviewer wrote no report file (${reportFileName}), so nothing was posted.`);
+  }
+  const report = readFileSync(path, "utf8").trim();
+  if (!verdictHeading.test(report)) {
+    throw new Error(`The report file has no "### Verdict:" heading, so nothing was posted.`);
+  }
+  return report;
+}
+
+export function publishReport(path: string, reviewerVersion: string, post: (body: string) => void): string {
+  const report = readReport(path);
+  post(reviewComment(report, reviewerVersion));
+  return report;
 }
 
 export type LinkedIssue = { number: number; title: string; body: string | null };
@@ -98,7 +121,7 @@ export function reviewPrompt(prUrl: string, criteria: string): string {
 
 Run in fresh-session mode (see "Fresh-session mode" in the skill). You are a reviewer started with no history. Report only: do not edit tracked files outside new proof tests, commit, push, or comment on the PR.
 
-Only your final message is kept. Make it the complete report in the "Report layout", starting with the Verdict heading, with nothing before or after it. Edit it against the "Writing checklist" first.
+Write the complete report to the file \`${reportFileName}\` in the current directory, in the "Report layout", starting with the Verdict heading, with nothing before or after it. Edit it against the "Writing checklist" first. Only that file is kept. Your final message is discarded, so do not rely on it.
 
 Acceptance criteria, copied verbatim from the linked issue(s). Treat these as the intent of the change:
 
@@ -199,23 +222,27 @@ async function main() {
       ],
       { cwd: dir, stdout: "pipe", stderr: "inherit" },
     );
-    const report = await new Response(reviewer.stdout).text();
-    console.log(report);
+    await new Response(reviewer.stdout).text();
     if ((await reviewer.exited) !== 0) throw new Error("The reviewer exited with an error.");
 
+    const reportPath = join(dir, reportFileName);
     if (post) {
-      const body = reviewComment(report, reviewerVersion);
-      const comment = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
-        stdin: new TextEncoder().encode(body),
-        stderr: "pipe",
+      const report = publishReport(reportPath, reviewerVersion, (body) => {
+        const comment = Bun.spawnSync(["gh", "pr", "comment", pr, "--body-file", "-"], {
+          stdin: new TextEncoder().encode(body),
+          stderr: "pipe",
+        });
+        if (comment.exitCode !== 0) throw new Error(`gh pr comment failed:\n${comment.stderr.toString()}`);
       });
-      if (comment.exitCode !== 0) throw new Error(`gh pr comment failed:\n${comment.stderr.toString()}`);
+      console.log(report);
+    } else {
+      console.log(readReport(reportPath));
     }
   } finally {
     // Keep the worktree when the reviewer wrote proof tests, so they can be copied over.
     // A cleanup failure must not hide the reviewer's own error.
     try {
-      const changes = run(["git", "status", "--porcelain", "--", ".", ...baseConfigPaths.map((path) => `:!${path}`)], dir);
+      const changes = run(["git", "status", "--porcelain", "--", ".", ...baseConfigPaths.map((path) => `:!${path}`), `:!${reportFileName}`], dir);
       if (changes.trim()) {
         console.error(
           `Reviewer wrote files. Worktree kept at ${dir}:\n${changes}\nRemove it with: git worktree remove --force ${dir}`,

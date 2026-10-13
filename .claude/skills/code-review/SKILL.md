@@ -117,7 +117,7 @@ Edit the draft once against [the writing checklist](#writing-checklist) before y
 - Don't treat commit messages or code comments as proof the code is right.
 - In step 4, fix nothing. Report "Fix now" items with their `file:line` and proposed fix. Leave proof tests as files in the worktree.
 - On high tier, run `/security-review` in fresh-session mode in this same process, and merge its findings into your report.
-- Write the report in the layout below, not the step 5 list. Only your final message is kept, so the report is the whole message.
+- Write the report in the layout below, not the step 5 list. Write the report to the file the prompt names. Only that file is posted, so your final message can be a short note.
 
 ### Report layout
 
