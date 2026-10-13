@@ -118,9 +118,7 @@ export function setupMockDb<T extends BaseRow>(
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
-    const queryClient = {
-      select: () => ({
-        from: (table: unknown) => ({
+    const fromRows = (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether
           // the handler's where condition contains the authenticated user's
           // ID. If the handler forgot eq(table.user_id, user.id), the
@@ -180,8 +178,19 @@ export function setupMockDb<T extends BaseRow>(
             };
             return promise;
           }),
-        }),
-      }),
+          // A select with no where lists every row. The push check uses it to
+          // read owner ids only, then scopes every later query.
+          then(onFulfilled: (rows: BaseRow[]) => unknown, onRejected?: (error: unknown) => unknown) {
+            const selectedState = stateFor(table);
+            if (selectedState.shouldFail) {
+              return Promise.reject(new Error("DB Connection failed")).then(onFulfilled, onRejected);
+            }
+            return Promise.resolve(selectedState.rows).then(onFulfilled, onRejected);
+          },
+    });
+    const queryClient = {
+      select: () => ({ from: fromRows }),
+      selectDistinct: () => ({ from: fromRows }),
       insert: (table: unknown) => ({
         values: (vals: Record<string, unknown>) => {
           let skipDuplicates = false;
