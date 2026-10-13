@@ -1,8 +1,10 @@
 import { db } from "@/db";
+import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
-import { rescheduleAlerts } from "@/lib/api/alert-sync";
+import { rescheduleAlerts, type Tx } from "@/lib/api/alert-sync";
 import { parseIcs, type ImportedEvent } from "@/lib/api/ics-import";
 import { fail, ok, withUser } from "@/lib/api/route-handler";
+import { fireAtFor } from "@/lib/alerts";
 import { DEFAULT_EVENT_COLOR } from "@/lib/event-colors";
 import {
   ICS_FILE_REQUIRED_MESSAGE,
@@ -10,6 +12,7 @@ import {
   MAX_ICS_BYTES,
 } from "@/lib/ics-limits";
 import { retryTransaction } from "@/lib/transaction-retry";
+import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 export const POST = withUser(async (request, _context, user) => {
@@ -118,7 +121,10 @@ export const POST = withUser(async (request, _context, user) => {
         updated += 1;
         const event = freshByKey.get(`${row.import_uid ?? ""}\0${row.import_occurrence ?? ""}`);
         if (!event) continue;
-        await rescheduleAlerts(tx, user, { kind: "event", id: row.id }, event.startAt, new Date());
+        // The update has already stored the new start. An alert's fire time is
+        // that start minus its offset, so a match means the start did not move
+        // and a fired alert must stay fired.
+        await rescheduleIfStartMoved(tx, user, row.id, event.startAt);
       }
       unchanged += fresh.length - saved.length;
     }
@@ -150,6 +156,16 @@ async function readBoundedCalendar(request: Request): Promise<{ text: string } |
     }
     text += decoder.decode(value, { stream: true });
   }
+}
+
+async function rescheduleIfStartMoved(tx: Tx, user: AuthenticatedUser, eventId: string, startAt: Date): Promise<void> {
+  const stored = await tx
+    .select()
+    .from(alerts)
+    .where(and(eq(alerts.event_id, eventId), eq(alerts.user_id, user.id)));
+  const startMoved = stored.some((alert) => fireAtFor(startAt, alert.offset_minutes).getTime() !== alert.fire_at.getTime());
+  if (!startMoved) return;
+  await rescheduleAlerts(tx, user, { kind: "event", id: eventId }, startAt, new Date());
 }
 
 function sameImportedFields(
