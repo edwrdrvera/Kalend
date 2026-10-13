@@ -37,7 +37,9 @@ const THEIRS = "https://push.example.com/device/theirs";
 const minutesFromNow = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
 
 let mockCurrentUser: MockAuthUser | null = { id: ME, email: "student@university.edu" };
-const sendPushMock = mock(async (_target: PushTarget): Promise<PushSendResult> => ({ ok: true }));
+const sendPushMock = mock(async (target: PushTarget): Promise<PushSendResult> => (
+  typeof target.endpoint === "string" ? { ok: true } : { ok: false, gone: false, status: 400 }
+));
 
 mock.module("@/lib/api/send-push", () => ({
   sendPush: (target: PushTarget) => sendPushMock(target),
