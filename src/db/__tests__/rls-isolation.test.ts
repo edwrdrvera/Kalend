@@ -159,16 +159,28 @@ describe.skipIf(!ownerUrl || !appUrl)("row policies isolate two users", () => {
 
   it("changes nothing when it updates or deletes the other user's rows", async () => {
     const counts = await asUser(fixture.userA, async (tx) => ({
-      updated: (await tx`update events set title = 'stolen' where id = ${fixture.eventB}`).count,
-      deleted: (await tx`delete from tasks where id = ${fixture.taskB}`).count,
+      events: (await tx`update events set title = 'stolen' where id = ${fixture.eventB}`).count,
+      categories: (await tx`update categories set name = 'stolen' where id = ${fixture.categoryB}`).count,
+      groups: (await tx`update groups set name = 'stolen' where id = ${fixture.groupB}`).count,
+      tasks: (await tx`delete from tasks where id = ${fixture.taskB}`).count,
+      alerts: (await tx`delete from alerts where id = ${fixture.alertB}`).count,
     }));
-    expect(Number(counts.updated)).toBe(0);
-    expect(Number(counts.deleted)).toBe(0);
+    expect(Number(counts.events)).toBe(0);
+    expect(Number(counts.categories)).toBe(0);
+    expect(Number(counts.groups)).toBe(0);
+    expect(Number(counts.tasks)).toBe(0);
+    expect(Number(counts.alerts)).toBe(0);
 
     const [event] = await owner`select title from events where id = ${fixture.eventB}`;
+    const [category] = await owner`select name from categories where id = ${fixture.categoryB}`;
+    const [group] = await owner`select name from groups where id = ${fixture.groupB}`;
     const [task] = await owner`select id from tasks where id = ${fixture.taskB}`;
+    const [alert] = await owner`select id from alerts where id = ${fixture.alertB}`;
     expect(event.title).toBe("Event B");
+    expect(category.name).toBe("Space B");
+    expect(group.name).toBe("Group B");
     expect(task.id).toBe(fixture.taskB);
+    expect(alert.id).toBe(fixture.alertB);
   });
 
   it("rejects an insert that names the other user", async () => {
