@@ -268,11 +268,11 @@ function dateStamp(time: ICAL.Time): string {
 
 /**
  * A floating time has no zone of its own, so it is read in `timeZone`.
- * A TZID that came with a VTIMEZONE is already applied. A TZID on its own is
- * still an IANA name, and the wall clock is converted with that name.
+ * A TZID that came with a VTIMEZONE is already applied. A TZID with no
+ * VTIMEZONE leaves the time floating, and the zone name stays on the
+ * property as its TZID parameter, which is the public place ical.js keeps it.
+ * That name is still an IANA zone, and the wall clock is converted with it.
  */
-// A TZID with no VTIMEZONE leaves the time floating. The zone name stays on
-// the property as its TZID parameter, which is the public place ical.js keeps it.
 function declaredZone(component: ICAL.Component, name: string): string | null {
   const tzid = component.getFirstProperty(name)?.getParameter("tzid");
   return typeof tzid === "string" && tzid ? tzid : null;
