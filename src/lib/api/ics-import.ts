@@ -1,3 +1,6 @@
+// Pinned in package.json to 2.2.1 with no caret. Recurrence, skipped dates,
+// and a TZID with no VTIMEZONE block are read from this version, and a newer
+// release can change those.
 import ICAL from "ical.js";
 import { MAX_DESCRIPTION_LENGTH } from "@/lib/description";
 import { MAX_LOCATION_LENGTH } from "@/lib/event-form";
@@ -115,7 +118,7 @@ export function parseIcs(text: string, options: { now: Date; tz: string }): IcsP
     while (next && next !== "stop") {
       steps += 1;
       if (steps > MAX_EXPANSION_STEPS) return { error: ICS_TOO_MANY_MESSAGE };
-      const original = toInstant(next, options.tz);
+      const original = toInstant(next, options.tz, declaredZone(master, "dtstart"));
       if (!original) {
         skipped += 1;
       } else if (original >= windowEnd) {
@@ -183,13 +186,15 @@ function singleEvent(event: ICAL.Event, timeZone: string, fromException: boolean
   } catch {
     return "skip";
   }
-  const startAt = toInstant(startTime, timeZone);
-  const endAt = toInstant(endTime, timeZone);
+  const startTzid = declaredZone(event.component, "dtstart");
+  const endTzid = declaredZone(event.component, "dtend") ?? startTzid;
+  const startAt = toInstant(startTime, timeZone, startTzid);
+  const endAt = toInstant(endTime, timeZone, endTzid);
   if (!startAt || !endAt || endAt.getTime() <= startAt.getTime()) return "skip";
   let occurrence = "";
   if (fromException) {
     try {
-      const key = occurrenceKey(event.recurrenceId, timeZone);
+      const key = occurrenceKey(event.recurrenceId, timeZone, declaredZone(event.component, "recurrence-id") ?? startTzid);
       if (!key) return "skip";
       occurrence = key;
     } catch {
@@ -214,9 +219,12 @@ function occurrenceEvent(event: ICAL.Event, when: ICAL.Time, timeZone: string): 
   } catch {
     return "skip";
   }
-  const startAt = toInstant(details.startDate, timeZone);
-  const endAt = toInstant(details.endDate, timeZone);
-  const occurrence = occurrenceKey(when, timeZone);
+  const masterStart = declaredZone(event.component, "dtstart");
+  const masterEnd = declaredZone(event.component, "dtend") ?? masterStart;
+  const item = details.item.component;
+  const startAt = toInstant(details.startDate, timeZone, declaredZone(item, "dtstart") ?? masterStart);
+  const endAt = toInstant(details.endDate, timeZone, declaredZone(item, "dtend") ?? masterEnd);
+  const occurrence = occurrenceKey(when, timeZone, masterStart);
   if (!startAt || !endAt || !occurrence || endAt.getTime() <= startAt.getTime()) return "skip";
   return {
     importUid: componentUid(event.component),
@@ -248,9 +256,9 @@ function clip(value: string, max: number): string | null {
   return trimmed.length <= max ? trimmed : trimmed.slice(0, max);
 }
 
-function occurrenceKey(time: ICAL.Time, timeZone: string): string | null {
+function occurrenceKey(time: ICAL.Time, timeZone: string, declaredTzid: string | null): string | null {
   if (time.isDate) return dateStamp(time);
-  const instant = toInstant(time, timeZone);
+  const instant = toInstant(time, timeZone, declaredTzid);
   return instant ? instant.toISOString() : null;
 }
 
@@ -263,25 +271,23 @@ function dateStamp(time: ICAL.Time): string {
  * A TZID that came with a VTIMEZONE is already applied. A TZID on its own is
  * still an IANA name, and the wall clock is converted with that name.
  */
-function toInstant(time: ICAL.Time, timeZone: string): Date | null {
+// A TZID with no VTIMEZONE leaves the time floating. The zone name stays on
+// the property as its TZID parameter, which is the public place ical.js keeps it.
+function declaredZone(component: ICAL.Component, name: string): string | null {
+  const tzid = component.getFirstProperty(name)?.getParameter("tzid");
+  return typeof tzid === "string" && tzid ? tzid : null;
+}
+
+function toInstant(time: ICAL.Time, timeZone: string, declaredTzid: string | null): Date | null {
   try {
     if (time.isDate) return zonedWallTimeToUtc(wallFrom(time, true), timeZone);
-    const zone = zoneName(time);
-    if (!zone) return zonedWallTimeToUtc(wallFrom(time, false), timeZone);
-    if (zone === "UTC" || time.zone.tzid !== "floating") return time.toJSDate();
-    if (!isValidTimeZone(zone)) return null;
-    return zonedWallTimeToUtc(wallFrom(time, false), zone);
+    if (time.zone.tzid !== "floating") return time.toJSDate();
+    if (!declaredTzid) return zonedWallTimeToUtc(wallFrom(time, false), timeZone);
+    if (!isValidTimeZone(declaredTzid)) return null;
+    return zonedWallTimeToUtc(wallFrom(time, false), declaredTzid);
   } catch {
     return null;
   }
-}
-
-function zoneName(time: ICAL.Time): string | null {
-  if (time.zone.tzid === "UTC") return "UTC";
-  if (time.zone.tzid !== "floating") return time.zone.tzid;
-  const recorded = Reflect.get(time, "timezone");
-  if (typeof recorded === "string" && recorded !== "floating") return recorded;
-  return null;
 }
 
 function wallFrom(time: ICAL.Time, dateOnly: boolean): WallTime {
