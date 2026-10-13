@@ -35,11 +35,11 @@ export function useImportCalendar(onImported: () => void) {
         headers: { "Content-Type": "text/calendar" },
         body: await file.text(),
       });
-      const json = await response.json() as { success?: boolean; data?: ImportCalendarCounts; error?: string };
-      if (!response.ok || !json.success || !json.data) {
-        throw new Error(json.error ?? "Could not import that calendar");
+      const parsed = parseImportResponse(await response.json());
+      if (!response.ok || !("counts" in parsed)) {
+        throw new Error("error" in parsed ? parsed.error : "Could not import that calendar");
       }
-      setResult(importResultLine(json.data));
+      setResult(importResultLine(parsed.counts));
       onImported();
     } catch (err) {
       setResult(null);
@@ -50,4 +50,28 @@ export function useImportCalendar(onImported: () => void) {
   }
 
   return { busy, error, result, importFile };
+}
+
+const IMPORT_FAILED = "Could not import that calendar";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function countOf(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+export function parseImportResponse(value: unknown): { counts: ImportCalendarCounts } | { error: string } {
+  if (!isRecord(value)) return { error: IMPORT_FAILED };
+  if (value.success !== true) {
+    return { error: typeof value.error === "string" && value.error ? value.error : IMPORT_FAILED };
+  }
+  if (!isRecord(value.data)) return { error: IMPORT_FAILED };
+  const imported = countOf(value.data.imported);
+  const updated = countOf(value.data.updated);
+  const unchanged = countOf(value.data.unchanged);
+  const skipped = countOf(value.data.skipped);
+  if (imported === null || updated === null || unchanged === null || skipped === null) return { error: IMPORT_FAILED };
+  return { counts: { imported, updated, unchanged, skipped } };
 }

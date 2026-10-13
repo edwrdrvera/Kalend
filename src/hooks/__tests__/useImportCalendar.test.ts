@@ -40,6 +40,21 @@ describe("useImportCalendar", () => {
     hook.unmount();
   });
 
+  it("rejects a success body that is missing its counts", async () => {
+    globalThis.fetch = mock(async () => new Response(JSON.stringify({
+      success: true,
+      data: { imported: "42" },
+    }))) as unknown as typeof fetch;
+    const imported = mock(() => {});
+    const hook = renderHook(() => useImportCalendar(imported));
+    await hook.act(() => {});
+    await hook.act(() => hook.result.current.importFile(file("BEGIN:VCALENDAR\nEND:VCALENDAR\n")));
+    expect(hook.result.current.error).toBe("Could not import that calendar");
+    expect(hook.result.current.result).toBeNull();
+    expect(imported).not.toHaveBeenCalled();
+    hook.unmount();
+  });
+
   it("shows the server's message and does not reload when the import is refused", async () => {
     globalThis.fetch = mock(async () => new Response(JSON.stringify({
       success: false,
