@@ -37,6 +37,10 @@ describe("overlapping push checks", () => {
     const eventId = crypto.randomUUID();
     const dueId = crypto.randomUUID();
     const staleId = crypto.randomUUID();
+    // The reclaim matches the stored lease exactly. now() carries microseconds
+    // that a JavaScript date drops, so the comparison would miss the row.
+    const fireAt = new Date(Date.now() - 1_000);
+    const staleLease = new Date(Date.now() + 30_000);
     try {
       await sql`
         insert into events (id, user_id, title, start_at, end_at)
@@ -45,8 +49,8 @@ describe("overlapping push checks", () => {
       await sql`
         insert into alerts (id, user_id, event_id, offset_minutes, fire_at, fired_at)
         values
-          (${dueId}, ${userId}, ${eventId}, 5, now(), null),
-          (${staleId}, ${userId}, ${eventId}, 15, now(), now() + interval '30 seconds')
+          (${dueId}, ${userId}, ${eventId}, 5, ${fireAt}, null),
+          (${staleId}, ${userId}, ${eventId}, 15, ${fireAt}, ${staleLease})
       `;
       await sql`
         insert into push_subscriptions (user_id, endpoint, p256dh, auth)
@@ -55,8 +59,7 @@ describe("overlapping push checks", () => {
 
       await Promise.all([pushDueAlerts(), pushDueAlerts()]);
 
-      expect(count(dueId)).toBe(1);
-      expect(count(staleId)).toBe(1);
+      expect({ due: count(dueId), stale: count(staleId) }).toEqual({ due: 1, stale: 1 });
     } finally {
       await sql`delete from alerts where user_id = ${userId}`;
       await sql`delete from push_subscriptions where user_id = ${userId}`;
