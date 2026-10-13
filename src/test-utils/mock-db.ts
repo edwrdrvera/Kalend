@@ -185,17 +185,28 @@ export function setupMockDb<T extends BaseRow>(
       insert: (table: unknown) => ({
         values: (vals: Record<string, unknown>) => {
           let skipDuplicates = false;
+          let conflictUpdate: Record<string, unknown> | null = null;
           const builder = {
             onConflictDoNothing: () => {
               skipDuplicates = true;
               return builder;
             },
+            onConflictDoUpdate: (config: { set?: Record<string, unknown> }) => {
+              conflictUpdate = config.set ?? {};
+              return builder;
+            },
             returning: mock(async () => {
               const insertState = stateFor(table);
               if (insertState.shouldFail) throw new Error("DB Insert failed");
-              if (skipDuplicates && insertState.conflictsWith) {
+              if (insertState.conflictsWith) {
                 const collides = insertState.conflictsWith;
-                if (insertState.rows.some((row) => collides(row, vals))) return [];
+                const index = insertState.rows.findIndex((row) => collides(row, vals));
+                if (index !== -1 && skipDuplicates) return [];
+                if (index !== -1 && conflictUpdate) {
+                  const updated = { ...insertState.rows[index], ...conflictUpdate };
+                  insertState.rows[index] = updated;
+                  return [updated];
+                }
               }
               const payload = filterUndefined
                 ? Object.fromEntries(
