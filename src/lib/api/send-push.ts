@@ -12,8 +12,14 @@ export type PushSendResult =
   | { ok: false; gone: true }
   | { ok: false; gone: false; status: number | null };
 
+/** How long one device send may take before the minute check moves on. */
+export const PUSH_SEND_TIMEOUT_MS = 10_000;
+
+// The browser and the sender share this one public key. A second variable
+// would let them drift, and a subscription made with one key cannot be sent
+// with the other.
 function vapid(): { publicKey: string; privateKey: string; subject: string } | null {
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT;
   if (!publicKey || !privateKey || !subject) return null;
@@ -29,6 +35,7 @@ export async function sendPush(target: PushTarget): Promise<PushSendResult> {
     await sendNotification(
       { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
       target.payload,
+      { timeout: PUSH_SEND_TIMEOUT_MS },
     );
     return { ok: true };
   } catch (error) {

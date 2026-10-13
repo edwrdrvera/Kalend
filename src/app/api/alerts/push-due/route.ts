@@ -18,7 +18,7 @@ export async function POST(request: Request): Promise<Response> {
     if (!bearerMatches(request.headers.get("authorization"), secret)) {
       return fail("Unauthorized", 401);
     }
-    if (!present("VAPID_PUBLIC_KEY") || !present("VAPID_PRIVATE_KEY") || !present("VAPID_SUBJECT")) {
+    if (!present("NEXT_PUBLIC_VAPID_PUBLIC_KEY") || !present("VAPID_PRIVATE_KEY") || !present("VAPID_SUBJECT")) {
       return fail("Alert push is not configured", 503);
     }
     return ok(await pushDueAlerts());

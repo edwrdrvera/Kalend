@@ -60,7 +60,7 @@ import { POST as claimAlerts } from "../../claim/route";
 import { DELETE as removeSubscription } from "../../../push/subscriptions/route";
 import { POST as pushDue } from "../route";
 
-const envKeys = ["ALERT_PUSH_SECRET", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
+const envKeys = ["ALERT_PUSH_SECRET", "NEXT_PUBLIC_VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
 const savedEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
 
 const alertRow = (id: string, over: Partial<MockAlert> = {}): MockAlert => ({
@@ -102,7 +102,7 @@ describe("POST /api/alerts/push-due", () => {
     setSystemTime(NOW);
     mockCurrentUser = { id: ME, email: "student@university.edu" };
     process.env.ALERT_PUSH_SECRET = SECRET;
-    process.env.VAPID_PUBLIC_KEY = "test-public-key";
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "test-public-key";
     process.env.VAPID_PRIVATE_KEY = "test-private-key";
     process.env.VAPID_SUBJECT = "mailto:alerts@example.com";
     sendPushMock.mockReset();
@@ -258,11 +258,46 @@ describe("POST /api/alerts/push-due", () => {
     expect(pushed().some((item) => item.endpoint === MINE)).toBe(true);
   });
 
-  it("keeps the alert fired when a send fails for another reason", async () => {
+  it("keeps the alert fired when one device gets it and another send fails", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-2", ME, MINE_OTHER)];
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async (target) =>
+      target.endpoint === MINE_OTHER ? { ok: false, gone: false, status: 500 } : { ok: true }
+    );
+    await push(`Bearer ${SECRET}`);
+    expect(subscriptionState.rows).toHaveLength(2);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("releases the claim when every send fails so the alert is not lost", async () => {
     alertState.rows = [alertRow("a-due")];
     sendPushMock.mockImplementation(async () => ({ ok: false, gone: false, status: 500 }));
-    await push(`Bearer ${SECRET}`);
+    const failed = await push(`Bearer ${SECRET}`);
+    expect(await failed.json()).toEqual({ success: true, data: { sent: 0 } });
     expect(subscriptionState.rows).toHaveLength(1);
+    expect(firedAt("a-due")).toBeNull();
+
+    sendPushMock.mockReset();
+    sendPushMock.mockImplementation(async () => ({ ok: true }));
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-due"]);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("contacts one user's devices together instead of waiting for each", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-2", ME, MINE_OTHER)];
+    alertState.rows = [alertRow("a-due")];
+    const release: Array<(result: PushSendResult) => void> = [];
+    sendPushMock.mockImplementation(() => new Promise((resolve) => {
+      release.push(resolve);
+    }));
+    const pending = push(`Bearer ${SECRET}`);
+    for (let attempt = 0; attempt < 30 && release.length < 2; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(2);
+    for (const resolve of release) resolve({ ok: true });
+    expect((await pending).status).toBe(200);
     expect(firedAt("a-due")).not.toBeNull();
   });
 });
