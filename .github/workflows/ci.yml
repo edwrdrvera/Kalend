@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, "cursor/*"]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, "cursor/*"]
 
 jobs:
   lint-and-typecheck:
