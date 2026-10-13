@@ -213,6 +213,10 @@ ruleTester.run("scoped-query caller transaction", rule, {
       filename: "src/app/api/events/route.ts",
       code: "withUser(async (request, context, user) => tx.select().from(events).where(eq(events.user_id, user.id)))",
     },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as other from '@/db/schema'; const { db } = other; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+    },
   ],
   invalid: [
     {
@@ -248,6 +252,26 @@ ruleTester.run("scoped-query caller transaction", rule, {
     {
       filename: "src/lib/api/membership.ts",
       code: "import * as database from '@/db'; withUser(async (request, context, user) => database.db.update(events).set({ title }).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as ns from '@/db'; const { db } = ns; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as ns from '@/db'; const { db: database } = ns; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "async function load() { const { db } = await import('@/db'); return withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id))) }",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/membership.ts",
+      code: "async function load() { const ns = await import('@/db'); return withUser(async (request, context, user) => ns.db.update(events).set({ title }).where(eq(events.user_id, user.id))) }",
       errors: [{ message: directDb }],
     },
     {
