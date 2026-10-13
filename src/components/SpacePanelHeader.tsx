@@ -1,64 +1,156 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { MoreHorizontal, X } from "lucide-react";
+import { useRef, useState, type ReactNode } from "react";
+import { Ellipsis, Palette, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
-import type { PanelSubject } from "@/lib/panel-subject";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
+import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { IconButton } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
   subject: PanelSubject;
   onClose: () => void;
-  onOverflow?: () => void;
+  /** Saves a new name for the Space or Group. Resolves false when the save failed. */
+  onRename: (name: string) => Promise<boolean>;
+  /** Space panels only: opens the Space editor to change its color. */
+  onChangeColor?: () => void;
+  /** Space panels only: opens the Space editor on its delete confirmation. */
+  onDeleteSpace?: () => void;
   /** Rendered under the title, inside the header (the Group chips). */
   children?: ReactNode;
 }
 
-const ICON_BUTTON_CLS =
-  "grid size-7 shrink-0 place-items-center rounded-[7px] border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const TITLE_CLS = "min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground";
 
 export default function SpacePanelHeader({
   subject,
   onClose,
-  onOverflow,
+  onRename,
+  onChangeColor,
+  onDeleteSpace,
   children,
 }: SpacePanelHeaderProps) {
+  const key = subjectKey(subject);
+  // The draft and a failed save each belong to the Space or Group they were
+  // made for, so switching the panel hides them, and a save that finishes
+  // after the switch cannot touch the new subject's header.
+  const [draft, setDraft] = useState<{ key: string; text: string } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  // Enter saves and then the input blurs, which would save a second time.
+  const saving = useRef(false);
+
+  const text = draft?.key === key ? draft.text : null;
+  const failed = failedKey === key;
+
+  async function commit() {
+    if (text === null || saving.current) return;
+    const name = text.trim();
+    if (!name || name === subject.name) return setDraft(null);
+    saving.current = true;
+    const saved = await onRename(name);
+    saving.current = false;
+    if (saved) {
+      setDraft((d) => (d?.key === key ? null : d));
+      setFailedKey(null);
+    } else {
+      setFailedKey(key);
+    }
+  }
+
   return (
     <header className="border-b border-border px-4 py-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11.5px] text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            aria-label={subject.kind === "group" ? "Group options" : "Space options"}
-            onClick={onOverflow}
-            className={ICON_BUTTON_CLS}
-          >
-            <MoreHorizontal className="size-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Close panel"
-            onClick={onClose}
-            className={ICON_BUTTON_CLS}
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+        <p className="text-xs leading-normal text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
+        <IconButton aria-label="Close panel" onClick={onClose}>
+          <X className="size-4" />
+        </IconButton>
       </div>
 
       <div className="mt-1.5 flex items-center gap-2">
         <span
           aria-hidden="true"
-          className={cn(
-            "size-[10px] shrink-0 rounded-[3px]",
-            EVENT_COLOR_SWATCH_CLASSES[subject.color]
-          )}
+          className={cn("size-[10px] shrink-0 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[subject.color])}
         />
-        <h2 className="truncate text-[20px] font-semibold tracking-tight text-foreground">
-          {subject.name}
-        </h2>
+        {text === null ? (
+          <h2 aria-label={subject.name} className="min-w-0 flex-1">
+            <button
+              type="button"
+              title="Click to rename"
+              onClick={() => setDraft({ key, text: subject.name })}
+              className={cn(
+                TITLE_CLS,
+                "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-ring"
+              )}
+            >
+              {subject.name}
+              <span className="sr-only"> Rename</span>
+            </button>
+          </h2>
+        ) : (
+          <input
+            autoFocus
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label={`${subject.name} name`}
+            aria-invalid={failed || undefined}
+            value={text}
+            maxLength={MAX_GROUP_NAME_LENGTH}
+            onChange={(e) => {
+              setDraft({ key, text: e.target.value });
+              setFailedKey(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void commit();
+              } else if (e.key === "Escape") {
+                // Keep PanelShell from also closing the whole panel.
+                e.stopPropagation();
+                setDraft(null);
+                setFailedKey(null);
+              }
+            }}
+            onBlur={() => void commit()}
+            className={cn(
+              TITLE_CLS,
+              "-mx-1 h-[30px] rounded-md border border-ring bg-transparent px-1 outline-none"
+            )}
+          />
+        )}
+        {subject.kind === "space" && onChangeColor && onDeleteSpace && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Space options"
+              render={
+                <IconButton>
+                  <Ellipsis className="size-4" />
+                </IconButton>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={onChangeColor}>
+                <Palette />
+                Change color
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={onDeleteSpace}>
+                <Trash2 />
+                Delete Space
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
+      {failed && (
+        <p role="alert" className="mt-1 text-xs leading-normal text-destructive">
+          Couldn&apos;t rename. Try again.
+        </p>
+      )}
       {children}
     </header>
   );

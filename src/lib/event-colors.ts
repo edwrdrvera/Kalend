@@ -90,9 +90,9 @@ export function getTaskColorClasses(color: string | null): string {
   return TASK_COLOR_CLASSES[color];
 }
 
-// Solid fill + lighter border for the active Space tile in the icon rail. The
-// colored fill with white text reads on the rail in both light and dark themes.
-export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
+// Solid fill + border for a Space tile in the icon rail. The colored fill with
+// white text reads on the rail in both light and dark themes.
+export const RAIL_SPACE_CLASSES: Record<EventColor, string> = {
   blue: "bg-[var(--evt-blue-deep)] border-[var(--evt-blue-deep)] text-white",
   green: "bg-[var(--evt-green-deep)] border-[var(--evt-green-deep)] text-white",
   purple: "bg-[var(--evt-purple-deep)] border-[var(--evt-purple-deep)] text-white",
@@ -102,6 +102,19 @@ export const RAIL_SPACE_ACTIVE_CLASSES: Record<EventColor, string> = {
   pink: "bg-[var(--evt-pink-deep)] border-[var(--evt-pink-deep)] text-white",
   yellow: "bg-[var(--evt-yellow-deep)] border-[var(--evt-yellow-deep)] text-white",
   teal: "bg-[var(--evt-teal-deep)] border-[var(--evt-teal-deep)] text-white",
+};
+
+// The pressed Group chip in a Space panel takes the Space's event-pill tint.
+export const GROUP_CHIP_PRESSED_CLASSES: Record<EventColor, string> = {
+  blue: "aria-pressed:border-[var(--evt-blue-bd)] aria-pressed:bg-[var(--evt-blue-bg)] aria-pressed:text-[var(--evt-blue-fg)] aria-pressed:hover:bg-[var(--evt-blue-bg)] aria-pressed:hover:text-[var(--evt-blue-fg)]",
+  green: "aria-pressed:border-[var(--evt-green-bd)] aria-pressed:bg-[var(--evt-green-bg)] aria-pressed:text-[var(--evt-green-fg)] aria-pressed:hover:bg-[var(--evt-green-bg)] aria-pressed:hover:text-[var(--evt-green-fg)]",
+  purple: "aria-pressed:border-[var(--evt-purple-bd)] aria-pressed:bg-[var(--evt-purple-bg)] aria-pressed:text-[var(--evt-purple-fg)] aria-pressed:hover:bg-[var(--evt-purple-bg)] aria-pressed:hover:text-[var(--evt-purple-fg)]",
+  orange: "aria-pressed:border-[var(--evt-orange-bd)] aria-pressed:bg-[var(--evt-orange-bg)] aria-pressed:text-[var(--evt-orange-fg)] aria-pressed:hover:bg-[var(--evt-orange-bg)] aria-pressed:hover:text-[var(--evt-orange-fg)]",
+  red: "aria-pressed:border-[var(--evt-red-bd)] aria-pressed:bg-[var(--evt-red-bg)] aria-pressed:text-[var(--evt-red-fg)] aria-pressed:hover:bg-[var(--evt-red-bg)] aria-pressed:hover:text-[var(--evt-red-fg)]",
+  indigo: "aria-pressed:border-[var(--evt-indigo-bd)] aria-pressed:bg-[var(--evt-indigo-bg)] aria-pressed:text-[var(--evt-indigo-fg)] aria-pressed:hover:bg-[var(--evt-indigo-bg)] aria-pressed:hover:text-[var(--evt-indigo-fg)]",
+  pink: "aria-pressed:border-[var(--evt-pink-bd)] aria-pressed:bg-[var(--evt-pink-bg)] aria-pressed:text-[var(--evt-pink-fg)] aria-pressed:hover:bg-[var(--evt-pink-bg)] aria-pressed:hover:text-[var(--evt-pink-fg)]",
+  yellow: "aria-pressed:border-[var(--evt-yellow-bd)] aria-pressed:bg-[var(--evt-yellow-bg)] aria-pressed:text-[var(--evt-yellow-fg)] aria-pressed:hover:bg-[var(--evt-yellow-bg)] aria-pressed:hover:text-[var(--evt-yellow-fg)]",
+  teal: "aria-pressed:border-[var(--evt-teal-bd)] aria-pressed:bg-[var(--evt-teal-bg)] aria-pressed:text-[var(--evt-teal-fg)] aria-pressed:hover:bg-[var(--evt-teal-bg)] aria-pressed:hover:text-[var(--evt-teal-fg)]",
 };
 
 // Shared by events and tasks: when linked to a category, the color shown on
@@ -121,4 +134,17 @@ export function resolveDisplayColor(
     if (category) return category.color;
   }
   return ownColor;
+}
+
+// kalend-ui SpaceTile: unpressed tiles are muted; the open Space fills solid.
+export const RAIL_TILE_PRESSED_CLASSES: Record<EventColor, string> = {
+  blue: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-blue-solid)] aria-pressed:bg-[var(--evt-blue-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-blue-solid)] aria-pressed:hover:text-white",
+  green: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-green-solid)] aria-pressed:bg-[var(--evt-green-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-green-solid)] aria-pressed:hover:text-white",
+  purple: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-purple-solid)] aria-pressed:bg-[var(--evt-purple-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-purple-solid)] aria-pressed:hover:text-white",
+  orange: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-orange-solid)] aria-pressed:bg-[var(--evt-orange-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-orange-solid)] aria-pressed:hover:text-white",
+  red: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-red-solid)] aria-pressed:bg-[var(--evt-red-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-red-solid)] aria-pressed:hover:text-white",
+  indigo: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-indigo-solid)] aria-pressed:bg-[var(--evt-indigo-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-indigo-solid)] aria-pressed:hover:text-white",
+  pink: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-pink-solid)] aria-pressed:bg-[var(--evt-pink-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-pink-solid)] aria-pressed:hover:text-white",
+  yellow: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-yellow-solid)] aria-pressed:bg-[var(--evt-yellow-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-yellow-solid)] aria-pressed:hover:text-white",
+  teal: "aria-pressed:border-[1.5px] aria-pressed:border-[var(--evt-teal-solid)] aria-pressed:bg-[var(--evt-teal-solid)] aria-pressed:text-white aria-pressed:hover:bg-[var(--evt-teal-solid)] aria-pressed:hover:text-white",
 }

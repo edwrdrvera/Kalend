@@ -40,7 +40,7 @@ interface Interactions {
   opened: string[];
 }
 
-async function render(tasks: CalendarTask[], scope: "Space" | "Group" = "Space") {
+async function render(tasks: CalendarTask[]) {
   const interactions: Interactions = { toggled: [], opened: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
@@ -50,7 +50,6 @@ async function render(tasks: CalendarTask[], scope: "Space" | "Group" = "Space")
     root?.render(
       createElement(PanelTasksSection, {
         tasks,
-        scope,
         onToggleComplete: (task: CalendarTask) => interactions.toggled.push(task.id),
         onOpenTask: (task: CalendarTask) => interactions.opened.push(task.id),
         onChangeDue: () => {},
@@ -70,11 +69,10 @@ describe("PanelTasksSection when empty", () => {
   });
 });
 
-describe("PanelTasksSection caption", () => {
-  it("names the Space or the Group the list is scoped to", async () => {
-    await render([makeTask({ id: "a" })], "Group");
-    expect(container?.textContent).toContain("Everything open in this Group");
-    expect(container?.textContent).not.toContain("this Space");
+describe("PanelTasksSection heading", () => {
+  it("counts the open tasks", async () => {
+    await render([makeTask({ id: "a" }), makeTask({ id: "b" })]);
+    expect(container?.querySelector("h3")?.textContent).toBe("Tasks · 2 open");
   });
 });
 
@@ -109,11 +107,18 @@ describe("PanelTasksSection rows", () => {
     expect(interactions.toggled).toEqual([]);
   });
 
-  it("shows a checked, aria-pressed checkbox for a completed task", async () => {
-    await render([makeTask({ id: "a", completed: true })]);
+  it("exposes the checkbox as role=checkbox and reflects completion in aria-checked", async () => {
+    await render([makeTask({ id: "a", completed: false })]);
+    const open = document.querySelector('[aria-label="Mark Finish lab report as done"]');
+    expect(open?.getAttribute("role")).toBe("checkbox");
+    expect(open?.getAttribute("aria-checked")).toBe("false");
 
-    const checkbox = document.querySelector('[aria-label="Mark Finish lab report as not done"]');
-    expect(checkbox?.getAttribute("aria-pressed")).toBe("true");
+    await act(() => root?.unmount());
+    container?.remove();
+    await render([makeTask({ id: "a", completed: true })]);
+    const done = document.querySelector('[aria-label="Mark Finish lab report as not done"]');
+    expect(done?.getAttribute("role")).toBe("checkbox");
+    expect(done?.getAttribute("aria-checked")).toBe("true");
   });
 });
 
@@ -122,7 +127,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: null })]);
 
     expect(container?.textContent).toContain("No date");
-    const amber = container?.querySelector(".text-amber-600");
+    const amber = container?.querySelector(".text-warning");
     expect(amber).toBeNull();
   });
 
@@ -131,7 +136,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: yesterday })]);
 
     expect(container?.textContent).toContain("Overdue");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Overdue");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Overdue");
   });
 
   it("shows 'Due today' with the warning color for a task due today", async () => {
@@ -139,7 +144,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: today })]);
 
     expect(container?.textContent).toContain("Due today");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Due today");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Due today");
   });
 
   it("shows 'Due tomorrow' with the warning color for a task due tomorrow", async () => {
@@ -147,7 +152,7 @@ describe("PanelTasksSection due-state sub-lines", () => {
     await render([makeTask({ id: "a", due_at: tomorrow })]);
 
     expect(container?.textContent).toContain("Due tomorrow");
-    expect(container?.querySelector(".text-amber-600")?.textContent).toBe("Due tomorrow");
+    expect(container?.querySelector(".text-warning")?.textContent).toBe("Due tomorrow");
   });
 
   it("shows a formatted date in muted (non-warning) styling for a far-future task", async () => {
@@ -156,13 +161,13 @@ describe("PanelTasksSection due-state sub-lines", () => {
 
     const expected = format(future, "MMM d");
     expect(container?.textContent).toContain(expected);
-    expect(container?.querySelector(".text-amber-600")).toBeNull();
+    expect(container?.querySelector(".text-warning")).toBeNull();
   });
 
   it("never applies the warning color to a completed, overdue task", async () => {
     const yesterday = addDays(new Date(), -1).toISOString();
     await render([makeTask({ id: "a", due_at: yesterday, completed: true })]);
 
-    expect(container?.querySelector(".text-amber-600")).toBeNull();
+    expect(container?.querySelector(".text-warning")).toBeNull();
   });
 });

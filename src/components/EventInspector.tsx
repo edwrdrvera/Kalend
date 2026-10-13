@@ -5,7 +5,7 @@ import { Bell, Clock, LayoutGrid, MapPin, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AlertOffset } from "@/lib/alerts";
 import type { CalendarCategory, CalendarEvent, CalendarGroup } from "@/lib/calendar-types";
-import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
+import { MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   draftFromEvent,
   joinDateTimeLocal,
@@ -21,7 +21,6 @@ import { useInspectorSave } from "@/hooks/useInspectorSave";
 import { APP_INPUT_CLS, DateField } from "./DateField";
 import AlertField from "./AlertField";
 import DescriptionField from "./DescriptionField";
-import IconPicker from "./IconPicker";
 import PanelShell from "./PanelShell";
 import { EventColorControl, EventSpaceSelect } from "./EventFields";
 import {
@@ -31,6 +30,8 @@ import {
   type InspectorNav,
   UnsavedChangesPrompt,
 } from "./InspectorParts";
+import { Input } from "@/components/ui/input";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface EventInspectorProps {
   event: CalendarEvent;
@@ -52,9 +53,12 @@ interface EventInspectorProps {
   onStay: () => void;
 }
 
-const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-md px-2 text-xs";
+const ROW_CONTROL_CLS = "h-7 min-w-0 whitespace-nowrap rounded-lg px-2 text-xs md:text-xs focus-ring";
 
-const INPUT_CLS = cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:ring-ring");
+/** Spaces the native picker icon off the digits, and dims it until hovered. */
+const TIME_INPUT_CLS = "w-28 shrink-0 dark:scheme-dark hover:bg-hover [&::-webkit-calendar-picker-indicator]:ml-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-150 [&::-webkit-calendar-picker-indicator]:hover:opacity-100";
+
+const INPUT_CLS = cn(APP_INPUT_CLS, "w-full");
 
 /** An event's details in the right panel. Mount it with `key={event.id}` so
  *  each event gets a fresh draft. */
@@ -110,30 +114,19 @@ export default function EventInspector({
         <UnsavedChangesPrompt noun="event" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />
       )}
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-3">
-        <div className="flex flex-col gap-2">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
+        <div>
           <label htmlFor="event-inspector-title" className="sr-only">
             Title
           </label>
-          <div className="flex items-center gap-2.5">
-            <label htmlFor="event-inspector-icon" className="sr-only">
-              Event icon
-            </label>
-            <IconPicker
-              id="event-inspector-icon"
-              value={draft.icon}
-              onChange={(icon) => update({ icon })}
-              maxLength={MAX_ICON_LENGTH}
-              className="size-9 rounded-lg text-base"
-            />
-            <input
-              id="event-inspector-title"
-              value={draft.title}
-              onChange={(e) => update({ title: e.target.value })}
-              aria-invalid={draft.title.trim() === "" || undefined}
-              className={cn(INPUT_CLS, "h-9 flex-1 rounded-lg px-3 text-base font-semibold tracking-tight")}
-            />
-          </div>
+          <Input
+            id="event-inspector-title"
+            value={draft.title}
+            maxLength={MAX_TITLE_LENGTH}
+            onChange={(e) => update({ title: e.target.value })}
+            aria-invalid={draft.title.trim() === "" || undefined}
+            className="h-9 rounded-lg px-3 text-base md:text-base font-semibold tracking-tight focus-ring"
+          />
         </div>
 
         <div className="flex flex-col border-b border-border">
@@ -144,12 +137,12 @@ export default function EventInspector({
               className={ROW_CONTROL_CLS}
               onChange={(d) => update({ startAt: joinDateTimeLocal(d, start.time) })}
             />
-            <input
+            <Input
               type="time"
               aria-label="Start time"
               value={start.time}
               onChange={(e) => update({ startAt: joinDateTimeLocal(start.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, "w-28 shrink-0")}
+              className={cn(ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<Clock />} label="Ends">
@@ -159,22 +152,22 @@ export default function EventInspector({
               className={ROW_CONTROL_CLS}
               onChange={(d) => update({ endAt: joinDateTimeLocal(d, end.time) })}
             />
-            <input
+            <Input
               type="time"
               aria-label="End time"
               value={end.time}
               onChange={(e) => update({ endAt: joinDateTimeLocal(end.date, e.target.value) })}
-              className={cn(APP_INPUT_CLS, ROW_CONTROL_CLS, "w-28 shrink-0")}
+              className={cn(ROW_CONTROL_CLS, TIME_INPUT_CLS)}
             />
           </DetailRow>
           <DetailRow icon={<MapPin />} label="Location" labelFor="event-inspector-location">
-            <input
+            <Input
               id="event-inspector-location"
               value={draft.location}
               onChange={(e) => update({ location: e.target.value })}
               maxLength={MAX_LOCATION_LENGTH}
               placeholder="Empty"
-              className={cn(APP_INPUT_CLS, "h-7 w-full border-transparent bg-transparent px-2 text-[13px] -mx-2 focus-visible:ring-2 focus-visible:ring-ring")}
+              className="h-7 w-full border-transparent bg-transparent px-2 text-xs md:text-xs hover:bg-hover focus:border-input dark:bg-transparent focus-ring"
             />
           </DetailRow>
           <DetailRow icon={<Bell />} label="Alert" labelFor="event-inspector-alert">
@@ -191,7 +184,7 @@ export default function EventInspector({
               categories={categories}
               groups={groups}
               onChange={(colorState) => update({ colorState })}
-              className="-ml-2 h-7 text-[13px] text-foreground"
+              className="w-full"
             />
           </DetailRow>
           <DetailRow icon={<Palette />} label="Color" className="justify-between">

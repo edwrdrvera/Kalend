@@ -5,7 +5,7 @@ import LandingButton from "./LandingButton";
 export default function LandingBottomCTA() {
   return (
     <section className="mx-auto max-w-[1200px] px-6 pb-20 min-[860px]:px-8 min-[860px]:pb-28">
-      <div className="grid items-center gap-8 rounded-[22px] border border-[var(--kal-border)] bg-white/55 px-7 py-9 min-[700px]:grid-cols-[1.1fr_0.9fr] min-[860px]:px-10 min-[860px]:py-10">
+      <div className="grid items-center gap-8 rounded-[22px] border border-[var(--kal-border)] bg-[var(--kal-surface)]/55 px-7 py-9 min-[700px]:grid-cols-[1.1fr_0.9fr] min-[860px]:px-10 min-[860px]:py-10">
         <div>
           <p className="mb-3 text-xs font-medium text-[var(--kal-muted)]">
             Get early access

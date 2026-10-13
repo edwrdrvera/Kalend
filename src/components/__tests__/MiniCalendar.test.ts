@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { format } from "date-fns";
 import { createElement } from "react";
 import { act } from "react";
 import type { Root } from "react-dom/client";
@@ -79,7 +80,7 @@ describe("MiniCalendar date selection", () => {
       (b) => b.textContent === "9" && b.className.includes("bg-primary")
     );
     expect(day9).not.toBeNull();
-    expect(day9!.className).toContain("rounded-[6px]");
+    expect(day9!.className).toContain("rounded-md");
     expect(day9!.className).not.toContain("rounded-full");
   });
 });
@@ -114,6 +115,34 @@ describe("MiniCalendar month navigation", () => {
   });
 });
 
+describe("MiniCalendar day names", () => {
+  it("names each day with its full date", async () => {
+    await renderMiniCalendar();
+
+    const day9 = document.querySelector<HTMLButtonElement>('button[aria-label="Monday, September 9, 2030"]');
+    expect(day9).not.toBeNull();
+    expect(day9!.textContent).toBe("9");
+  });
+
+  it("marks only the selected day as pressed", async () => {
+    await renderMiniCalendar();
+
+    const pressed = document.querySelectorAll('button[aria-pressed="true"]');
+    expect(pressed.length).toBe(1);
+    expect(pressed[0].getAttribute("aria-label")).toBe("Monday, September 9, 2030");
+    expect(document.querySelector('button[aria-label="Tuesday, September 10, 2030"]')?.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("marks today with aria-current", async () => {
+    const today = new Date();
+    await renderMiniCalendar(today, today);
+
+    const current = document.querySelectorAll('button[aria-current="date"]');
+    expect(current.length).toBe(1);
+    expect(current[0].getAttribute("aria-label")).toBe(format(today, "EEEE, MMMM d, yyyy"));
+  });
+});
+
 describe("MiniCalendar out-of-month dates", () => {
   it("applies muted (but AA-legible) styling to out-of-month dates", async () => {
     await renderMiniCalendar();
@@ -130,5 +159,24 @@ describe("MiniCalendar out-of-month dates", () => {
         !b.className.includes("text-muted-foreground/")
     );
     expect(outOfMonthCells.length).toBeGreaterThan(0);
+  });
+});
+
+describe("MiniCalendar current week", () => {
+  it("marks only the week of the selected date", async () => {
+    await renderMiniCalendar(new Date(2030, 8, 11));
+
+    const rows = document.querySelectorAll("[data-current-week]");
+    expect(rows.length).toBe(1);
+    const labels = [...rows[0].querySelectorAll("button")].map((b) => b.getAttribute("aria-label"));
+    expect(labels[0]).toBe("Sunday, September 8, 2030");
+    expect(labels[6]).toBe("Saturday, September 14, 2030");
+  });
+
+  it("moves the mark when another date is selected", async () => {
+    await renderMiniCalendar(new Date(2030, 8, 20), new Date(2030, 8, 20));
+
+    const row = document.querySelector("[data-current-week]");
+    expect(row?.querySelector('[aria-label="Friday, September 20, 2030"]')).not.toBeNull();
   });
 });

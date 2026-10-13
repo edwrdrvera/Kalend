@@ -16,8 +16,10 @@ export const config = {
      * - api/waitlist (public landing-page signup, no auth)
      * - api/auth (Better Auth's own sign-in, sign-out, and session endpoints)
      * - api/dev/sign-in (dev-only demo sign-in; 404 unless enabled, see its route)
-     * - Static asset files (.svg, .png, .jpg, .jpeg, .gif, .webp)
+     * - Static asset files (.svg, .png, .jpg, .jpeg, .gif, .webp) outside /api.
+     *   An API path must always run the proxy: it is what strips a forged
+     *   x-kalend-user-id header before a route handler trusts it.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/auth|api/dev/sign-in|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/auth|api/dev/sign-in|(?!api/).*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

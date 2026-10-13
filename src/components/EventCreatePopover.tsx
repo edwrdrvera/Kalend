@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, type FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { createPortal } from "react-dom";
 import { Clock, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { CHIP_CLS, CHIP_EMPTY_CLS, CHIP_SELECT_CLS } from "./control-styles";
 import { initialEventColor } from "@/lib/event-color-state";
-import { MAX_ICON_LENGTH, MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
+import { MAX_LOCATION_LENGTH, type EventFormValues } from "@/lib/event-form";
 import {
   eventDraftValues,
   formatTimeRangeSummary,
@@ -14,16 +22,15 @@ import {
   type EventDraft,
 } from "@/lib/event-draft";
 import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
-import IconPicker from "./IconPicker";
 import { POPOVER_WIDTH, clampPopoverTop } from "@/lib/popover-position";
+import { wrapTabTarget } from "@/lib/tab-stops";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
 const SIDE_GAP = 10;
-const CHIP_CLS =
-  "flex h-7 items-center gap-1.5 rounded-full border px-3 text-xs transition-colors hover:bg-muted";
-const DASHED_CHIP_CLS = "border-dashed border-muted-foreground/40 text-muted-foreground";
+
 /** First-render guess for vertical centering, replaced by the measured height. */
 const POPOVER_HEIGHT_ESTIMATE = 200;
 
@@ -101,6 +108,40 @@ export default function EventCreatePopover({
   }, []);
   const panelHeight = measuredHeight ?? POPOVER_HEIGHT_ESTIMATE;
 
+  // Library motion: scale up from 0.96 over 150ms. The flag flips one frame
+  // after mount so the starting style is painted first.
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Whatever had focus when the panel opened (the slot or cell the user was on)
+  // gets focus back when the panel goes away. The microtask skips the
+  // simulated unmount that React Strict Mode runs in development.
+  const [opener] = useState(() => document.activeElement);
+  useEffect(
+    () => () => {
+      queueMicrotask(() => {
+        if (!panelRef.current?.isConnected && opener instanceof HTMLElement && opener.isConnected) {
+          opener.focus();
+        }
+      });
+    },
+    [opener]
+  );
+
+  // Tab and Shift+Tab wrap inside the panel instead of reaching the calendar
+  // behind it. Pickers portaled out of the panel handle their own Tab.
+  const trapTab = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab" || !panelRef.current) return;
+    const target = wrapTabTarget(panelRef.current, document.activeElement, e.shiftKey);
+    if (target) {
+      e.preventDefault();
+      target.focus();
+    }
+  };
+
   // Fixed position: vertically centered on the anchor, horizontally offset
   // to the chosen side.
   const anchorCenterY = anchorRect.top + anchorRect.height / 2;
@@ -166,7 +207,9 @@ export default function EventCreatePopover({
       <div
         ref={panelRef}
         role="dialog"
+        aria-modal="true"
         aria-label="Create event"
+        onKeyDown={trapTab}
         style={{
           position: "fixed",
           top,
@@ -175,7 +218,11 @@ export default function EventCreatePopover({
           zIndex: 50,
           filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.08))",
         }}
-        className="animate-in fade-in-0 zoom-in-95 duration-100"
+        className={cn(
+          "transition-[opacity,scale] duration-150 ease-out motion-reduce:transition-none",
+          side === "right" ? "origin-left" : "origin-right",
+          !entered && "scale-[0.96] opacity-0"
+        )}
       >
       <div className="relative rounded-xl border border-border bg-popover text-popover-foreground">
         {!wasClamped && (
@@ -202,38 +249,35 @@ export default function EventCreatePopover({
           </svg>
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
-          {/* Title, with a small optional icon/symbol alongside it */}
           <div className="flex items-center gap-1.5">
-            <label htmlFor="new-event-icon" className="sr-only">
-              Event icon
-            </label>
-            <IconPicker value={draft.icon} onChange={(icon) => update({ icon })} maxLength={MAX_ICON_LENGTH} />
             <label htmlFor="new-event-title" className="sr-only">
               Event title
             </label>
             <input
               id="new-event-title"
               value={draft.title}
+              maxLength={MAX_TITLE_LENGTH}
               onChange={(e) => update({ title: e.target.value })}
               placeholder="New event"
               required
               autoFocus
-              className="h-8 w-full bg-transparent text-[15px] font-semibold outline-none placeholder:text-muted-foreground/60"
+              className="h-8 w-full bg-transparent text-sm leading-normal font-semibold placeholder:text-muted-foreground outline-none"
             />
           </div>
 
           {/* Time and location sit as chips under the title. Each opens its
               editor in place, so an untouched draft stays two lines tall. */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <button
+            <Button
               type="button"
+              variant="outline"
               aria-expanded={timeExpanded}
               onClick={() => setTimeExpanded((open) => !open)}
-              className={cn(CHIP_CLS, "border-border bg-muted text-foreground")}
+              className={cn(CHIP_CLS, "bg-muted text-foreground")}
             >
               <Clock className="size-3 shrink-0 text-muted-foreground" />
               {formatTimeRangeSummary(draft.startAt, draft.endAt)}
-            </button>
+            </Button>
             {locationOpen || draft.location ? (
               <div className="flex items-center gap-1.5">
                 <MapPin className="size-3 shrink-0 text-muted-foreground" />
@@ -247,18 +291,19 @@ export default function EventCreatePopover({
                   maxLength={MAX_LOCATION_LENGTH}
                   placeholder="Location"
                   autoFocus={locationOpen && !draft.location}
-                  className="h-7 w-36 rounded-full border border-input bg-background px-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
+                  className="h-7 w-36 rounded-full border border-input bg-transparent px-1.5 text-xs dark:bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-ring"
                 />
               </div>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setLocationOpen(true)}
-                className={cn(CHIP_CLS, DASHED_CHIP_CLS)}
+                className={cn(CHIP_CLS, CHIP_EMPTY_CLS)}
               >
                 <MapPin className="size-3 shrink-0" />
                 Location
-              </button>
+              </Button>
             )}
             <EventColorSpaceFields
               colorState={draft.colorState}
@@ -266,7 +311,7 @@ export default function EventCreatePopover({
               groups={groups}
               onChange={(colorState) => update({ colorState })}
               swatchClassName="size-4 rounded-full ring-offset-0"
-              spaceClassName={cn(CHIP_CLS, DASHED_CHIP_CLS)}
+              spaceClassName={cn(CHIP_CLS, CHIP_EMPTY_CLS, CHIP_SELECT_CLS)}
             />
           </div>
 
@@ -274,7 +319,7 @@ export default function EventCreatePopover({
           <div
             inert={!timeExpanded}
             className={cn(
-              "grid transition-all duration-150 ease-in-out",
+              "grid transition-[grid-template-rows,opacity] duration-150 ease-out",
               timeExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
             )}
           >

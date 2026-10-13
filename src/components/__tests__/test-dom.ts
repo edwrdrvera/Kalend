@@ -1,3 +1,4 @@
+import { act } from "react";
 import { Window } from "happy-dom";
 
 export const testWindow = new Window({ url: "http://localhost" });
@@ -57,10 +58,61 @@ export function typeIntoTextarea(textarea: HTMLTextAreaElement, value: string) {
   textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-/** Picks an option of a select the way a user would, firing the change event. */
-export function chooseOption(select: HTMLSelectElement, value: string) {
-  select.value = value;
-  select.dispatchEvent(new Event("change", { bubbles: true }));
+/** An option's text without the glyph happy-dom adds for its icons. */
+function optionText(el: Element) {
+  return el.textContent?.replace(/[▼▲]/g, "").trim();
+}
+
+/** Opens a ui/select trigger and clicks the option with this exact text. It
+ *  runs its own `act` steps, so callers await it without wrapping it. */
+export async function chooseSelectOption(trigger: HTMLElement, label: string) {
+  await act(async () => {
+    trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+  const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (el) => optionText(el) === label
+  );
+  if (!option) {
+    const seen = [...document.querySelectorAll('[role="option"]')].map((el) => el.textContent);
+    throw new Error(`no option "${label}" (saw ${JSON.stringify(seen)})`);
+  }
+  await act(async () => {
+    option.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, button: 0 }));
+    option.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+}
+
+/** The option texts of a ui/select, read by opening it. */
+export async function selectOptionLabels(trigger: HTMLElement) {
+  await act(async () => {
+    trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+  return [...document.querySelectorAll('[role="option"]')].map(optionText);
+}
+
+const ALERT_LABELS: Record<string, string> = {
+  "": "None",
+  "0": "At the time",
+  "5": "5 min before",
+  "15": "15 min before",
+  "60": "1 hour before",
+  "1440": "1 day before",
+};
+
+/** The saved minutes ("" for none) an alert select currently shows. */
+export function alertValue(trigger: HTMLElement) {
+  const text = trigger.querySelector("[data-slot=select-value]")?.textContent?.trim();
+  const match = Object.entries(ALERT_LABELS).find(([, label]) => label === text);
+  if (!match) throw new Error(`alert select shows unknown text ${JSON.stringify(text)}`);
+  return match[0];
+}
+
+/** Picks an alert by its saved minutes ("" for none) through the alert select. */
+export function chooseAlert(trigger: HTMLElement, minutes: string) {
+  return chooseSelectOption(trigger, ALERT_LABELS[minutes]!);
 }
 
 // React DOM and Base UI detect DOM support while their modules are evaluated.

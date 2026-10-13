@@ -1,12 +1,12 @@
 # src/components
 
-Flat directory of app components, plus `ui/` for shadcn primitives (`button`, `dialog`, `popover`) and `landing/` for the public marketing page (`src/app/(marketing)/page.tsx`). Add `ui/` primitives via the shadcn CLI rather than hand-writing them; `components.json` maps the aliases.
+Flat directory of app components, plus `ui/` for the kalend-ui primitives (Base UI under the hood) and `landing/` for the public marketing page (`src/app/(marketing)/page.tsx`). A new `ui/` primitive comes from `../kalend-ui/src/components/ui`, copied as is, not from the shadcn registry. kalend-ui is the design system, so its version carries the Kalend tokens and motion that the registry version lacks.
 
-`landing/` components use their own `--kal-*` color tokens (`globals.css`) instead of the app's theme tokens — the marketing page is a deliberately separate design system, not themed like the rest of the app.
+`landing/` components use their own `--kal-*` color tokens (`globals.css`) instead of the app's theme tokens. The marketing page is a deliberately separate design system, not themed like the rest of the app.
 
 - **React Compiler is on.** Write plain component code. Don't add `useMemo`/`useCallback` micro-optimizations that fight the compiler.
 - Interactive components start with `"use client"`. The app's server entry is `src/app/(app)/app/page.tsx`.
-- Styling is Tailwind v4 with the daisyUI `business` theme, composed via `cn()` from `@/lib/utils`.
+- Styling is Tailwind v4 with the kalend-ui tokens in `globals.css`, composed via `cn()` from `@/lib/utils`.
 
 ## Data flow
 

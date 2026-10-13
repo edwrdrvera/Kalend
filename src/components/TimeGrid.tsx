@@ -11,10 +11,12 @@ import {
   resolveDisplayColor,
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
+import { eventAccessibleName } from "@/lib/event-accessible-name";
 import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
 import { useMoveDrag } from "@/hooks/useMoveDrag";
+import { useGridFocus, type GridSlot } from "@/hooks/useGridFocus";
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 /** Default hour-row height, used by the week view. */
@@ -28,6 +30,9 @@ function formatHourLabel(hour: number): string {
   if (hour === 0) return "";
   return format(new Date(2000, 0, 1, hour), "h a");
 }
+
+/** Spoken hour for each slot ("2 PM"), built once so a render doesn't format 168 dates. */
+const SLOT_HOUR_LABELS = HOURS.map((hour) => format(new Date(2000, 0, 1, hour), "h a"));
 
 /** Ticks once a minute so the current-time line stays roughly accurate
  *  without re-rendering on every second. */
@@ -116,6 +121,19 @@ export default function TimeGrid({
 
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // ── Keyboard focus: one roving slot in the Tab order, arrows move it ──
+  // Starts on the 8 AM row, which is where the view opens scrolled to.
+  const todayIndex = days.findIndex((day) => isSameDay(day, now));
+  const slotFocus = useGridFocus({
+    dayCount: days.length,
+    hourCount: HOURS.length,
+    initial: { dayIndex: Math.max(todayIndex, 0), hour: 8 },
+    focusSlot: ({ dayIndex, hour }) =>
+      gridRef.current
+        ?.querySelector<HTMLElement>(`[data-slot-day="${dayIndex}"][data-slot-hour="${hour}"]`)
+        ?.focus(),
+  });
+
   // ── Drag gestures (extracted hooks) ────────────────────────────────
   const resize = useResizeDrag({ dayHeight, onEventResize });
   const move = useMoveDrag({
@@ -145,14 +163,20 @@ export default function TimeGrid({
   const { ghost, ghostRef } = move;
 
   return (
-    <div className="flex select-none">
+    <div
+      id="calendar-grid"
+      role="group"
+      aria-label="Calendar time grid"
+      tabIndex={-1}
+      className="flex select-none outline-hidden"
+    >
       {/* Hour labels — border-r connects to the column grid's left edge */}
       <div className="relative w-10 shrink-0 border-r border-border sm:w-16">
         {HOURS.map((hour) => (
           <div
             key={hour}
             style={{ height: hourHeight }}
-            className="pr-1.5 text-right text-[9px] text-muted-foreground sm:pr-3 sm:text-[10px]"
+            className="pr-1.5 text-right text-[10px] text-muted-foreground sm:pr-3 sm:text-meta"
           >
             <span className="relative -top-2 block truncate">{formatHourLabel(hour)}</span>
           </div>
@@ -160,7 +184,7 @@ export default function TimeGrid({
         {/* Current-time label, aligned with the red "now" line in the columns. */}
         {showNow && (
           <div
-            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-red-500 px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
+            className="pointer-events-none absolute right-1 z-10 -translate-y-1/2 rounded bg-now-label px-1 py-px text-[9px] font-semibold text-white tabular-nums sm:right-1.5 sm:text-[10px]"
             style={{ top: nowOffsetPx }}
           >
             {format(now, "h:mm")}
@@ -175,14 +199,24 @@ export default function TimeGrid({
         className="relative grid flex-1 divide-x divide-border border-r border-border"
         style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}
       >
+        {/* The "now" line runs across the whole week; today's column draws its
+            own stronger line and dot on top. */}
+        {showNow && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 z-10 h-px -translate-y-1/2 bg-now/50"
+            style={{ top: nowOffsetPx }}
+          />
+        )}
         {days.map((day, dayIndex) => {
           const blocks = layoutDayEvents(day, events);
+          const dayLabel = format(day, "EEEE MMMM d");
           const isToday = isSameDay(day, now);
           const isWeekend = day.getDay() === 0 || day.getDay() === 6;
           const columnBg = isDayView
             ? "bg-card"
             : isToday
-              ? "bg-foreground/[0.04]"
+              ? "bg-primary/5"
               : isWeekend
                 ? "bg-muted/30"
                 : "bg-card";
@@ -190,44 +224,56 @@ export default function TimeGrid({
           return (
             <div
               key={day.getTime()}
+              data-day-index={dayIndex}
               className={`relative border-r border-border last:border-r-0 ${columnBg}`}
               style={{ height: dayHeight }}
             >
-              {HOURS.map((hour) => (
-                <div
-                  key={hour}
-                  role="button"
-                  tabIndex={0}
-                  onPointerDown={(e) => create.onSlotPointerDown(e, dayIndex, day)}
-                  onClick={() => {
-                    if (create.consumeSlotClickSuppression()) return;
-                    onSlotSelect?.(day);
-                  }}
-                  onDoubleClick={(e) =>
-                    onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
-                  }
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
+              {HOURS.map((hour) => {
+                const slot: GridSlot = { dayIndex, hour };
+                return (
+                  <div
+                    key={hour}
+                    role="button"
+                    tabIndex={slotFocus.tabIndexFor(slot)}
+                    aria-label={`${dayLabel}, ${SLOT_HOUR_LABELS[hour]}`}
+                    data-slot-day={dayIndex}
+                    data-slot-hour={hour}
+                    onFocus={() => slotFocus.setFocused(slot)}
+                    onPointerDown={(e) => create.onSlotPointerDown(e, dayIndex, day)}
+                    onClick={() => {
+                      if (create.consumeSlotClickSuppression()) return;
                       onSlotSelect?.(day);
+                    }}
+                    onDoubleClick={(e) =>
+                      onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect())
                     }
-                  }}
-                  style={{ height: hourHeight }}
-                  className="border-b border-border/40"
-                />
-              ))}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onSlotContextMenu?.(day, hour, e.clientX, e.clientY);
+                    }}
+                    onKeyDown={(e) => {
+                      if (slotFocus.onKeyDown(e, slot)) return;
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onSlotCreate?.(day, hour, e.currentTarget.getBoundingClientRect());
+                      } else if (e.key === " ") {
+                        e.preventDefault();
+                        onSlotSelect?.(day);
+                      }
+                    }}
+                    style={{ height: hourHeight }}
+                    className="focus-ring scroll-mt-28 border-b border-border/40"
+                  />
+                );
+              })}
 
               {isToday && (
                 <div
                   className="pointer-events-none absolute inset-x-0 z-10 flex -translate-y-1/2 items-center"
                   style={{ top: nowOffsetPx }}
                 >
-                  <div className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                  <div className="h-[2px] flex-1 bg-red-500" />
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-now" />
+                  <div className="h-[2px] flex-1 bg-now" />
                 </div>
               )}
 
@@ -237,7 +283,7 @@ export default function TimeGrid({
                 const { lo, hi } = computeCreateRange(create.preview.anchorMinutes, create.preview.liveMinutes);
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-meta font-medium text-primary-text"
                     style={{
                       top: `${(lo / MINUTES_PER_DAY) * 100}%`,
                       height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
@@ -260,7 +306,7 @@ export default function TimeGrid({
                   (pendingRange.end.getTime() - pendingRange.start.getTime()) / 60_000;
                 return (
                   <div
-                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                    className="pointer-events-none absolute inset-x-1 z-20 flex items-start overflow-hidden rounded-md border border-primary/40 bg-primary/20 px-1.5 py-0.5 text-meta font-medium text-primary-text"
                     style={{
                       top: `${(startMinutes / MINUTES_PER_DAY) * 100}%`,
                       height: `${((endMinutes - startMinutes) / MINUTES_PER_DAY) * 100}%`,
@@ -302,12 +348,12 @@ export default function TimeGrid({
                   <button
                     key={event.id}
                     type="button"
+                    aria-label={eventAccessibleName(event, categories.find((c) => c.id === event.category_id)?.name ?? null)}
                     title={event.location ? `${event.title} (${event.location})` : event.title}
                     onPointerDown={(e) => move.onBlockPointerDown(e, event, dayIndex, day)}
                     onClick={(e) => handleEventClick(e, event)}
                     onContextMenu={(e) => {
                       e.preventDefault();
-                      e.stopPropagation();
                       onEventContextMenu?.(event, e.clientX, e.clientY);
                     }}
                     style={{
@@ -316,7 +362,7 @@ export default function TimeGrid({
                       left: `calc(${left}% + 5px)`,
                       width: `calc(${width}% - 10px)`,
                     }}
-                    className={`absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1" : ""} ${getEventColorClasses(displayColor)}`}
+                    className={`focus-ring absolute overflow-hidden rounded-sm border text-left text-xs font-semibold ${onEventMove ? "touch-none cursor-grab active:cursor-grabbing" : ""} ${isBeingDragged ? "opacity-30" : dimClass(event, spaceFocus)} ${selectedEventIds?.has(event.id) ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""} ${getEventColorClasses(displayColor)}`}
                   >
                     {/* Floating inset accent bar, hugging the left edge. */}
                     <span
@@ -329,14 +375,13 @@ export default function TimeGrid({
                      *  event, where flow content could otherwise center or
                      *  drift within the padded box. Left inset clears the bar. */}
                     <span className="absolute left-[13px] right-1.5 top-0.5 truncate">
-                      {event.icon && <span className="mr-1">{event.icon}</span>}
                       {event.title}
                     </span>
-                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-[10px] font-medium opacity-90">
+                    <span className="absolute left-[13px] right-1.5 top-5 truncate text-meta font-medium">
                       {format(new Date(event.start_at), "h:mm a")} – {format(new Date(event.end_at), "h:mm a")}
                     </span>
                     {showLocation && (
-                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-[11px] font-medium opacity-70">
+                      <span className="absolute left-[13px] right-1.5 top-9 truncate text-meta font-medium">
                         {event.location}
                       </span>
                     )}
@@ -372,7 +417,7 @@ export default function TimeGrid({
             // pixel metrics captured at pickup, so they stay correct even with
             // the border-based column separators, which percentage positioning
             // would drift against.
-            className={`pointer-events-none absolute z-20 overflow-hidden rounded-[6px] text-left text-[11px] font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
+            className={`pointer-events-none absolute z-20 overflow-hidden rounded-md leading-tight text-left text-meta font-medium shadow-lg ${getEventColorClasses(resolveDisplayColor(ghost.event.color, ghost.event.category_id, ghost.event.color_overridden, categories))}`}
             style={{
               left: ghost.originColumnLeft,
               width: ghost.columnWidth,
@@ -384,7 +429,6 @@ export default function TimeGrid({
             {/* Same top-left-pinned title treatment as the real block above,
              *  so the name doesn't drift within the ghost either. */}
             <span className="absolute inset-x-1.5 top-0.5 truncate">
-              {ghost.event.icon && <span className="mr-1">{ghost.event.icon}</span>}
               {ghost.event.title}
             </span>
           </div>

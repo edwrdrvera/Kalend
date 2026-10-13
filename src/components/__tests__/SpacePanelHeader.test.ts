@@ -4,11 +4,12 @@ import { act } from "react";
 import type { Root } from "react-dom/client";
 
 // Install DOM globals before importing React DOM (see test-dom.ts).
-await import("./test-dom");
+const { typeInto } = await import("./test-dom");
 
 const { createRoot } = await import("react-dom/client");
 const { default: SpacePanelHeader } = await import("../SpacePanelHeader");
 import type { PanelSubject } from "@/lib/panel-subject";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 
 const SPACE: PanelSubject = { kind: "space", spaceId: "school", name: "School", color: "blue", description: "Databases & Information Systems." };
 const GROUP: PanelSubject = { kind: "group", groupId: "cs340", name: "CS 340", spaceId: "school", spaceName: "School", color: "blue" };
@@ -26,11 +27,11 @@ afterEach(async () => {
 
 interface Interactions {
   closed: boolean;
-  overflowed: boolean;
+  renames: string[];
 }
 
 async function renderHeader(subject: PanelSubject = GROUP) {
-  const interactions: Interactions = { closed: false, overflowed: false };
+  const interactions: Interactions = { closed: false, renames: [] };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -42,8 +43,9 @@ async function renderHeader(subject: PanelSubject = GROUP) {
         onClose: () => {
           interactions.closed = true;
         },
-        onOverflow: () => {
-          interactions.overflowed = true;
+        onRename: async (name: string) => {
+          interactions.renames.push(name);
+          return true;
         },
       })
     )
@@ -60,14 +62,14 @@ describe("SpacePanelHeader", () => {
     await renderHeader(GROUP);
 
     expect(container?.textContent).toContain("School");
-    expect(container?.querySelector("h2")?.textContent).toBe("CS 340");
+    expect(container?.querySelector("h2")?.getAttribute("aria-label")).toBe("CS 340");
     expect(container?.textContent).not.toContain("Databases & Information Systems");
   });
 
   it("shows only the Space name as the heading for a Space", async () => {
     await renderHeader(SPACE);
 
-    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
     const paragraphs = Array.from(document.querySelectorAll("p"));
     expect(paragraphs.map((p) => p.textContent)).toEqual(["Space"]);
   });
@@ -81,19 +83,22 @@ describe("SpacePanelHeader", () => {
     expect(interactions.closed).toBe(true);
   });
 
-  it("calls onOverflow when the overflow button is clicked", async () => {
-    const interactions = await renderHeader();
-
-    byLabel("Group options")?.dispatchEvent(
-      new MouseEvent("click", { bubbles: true })
-    );
-    expect(interactions.overflowed).toBe(true);
+  it("stops a Space name at the length the server accepts", async () => {
+    await renderHeader(SPACE);
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
+    expect((byLabel("School name") as HTMLInputElement).maxLength).toBe(MAX_GROUP_NAME_LENGTH);
   });
 
-  it("names the overflow button for what is open", async () => {
-    await renderHeader(SPACE);
-    expect(byLabel("Space options")).not.toBeNull();
-    expect(byLabel("Group options")).toBeNull();
+  it("renames a Group once when Enter is followed by the box losing focus", async () => {
+    const interactions = await renderHeader(GROUP);
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
+    const input = byLabel("CS 340 name") as HTMLInputElement;
+    await act(() => typeInto(input, "CS 341"));
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      input.dispatchEvent(new Event("focusout", { bubbles: true }));
+    });
+    expect(interactions.renames).toEqual(["CS 341"]);
   });
 
   it("has a decorative, aria-hidden color mark", async () => {
@@ -101,5 +106,31 @@ describe("SpacePanelHeader", () => {
 
     const mark = container?.querySelector('[aria-hidden="true"]');
     expect(mark).not.toBeNull();
+  });
+});
+
+describe("SpacePanelHeader rename across a panel switch", () => {
+  it("does not show a failed rename under the Space the panel switched to", async () => {
+    let finishRename: (ok: boolean) => void = () => {};
+    const onRename = () => new Promise<boolean>((resolve) => (finishRename = resolve));
+    const mount = (subject: PanelSubject) =>
+      act(() => root?.render(createElement(SpacePanelHeader, { subject, onClose: () => {}, onRename })));
+
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await mount(GROUP);
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
+    const input = byLabel("CS 340 name") as HTMLInputElement;
+    await act(() => typeInto(input, "CS 341"));
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+
+    await mount(SPACE);
+    await act(async () => finishRename(false));
+
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
+    expect(container?.textContent).not.toContain("Couldn't rename");
   });
 });

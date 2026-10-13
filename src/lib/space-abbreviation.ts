@@ -1,7 +1,9 @@
-/** Two-letter abbreviation for a Space name: first letter uppercase, second lowercase. */
+/** Rail label for a Space name: its initial, or the first two words' initials for a multi-word name. */
 export function spaceAbbreviation(name: string): string {
-  const cleaned = name.trim();
-  if (cleaned.length === 0) return "??";
-  if (cleaned.length === 1) return cleaned.toUpperCase();
-  return cleaned[0].toUpperCase() + cleaned[1].toLowerCase();
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "??";
+  return words
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("");
 }

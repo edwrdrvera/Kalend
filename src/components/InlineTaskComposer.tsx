@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { dueAtFromDate } from "@/lib/task-draft";
 import { spaceMembership, type Membership } from "@/lib/membership";
 import { APP_INPUT_CLS, DateField } from "@/components/DateField";
 import MembershipSelect from "./MembershipSelect";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface TaskDraft {
   title: string;
@@ -65,13 +67,14 @@ export default function InlineTaskComposer({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-1 pt-2 pb-1">
-      <input
+      <Input
         ref={inputRef}
         value={draft.title}
+        maxLength={MAX_TITLE_LENGTH}
         onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         placeholder="Task title"
         aria-label="New task title"
-        className={cn(APP_INPUT_CLS, "h-7 w-full text-[13px]")}
+        className="h-7 w-full text-body md:text-body focus-ring"
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -87,7 +90,7 @@ export default function InlineTaskComposer({
           <button
             type="button"
             onClick={() => setDraft({ ...draft, showDueDate: true })}
-            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-sm text-xs text-muted-foreground hover:text-foreground focus-ring"
           >
             + due date
           </button>
@@ -101,21 +104,24 @@ export default function InlineTaskComposer({
       </div>
 
       <div className="flex items-center justify-end gap-1.5">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onClose}
-          className="h-7 rounded-sm px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="text-xs text-muted-foreground hover:text-foreground"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
+          size="sm"
           disabled={!draft.title.trim() || submitting}
           aria-label="Add task"
-          className="flex h-7 items-center justify-center rounded-sm bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+          className="text-xs"
         >
           Add task
-        </button>
+        </Button>
       </div>
 
       {error && <p className="text-xs text-destructive">{error}</p>}

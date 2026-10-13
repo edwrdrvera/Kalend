@@ -9,9 +9,11 @@ import {
   startOfMonth,
   isSameMonth,
   isSameDay,
+  isSameWeek,
   addDays,
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MiniCalendarProps {
   currentDate: Date;
@@ -32,26 +34,16 @@ function MiniCalendarHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between">
-      <h2 className="text-[12px] font-semibold tracking-[-0.02em] text-foreground">
+      <h2 className="text-xs leading-normal font-semibold tracking-[-0.02em] text-foreground">
         {format(browseDate, "MMMM yyyy")}
       </h2>
       <div className="flex gap-1 text-muted-foreground">
-        <button
-          type="button"
-          onClick={onPrevMonth}
-          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Previous month"
-        >
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onPrevMonth} aria-label="Previous month">
           <ChevronLeft size={16} />
-        </button>
-        <button
-          type="button"
-          onClick={onNextMonth}
-          className="rounded-full p-1 transition-colors hover:bg-muted hover:text-foreground"
-          aria-label="Next month"
-        >
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onNextMonth} aria-label="Next month">
           <ChevronRight size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -62,7 +54,7 @@ function MiniCalendarDaysOfWeek() {
   return (
     <div className="flex justify-between w-full mb-2">
       {days.map((day, i) => (
-        <div key={i} className="w-7 text-center text-[11px] font-medium text-muted-foreground">
+        <div key={i} className="w-7 text-center text-meta font-medium text-muted-foreground">
           {day}
         </div>
       ))}
@@ -71,7 +63,7 @@ function MiniCalendarDaysOfWeek() {
 }
 
 function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
-  const baseClasses = "flex justify-center items-center w-7 h-7 text-[11.5px] font-medium transition-colors cursor-pointer";
+  const baseClasses = "focus-ring flex justify-center items-center w-7 h-7 text-xs leading-normal font-medium cursor-pointer";
 
   const isCurrentMonth = isSameMonth(day, monthStart);
   const isSelected = isSameDay(day, currentDate);
@@ -85,16 +77,16 @@ function getDayClasses(day: Date, monthStart: Date, currentDate: Date): string {
   }
 
   if (isSelected) {
-    return `${baseClasses} rounded-[6px] bg-primary text-primary-foreground font-semibold`;
+    return `${baseClasses} rounded-md bg-primary text-primary-foreground font-semibold`;
   }
 
   if (isTodayCurrent) {
     // Today (when not selected): outlined square with ring to distinguish
     // it from an ordinary date without filling the background.
-    return `${baseClasses} rounded-[6px] ring-2 ring-primary text-primary font-bold`;
+    return `${baseClasses} rounded-md ring-2 ring-primary text-primary-text font-bold`;
   }
 
-  return `${baseClasses} rounded-md text-foreground hover:bg-muted`;
+  return `${baseClasses} rounded-md text-foreground hover:bg-hover`;
 }
 
 function MiniCalendarGrid({
@@ -118,7 +110,14 @@ function MiniCalendarGrid({
     <div className="flex flex-col">
       {weeks.map((weekStart) => (
         <div
-          className="flex justify-between w-full mb-1"
+          // The week the main calendar is showing gets a quiet band, so the
+          // sidebar answers "which week am I in", not only "which day". The
+          // negative margin cancels the padding, so days stay aligned with
+          // the weekday header.
+          className={`-mx-1.5 mb-1 flex justify-between rounded-lg px-1.5 ${
+            isSameWeek(weekStart, currentDate) ? "bg-muted" : ""
+          }`}
+          data-current-week={isSameWeek(weekStart, currentDate) || undefined}
           key={`week-${weekStart.getTime()}`}
         >
           {Array.from({ length: 7 }).map((_, i) => {
@@ -129,6 +128,9 @@ function MiniCalendarGrid({
                 type="button"
                 key={`day-${day.getTime()}`}
                 onClick={() => onDateSelect(day)}
+                aria-label={format(day, "EEEE, MMMM d, yyyy")}
+                aria-pressed={isSameDay(day, currentDate)}
+                aria-current={isSameDay(day, new Date()) ? "date" : undefined}
                 className={getDayClasses(day, monthStart, currentDate)}
               >
                 {format(day, "d")}

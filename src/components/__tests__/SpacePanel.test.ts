@@ -14,6 +14,8 @@ const { default: SpacePanel } = await import("../SpacePanel");
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
+/** The props of the last render, so a test can re-render with a new subject. */
+let lastProps: Parameters<typeof SpacePanel>[0];
 
 afterEach(async () => {
   if (root) await act(() => root?.unmount());
@@ -33,6 +35,8 @@ interface Handlers {
   dirty: boolean[];
   proceeds: number;
   stays: number;
+  renames: string[];
+  renameResult: boolean;
 }
 
 async function render(
@@ -50,13 +54,13 @@ async function render(
     dirty: [],
     proceeds: 0,
     stays: 0,
+    renames: [],
+    renameResult: true,
   };
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
-  await act(() =>
-    root?.render(
-      createElement(SpacePanel, {
+  lastProps = {
         subject,
         tasks,
         upcoming,
@@ -78,6 +82,12 @@ async function render(
           handlers.created.push(title);
         },
         onOpenSettings: () => {},
+        onChangeColor: () => {},
+        onDeleteSpace: () => {},
+        onRename: async (name: string) => {
+          handlers.renames.push(name);
+          return handlers.renameResult;
+        },
         onSaveDescription: async (description: string | null) => {
           handlers.descriptionSaves.push(description);
           return handlers.saveResult;
@@ -92,9 +102,8 @@ async function render(
         onStay: () => {
           handlers.stays++;
         },
-      })
-    )
-  );
+      };
+  await act(() => root?.render(createElement(SpacePanel, lastProps)));
   return handlers;
 }
 
@@ -247,11 +256,31 @@ describe("SpacePanel description", () => {
   });
 });
 
+describe("SpacePanel for a Space", () => {
+  it("has a Space options menu beside the title", async () => {
+    await render(SPACE);
+    const trigger = document.querySelector('[aria-label="Space options"]');
+    expect(trigger).not.toBeNull();
+    expect(trigger?.getAttribute("aria-haspopup")).toBe("menu");
+  });
+
+  it("has no settings footer, because the title renames the Space", async () => {
+    await render(SPACE);
+    expect(document.querySelector('[aria-label="Space settings"]')).toBeNull();
+    expect(document.querySelector("footer")).toBeNull();
+  });
+});
+
 describe("SpacePanel for a Group", () => {
   it("has no description section, because Groups have none", async () => {
     await render(GROUP);
     expect(buttonWithText("Add description")).toBeUndefined();
     expect(descriptionBox()).toBeNull();
+  });
+
+  it("has no Space options menu, because a Group is edited from its footer", async () => {
+    await render(GROUP);
+    expect(document.querySelector('[aria-label="Space options"]')).toBeNull();
   });
 
   it("offers Group settings in the footer", async () => {
@@ -297,11 +326,11 @@ describe("SpacePanel", () => {
       [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find((t) => t.textContent === name);
     await act(() => tab("Resources")?.click());
     expect(container?.textContent).toContain("Add link");
-    expect(container?.textContent).not.toContain("Open tasks");
+    expect(container?.textContent).not.toContain("Tasks · ");
     await act(() => tab("Alerts")?.click());
     expect(container?.textContent).toContain("Notify me about School");
     await act(() => tab("Overview")?.click());
-    expect(container?.textContent).toContain("Open tasks");
+    expect(container?.textContent).toContain("Tasks · ");
   });
 
   it("lists upcoming events for a Space with events and no tasks", async () => {
@@ -356,5 +385,72 @@ describe("SpacePanel", () => {
       form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     });
     expect(handlers.created).toEqual(["Read chapter 4"]);
+  });
+});
+
+describe("SpacePanel rename", () => {
+  const nameInput = () => document.querySelector<HTMLInputElement>('input[aria-label="School name"]');
+  const key = (k: string) =>
+    act(async () => {
+      nameInput()?.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true }));
+    });
+
+  it("opens a name box from the title", async () => {
+    await render(SPACE);
+    await act(() => buttonWithText("School Rename")?.click());
+    expect(nameInput()?.value).toBe("School");
+  });
+
+  it("saves the trimmed name on Enter", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("School Rename")?.click());
+    await act(() => typeInto(nameInput()!, "  Biology "));
+    await key("Enter");
+    expect(handlers.renames).toEqual(["Biology"]);
+    expect(nameInput()).toBeNull();
+  });
+
+  it("cancels on Escape without saving or closing the panel", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("School Rename")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Escape");
+    expect(handlers.renames).toEqual([]);
+    expect(handlers.closes).toBe(0);
+    expect(nameInput()).toBeNull();
+  });
+
+  it("does not save a blank or unchanged name", async () => {
+    const handlers = await render(SPACE);
+    await act(() => buttonWithText("School Rename")?.click());
+    await act(() => typeInto(nameInput()!, "   "));
+    await key("Enter");
+    await act(() => buttonWithText("School Rename")?.click());
+    await key("Enter");
+    expect(handlers.renames).toEqual([]);
+  });
+
+  it("drops an unsaved name when the panel switches to another Space", async () => {
+    const handlers = await render(SPACE);
+    handlers.renameResult = false;
+    await act(() => buttonWithText("School Rename")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Enter");
+
+    const work = { ...SPACE, spaceId: "fixture-work", name: "Work" };
+    await act(() => root?.render(createElement(SpacePanel, { ...lastProps, subject: work })));
+    expect(document.querySelector('input[aria-label="Work name"]')).toBeNull();
+    expect(buttonWithText("Work Rename")).toBeDefined();
+    expect(container?.textContent).not.toContain("Couldn't rename");
+  });
+
+  it("keeps the box open with a message when the save fails", async () => {
+    const handlers = await render(SPACE);
+    handlers.renameResult = false;
+    await act(() => buttonWithText("School Rename")?.click());
+    await act(() => typeInto(nameInput()!, "Biology"));
+    await key("Enter");
+    expect(nameInput()?.value).toBe("Biology");
+    expect(container?.textContent).toContain("Couldn't rename");
   });
 });

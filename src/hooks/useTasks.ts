@@ -11,6 +11,7 @@ import { mutateResource } from "@/lib/api";
 import { reconcileDetachedTasks } from "@/lib/task-color-state";
 import { releaseGroup } from "@/lib/group-state";
 import { UNASSIGNED, type Membership } from "@/lib/membership";
+import { createRowLog, landCreate, mergeFetched, rollbackFields } from "./row-log";
 
 export interface UseTasksReturn {
   data: CalendarTask[];
@@ -33,6 +34,7 @@ export function useTasks(): UseTasksReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [log] = useState(createRowLog);
 
   // Fetched once on mount. The task list panel shows everything (undated +
   // all due dates) rather than a date-scoped window, so there's no viewDate
@@ -43,6 +45,7 @@ export function useTasks(): UseTasksReturn {
     async function fetchTasks() {
       setLoading(true);
       setError(null);
+      const since = log.mark();
 
       try {
         const res = await fetch("/api/tasks");
@@ -52,8 +55,9 @@ export function useTasks(): UseTasksReturn {
           throw new Error(json.error ?? "Failed to load tasks");
         }
 
+        const fetched = json.data;
         if (!cancelled) {
-          setTasks(json.data);
+          setTasks((local) => mergeFetched(fetched, local, log.keepSince(since)));
         }
       } catch (err) {
         if (!cancelled) {
@@ -73,7 +77,7 @@ export function useTasks(): UseTasksReturn {
     return () => {
       cancelled = true;
     };
-  }, [retryKey]);
+  }, [retryKey, log]);
 
   const retry = () => {
     setRetryKey((k) => k + 1);
@@ -81,7 +85,8 @@ export function useTasks(): UseTasksReturn {
 
   // Optimistic: adds a temp-ID task immediately so the form can close right
   // away, replaces it with the server's row on success, removes it and
-  // surfaces the error on failure (same rollback approach as toggleComplete).
+  // surfaces the error on failure. Edits made on the temp row meanwhile wait
+  // in `log.settle` and go to the saved id.
   const createTask = async (
     title: string,
     dueAt?: string,
@@ -98,6 +103,8 @@ export function useTasks(): UseTasksReturn {
       category_id: membership.category_id,
       group_id: membership.group_id,
     };
+    const pending = log.createPending(tempId);
+    const release = log.hold(tempId);
 
     setTasks((prev) => [...prev, optimisticTask]);
 
@@ -119,52 +126,54 @@ export function useTasks(): UseTasksReturn {
       }
 
       const savedTask = json.data;
-      setTasks((prev) =>
-        prev.map((t) => (t.id === tempId ? savedTask : t))
-      );
+      log.touch([savedTask.id]);
+      setTasks((prev) => landCreate(prev, tempId, optimisticTask, savedTask));
+      pending.land(savedTask.id);
     } catch (err) {
       setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      pending.fail();
       setError(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      release();
     }
   };
 
   // Optimistic: flips the checkbox immediately, rolls back just the
   // `completed` field on failure.
   const toggleComplete = async (task: CalendarTask): Promise<void> => {
-    const previousCompleted = task.completed;
-    const optimisticTask: CalendarTask = { ...task, completed: !task.completed };
+    const attempted = { completed: !task.completed } satisfies TaskPatchRequest;
 
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? optimisticTask : t))
+      prev.map((t) => (t.id === task.id ? { ...t, ...attempted } : t))
     );
 
-    try {
-      const json = await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "PATCH",
-        { completed: optimisticTask.completed } satisfies TaskPatchRequest,
-        "Failed to update task"
-      );
+    await log.settle(task.id, async (id) => {
+      try {
+        const json = await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "PATCH",
+          attempted,
+          "Failed to update task"
+        );
 
-      if (!json.data) {
-        throw new Error("Failed to update task");
+        if (!json.data) {
+          throw new Error("Failed to update task");
+        }
+
+        const savedTask = json.data;
+        setTasks((prev) =>
+          prev.map((t) => (t.id === savedTask.id ? savedTask : t))
+        );
+      } catch (err) {
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? rollbackFields(t, task, attempted) : t))
+        );
+        setError(err instanceof Error ? err.message : "Failed to update task");
       }
-
-      const savedTask = json.data;
-      setTasks((prev) =>
-        prev.map((t) => (t.id === savedTask.id ? savedTask : t))
-      );
-    } catch (err) {
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === task.id ? { ...t, completed: previousCompleted } : t
-        )
-      );
-      setError(err instanceof Error ? err.message : "Failed to update task");
-    }
+    });
   };
 
-  // Optimistic: applies the patch immediately, restores the previous row on
+  // Optimistic: applies the patch immediately, restores the patched fields on
   // failure.
   const updateTask = async (
     task: CalendarTask,
@@ -172,52 +181,60 @@ export function useTasks(): UseTasksReturn {
   ): Promise<boolean> => {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));
 
-    try {
-      const json = await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "PATCH",
-        patch,
-        "Failed to update task"
-      );
-      if (!json.data) throw new Error("Failed to update task");
-      const savedTask = json.data;
-      setTasks((prev) => prev.map((t) => (t.id === savedTask.id ? savedTask : t)));
-      return true;
-    } catch {
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? task : t)));
-      return false;
-    }
+    const saved = await log.settle(task.id, async (id) => {
+      try {
+        const json = await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "PATCH",
+          patch,
+          "Failed to update task"
+        );
+        if (!json.data) throw new Error("Failed to update task");
+        const savedTask = json.data;
+        setTasks((prev) => prev.map((t) => (t.id === savedTask.id ? savedTask : t)));
+        return true;
+      } catch {
+        setTasks((prev) => prev.map((t) => (t.id === id ? rollbackFields(t, task, patch) : t)));
+        return false;
+      }
+    });
+    return saved ?? false;
   };
 
   // Optimistic: removes from state immediately, rolls back on failure.
   const deleteTask = async (task: CalendarTask): Promise<boolean> => {
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
 
-    try {
-      await mutateResource<CalendarTask>(
-        `/api/tasks/${task.id}`,
-        "DELETE",
-        undefined,
-        "Failed to delete task"
-      );
-      return true;
-    } catch (err) {
-      setTasks((prev) => [...prev, task]);
-      setError(err instanceof Error ? err.message : "Failed to delete task");
-      return false;
-    }
+    const deleted = await log.settle(task.id, async (id) => {
+      try {
+        await mutateResource<CalendarTask>(
+          `/api/tasks/${id}`,
+          "DELETE",
+          undefined,
+          "Failed to delete task"
+        );
+        return true;
+      } catch (err) {
+        setTasks((prev) => [...prev, { ...task, id }]);
+        setError(err instanceof Error ? err.message : "Failed to delete task");
+        return false;
+      }
+    });
+    return deleted ?? true;
   };
 
   const reconcileSpaceRemoval = (
     detachedTasks: CalendarTask[],
     categoryId: string
   ): void => {
+    log.touch(detachedTasks.map((t) => t.id));
     setTasks((current) =>
       reconcileDetachedTasks(current, detachedTasks, categoryId)
     );
   };
 
   const reconcileGroupRemoval = (groupId: string): void => {
+    log.touch(tasks.filter((t) => t.group_id === groupId).map((t) => t.id));
     setTasks((current) => releaseGroup(current, groupId));
   };
 

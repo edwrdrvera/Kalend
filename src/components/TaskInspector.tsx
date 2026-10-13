@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CalendarCategory, CalendarGroup, CalendarTask, TaskPatchRequest } from "@/lib/calendar-types";
 import type { AlertOffset } from "@/lib/alerts";
@@ -21,13 +21,18 @@ import { membershipOf } from "@/lib/membership";
 import PanelShell from "./PanelShell";
 import {
   FIELD_LABEL_CLS,
-  ICON_BUTTON_CLS,
+  IconButton,
   InspectorFooter,
   InspectorHeader,
   type InspectorNav,
   UnsavedChangesPrompt,
 } from "./InspectorParts";
 import { useInspectorSave } from "@/hooks/useInspectorSave";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import TaskCheckbox from "./TaskCheckbox";
+import { FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface TaskInspectorProps {
   task: CalendarTask;
@@ -100,16 +105,17 @@ export default function TaskInspector({
         <UnsavedChangesPrompt noun="task" saving={saving} onSave={saveAndProceed} onDiscard={onProceed} onStay={onStay} />
       )}
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 py-5">
         <label className="flex flex-col gap-1.5">
           <span className={FIELD_LABEL_CLS}>
             Title
           </span>
-          <input
+          <Input
             value={draft.title}
+            maxLength={MAX_TITLE_LENGTH}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={titleMissing || undefined}
-            className={cn(APP_INPUT_CLS, "w-full focus-visible:ring-2 focus-visible:ring-ring")}
+            className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
           />
         </label>
 
@@ -120,14 +126,9 @@ export default function TaskInspector({
           <div className="flex items-center gap-1.5">
             <DateField label="Due date" value={draft.dueDate} onChange={(dueDate) => update({ dueDate })} />
             {draft.dueDate && (
-              <button
-                type="button"
-                aria-label="Clear due date"
-                onClick={() => update({ dueDate: "" })}
-                className={ICON_BUTTON_CLS}
-              >
+              <IconButton aria-label="Clear due date" onClick={() => update({ dueDate: "" })}>
                 <X className="size-3.5" />
-              </button>
+              </IconButton>
             )}
           </div>
         </div>
@@ -141,7 +142,7 @@ export default function TaskInspector({
             groups={groups}
             membership={membershipOf({ category_id: draft.categoryId, group_id: draft.groupId })}
             onChange={(next) => update({ categoryId: next.category_id, groupId: next.group_id })}
-            className="-mx-2 w-fit"
+            className="w-full"
           />
         </div>
 
@@ -152,26 +153,17 @@ export default function TaskInspector({
           disabledReason={draft.dueDate ? null : "Add a due date to set an alert."}
         />
 
-        <button
-          type="button"
-          role="checkbox"
-          aria-checked={task.completed}
-          onClick={() => onToggleComplete(task)}
-          className="flex w-fit items-center gap-2 rounded-sm text-[13px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span
-            aria-hidden="true"
-            className={cn(
-              "flex size-[15px] items-center justify-center rounded-[4px] border-[1.5px]",
-              task.completed
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-transparent"
-            )}
-          >
-            <Check className="size-2.5" strokeWidth={3} />
-          </span>
-          Done
-        </button>
+        <div className="flex w-fit items-center gap-2">
+          <TaskCheckbox
+            id="task-inspector-done"
+            title={task.title}
+            checked={task.completed}
+            onToggle={() => onToggleComplete(task)}
+          />
+          <Label htmlFor="task-inspector-done" className="text-body font-normal text-foreground">
+            Done
+          </Label>
+        </div>
 
         <InspectorFooter
           noun="task"

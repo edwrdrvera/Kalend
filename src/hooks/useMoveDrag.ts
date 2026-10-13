@@ -16,10 +16,10 @@ import {
 } from "@/lib/time-grid-drag-math";
 import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
 
-// A click on an event block within this many ms of that same event's drag
-// ending is treated as the tail end of that drag, not a new click. Bounded
-// rather than open-ended so a dropped click can't block future clicks.
-const CLICK_SUPPRESS_WINDOW_MS = 300;
+// A click within this many ms of a drag ending is treated as the tail end of
+// that drag, not a new click. Bounded rather than open-ended so a dropped click
+// can't block future clicks.
+export const CLICK_SUPPRESS_WINDOW_MS = 300;
 
 /** Tracks an in-progress drag of a whole event block to a new day/time. Only
  *  the static, once-per-gesture geometry lives here. The fields that change on
@@ -165,7 +165,7 @@ export function useMoveDrag({
     dayIndex: number,
     day: Date
   ) {
-    if (!onEventMove || blockedByResize) return;
+    if (!onEventMove || e.button !== 0 || blockedByResize) return;
     e.stopPropagation();
 
     const dayStart = startOfDay(day);
@@ -176,7 +176,7 @@ export function useMoveDrag({
     // calculations stay correct even with CSS grid gaps between columns.
     const gridEl = gridRef.current;
     const gridRect = gridEl?.getBoundingClientRect();
-    const columnEl = gridEl?.children[dayIndex] as HTMLElement | undefined;
+    const columnEl = gridEl?.querySelector<HTMLElement>(`:scope > [data-day-index="${dayIndex}"]`) ?? undefined;
     const columnRect = columnEl?.getBoundingClientRect();
     const originColumnLeft = columnRect && gridRect ? columnRect.left - gridRect.left : 0;
     const columnWidth = columnRect?.width ?? (gridRect ? gridRect.width / days.length : 0);

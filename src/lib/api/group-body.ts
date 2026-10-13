@@ -3,7 +3,7 @@ import { parsed, rejected, type ParseResult } from "@/lib/api/parse-fields";
 import type { GroupCreateRequest, GroupPatchRequest } from "@/lib/calendar-types";
 
 const groupRules = {
-  name: field.groupName,
+  name: field.name,
 } satisfies Record<keyof GroupPatchRequest, (value: unknown) => ParseResult<unknown>>;
 
 export type GroupPatch = { name: string };

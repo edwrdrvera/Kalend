@@ -24,10 +24,10 @@ export default function AgendaDateHeader({
 
   return (
     <div className="shrink-0 px-4 pt-4 pb-2.5">
-      <h2 className="text-[17px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+      <h2 className="text-title font-semibold leading-tight tracking-[-0.02em] text-foreground">
         {isToday(selectedDate) ? `Today · ${day}` : day}
       </h2>
-      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+      <p className="mt-0.5 text-xs leading-normal text-muted-foreground">
         {countLabel(eventCount, "event")}, {taskCount} due · {scopeLabel}
       </p>
     </div>

@@ -15,7 +15,7 @@ interface AlertMessagesProps {
 }
 
 const dismissButton =
-  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring";
+  "grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring";
 
 // The timer stops while the pointer or keyboard focus is on the message, so
 // nobody loses a reminder they are still reading.
@@ -48,7 +48,7 @@ function DueMessage({
         if (event.key === "Escape") onDismiss(message.id);
       }}
     >
-      <Bell className="size-4 shrink-0 text-primary" aria-hidden />
+      <Bell className="size-4 shrink-0 text-primary-text" aria-hidden />
       {onOpen ? (
         <button
           type="button"
@@ -96,11 +96,11 @@ export default function AlertMessages({ tray, onOpen, onDismiss, onClearMissed }
           className="pointer-events-auto w-full rounded-lg bg-muted p-3 text-sm text-foreground shadow-lg ring-1 ring-border"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-[13px] font-semibold">Missed while you were away</h2>
+            <h2 className="text-body font-semibold">Missed while you were away</h2>
             <button
               type="button"
               onClick={onClearMissed}
-              className="text-[13px] font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-ring"
+              className="text-body font-medium text-primary-text transition-colors hover:text-primary-text/80 focus-visible:outline-2 focus-visible:outline-ring"
             >
               Dismiss all
             </button>

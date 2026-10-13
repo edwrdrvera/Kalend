@@ -13,8 +13,8 @@ export default function PanelAlertsTab({ name, kindWord }: { name: string; kindW
     <div className="px-4 py-3">
       <div className="flex items-center gap-2.5 rounded-xl border border-border px-3 py-2.5">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-semibold">Notify me about {name}</span>
-          <span className="block text-[11.5px] text-muted-foreground">
+          <span className="block truncate text-body font-semibold">Notify me about {name}</span>
+          <span className="block text-xs leading-normal text-muted-foreground">
             {notify ? "You get a notification before each one." : `Alerts are off for this ${kindWord.toLowerCase()}.`}
           </span>
         </span>
@@ -25,23 +25,23 @@ export default function PanelAlertsTab({ name, kindWord }: { name: string; kindW
           aria-label={`Notify me about ${name}`}
           onClick={() => setNotify(!notify)}
           className={cn(
-            "relative h-5 w-[34px] shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            notify ? "bg-primary" : "bg-muted-foreground/30"
+            "relative h-5 w-[34px] shrink-0 rounded-full transition-colors duration-200 ease-snappy focus-ring",
+            notify ? "bg-primary" : "bg-muted-foreground/80"
           )}
         >
           <span
             aria-hidden="true"
             className={cn(
-              "absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow transition-transform",
+              "absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow transition-transform duration-200 ease-snappy",
               notify && "translate-x-[14px]"
             )}
           />
         </button>
       </div>
-      <div className={cn(!notify && "pointer-events-none opacity-45")}>
+      <div className={cn("transition-opacity duration-200", !notify && "pointer-events-none opacity-45")}>
         <section aria-label="Coming up">
-          <h3 className="mb-1 mt-4 text-[12px] font-semibold text-muted-foreground">Coming up</h3>
-          <p className="text-[13px] text-muted-foreground">No alerts scheduled.</p>
+          <h3 className="label-caps mb-1 mt-4">Coming up</h3>
+          <p className="text-body text-muted-foreground">No alerts scheduled.</p>
         </section>
       </div>
     </div>
