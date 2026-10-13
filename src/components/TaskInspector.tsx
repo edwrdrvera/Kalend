@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import TaskCheckbox from "./TaskCheckbox";
 import { FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface TaskInspectorProps {
   task: CalendarTask;
@@ -111,6 +112,7 @@ export default function TaskInspector({
           </span>
           <Input
             value={draft.title}
+            maxLength={MAX_TITLE_LENGTH}
             onChange={(e) => update({ title: e.target.value })}
             aria-invalid={titleMissing || undefined}
             className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}

@@ -25,6 +25,7 @@ import { EventColorSpaceFields, EventTimeFields } from "./EventFields";
 import { POPOVER_WIDTH, clampPopoverTop } from "@/lib/popover-position";
 import { wrapTabTarget } from "@/lib/tab-stops";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 /** Gap between the anchor cell edge and the popover panel. */
@@ -255,6 +256,7 @@ export default function EventCreatePopover({
             <input
               id="new-event-title"
               value={draft.title}
+              maxLength={MAX_TITLE_LENGTH}
               onChange={(e) => update({ title: e.target.value })}
               placeholder="New event"
               required

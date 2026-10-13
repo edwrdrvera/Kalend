@@ -17,6 +17,7 @@ import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
 import { spaceMembership, type Membership } from "@/lib/membership";
 import { Input } from "@/components/ui/input";
 import { FIELD_SIZE_CLS } from "@/components/DateField";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 /** Quick task creation seeded with a due date, opened from the calendar's
  *  right-click menu. Title + Space, with the due date fixed to the clicked day. */
@@ -88,6 +89,7 @@ export default function TaskCreateDialog({
           <Input
             ref={inputRef}
             value={title}
+            maxLength={MAX_TITLE_LENGTH}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Task title"
             aria-label="Task title"

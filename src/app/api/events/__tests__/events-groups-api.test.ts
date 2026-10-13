@@ -63,10 +63,10 @@ beforeEach(() => {
   ];
   const base = { user_id: ME, title: "e", start_at: new Date("2026-09-08T10:00:00Z"), end_at: new Date("2026-09-08T11:00:00Z"), color: "blue", color_overridden: false };
   eventState.rows = [
-    { ...base, id: "evt-grouped", category_id: SCHOOL, group_id: BIO },
-    { ...base, id: "evt-direct", category_id: SCHOOL, group_id: null },
-    { ...base, id: "evt-loose", category_id: null, group_id: null },
-    { ...base, id: "evt-foreign", user_id: OTHER, category_id: THEIRS, group_id: THEIR_GROUP },
+    { ...base, id: "e0000000-0000-4000-8000-000000000001", category_id: SCHOOL, group_id: BIO },
+    { ...base, id: "e0000000-0000-4000-8000-000000000002", category_id: SCHOOL, group_id: null },
+    { ...base, id: "e0000000-0000-4000-8000-000000000003", category_id: null, group_id: null },
+    { ...base, id: "e0000000-0000-4000-8000-000000000004", user_id: OTHER, category_id: THEIRS, group_id: THEIR_GROUP },
   ];
 });
 
@@ -119,58 +119,58 @@ describe("POST /api/events with a Group", () => {
 
 describe("PATCH /api/events/[id] with a Group", () => {
   it("joins a Group and takes its Space", async () => {
-    const response = await PATCH(request("PATCH", { group_id: HIST }), ctx("evt-loose"));
+    const response = await PATCH(request("PATCH", { group_id: HIST }), ctx("e0000000-0000-4000-8000-000000000003"));
     expect(response.status).toBe(200);
-    expect(stored("evt-loose")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
+    expect(stored("e0000000-0000-4000-8000-000000000003")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
   });
 
   it("moves between Groups of one Space", async () => {
-    await PATCH(request("PATCH", { group_id: HIST }), ctx("evt-grouped"));
-    expect(stored("evt-grouped")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
+    await PATCH(request("PATCH", { group_id: HIST }), ctx("e0000000-0000-4000-8000-000000000001"));
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: HIST });
   });
 
   it("clears the Group when the Space changes", async () => {
-    const response = await PATCH(request("PATCH", { category_id: WORK }), ctx("evt-grouped"));
+    const response = await PATCH(request("PATCH", { category_id: WORK }), ctx("e0000000-0000-4000-8000-000000000001"));
     expect(response.status).toBe(200);
-    expect(stored("evt-grouped")).toMatchObject({ category_id: WORK, group_id: null });
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: WORK, group_id: null });
   });
 
   it("keeps the Group when the same Space is sent again", async () => {
-    await PATCH(request("PATCH", { category_id: SCHOOL }), ctx("evt-grouped"));
-    expect(stored("evt-grouped")).toMatchObject({ category_id: SCHOOL, group_id: BIO });
+    await PATCH(request("PATCH", { category_id: SCHOOL }), ctx("e0000000-0000-4000-8000-000000000001"));
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: BIO });
   });
 
   it("leaves the Group and stays in the Space when group_id is null", async () => {
-    await PATCH(request("PATCH", { group_id: null }), ctx("evt-grouped"));
-    expect(stored("evt-grouped")).toMatchObject({ category_id: SCHOOL, group_id: null });
+    await PATCH(request("PATCH", { group_id: null }), ctx("e0000000-0000-4000-8000-000000000001"));
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: SCHOOL, group_id: null });
   });
 
   it("clears Space and Group when category_id is null", async () => {
-    await PATCH(request("PATCH", { category_id: null }), ctx("evt-grouped"));
-    expect(stored("evt-grouped")).toMatchObject({ category_id: null, group_id: null });
+    await PATCH(request("PATCH", { category_id: null }), ctx("e0000000-0000-4000-8000-000000000001"));
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ category_id: null, group_id: null });
   });
 
   it("keeps the Group on an edit that does not name membership", async () => {
-    await PATCH(request("PATCH", { title: "Renamed" }), ctx("evt-grouped"));
-    expect(stored("evt-grouped")).toMatchObject({ title: "Renamed", category_id: SCHOOL, group_id: BIO });
+    await PATCH(request("PATCH", { title: "Renamed" }), ctx("e0000000-0000-4000-8000-000000000001"));
+    expect(stored("e0000000-0000-4000-8000-000000000001")).toMatchObject({ title: "Renamed", category_id: SCHOOL, group_id: BIO });
   });
 
   it("rejects a conflicting Space and Group with no partial write", async () => {
-    const response = await PATCH(request("PATCH", { group_id: BIO, category_id: WORK, title: "Changed" }), ctx("evt-direct"));
+    const response = await PATCH(request("PATCH", { group_id: BIO, category_id: WORK, title: "Changed" }), ctx("e0000000-0000-4000-8000-000000000002"));
     expect(response.status).toBe(400);
-    expect(stored("evt-direct")).toMatchObject({ title: "e", category_id: SCHOOL, group_id: null });
+    expect(stored("e0000000-0000-4000-8000-000000000002")).toMatchObject({ title: "e", category_id: SCHOOL, group_id: null });
   });
 
   it("rejects another user's Group and leaves the event as it was", async () => {
-    const response = await PATCH(request("PATCH", { group_id: THEIR_GROUP, title: "Changed" }), ctx("evt-direct"));
+    const response = await PATCH(request("PATCH", { group_id: THEIR_GROUP, title: "Changed" }), ctx("e0000000-0000-4000-8000-000000000002"));
     expect(response.status).toBe(400);
     expect((await response.json()).error).toBe("The selected Group is unavailable");
-    expect(stored("evt-direct")).toMatchObject({ title: "e", group_id: null });
+    expect(stored("e0000000-0000-4000-8000-000000000002")).toMatchObject({ title: "e", group_id: null });
   });
 
   it("returns 404 for another user's event even with my Group", async () => {
-    const response = await PATCH(request("PATCH", { group_id: BIO }), ctx("evt-foreign"));
+    const response = await PATCH(request("PATCH", { group_id: BIO }), ctx("e0000000-0000-4000-8000-000000000004"));
     expect(response.status).toBe(404);
-    expect(stored("evt-foreign")?.group_id).toBe(THEIR_GROUP);
+    expect(stored("e0000000-0000-4000-8000-000000000004")?.group_id).toBe(THEIR_GROUP);
   });
 });
