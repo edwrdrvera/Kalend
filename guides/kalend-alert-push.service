@@ -1,0 +1,8 @@
+[Unit]
+Description=Send Kalend alerts that are due while the app is closed
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/kalend/alert-push.env
+ExecStart=/bin/sh -c 'exec /usr/bin/curl -fsS -X POST -H "Authorization: Bearer $ALERT_PUSH_SECRET" http://127.0.0.1/api/alerts/push-due'

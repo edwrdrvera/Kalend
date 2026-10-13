@@ -15,7 +15,7 @@ This is a pre-launch MVP: there's no self-serve signup, password reset, or email
 
 ## Auth & routing
 
-`src/proxy.ts` delegates to `updateSession()` in `@/lib/supabase/middleware`, which refreshes the Supabase session and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). Its matcher excludes static assets, `api/ping`, and `api/waitlist` (public, unauthenticated). A new public route has to be added to the public-route allowance in `updateSession`, not just to the matcher.
+`src/proxy.ts` delegates to `updateSession()` in `@/lib/supabase/middleware`, which refreshes the Supabase session and redirects (unauthenticated visiting anything other than `/` or `/login` → `/login`; authenticated visiting `/` or `/login` → `/app`). Its matcher excludes static assets, `api/ping`, `api/waitlist` (public, unauthenticated), `api/dev/sign-in`, and `api/alerts/push-due` (the minute alert check, which authenticates with a bearer secret and has no session). A new public page has to be added to the public-route allowance in `updateSession`, not just to the matcher. An API route a timer or health check calls with no session has to stay out of the matcher, because an unauthenticated API request that reaches `updateSession` is redirected to `/login`.
 
 ## Styling (`globals.css`)
 
