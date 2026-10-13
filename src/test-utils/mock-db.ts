@@ -114,6 +114,7 @@ export function setupMockDb<T extends BaseRow>(
     getAuthenticatedUser: mock(async () => getUser()),
   }));
 
+  let inserted = 0;
   mock.module("@/db", () => {
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
@@ -203,7 +204,7 @@ export function setupMockDb<T extends BaseRow>(
                   )
                 : vals;
               const row = {
-                id: `${idPrefix}uuid-1`,
+                id: `${idPrefix}uuid-${++inserted}`,
                 created_at: new Date(),
                 ...insertDefaults,
                 ...payload,
