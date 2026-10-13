@@ -16,7 +16,10 @@
  * of the same chain, directly or nested in `and(...)`. Under `or(...)` or
  * `not(...)` it would no longer restrict the rows, so it does not count.
  * `db.query.<table>` and `db.execute(...)` are reported outright because the
- * filter inside them cannot be checked. So is a select, update, delete, or
+ * filter inside them cannot be checked. The one exception is `set_config` of
+ * `app.user_id` with the local flag true, and only in `src/db/scoped.ts`,
+ * because that call stores the caller id for row policies and does not read a
+ * table. A test may read that same setting back. A select, update, delete, or
  * insert whose table the rule can't identify, such as a conditional, a
  * parameter, or a property of a runtime object: it fails closed. A filter hoisted into a variable or built
  * in an array is invisible to pure AST matching, so those legitimately-scoped
@@ -24,9 +27,29 @@
  * silent on a query it cannot prove is scoped. Inline the filter to satisfy it.
  * The rule cannot be disabled inline (see eslint.config.mjs); a genuine
  * exception means changing this rule, where the change gets reviewed.
+ *
+ * Route files and helpers under `src/lib/api` must not call the shared `db`
+ * client. Queries go through the transaction `asUser` opens, which is the
+ * connection that holds the caller id. The waitlist route is the exception:
+ * it has no signed-in user. The check follows a named import, an import
+ * alias, a local alias, `namespace.db`, `const { db } = namespace`, and
+ * `await import("@/db")`.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
+
+const DIRECT_DB_METHODS = new Set([
+  "select",
+  "selectDistinct",
+  "insert",
+  "update",
+  "delete",
+  "execute",
+  "transaction",
+]);
+
+const directDbMessage =
+  'Queries must go through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
@@ -234,6 +257,117 @@ function conflictKeepsOwner(conflict, scope) {
   return ownerIsUser(set?.value, false, scope);
 }
 
+function importedDb(def) {
+  if (def?.type !== "ImportBinding" || def.parent?.source?.value !== "@/db") return false;
+  if (def.node.type !== "ImportSpecifier") return false;
+  const imported = def.node.imported.name ?? def.node.imported.value;
+  return imported === "db";
+}
+
+function isImportOfAppDb(node) {
+  return node?.type === "ImportExpression" && node.source?.type === "Literal" && node.source.value === "@/db";
+}
+
+// The module object from `import * as ns from "@/db"` or `await import("@/db")`,
+// including a local binding of that object.
+function isDbModule(node, scope, seen) {
+  if (!node || seen.has(node)) return false;
+  if (node.type === "AwaitExpression" || node.type === "ChainExpression") {
+    return isDbModule(node.argument ?? node.expression, scope, seen);
+  }
+  if (isImportOfAppDb(node)) return true;
+  if (node.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  if (
+    def?.type === "ImportBinding" &&
+    def.node.type === "ImportNamespaceSpecifier" &&
+    def.parent?.source?.value === "@/db"
+  ) {
+    return true;
+  }
+  if (def?.type === "Variable" && def.node.id?.type === "Identifier" && def.node.init) {
+    seen.add(node);
+    return isDbModule(def.node.init, scope, seen);
+  }
+  return false;
+}
+
+function destructuresDb(pattern, localName) {
+  if (pattern?.type !== "ObjectPattern") return false;
+  return pattern.properties.some((prop) => {
+    if (prop.type !== "Property" || prop.computed) return false;
+    const value = prop.value.type === "AssignmentPattern" ? prop.value.left : prop.value;
+    if (value.type !== "Identifier" || value.name !== localName) return false;
+    const key = prop.key.type === "Identifier" ? prop.key.name : prop.key.type === "Literal" ? prop.key.value : null;
+    return key === "db";
+  });
+}
+
+// The shared client, including an alias, `namespace.db`, `const { db } = namespace`,
+// and `const { db } = await import("@/db")`.
+function isAppDb(node, scope, seen = new Set()) {
+  if (!node || seen.has(node)) return false;
+  seen.add(node);
+  if (node.type === "ChainExpression") return isAppDb(node.expression, scope, seen);
+  if (node.type === "MemberExpression") {
+    if (staticKey(node) !== "db") return false;
+    return isDbModule(node.object, scope, seen);
+  }
+  if (node.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  if (!def) return false;
+  if (def.type === "ImportBinding") return importedDb(def);
+  if (def.type === "Variable" && def.node.init) {
+    if (def.node.id?.type === "Identifier") return isAppDb(def.node.init, scope, seen);
+    if (destructuresDb(def.node.id, node.name)) return isDbModule(def.node.init, scope, seen);
+  }
+  return false;
+}
+
+function routeForbidsDirectDb(filename) {
+  const path = String(filename ?? "").replaceAll("\\", "/");
+  const helper = path.indexOf("src/lib/api/");
+  if (helper !== -1 && !path.slice(helper).includes("/__tests__/")) return true;
+  const marker = "src/app/api/";
+  const index = path.indexOf(marker);
+  if (index === -1) return false;
+  const rest = path.slice(index + marker.length);
+  return rest !== "waitlist" && !rest.startsWith("waitlist/") && !rest.startsWith("waitlist.");
+}
+
+function isSqlTemplate(node) {
+  return node?.type === "TaggedTemplateExpression" && node.tag?.type === "Identifier" && node.tag.name === "sql";
+}
+
+function quasiText(quasi) {
+  return quasi?.value?.cooked ?? "";
+}
+
+// The local flag has to be the static tail of the template. A true buried in
+// a comment or an earlier argument must not count, and false would leak the
+// caller id onto a pooled connection.
+function isLocalSetConfig(node) {
+  if (!isSqlTemplate(node)) return false;
+  const quasis = node.quasi?.quasis;
+  if (!quasis || quasis.length < 2) return false;
+  const head = quasiText(quasis[0]);
+  const tail = quasiText(quasis[quasis.length - 1]).trim();
+  if (!head.includes("set_config(") || !head.includes("'app.user_id'")) return false;
+  return tail === ", true)";
+}
+
+function isCallerSettingRead(node) {
+  if (!isSqlTemplate(node)) return false;
+  const head = quasiText(node.quasi?.quasis?.[0]);
+  return head.includes("current_setting(") && head.includes("'app.user_id'");
+}
+
+function isCallerSettingExecute(argument, filename) {
+  const path = String(filename ?? "").replaceAll("\\", "/");
+  if (path.endsWith("src/db/scoped.ts")) return isLocalSetConfig(argument);
+  return path.endsWith("src/db/__tests__/scoped.test.ts") && isCallerSettingRead(argument);
+}
+
 function isScoped(node, table, scope) {
   if (node?.type !== "CallExpression" || node.callee.type !== "Identifier") return false;
   if (node.callee.name === "eq") return isOwnerEq(node, table, scope);
@@ -251,6 +385,16 @@ const scopedQuery = {
     return {
       CallExpression(node) {
         const scope = context.sourceCode.getScope(node);
+        const filename = context.filename ?? "";
+        if (
+          node.callee.type === "MemberExpression" &&
+          node.callee.property.type === "Identifier" &&
+          DIRECT_DB_METHODS.has(node.callee.property.name) &&
+          isAppDb(node.callee.object, scope) &&
+          routeForbidsDirectDb(filename)
+        ) {
+          context.report({ node, message: directDbMessage });
+        }
         const root = queryRoot(node, scope);
         if (root !== null) {
           const { method, table } = root;
@@ -273,7 +417,7 @@ const scopedQuery = {
           }
           return;
         }
-        if (isMember(node.callee, "execute")) {
+        if (isMember(node.callee, "execute") && !isCallerSettingExecute(node.arguments[0], filename)) {
           context.report({
             node,
             message: "Raw SQL cannot be checked for an owner filter. Use db.select()/update()/delete() with .where(eq(<table>.user_id, user.id)).",

@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { events } from "@/db/schema/events";
+import { asUser } from "@/db/scoped";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { capUnlessUnchanged, title as titleRule } from "@/lib/api/parse-fields";
@@ -21,7 +21,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   if (!parsed.ok) return badRequest(parsed.error);
   const body = parsed.value;
 
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     const [existing] = await tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for("update");
     if (!existing) return null;
     const titleError = capUnlessUnchanged(titleRule, body.title, existing.title);
@@ -61,7 +61,9 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
 export const DELETE = withUser(async (_request, { params }: RouteContext, user) => {
   const { id } = await params;
   if (!isUuid(id)) return fail("Event not found", 404);
-  const [deletedEvent] = await db.delete(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning();
+  const [deletedEvent] = await asUser(user, (tx) =>
+    tx.delete(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).returning(),
+  );
   if (!deletedEvent) return fail("Event not found", 404);
   return ok(deletedEvent);
 });

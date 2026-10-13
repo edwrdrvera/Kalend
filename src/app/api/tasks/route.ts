@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { tasks } from "@/db/schema/tasks";
+import { asUser } from "@/db/scoped";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
 import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
 import { parseTaskCreate } from "@/lib/api/task-body";
@@ -8,10 +8,9 @@ import { retryTransaction } from "@/lib/transaction-retry";
 import { eq } from "drizzle-orm";
 
 export const GET = withUser(async (_request, _context, user) => {
-  const userTasks = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.user_id, user.id));
+  const userTasks = await asUser(user, (tx) =>
+    tx.select().from(tasks).where(eq(tasks.user_id, user.id)),
+  );
 
   return ok(userTasks);
 });
@@ -23,7 +22,7 @@ export const POST = withUser(async (request, _context, user) => {
 
   // The Space (and Group) stay locked until the insert commits, so a delete
   // cannot slip in between the ownership check and the new task.
-  const result = await retryTransaction(() => db.transaction(async (tx) => {
+  const result = await retryTransaction(() => asUser(user, async (tx) => {
     const resolved = await resolveItemMembership(tx, user, UNASSIGNED, {
       category_id: body.category_id,
       group_id: body.group_id,

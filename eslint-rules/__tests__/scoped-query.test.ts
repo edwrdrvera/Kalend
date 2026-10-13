@@ -193,6 +193,105 @@ const typedTester = new RuleTester({
   languageOptions: { parser: tsParser, ecmaVersion: "latest", sourceType: "module" },
 });
 
+const directDb = /shared database client/;
+
+ruleTester.run("scoped-query caller transaction", rule, {
+  valid: [
+    {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`)",
+    },
+    {
+      filename: "src/db/__tests__/scoped.test.ts",
+      code: "tx.execute(sql`select current_setting('app.user_id', true) as caller`)",
+    },
+    {
+      filename: "src/app/api/waitlist/route.ts",
+      code: "import { db } from '@/db'; db.insert(waitlist).values({ email })",
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "withUser(async (request, context, user) => tx.select().from(events).where(eq(events.user_id, user.id)))",
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as other from '@/db/schema'; const { db } = other; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+    },
+  ],
+  invalid: [
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/tasks/route.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.transaction(async (tx) => tx.select().from(tasks).where(eq(tasks.user_id, user.id))))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db as database } from '@/db'; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db } from '@/db'; const database = db; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as database from '@/db'; withUser(async (request, context, user) => database.db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/alert-sync.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/membership.ts",
+      code: "import * as database from '@/db'; withUser(async (request, context, user) => database.db.update(events).set({ title }).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as ns from '@/db'; const { db } = ns; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as ns from '@/db'; const { db: database } = ns; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "async function load() { const { db } = await import('@/db'); return withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id))) }",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/membership.ts",
+      code: "async function load() { const ns = await import('@/db'); return withUser(async (request, context, user) => ns.db.update(events).set({ title }).where(eq(events.user_id, user.id))) }",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, false)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+    {
+      filename: "src/db/scoped.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, false) -- , true)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+    {
+      filename: "src/db/other.ts",
+      code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, true)`)",
+      errors: [{ message: /Raw SQL cannot be checked/ }],
+    },
+  ],
+});
+
 typedTester.run("scoped-query with typed helpers", rule, {
   valid: [
     "async function load(tx, user: AuthenticatedUser) { return tx.select().from(tasks).where(eq(tasks.user_id, user.id)) }",

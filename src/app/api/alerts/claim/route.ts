@@ -1,5 +1,5 @@
-import { db } from "@/db";
 import { alerts } from "@/db/schema/alerts";
+import { asUser } from "@/db/scoped";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
 import { withUser, ok } from "@/lib/api/route-handler";
@@ -19,7 +19,7 @@ import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 export const POST = withUser(async (_request, _context, user) => {
   const now = new Date();
 
-  const claim = await retryTransaction(() => db.transaction(async (tx): Promise<AlertClaim> => {
+  const claim = await retryTransaction(() => asUser(user, async (tx): Promise<AlertClaim> => {
     const claimed = await tx
       .update(alerts)
       .set({ fired_at: now })

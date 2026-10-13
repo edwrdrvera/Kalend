@@ -24,12 +24,19 @@ interface BaseRow {
   user_id: string;
 }
 
+export interface RecordedQuery {
+  sql: string;
+  params: unknown[];
+}
+
 export interface MockDbState<T extends BaseRow> {
   rows: T[];
   shouldFail: boolean;
   shouldFailOnDelete?: boolean;
   transactionCount?: number;
   lockCount?: number;
+  /** Raw queries sent through execute, so a test can see the caller id passed to set_config. */
+  executes?: RecordedQuery[];
   /** Apply the route's real `where` condition to this table's rows (see
    *  where-matcher.ts) instead of the id and user_id heuristics. */
   evaluateWhere?: boolean;
@@ -119,6 +126,18 @@ export function setupMockDb<T extends BaseRow>(
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
     const queryClient = {
+      execute: async (query: unknown) => {
+        // asUser sets the caller id with set_config. Keep the statement so a
+        // route test can prove which user the handler passed in.
+        if (query && typeof query === "object" && "queryChunks" in query) {
+          const rendered = dialect.sqlToQuery(query as SQL);
+          dbState.executes = [
+            ...(dbState.executes ?? []),
+            { sql: rendered.sql, params: [...rendered.params] },
+          ];
+        }
+        return [];
+      },
       select: () => ({
         from: (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether
