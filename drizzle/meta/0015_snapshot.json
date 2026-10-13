@@ -1,5 +1,5 @@
 {
-  "id": "d7224594-d9f4-4e5e-821e-73836bca9f6a",
+  "id": "a7de408d-9535-4e7f-9da8-71b8a9402de9",
   "prevId": "8a85a65e-0c4d-4f08-8f5b-b081c1c31994",
   "version": "7",
   "dialect": "postgresql",
@@ -77,57 +77,57 @@
             }
           ],
           "isUnique": false,
-          "where": "\"alerts\".\"fired_at\" is null",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"alerts\".\"fired_at\" is null",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "alerts_event_id_events_id_fk": {
           "name": "alerts_event_id_events_id_fk",
           "tableFrom": "alerts",
-          "tableTo": "events",
           "columnsFrom": [
             "event_id"
           ],
+          "tableTo": "events",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "alerts_task_id_tasks_id_fk": {
           "name": "alerts_task_id_tasks_id_fk",
           "tableFrom": "alerts",
-          "tableTo": "tasks",
           "columnsFrom": [
             "task_id"
           ],
+          "tableTo": "tasks",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "alerts_event_offset_key": {
           "name": "alerts_event_offset_key",
-          "nullsNotDistinct": false,
           "columns": [
             "event_id",
             "offset_minutes"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "alerts_task_offset_key": {
           "name": "alerts_task_offset_key",
-          "nullsNotDistinct": false,
           "columns": [
             "task_id",
             "offset_minutes"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -193,11 +193,11 @@
       "uniqueConstraints": {
         "categories_id_user_key": {
           "name": "categories_id_user_key",
-          "nullsNotDistinct": false,
           "columns": [
             "id",
             "user_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -303,44 +303,44 @@
             }
           ],
           "isUnique": false,
-          "where": "\"events\".\"group_id\" is not null",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"events\".\"group_id\" is not null",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "events_space_owner_fk": {
           "name": "events_space_owner_fk",
           "tableFrom": "events",
-          "tableTo": "categories",
           "columnsFrom": [
             "category_id",
             "user_id"
           ],
+          "tableTo": "categories",
           "columnsTo": [
             "id",
             "user_id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "events_group_membership_fk": {
           "name": "events_group_membership_fk",
           "tableFrom": "events",
-          "tableTo": "groups",
           "columnsFrom": [
             "group_id",
             "category_id",
             "user_id"
           ],
+          "tableTo": "groups",
           "columnsTo": [
             "id",
             "category_id",
             "user_id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -409,38 +409,38 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "groups_space_owner_fk": {
           "name": "groups_space_owner_fk",
           "tableFrom": "groups",
-          "tableTo": "categories",
           "columnsFrom": [
             "category_id",
             "user_id"
           ],
+          "tableTo": "categories",
           "columnsTo": [
             "id",
             "user_id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "groups_membership_key": {
           "name": "groups_membership_key",
-          "nullsNotDistinct": false,
           "columns": [
             "id",
             "category_id",
             "user_id"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -448,90 +448,6 @@
         "groups_name_not_blank": {
           "name": "groups_name_not_blank",
           "value": "btrim(\"groups\".\"name\") <> '' and char_length(\"groups\".\"name\") <= 100"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.push_subscriptions": {
-      "name": "push_subscriptions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "p256dh": {
-          "name": "p256dh",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth": {
-          "name": "auth",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "push_subscriptions_user_idx": {
-          "name": "push_subscriptions_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "push_subscriptions_endpoint_key": {
-          "name": "push_subscriptions_endpoint_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "endpoint"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "push_subscriptions_endpoint_https": {
-          "name": "push_subscriptions_endpoint_https",
-          "value": "left(\"push_subscriptions\".\"endpoint\", 8) = 'https://' and char_length(\"push_subscriptions\".\"endpoint\") between 9 and 2048 and position(' ' in \"push_subscriptions\".\"endpoint\") = 0"
-        },
-        "push_subscriptions_keys_bounded": {
-          "name": "push_subscriptions_keys_bounded",
-          "value": "char_length(\"push_subscriptions\".\"p256dh\") between 1 and 200 and char_length(\"push_subscriptions\".\"auth\") between 1 and 200"
         }
       },
       "isRLSEnabled": true
@@ -618,44 +534,44 @@
             }
           ],
           "isUnique": false,
-          "where": "\"tasks\".\"group_id\" is not null",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"tasks\".\"group_id\" is not null",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "tasks_space_owner_fk": {
           "name": "tasks_space_owner_fk",
           "tableFrom": "tasks",
-          "tableTo": "categories",
           "columnsFrom": [
             "category_id",
             "user_id"
           ],
+          "tableTo": "categories",
           "columnsTo": [
             "id",
             "user_id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "tasks_group_membership_fk": {
           "name": "tasks_group_membership_fk",
           "tableFrom": "tasks",
-          "tableTo": "groups",
           "columnsFrom": [
             "group_id",
             "category_id",
             "user_id"
           ],
+          "tableTo": "groups",
           "columnsTo": [
             "id",
             "category_id",
             "user_id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -700,10 +616,10 @@
       "uniqueConstraints": {
         "waitlist_email_unique": {
           "name": "waitlist_email_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -713,10 +629,10 @@
   },
   "enums": {},
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

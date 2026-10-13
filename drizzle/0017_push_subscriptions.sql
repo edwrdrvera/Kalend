@@ -13,7 +13,14 @@ CREATE TABLE "push_subscriptions" (
 ALTER TABLE "push_subscriptions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE INDEX "push_subscriptions_user_idx" ON "push_subscriptions" USING btree ("user_id");--> statement-breakpoint
 
--- Same lockdown as the other tables (0010, 0011): the app reaches this table only
--- through Drizzle as "postgres", so the REST and GraphQL roles get nothing.
+-- Same lockdown as the other tables (0010, 0011). anon and authenticated get nothing.
 REVOKE ALL PRIVILEGES ON TABLE "push_subscriptions" FROM anon, authenticated;--> statement-breakpoint
-ALTER TABLE "push_subscriptions" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "push_subscriptions" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
+
+-- 0016 grants no future table by default, so this table is named here.
+create policy push_subscriptions_owner on push_subscriptions
+  for all
+  to kalend_app
+  using (user_id = public.app_user_id())
+  with check (user_id = public.app_user_id());--> statement-breakpoint
+grant select, insert, update, delete on push_subscriptions to kalend_app;

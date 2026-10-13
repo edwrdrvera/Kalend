@@ -110,8 +110,22 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1791874976492,
-      "tag": "0015_push_subscriptions",
+      "when": 1791874684305,
+      "tag": "0015_rls_app_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791875118029,
+      "tag": "0016_kalend_app_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791933527766,
+      "tag": "0017_push_subscriptions",
       "breakpoints": true
     }
   ]
