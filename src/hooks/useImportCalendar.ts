@@ -5,7 +5,6 @@ import { ICS_TOO_LARGE_MESSAGE, MAX_ICS_BYTES } from "@/lib/ics-limits";
 
 export interface ImportCalendarCounts {
   imported: number;
-  updated: number;
   unchanged: number;
   skipped: number;
 }
@@ -69,9 +68,8 @@ export function parseImportResponse(value: unknown): { counts: ImportCalendarCou
   }
   if (!isRecord(value.data)) return { error: IMPORT_FAILED };
   const imported = countOf(value.data.imported);
-  const updated = countOf(value.data.updated);
   const unchanged = countOf(value.data.unchanged);
   const skipped = countOf(value.data.skipped);
-  if (imported === null || updated === null || unchanged === null || skipped === null) return { error: IMPORT_FAILED };
-  return { counts: { imported, updated, unchanged, skipped } };
+  if (imported === null || unchanged === null || skipped === null) return { error: IMPORT_FAILED };
+  return { counts: { imported, unchanged, skipped } };
 }

@@ -8,8 +8,10 @@ import {
   ICS_TOO_LARGE_MESSAGE,
   MAX_ICS_BYTES,
 } from "@/lib/ics-limits";
-import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq, inArray, sql } from "drizzle-orm";
+
+// The shared client skips row policies. This handler still uses it, and the
+// user_id filter is the access check, until a request can run as the app role.
 
 export const POST = withUser(async (request, _context, user) => {
   const body = await readBoundedCalendar(request);
@@ -24,16 +26,18 @@ export const POST = withUser(async (request, _context, user) => {
   if ("error" in parsed) return fail(parsed.error, 400);
 
   if (parsed.events.length === 0) {
-    return ok({ imported: 0, updated: 0, unchanged: 0, skipped: parsed.skipped });
+    return ok({ imported: 0, unchanged: 0, skipped: parsed.skipped });
   }
 
-  const counts = await retryTransaction(() => db.transaction(async (tx) => {
+  // The identity index skips a row another import stored first. This read
+  // does not lock those rows, so a conflicting insert waits instead of
+  // needing a retry.
+  const counts = await db.transaction(async (tx) => {
     const uids = [...new Set(parsed.events.map((event) => event.importUid))];
     const existing = await tx
       .select()
       .from(events)
-      .where(and(eq(events.user_id, user.id), inArray(events.import_uid, uids)))
-      .for("update");
+      .where(and(eq(events.user_id, user.id), inArray(events.import_uid, uids)));
     const byKey = new Map(existing.map((row) => [`${row.import_uid}\0${row.import_occurrence ?? ""}`, row]));
 
     let unchanged = 0;
@@ -76,8 +80,8 @@ export const POST = withUser(async (request, _context, user) => {
       imported = saved.length;
       unchanged += fresh.length - saved.length;
     }
-    return { imported, updated: 0, unchanged, skipped: parsed.skipped };
-  }));
+    return { imported, unchanged, skipped: parsed.skipped };
+  });
 
   return ok(counts);
 });

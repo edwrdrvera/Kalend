@@ -19,7 +19,7 @@ describe("useImportCalendar", () => {
       calls.push({ url: String(url), init: init ?? {} });
       return new Response(JSON.stringify({
         success: true,
-        data: { imported: 42, updated: 0, unchanged: 3, skipped: 1 },
+        data: { imported: 42, unchanged: 3, skipped: 1 },
       }));
     }) as unknown as typeof fetch;
     const imported = mock(() => {});

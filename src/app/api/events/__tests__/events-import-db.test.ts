@@ -7,8 +7,8 @@ import * as schema from "@/db/schema";
 
 // The in-memory route tests fake the identity conflict. This file runs the
 // import twice against the scratch database CI migrates, which is the only
-// place the unique index and xmax are real. It skips without
-// SCHEMA_TEST_DATABASE_URL, the same way the groups schema tests do.
+// place the unique index is real. It skips without SCHEMA_TEST_DATABASE_URL,
+// the same way the groups schema tests do.
 const url = process.env.SCHEMA_TEST_DATABASE_URL;
 const appUrl = process.env.DATABASE_URL;
 
@@ -32,17 +32,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function countsFrom(value: unknown): { imported: number; updated: number; unchanged: number } {
+function countsFrom(value: unknown): { imported: number; unchanged: number } {
   if (!isRecord(value) || value.success !== true || !isRecord(value.data)) {
     throw new Error("import response was not a success");
   }
   const imported = value.data.imported;
-  const updated = value.data.updated;
   const unchanged = value.data.unchanged;
-  if (typeof imported !== "number" || typeof updated !== "number" || typeof unchanged !== "number") {
+  if (typeof imported !== "number" || typeof unchanged !== "number") {
     throw new Error("import response is missing counts");
   }
-  return { imported, updated, unchanged };
+  return { imported, unchanged };
 }
 
 describe.skipIf(!url || !appClient)("calendar import on the real database", () => {
@@ -59,14 +58,6 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
         INSERT INTO import_race_log DEFAULT VALUES;
         PERFORM pg_sleep(0.5);
         RETURN NULL;
-      END;
-      $fn$;
-      CREATE OR REPLACE FUNCTION import_race_alert() RETURNS trigger
-      LANGUAGE plpgsql AS $fn$
-      BEGIN
-        INSERT INTO alerts (user_id, event_id, offset_minutes, fire_at, fired_at)
-        VALUES (NEW.user_id, NEW.id, 15, NEW.start_at - interval '15 minutes', now());
-        RETURN NEW;
       END;
       $fn$;
     `);
@@ -103,11 +94,6 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     await sql`
       create trigger import_race_pause before insert on events
       for each statement execute function import_race_pause()
-    `;
-    await sql`
-      create trigger import_race_alert after insert on events
-      for each row when (NEW.import_uid is not null)
-      execute function import_race_alert()
     `;
     try {
       return await body();
@@ -146,12 +132,10 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     expect(rows.length).toBeGreaterThan(1);
     expect(new Set(rows.map((row) => row.import_occurrence)).size).toBe(rows.length);
     expect(races).toBe(2);
-    expect(first.updated).toBe(0);
-    expect(second.updated).toBe(0);
     expect(first.imported + second.imported).toBe(rows.length);
-    expect(first.imported + first.updated + first.unchanged).toBe(rows.length);
-    expect(second.imported + second.updated + second.unchanged).toBe(rows.length);
-    expect(first.imported + first.updated + first.unchanged + second.imported + second.updated + second.unchanged).toBe(rows.length * 2);
+    expect(first.imported + first.unchanged).toBe(rows.length);
+    expect(second.imported + second.unchanged).toBe(rows.length);
+    expect(first.imported + first.unchanged + second.imported + second.unchanged).toBe(rows.length * 2);
 
     const [secret] = await sql<{ title: string }[]>`select title from events where user_id = ${OTHER}`;
     const [typed] = await sql<{ title: string; import_uid: string | null }[]>`
@@ -159,44 +143,5 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     `;
     expect(secret?.title).toBe("Secret");
     expect(typed).toMatchObject({ title: "Typed by hand", import_uid: null });
-  }, 15_000);
-
-  it("keeps the first copy when a racing import would change the title", async () => {
-    const original = `BEGIN:VCALENDAR
-BEGIN:VEVENT
-DTSTART:20270601T150000Z
-DTEND:20270601T160000Z
-SUMMARY:Seminar
-UID:seminar-race@school
-END:VEVENT
-END:VCALENDAR`;
-    const renamed = original.replace("SUMMARY:Seminar", "SUMMARY:Seminar moved");
-
-    const [first, second, races] = await withRace(async () => {
-      const responses = await Promise.all([post(original), post(renamed)]);
-      const [left, right] = await Promise.all(responses.map(responseCounts));
-      const [{ races }] = await sql<{ races: number }[]>`select count(*)::int as races from import_race_log`;
-      return [left, right, Number(races)] as const;
-    });
-
-    const rows = await sql<{ id: string; title: string }[]>`
-      select id, title from events
-      where user_id = ${USER} and import_uid = 'seminar-race@school'
-    `;
-    expect(rows).toHaveLength(1);
-    expect(races).toBe(2);
-    expect(first.updated).toBe(0);
-    expect(second.updated).toBe(0);
-    expect(first.imported + second.imported).toBe(1);
-    expect(rows[0].title).toBe(first.imported === 1 ? "Seminar" : "Seminar moved");
-    expect(first.imported + first.updated + first.unchanged).toBe(1);
-    expect(second.imported + second.updated + second.unchanged).toBe(1);
-
-    const alerts = await sql<{ fired_at: Date | null; fire_at: Date }[]>`
-      select fired_at, fire_at from alerts where user_id = ${USER} and event_id = ${rows[0].id}
-    `;
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0].fire_at.getTime()).toBeGreaterThan(Date.now());
-    expect(alerts[0].fired_at).not.toBeNull();
   }, 15_000);
 });

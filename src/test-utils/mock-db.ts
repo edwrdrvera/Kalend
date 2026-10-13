@@ -81,23 +81,6 @@ function sameIdentity(row: BaseRow, incoming: Record<string, unknown>, names: st
   });
 }
 
-// A set value that is not a plain column value stands in for `excluded.column`,
-// so each row in a batch keeps its own incoming value.
-function excludedPatch(set: Record<string, unknown>, incoming: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(set).map(([key, value]) => [
-    key,
-    typeof value === "object" && value !== null && !(value instanceof Date) ? incoming[key] : value,
-  ]));
-}
-
-function patchMatches(row: BaseRow, patch: Record<string, unknown>): boolean {
-  return Object.entries(patch).every(([key, value]) => {
-    const current = (row as unknown as Record<string, unknown>)[key];
-    if (current instanceof Date && value instanceof Date) return current.getTime() === value.getTime();
-    return current === value;
-  });
-}
-
 /** Drizzle table objects expose their name via `Symbol(drizzle:Name)`. */
 function tableNameOf(table: unknown): string | null {
   if (!table || typeof table !== "object") return null;
@@ -223,22 +206,10 @@ export function setupMockDb<T extends BaseRow>(
           // Columns named by onConflictDoNothing({ target }). A match is skipped.
           // NULL never matches, same as the partial import identity index.
           let nothingTarget: unknown[] = [];
-          // Set when the route uses onConflictDoUpdate. A row that matches the
-          // target is updated instead of inserted. An unchanged match is left
-          // out of the result, which is what ON CONFLICT DO UPDATE ... WHERE
-          // does when the new values are the ones already stored.
-          let conflictUpdate: { set: Record<string, unknown>; target: unknown[] } | null = null;
           const builder = {
             onConflictDoNothing: (config?: { target?: unknown }) => {
               skipDuplicates = true;
               nothingTarget = Array.isArray(config?.target) ? config.target : config?.target ? [config.target] : [];
-              return builder;
-            },
-            onConflictDoUpdate: (config: { set?: Record<string, unknown>; target?: unknown }) => {
-              conflictUpdate = {
-                set: config.set ?? {},
-                target: Array.isArray(config.target) ? config.target : config.target ? [config.target] : [],
-              };
               return builder;
             },
             returning: mock(async () => {
@@ -246,7 +217,7 @@ export function setupMockDb<T extends BaseRow>(
               insertState.insertCalls = (insertState.insertCalls ?? 0) + 1;
               if (insertState.shouldFail) throw new Error("DB Insert failed");
               const incomingRows = Array.isArray(vals) ? vals : [vals];
-              const results: Array<T & { inserted?: boolean }> = [];
+              const results: T[] = [];
               for (const incoming of incomingRows) {
                 const payload = filterUndefined
                   ? Object.fromEntries(Object.entries(incoming).filter(([, v]) => v !== undefined))
@@ -258,17 +229,6 @@ export function setupMockDb<T extends BaseRow>(
                     : insertState.conflictsWith;
                   if (collides && insertState.rows.some((row) => collides(row, payload))) continue;
                 }
-                const names = (conflictUpdate?.target ?? []).map(columnName).filter((name) => name !== null);
-                const match = names.length > 0
-                  ? insertState.rows.find((row) => sameIdentity(row, payload, names))
-                  : undefined;
-                if (match && conflictUpdate) {
-                  const patch = excludedPatch(conflictUpdate.set, payload);
-                  if (patchMatches(match, patch)) continue;
-                  Object.assign(match, patch);
-                  results.push({ ...(match as T), inserted: false });
-                  continue;
-                }
                 const row = {
                   id: `${idPrefix}uuid-${++inserted}`,
                   created_at: new Date(),
@@ -276,7 +236,7 @@ export function setupMockDb<T extends BaseRow>(
                   ...payload,
                 } as T;
                 insertState.rows.push(row as unknown as BaseRow);
-                results.push(conflictUpdate ? { ...row, inserted: true } : row);
+                results.push(row);
               }
               return results;
             }),

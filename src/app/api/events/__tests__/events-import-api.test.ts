@@ -158,7 +158,7 @@ describe("POST /api/events/import", () => {
     const before = studio().length;
     const second = await post(fixture("weekly-exdate.ics"));
     const secondBody = await second.json();
-    expect(secondBody.data).toMatchObject({ imported: 0, updated: 0, unchanged: before });
+    expect(secondBody.data).toMatchObject({ imported: 0, unchanged: before });
     expect(studio()).toHaveLength(before);
     expect(new Set(studio().map((row) => row.import_occurrence)).size).toBe(before);
   });
@@ -190,7 +190,7 @@ describe("POST /api/events/import", () => {
     });
     const response = await post(fixture("canvas.ics"));
     const body = await response.json();
-    expect(body.data).toMatchObject({ imported: 1, updated: 0, unchanged: 1 });
+    expect(body.data).toMatchObject({ imported: 1, unchanged: 1 });
     const row = mockDbState.rows.find((event) => event.id === "already");
     expect(row).toMatchObject({
       title: "Old title",
@@ -258,7 +258,7 @@ UID:added@school
 END:VEVENT
 END:VCALENDAR`;
     const response = await post(again);
-    expect((await response.json()).data).toMatchObject({ imported: 1, updated: 0, unchanged: 1 });
+    expect((await response.json()).data).toMatchObject({ imported: 1, unchanged: 1 });
     const kept = mine().find((row) => row.import_uid === "seminar@school");
     expect(kept).toMatchObject({
       title: "Seminar",
@@ -316,9 +316,7 @@ END:VCALENDAR`;
     expect(mockDbState.rows.find((row) => row.id === "hand-typed")?.import_uid).toBeNull();
     const bodies = [await first.json(), await second.json()];
     const imported = bodies.reduce((sum, body) => sum + body.data.imported, 0);
-    const updated = bodies.reduce((sum, body) => sum + body.data.updated, 0);
     expect(imported).toBe(2);
-    expect(updated).toBe(0);
     // Both requests missed the new rows on the read, so both tried to insert.
     expect(mockDbState.insertCalls).toBe(2);
   });
