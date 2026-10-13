@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { check, index, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { ALERT_OFFSETS, type AlertOffset } from "../../lib/alerts";
+import { user } from "./auth";
 import { events } from "./events";
 import { tasks } from "./tasks";
 
@@ -8,7 +9,7 @@ export const alerts = pgTable(
   "alerts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     event_id: uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
     task_id: uuid("task_id").references(() => tasks.id, { onDelete: "cascade" }),
     offset_minutes: integer("offset_minutes").$type<AlertOffset>().notNull(),
@@ -28,7 +29,7 @@ export const alerts = pgTable(
       .on(table.user_id, table.fire_at)
       .where(sql`${table.fired_at} is null`)
   ]
-).enableRLS();
+);
 
 export type Alert = typeof alerts.$inferSelect;
 export type NewAlert = typeof alerts.$inferInsert;

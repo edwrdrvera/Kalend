@@ -1,7 +1,7 @@
 /**
  * Custom ESLint rule: `access-control/scoped-query`.
  *
- * The app's db client bypasses RLS (see `src/db/CLAUDE.md`), so the only thing
+ * The database has no row-level security (see `src/db/CLAUDE.md`), so the only thing
  * keeping one user's rows away from another is the `eq(<table>.user_id,
  * user.id)` filter hand-written into every query. A query over `events`,
  * `tasks`, `categories`, `alerts`, or `groups` that does not reach a `.where(...)` holding that
@@ -29,13 +29,13 @@
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
 
 const ownerValueHint = (table) =>
-  `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
+  `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. The database has no row-level security, so an insert without it can write rows into another user's account.`;
 
 const unknownTableHint = (method) =>
   `This rule can't tell which table this .${method}(...) call uses, so it can't check the owner filter. Pass the table itself (tasks, schema.tasks, or an imported alias), not a variable, parameter, or expression that picks one. If this isn't a database call, rename it or move it out of the folders this rule checks.`;
 
 const ownerFilterHint = (table) =>
-  `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). This client bypasses RLS, so an unscoped query can leak another user's rows.`;
+  `Query over "${table}" is missing an eq(${table}.user_id, user.id) owner filter in its .where(...), at the top level or inside and(...). The database has no row-level security, so an unscoped query can leak another user's rows.`;
 
 function findVariable(scope, name) {
   for (let s = scope; s; s = s.upper) {

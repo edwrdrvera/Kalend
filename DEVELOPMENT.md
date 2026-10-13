@@ -4,23 +4,21 @@ These steps are for maintaining Kalend. To run the app locally, start with [the 
 
 ## Load the demo data
 
-You need `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` for step 1.
+Apply the migrations first (`bunx --bun drizzle-kit migrate`). Three scripts then build the demo account. Each one builds on the one before it, so run them in this order. All three are safe to run again.
 
-Three scripts build the demo account. Each one builds on the one before it, so run them in this order. All three are safe to run again.
-
-1. Create the demo login, or reset its password:
+1. Create the demo login from `DEMO_USER_EMAIL` and `DEMO_USER_PASSWORD` in `.env.local`, or reset its password:
 
 	```bash
-	DEMO_USER_PASSWORD=<password> bun run db:seed:demo
+	bun run db:seed:demo
 	```
 
-2. Load the sample events from `src/db/data/data.csv`. Use the demo user's id from **Authentication > Users** in the Supabase dashboard:
+2. Load the sample events from `src/db/data/data.csv`:
 
 	```bash
-	SEED_USER_ID=<demo-user-uuid> bun run db:seed
+	bun run db:seed
 	```
 
-	The script skips an event whose title and start time already exist.
+	If the database has one user, the script picks that user. Otherwise, set `SEED_USER_ID`. The script skips an event whose title and start time already exist.
 
 3. Create the Spaces and link the demo user's events and tasks to them:
 
@@ -50,19 +48,23 @@ CI runs the type-check and the lint on every pull request. The lint includes a p
 	bunx drizzle-kit generate
 	```
 
-3. Apply the migration:
+3. Apply the migration. `--bun` makes drizzle-kit read `.env.local`:
 
 	```bash
-	bunx drizzle-kit migrate
+	bunx --bun drizzle-kit migrate
 	```
 
 4. Commit the schema change and the new files in `drizzle/` together.
 
 To browse the database in a local UI, run `bunx drizzle-kit studio`.
 
-## Deploy to Vercel
+## Deploy
 
-Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the **Production** and **Preview** environments, then redeploy. A build that already exists keeps the old values.
+Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, and `BETTER_AUTH_URL` (the public origin) on the server, apply the migrations, then run `bun run db:seed:demo`. Leave `KALEND_DEV_SIGN_IN` unset.
+
+Sign-in rate limiting counts attempts per client IP, read from `x-forwarded-for`. Better Auth accepts that header only when it holds exactly one address, so run the app behind a reverse proxy that replaces the header with the real client address instead of appending to it. Without a usable address, every visitor shares one counter. The counts live in the app's memory, so they reset on restart and are not shared between processes.
+
+## Vercel waitlist rate limit
 
 Before you open the public waitlist, create and publish this Vercel Firewall rate-limit rule. The waitlist form's honeypot stops simple bots but does not limit request rate.
 

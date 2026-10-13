@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getAuthenticatedUser,
   type AuthenticatedUser,
-} from "@/lib/supabase/auth-user";
+} from "@/lib/auth/auth-user";
 
 /**
  * The two halves of the API response envelope (see `src/app/api/CLAUDE.md`).

@@ -5,7 +5,7 @@ description: Review a Kalend branch or PR for security holes, with emphasis on o
 
 # Kalend security review
 
-Kalend's worst failure is one signed-in user reading or changing another user's events, tasks, or Spaces. The app's database client bypasses RLS (`src/db/CLAUDE.md`), so each API handler is the only thing between users. Start there.
+Kalend's worst failure is one signed-in user reading or changing another user's events, tasks, or Spaces. The database has no row-level security (`src/db/CLAUDE.md`), so each API handler is the only thing between users. Start there.
 
 This skill applies `pstack:blast-radius` to security: find the one fact that keeps users apart, prove it by running the real handler, and trace how far a hole would reach.
 
@@ -41,8 +41,14 @@ For every changed route, parser, query, auth file, or config, answer each questi
 
 **Client side**
 
-- Does browser code use the Supabase client in `src/lib/supabase/client.ts` for anything besides sign-in? Lint blocks table access. Check storage, RPC, and realtime calls too.
-- Is any server secret (`SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`) reachable from browser code or from an env var named `NEXT_PUBLIC_*`?
+- Does browser code import anything from `src/lib/auth/` besides `client.ts`? Lint blocks the server files; check for a new file there that lint doesn't list.
+- Is any server secret (`BETTER_AUTH_SECRET`, `DATABASE_URL`, `DEMO_USER_PASSWORD`) reachable from browser code or from an env var named `NEXT_PUBLIC_*`?
+
+**Sessions**
+
+- Did `src/lib/auth/server.ts` turn signup back on, turn rate limiting off, or add a sign-in method?
+- Does `src/lib/auth/middleware.ts` still strip an inbound `x-kalend-user-id` before it sets its own?
+- Does `api/dev/sign-in` still return 404 outside `next dev` with `KALEND_DEV_SIGN_IN=1`, and still ignore any email in the request?
 
 **Output and errors**
 

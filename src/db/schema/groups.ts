@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { MAX_GROUP_NAME_LENGTH } from "../../lib/group-name";
+import { user } from "./auth";
 import { categories } from "./categories";
 
 // An optional grouping of related events and tasks inside one Space. One level
@@ -9,7 +10,7 @@ export const groups = pgTable(
   "groups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    user_id: uuid("user_id").notNull(),
+    user_id: uuid("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
     category_id: uuid("category_id").notNull(),
     name: text("name").notNull(),
     created_at: timestamp("created_at").defaultNow()
@@ -30,7 +31,7 @@ export const groups = pgTable(
     ),
     index("groups_user_space_idx").on(table.user_id, table.category_id)
   ]
-).enableRLS();
+);
 
 export type Group = typeof groups.$inferSelect;
 export type NewGroup = typeof groups.$inferInsert;

@@ -16,6 +16,7 @@ describe("proxy matcher", () => {
   it("skips the public endpoints and static assets", () => {
     expect(runsProxy("/api/ping")).toBe(false);
     expect(runsProxy("/api/waitlist")).toBe(false);
+    expect(runsProxy("/api/auth/sign-in/email")).toBe(false);
     expect(runsProxy("/api/dev/sign-in")).toBe(false);
     expect(runsProxy("/logo.png")).toBe(false);
     expect(runsProxy("/icons/check.svg")).toBe(false);

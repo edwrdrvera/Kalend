@@ -4,7 +4,7 @@ import { alerts } from "@/db/schema/alerts";
 import { events } from "@/db/schema/events";
 import { tasks } from "@/db/schema/tasks";
 import { fireAtFor, type AlertTarget } from "@/lib/alerts";
-import type { AuthenticatedUser } from "@/lib/supabase/auth-user";
+import type { AuthenticatedUser } from "@/lib/auth/auth-user";
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 

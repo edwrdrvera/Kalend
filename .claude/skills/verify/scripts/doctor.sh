@@ -5,12 +5,12 @@ set -u
 PORT="${1:-3000}"
 cd "$(dirname "$0")/../../../.." || exit 1
 ok=1
-for v in DATABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY; do
+for v in DATABASE_URL BETTER_AUTH_SECRET BETTER_AUTH_URL; do
   grep -q "^$v=." .env.local 2>/dev/null || { echo "MISSING env: $v in .env.local"; ok=0; }
 done
 signin=1
 grep -q "^KALEND_DEV_SIGN_IN=1$" .env.local 2>/dev/null || { echo "NOTE: KALEND_DEV_SIGN_IN is not 1 in .env.local; /api/dev/sign-in is unavailable"; signin=0; }
-for v in SUPABASE_SERVICE_ROLE_KEY DEMO_USER_EMAIL; do
+for v in DEMO_USER_EMAIL DEMO_USER_PASSWORD; do
   grep -q "^$v=." .env.local 2>/dev/null || { echo "NOTE: $v not set in .env.local; /api/dev/sign-in is unavailable"; signin=0; }
 done
 [ $signin = 1 ] && echo "dev sign-in configured"

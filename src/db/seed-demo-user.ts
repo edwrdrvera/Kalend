@@ -1,67 +1,41 @@
 // Creates (or resets the password on) the single demo account used to try
-// Kalend from the landing page's /login, since this MVP has no public
-// signup (see src/app/CLAUDE.md). Run once per environment with:
+// Kalend from the landing page's /login, since this MVP has no public signup
+// (see src/app/CLAUDE.md). Run with:
 //
-//   SUPABASE_SERVICE_ROLE_KEY=<key> DEMO_USER_PASSWORD=<password> bun run db:seed:demo
+//   DEMO_USER_PASSWORD=<password> bun run db:seed:demo
 //
-// SUPABASE_SERVICE_ROLE_KEY is from Project Settings > API. It bypasses
-// Auth entirely, so: never put it in .env.local's NEXT_PUBLIC_* vars, never
-// commit it, and never use it outside a one-off local/CI script like this
-// one. The one exception is the dev-only route src/app/api/dev/sign-in, which
-// returns 404 outside `next dev`. DEMO_USER_EMAIL defaults to demo@kalend.app
-// if not set.
+// DEMO_USER_EMAIL defaults to demo@kalend.app if not set. Signup is disabled
+// on the auth instance, so this writes the user and its password account
+// through Better Auth's internal adapter instead of the sign-up endpoint.
 
-import { createClient } from "@supabase/supabase-js";
+import { auth } from "../lib/auth/server";
 
 async function main() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const password = process.env.DEMO_USER_PASSWORD;
-  const email = process.env.DEMO_USER_EMAIL ?? "demo@kalend.app";
+  const email = (process.env.DEMO_USER_EMAIL ?? "demo@kalend.app").toLowerCase();
 
-  if (!supabaseUrl || !serviceRoleKey || !password) {
+  if (!password) {
     console.error(
-      "NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and DEMO_USER_PASSWORD are all required.\n\n" +
-        "  SUPABASE_SERVICE_ROLE_KEY=<key> DEMO_USER_PASSWORD=<password> bun run db:seed:demo\n"
+      "DEMO_USER_PASSWORD is required.\n\n" +
+        "  DEMO_USER_PASSWORD=<password> bun run db:seed:demo\n"
     );
     process.exit(1);
   }
 
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const ctx = await auth.$context;
+  const hash = await ctx.password.hash(password);
+  const existing = await ctx.internalAdapter.findUserByEmail(email);
+  const userId =
+    existing?.user.id ??
+    (await ctx.internalAdapter.createUser({ email, name: "Demo", emailVerified: true }, { method: "admin" })).id;
 
-  // Look for an existing user with this email first: createUser errors if
-  // one already exists, and re-running this script (e.g. to rotate the
-  // password) should just update it instead of failing.
-  const { data: existing, error: listError } = await admin.auth.admin.listUsers();
-  if (listError) {
-    console.error("Failed to list users:", listError.message);
-    process.exit(1);
-  }
-
-  const existingUser = existing.users.find((u) => u.email === email);
-
-  if (existingUser) {
-    const { error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, {
-      password,
-    });
-    if (updateError) {
-      console.error("Failed to update demo user's password:", updateError.message);
-      process.exit(1);
-    }
-    console.log(`Updated password for existing demo user ${email} (${existingUser.id}).`);
+  if (await ctx.internalAdapter.findCredentialAccount(userId)) {
+    await ctx.internalAdapter.updatePassword(userId, hash);
+    await ctx.internalAdapter.deleteUserSessions(userId);
+    console.log(`Reset the password for demo user ${email} (${userId}) and signed out its sessions.`);
   } else {
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-    if (createError) {
-      console.error("Failed to create demo user:", createError.message);
-      process.exit(1);
-    }
-    console.log(`Created demo user ${email} (${created.user.id}).`);
+    await ctx.internalAdapter.linkAccount({ userId, providerId: "credential", accountId: userId, password: hash });
+    console.log(`Created demo user ${email} (${userId}).`);
   }
 
   process.exit(0);

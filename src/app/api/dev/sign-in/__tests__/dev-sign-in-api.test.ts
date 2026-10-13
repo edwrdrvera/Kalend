@@ -2,25 +2,18 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const env = process.env as Record<string, string | undefined>;
 const originalNodeEnv = env.NODE_ENV;
+const SESSION_COOKIE = "better-auth.session_token=signed; Path=/; HttpOnly; SameSite=Lax";
 
-let linkError: { message: string } | null = null;
-const generateLink = mock(async (params: { type: string; email: string }) => {
+let signInError: Error | null = null;
+const signInEmail = mock(async (params: { body: { email: string; password: string } }) => {
   void params;
-  return linkError
-    ? { data: null, error: linkError }
-    : { data: { properties: { hashed_token: "hashed-token-1" } }, error: null };
-});
-const verifyOtp = mock(async (params: { type: string; token_hash: string }) => {
-  void params;
-  return { error: null };
+  if (signInError) throw signInError;
+  const headers = new Headers();
+  headers.append("set-cookie", SESSION_COOKIE);
+  return { headers, response: { token: "t" } };
 });
 
-mock.module("@supabase/supabase-js", () => ({
-  createClient: () => ({ auth: { admin: { generateLink } } }),
-}));
-mock.module("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { verifyOtp } }),
-}));
+mock.module("@/lib/auth/server", () => ({ auth: { api: { signInEmail } } }));
 
 const { GET } = await import("../route");
 
@@ -30,13 +23,10 @@ describe("GET /api/dev/sign-in", () => {
   beforeEach(() => {
     env.NODE_ENV = "development";
     env.KALEND_DEV_SIGN_IN = "1";
-    env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
-    env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     env.DEMO_USER_EMAIL = "demo@example.com";
-    linkError = null;
-    generateLink.mockClear();
-    verifyOtp.mockClear();
+    env.DEMO_USER_PASSWORD = "demo-password";
+    signInError = null;
+    signInEmail.mockClear();
   });
 
   afterEach(() => {
@@ -50,8 +40,7 @@ describe("GET /api/dev/sign-in", () => {
     const response = await GET(request());
 
     expect(response.status).toBe(404);
-    expect(generateLink).not.toHaveBeenCalled();
-    expect(verifyOtp).not.toHaveBeenCalled();
+    expect(signInEmail).not.toHaveBeenCalled();
   });
 
   it("returns 404 in development unless KALEND_DEV_SIGN_IN is 1", async () => {
@@ -60,37 +49,34 @@ describe("GET /api/dev/sign-in", () => {
     const response = await GET(request());
 
     expect(response.status).toBe(404);
-    expect(generateLink).not.toHaveBeenCalled();
+    expect(signInEmail).not.toHaveBeenCalled();
   });
 
-  it("signs in the demo account, not an email from the request, and redirects to /app", async () => {
+  it("signs in the demo account, not an email from the request, and redirects to /app with the session cookie", async () => {
     const response = await GET(request("?email=someone-else@example.com"));
 
-    expect(generateLink).toHaveBeenCalledWith({ type: "magiclink", email: "demo@example.com" });
-    expect(verifyOtp).toHaveBeenCalledWith({ type: "magiclink", token_hash: "hashed-token-1" });
+    expect(signInEmail.mock.calls[0][0].body).toEqual({ email: "demo@example.com", password: "demo-password" });
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/app");
+    expect(response.headers.getSetCookie()).toEqual([SESSION_COOKIE]);
   });
 
-  it("returns 500 without redeeming anything when the link can't be created", async () => {
-    linkError = { message: "User not found" };
+  it("returns 500 with no session cookie when sign-in fails", async () => {
+    signInError = new Error("Invalid email or password");
 
     const response = await GET(request());
 
     expect(response.status).toBe(500);
-    expect(verifyOtp).not.toHaveBeenCalled();
+    expect(response.headers.getSetCookie()).toEqual([]);
   });
 
-  it.each(["SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])(
-    "returns a 500 JSON error when %s is missing",
-    async (name) => {
-      delete env[name];
+  it.each(["DEMO_USER_EMAIL", "DEMO_USER_PASSWORD"])("returns a 500 JSON error when %s is missing", async (name) => {
+    delete env[name];
 
-      const response = await GET(request());
+    const response = await GET(request());
 
-      expect(response.status).toBe(500);
-      expect((await response.json()).success).toBe(false);
-      expect(generateLink).not.toHaveBeenCalled();
-    }
-  );
+    expect(response.status).toBe(500);
+    expect((await response.json()).success).toBe(false);
+    expect(signInEmail).not.toHaveBeenCalled();
+  });
 });

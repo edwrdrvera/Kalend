@@ -5,10 +5,8 @@
 // The CSV's user_id column is a placeholder (all zeros) left over from
 // before any real account existed to attach sample data to — it's not
 // used here. Seeded events are attached to whichever user id is passed via
-// SEED_USER_ID instead, so they actually show up when you log into the app
-// locally. Sign up in the app once, then find your user id in the Supabase
-// dashboard under Authentication > Users (or run
-// `select id, email from auth.users;` in the SQL editor).
+// SEED_USER_ID, or to the only user in the database when it's unset (create
+// one first with `bun run db:seed:demo`).
 //
 // Safe to run more than once: a CSV row is only inserted if the target
 // user doesn't already have an event with that exact title and start_at,
@@ -18,6 +16,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "./index";
 import { events } from "./schema/events";
+import { resolveSeedUserId } from "./seed-user";
 
 const CSV_PATH = new URL("./data/data.csv", import.meta.url);
 
@@ -89,16 +88,7 @@ function toSeedRows(csvRows: string[][]): SeedRow[] {
 }
 
 async function main() {
-  const userId = process.env.SEED_USER_ID;
-  if (!userId) {
-    console.error(
-      "SEED_USER_ID is required.\n\n" +
-        "Sign up (or log in) to the app once, then find your user id in the\n" +
-        "Supabase dashboard under Authentication > Users, and run:\n\n" +
-        "  SEED_USER_ID=<your-uuid> bun run db:seed\n"
-    );
-    process.exit(1);
-  }
+  const userId = await resolveSeedUserId();
 
   const csvText = await Bun.file(CSV_PATH).text();
   const rows = toSeedRows(parseCsv(csvText));

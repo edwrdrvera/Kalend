@@ -7,11 +7,11 @@ import { alerts } from "../schema/alerts";
 describe("alerts table definition", () => {
   const config = getTableConfig(alerts);
 
-  it("deletes an alert with the event or task it belongs to", () => {
+  it("deletes an alert with the event, task, or user it belongs to", () => {
     const actions = Object.fromEntries(
       config.foreignKeys.map((fk) => [fk.reference().columns[0].name, fk.onDelete])
     );
-    expect(actions).toEqual({ event_id: "cascade", task_id: "cascade" });
+    expect(actions).toEqual({ event_id: "cascade", task_id: "cascade", user_id: "cascade" });
   });
 
   it("allows one alert per item and offset", () => {

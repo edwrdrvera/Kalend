@@ -24,7 +24,7 @@ const client = {
   transaction: <T>(callback: (tx: unknown) => Promise<T>) => callback(client),
 };
 mock.module("@/db", () => ({ db: client }));
-mock.module("@/lib/supabase/auth-user", () => ({
+mock.module("@/lib/auth/auth-user", () => ({
   getAuthenticatedUser: async () => ({ id: "11111111-1111-4111-8111-000000000001", email: "a@b.c" }),
 }));
 

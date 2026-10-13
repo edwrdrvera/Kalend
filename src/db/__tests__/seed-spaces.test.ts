@@ -24,6 +24,7 @@ describe.skipIf(!url)("seed scripts", () => {
   async function seededUser() {
     const userId = crypto.randomUUID();
     users.push(userId);
+    await sql`insert into "user" (id, name, email) values (${userId}, 'Seed', ${`${userId}@example.com`})`;
     expect(runSeed("seed", userId).exitCode).toBe(0);
     return userId;
   }
@@ -34,6 +35,7 @@ describe.skipIf(!url)("seed scripts", () => {
       await sql`delete from events where user_id = ${userId}`;
       await sql`delete from groups where user_id = ${userId}`;
       await sql`delete from categories where user_id = ${userId}`;
+      await sql`delete from "user" where id = ${userId}`;
     }
     await sql.end();
   });

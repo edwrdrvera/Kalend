@@ -7,7 +7,7 @@ const tierRank: Record<Tier, number> = { low: 0, medium: 1, high: 2 };
 const highPatterns = [
   /^src\/app\/api\//,
   /^src\/lib\/api\//,
-  /^src\/lib\/supabase\//,
+  /^src\/lib\/auth\//,
   /^src\/db\//,
   /^drizzle\//,
   /^src\/proxy\.ts$/,

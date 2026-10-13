@@ -3,7 +3,7 @@ import type { MockAuthUser } from "@/test-utils/mock-db";
 
 let mockCurrentUser: MockAuthUser | null = { id: "user-1", email: "a@b.edu" };
 
-mock.module("@/lib/supabase/auth-user", () => ({
+mock.module("@/lib/auth/auth-user", () => ({
   getAuthenticatedUser: mock(async () => mockCurrentUser),
 }));
 
