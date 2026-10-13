@@ -46,6 +46,10 @@ describe("alert push timer", () => {
       expect(line).toBe(`${name}=`);
     }
     expect(example.split("\n").some((row) => row.startsWith("VAPID_PUBLIC_KEY="))).toBe(false);
+    expect(example).toContain("baked into the client at build time");
+    expect(example).toContain("Rotating it needs a rebuild.");
+    expect(guide).toContain("baked into the client at build time");
+    expect(guide).toContain("Rotating it needs a rebuild.");
     expect(example).toContain("Never commit real values.");
     expect(example).toContain("Never commit it.");
   });

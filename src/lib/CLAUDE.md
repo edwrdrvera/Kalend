@@ -12,7 +12,7 @@ Framework-free helpers. Anything shared by more than one component or route belo
 - `auth-user.ts` — `getAuthenticatedUser()`, returns the verified `User` or `null`. `withUser` in `api/route-handler.ts` calls it for every API route, so routes never call it directly. Don't re-implement the check.
 - `middleware.ts` — `updateSession()`, called from `src/proxy.ts`. Refreshes the session and enforces redirects (unauthenticated → `/login`, authenticated on `/` or `/login` → `/app`). Use `getUser()`, never `getSession()`: only `getUser()` validates the JWT against Supabase Auth.
 
-Env: copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `DATABASE_URL`. Closed-tab alerts also need `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (the one public key, read by the browser and the sender), `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `ALERT_PUSH_SECRET`. Those stay empty in git. Generate the key pair with `bunx web-push generate-vapid-keys`, and see `guides/alert-push-timer.md` for the minute timer.
+Env: copy `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `DATABASE_URL`. Closed-tab alerts also need `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (the one public key, read by the browser and the sender; it is baked into the client at build time, so rotating it needs a rebuild), `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, and `ALERT_PUSH_SECRET`. Those stay empty in git. Generate the key pair with `bunx web-push generate-vapid-keys`, and see `guides/alert-push-timer.md` for the minute timer.
 Restart the development server after changing public environment variables. In
 Vercel, configure both Production and Preview environments and redeploy the
 affected builds.
