@@ -53,4 +53,8 @@ describe("alert push timer", () => {
     expect(example).toContain("Never commit real values.");
     expect(example).toContain("Never commit it.");
   });
+
+  it("says an unfinished claim left past its time stays marked sent", () => {
+    expect(guide).toContain("If the timer stays stopped until that unfinished claim's time has passed, the alert stays marked sent and is not listed as missed.");
+  });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock, setSystemTime } from "bun:test";
 import { setupMockDb, type MockAuthUser, type MockDbState } from "@/test-utils/mock-db";
 import { MISSED_AFTER_MS } from "@/lib/alerts";
-import { PUSH_USER_CONCURRENCY, pushDueAlerts } from "@/lib/api/push-due";
+import { PUSH_LEASE_SLACK_MS, PUSH_SEND_TIMEOUT_MS, PUSH_USER_CONCURRENCY, pushDueAlerts } from "@/lib/api/push-due";
 import type { PushSendResult, PushTarget } from "@/lib/api/send-push";
 
 interface MockAlert {
@@ -352,6 +352,46 @@ describe("POST /api/alerts/push-due", () => {
     sendPushMock.mockClear();
     await push(`Bearer ${SECRET}`);
     expect(sendPushMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves a lease alone until the send timeout and the follow-up pause have both passed", async () => {
+    const stillWorking = new Date(NOW.getTime() + MISSED_AFTER_MS - PUSH_SEND_TIMEOUT_MS);
+    alertState.rows = [alertRow("a-working", { fired_at: stillWorking })];
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-working")?.getTime()).toBe(stillWorking.getTime());
+  });
+
+  it("sends a lease once that pause has passed", async () => {
+    const ready = new Date(NOW.getTime() + MISSED_AFTER_MS - PUSH_SEND_TIMEOUT_MS - PUSH_LEASE_SLACK_MS);
+    alertState.rows = [alertRow("a-ready", { fired_at: ready })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-ready"]);
+    expect(firedAt("a-ready")?.toISOString()).toBe(NOW.toISOString());
+  });
+
+  it("does not confirm a send after the alert was rescheduled", async () => {
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async () => {
+      const row = alertState.rows.find((alert) => alert.id === "a-due");
+      if (row) row.fired_at = null;
+      return { ok: true };
+    });
+    await push(`Bearer ${SECRET}`);
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("does not release an alert a later check already confirmed", async () => {
+    alertState.rows = [alertRow("a-due")];
+    const confirmed = new Date(NOW.getTime() + 1_000);
+    sendPushMock.mockImplementation(async () => {
+      const row = alertState.rows.find((alert) => alert.id === "a-due");
+      if (row) row.fired_at = confirmed;
+      return { ok: false, gone: false, status: 500 };
+    });
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(firedAt("a-due")?.toISOString()).toBe(confirmed.toISOString());
   });
 
   it("does not send a claim that just started or that the open tab already took", async () => {

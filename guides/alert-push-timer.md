@@ -65,4 +65,4 @@ sudo systemctl disable --now kalend-alert-push.timer
 
 A device that reports the subscription is gone (HTTP 404 or 410) is removed. If no device accepts the alert, it is unmarked so the next check or an open tab can still deliver it. A device with repeated temporary failures gets that alert again once a minute for up to five minutes. That retry is accepted. If at least one device accepts it, the alert stays marked fired. A failed send to another device is logged, and that device does not get a retry. That keeps the devices that already showed it from getting a second copy.
 
-If a check stops after it has taken an alert and before it records that the send finished, the next check sends that alert. A claim that was confirmed, or that was taken by an open tab, is not sent again.
+If a check stops after it has taken an alert and before it records that the send finished, the next check sends that alert. A claim that was confirmed, or that was taken by an open tab, is not sent again. If the timer stays stopped until that unfinished claim's time has passed, the alert stays marked sent and is not listed as missed.

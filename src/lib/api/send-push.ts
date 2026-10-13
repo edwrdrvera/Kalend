@@ -23,8 +23,12 @@ function vapid(): { publicKey: string; privateKey: string; subject: string } | n
   return { publicKey, privateKey, subject };
 }
 
-/** Sends one alert to one device. A 404 or 410 means the device is gone. */
-export async function sendPush(target: PushTarget): Promise<PushSendResult> {
+/**
+ * Sends one alert to one device. A 404 or 410 means the device is gone.
+ * `timeoutMs` closes a hung socket. The caller keeps a shorter timer and
+ * treats that shorter timer as the only limit on the send.
+ */
+export async function sendPush(target: PushTarget, timeoutMs: number): Promise<PushSendResult> {
   const keys = vapid();
   if (!keys) return { ok: false, gone: false, status: null };
   setVapidDetails(keys.subject, keys.publicKey, keys.privateKey);
@@ -32,6 +36,7 @@ export async function sendPush(target: PushTarget): Promise<PushSendResult> {
     await sendNotification(
       { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
       target.payload,
+      { timeout: timeoutMs },
     );
     return { ok: true };
   } catch (error) {

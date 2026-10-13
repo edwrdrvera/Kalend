@@ -53,28 +53,55 @@ export async function claimDueAlerts(
 }
 
 /**
- * Alerts this user already claimed for a push, whose send was never confirmed,
- * and whose lease is old enough that the run which took them has stopped.
- * `claimedBefore` is the newest `fired_at` still treated as abandoned.
+ * Takes alerts this user already claimed for a push, whose send was never
+ * confirmed, and whose lease is old enough that the run which took them has
+ * stopped. The update matches the lease this read saw, the same way a new
+ * claim matches `fired_at is null`, so a second check that read the same
+ * lease changes nothing and does not send. `leaseUntil` is the lease the
+ * rows hold after this check takes them.
  */
 export async function unfinishedPushAlerts(
   user: AuthenticatedUser,
   now: Date,
   claimedBefore: Date,
+  leaseUntil: Date,
 ): Promise<{ due: ClaimedAlert[]; releaseIds: string[] }> {
-  const rows = await db
-    .select()
-    .from(alerts)
-    .where(and(
-      eq(alerts.user_id, user.id),
-      gt(alerts.fired_at, now),
-      lte(alerts.fired_at, claimedBefore),
-    ));
-  const described = await describeAlerts(user, rows, now, db);
-  return {
-    due: described.claim.due,
-    releaseIds: [...described.claim.missed.map((alert) => alert.id), ...described.skippedIds],
-  };
+  return retryTransaction(() => db.transaction(async (tx) => {
+    const stale = await tx
+      .select()
+      .from(alerts)
+      .where(and(
+        eq(alerts.user_id, user.id),
+        gt(alerts.fired_at, now),
+        lte(alerts.fired_at, claimedBefore),
+      ));
+    const byLease = new Map<number, { firedAt: Date; ids: string[] }>();
+    for (const row of stale) {
+      if (row.fired_at === null) continue;
+      const group = byLease.get(row.fired_at.getTime());
+      if (group) group.ids.push(row.id);
+      else byLease.set(row.fired_at.getTime(), { firedAt: row.fired_at, ids: [row.id] });
+    }
+    const won: AlertRow[] = [];
+    for (const group of byLease.values()) {
+      const updated = await tx
+        .update(alerts)
+        .set({ fired_at: leaseUntil })
+        .where(and(
+          eq(alerts.user_id, user.id),
+          inArray(alerts.id, group.ids),
+          eq(alerts.fired_at, group.firedAt),
+        ))
+        .returning();
+      won.push(...updated);
+    }
+    if (won.length === 0) return { due: [], releaseIds: [] };
+    const described = await describeAlerts(user, won, now, tx);
+    return {
+      due: described.claim.due,
+      releaseIds: [...described.claim.missed.map((alert) => alert.id), ...described.skippedIds],
+    };
+  }));
 }
 
 async function describeAlerts(

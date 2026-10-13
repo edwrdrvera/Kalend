@@ -25,6 +25,16 @@ export const PUSH_USER_CONCURRENCY = 8;
 /** How long one device send may take before this check moves on. */
 export const PUSH_SEND_TIMEOUT_MS = 10_000;
 
+// After that timer fires, the check still writes the result. A lease is not
+// stale until that write has had time to land, so a slow confirm is not
+// treated as a crash.
+export const PUSH_LEASE_SLACK_MS = 5_000;
+
+// web-push closes the socket shortly after this check has given up. The
+// check's timer is the limit that decides the alert. The later socket
+// timeout only reaps a connection the check is no longer waiting on.
+const PUSH_SOCKET_SLACK_MS = 2_000;
+
 // How long a taken alert stays visibly unfinished. The next check retries it
 // until this lease expires, which matches the five minutes a push is still
 // worth sending.
@@ -61,21 +71,24 @@ export async function pushDueAlerts(options?: { sendTimeoutMs?: number }): Promi
 
 async function deliverTo(user: AuthenticatedUser, sendTimeoutMs: number): Promise<number> {
   const now = new Date();
+  const leaseUntil = new Date(now.getTime() + PUSH_LEASE_MS);
   const earliestFireAt = new Date(now.getTime() - MISSED_AFTER_MS);
   // A lease still in the future, but old enough that the run which took it
-  // has had its send timeout. A lease written a moment ago is left alone.
+  // has had its send timeout and time to record the result. A lease written
+  // a moment ago is left alone.
   const unfinished = await unfinishedPushAlerts(
     user,
     now,
-    new Date(now.getTime() + PUSH_LEASE_MS - sendTimeoutMs),
+    new Date(now.getTime() + PUSH_LEASE_MS - sendTimeoutMs - PUSH_LEASE_SLACK_MS),
+    leaseUntil,
   );
   const claim = await claimDueAlerts(user, now, {
     earliestFireAt,
-    firedAt: new Date(now.getTime() + PUSH_LEASE_MS),
+    firedAt: leaseUntil,
   });
   const due = [...unfinished.due, ...claim.due];
   if (due.length === 0) {
-    if (unfinished.releaseIds.length > 0) await releaseClaim(user, unfinished.releaseIds);
+    if (unfinished.releaseIds.length > 0) await releaseClaim(user, unfinished.releaseIds, leaseUntil);
     return 0;
   }
   const devices = await db
@@ -85,9 +98,9 @@ async function deliverTo(user: AuthenticatedUser, sendTimeoutMs: number): Promis
   const outcomes = await Promise.all(due.map((alert) => deliverAlert(user, alert, devices, sendTimeoutMs)));
   const delivered = outcomes.filter((outcome) => outcome.sent > 0).map((outcome) => outcome.id);
   const undelivered = outcomes.filter((outcome) => outcome.sent === 0).map((outcome) => outcome.id);
-  if (delivered.length > 0) await confirmClaim(user, delivered, now);
+  if (delivered.length > 0) await confirmClaim(user, delivered, now, leaseUntil);
   const releaseIds = [...undelivered, ...unfinished.releaseIds];
-  if (releaseIds.length > 0) await releaseClaim(user, releaseIds);
+  if (releaseIds.length > 0) await releaseClaim(user, releaseIds, leaseUntil);
   return outcomes.reduce((sum, outcome) => sum + outcome.sent, 0);
 }
 
@@ -130,27 +143,43 @@ async function sendToDevice(
 }
 
 // Success closes the lease. The stored time is the check's clock, so the
-// next run does not treat the alert as unfinished.
-async function confirmClaim(user: AuthenticatedUser, alertIds: string[], now: Date): Promise<void> {
+// next run does not treat the alert as unfinished. Matching the lease leaves
+// a reschedule that cleared it during the send alone.
+async function confirmClaim(
+  user: AuthenticatedUser,
+  alertIds: string[],
+  now: Date,
+  leaseUntil: Date,
+): Promise<void> {
   await db
     .update(alerts)
     .set({ fired_at: now })
-    .where(and(eq(alerts.user_id, user.id), inArray(alerts.id, alertIds)))
+    .where(and(
+      eq(alerts.user_id, user.id),
+      inArray(alerts.id, alertIds),
+      eq(alerts.fired_at, leaseUntil),
+    ))
     .returning();
 }
 
 // The claim is committed before the push service answers. Clearing fired_at
-// puts the alert back for the next check and for an open tab.
-async function releaseClaim(user: AuthenticatedUser, alertIds: string[]): Promise<void> {
+// puts the alert back for the next check and for an open tab. Matching the
+// lease keeps a slow run from unmarking an alert a later check already confirmed.
+async function releaseClaim(user: AuthenticatedUser, alertIds: string[], leaseUntil: Date): Promise<void> {
   await db
     .update(alerts)
     .set({ fired_at: null })
-    .where(and(eq(alerts.user_id, user.id), inArray(alerts.id, alertIds)))
+    .where(and(
+      eq(alerts.user_id, user.id),
+      inArray(alerts.id, alertIds),
+      eq(alerts.fired_at, leaseUntil),
+    ))
     .returning();
 }
 
-// One clock for a stuck send. web-push is not given its own timeout, so the
-// two cannot disagree about when to give up.
+// This timer is the limit the check acts on. The socket timeout passed below
+// is a little longer, only so a hung connection is closed after the check
+// has moved on.
 function sendWithin(limitMs: number, target: PushTarget): Promise<PushSendResult> {
   return new Promise((resolve) => {
     let settled = false;
@@ -159,7 +188,7 @@ function sendWithin(limitMs: number, target: PushTarget): Promise<PushSendResult
       settled = true;
       resolve({ ok: false, gone: false, status: null });
     }, limitMs);
-    sendPush(target).then(
+    sendPush(target, limitMs + PUSH_SOCKET_SLACK_MS).then(
       (result) => {
         if (settled) return;
         settled = true;
