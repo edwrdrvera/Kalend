@@ -7,22 +7,6 @@ import postgres from "postgres";
 const ownerUrl = process.env.DATABASE_URL;
 const appUrl = process.env.APP_DATABASE_URL;
 
-type QueryValue = NonNullable<Parameters<postgres.Sql["unsafe"]>[1]>[number];
-
-// postgres.js types a transaction with Omit, which drops the tagged-template
-// call. unsafe is still on the transaction, so build the same $1 parameters here.
-function query(tx: postgres.TransactionSql) {
-  return (strings: TemplateStringsArray, ...values: readonly QueryValue[]) => {
-    const text = strings.reduce(
-      (sqlText, part, index) => (index === 0 ? part : `${sqlText}$${index}${part}`),
-      "",
-    );
-    return tx.unsafe(text, [...values]);
-  };
-}
-
-type Query = ReturnType<typeof query>;
-
 const codeOf = (error: unknown): string | undefined => {
   if (!error || typeof error !== "object" || !("code" in error)) return undefined;
   return typeof error.code === "string" ? error.code : undefined;
@@ -143,15 +127,24 @@ describe.skipIf(!ownerUrl || !appUrl)("row policies isolate two users", () => {
     }
   });
 
-  async function asUser<T>(userId: string | null, work: (tx: Query) => Promise<T>): Promise<T> {
-    // begin() types its result as an unwrapped promise array. A generic T is
-    // not that unwrap, even though work already returned T.
-    const result = await app.begin(async (tx) => {
-      const run = query(tx);
-      if (userId !== null) await run`select set_config('app.user_id', ${userId}, true)`;
-      return work(run);
-    });
-    return result as T;
+  // A reserved connection keeps the tagged-template call. begin()'s transaction
+  // value drops that call, so the helper opens the transaction itself.
+  async function asUser<T>(userId: string | null, work: (tx: postgres.Sql) => Promise<T>): Promise<T> {
+    const tx = await app.reserve();
+    try {
+      await tx`begin`;
+      try {
+        if (userId !== null) await tx`select set_config('app.user_id', ${userId}, true)`;
+        const result = await work(tx);
+        await tx`commit`;
+        return result;
+      } catch (error) {
+        await tx`rollback`;
+        throw error;
+      }
+    } finally {
+      tx.release();
+    }
   }
 
   it("connects as a role that cannot skip row policies", async () => {
@@ -180,28 +173,31 @@ describe.skipIf(!ownerUrl || !appUrl)("row policies isolate two users", () => {
 
   it("changes nothing when it updates or deletes the other user's rows", async () => {
     const counts = await asUser(fixture.userA, async (tx) => ({
-      events: (await tx`update events set title = 'stolen' where id = ${fixture.eventB}`).count,
-      categories: (await tx`update categories set name = 'stolen' where id = ${fixture.categoryB}`).count,
-      groups: (await tx`update groups set name = 'stolen' where id = ${fixture.groupB}`).count,
-      tasks: (await tx`delete from tasks where id = ${fixture.taskB}`).count,
-      alerts: (await tx`delete from alerts where id = ${fixture.alertB}`).count,
+      eventsUpdated: (await tx`update events set title = 'stolen' where id = ${fixture.eventB}`).count,
+      eventsDeleted: (await tx`delete from events where id = ${fixture.eventB}`).count,
+      categoriesUpdated: (await tx`update categories set name = 'stolen' where id = ${fixture.categoryB}`).count,
+      categoriesDeleted: (await tx`delete from categories where id = ${fixture.categoryB}`).count,
+      groupsUpdated: (await tx`update groups set name = 'stolen' where id = ${fixture.groupB}`).count,
+      groupsDeleted: (await tx`delete from groups where id = ${fixture.groupB}`).count,
+      tasksUpdated: (await tx`update tasks set title = 'stolen' where id = ${fixture.taskB}`).count,
+      tasksDeleted: (await tx`delete from tasks where id = ${fixture.taskB}`).count,
+      alertsUpdated: (await tx`update alerts set offset_minutes = 1 where id = ${fixture.alertB}`).count,
+      alertsDeleted: (await tx`delete from alerts where id = ${fixture.alertB}`).count,
     }));
-    expect(Number(counts.events)).toBe(0);
-    expect(Number(counts.categories)).toBe(0);
-    expect(Number(counts.groups)).toBe(0);
-    expect(Number(counts.tasks)).toBe(0);
-    expect(Number(counts.alerts)).toBe(0);
+    for (const count of Object.values(counts)) {
+      expect(Number(count)).toBe(0);
+    }
 
     const [event] = await owner`select title from events where id = ${fixture.eventB}`;
     const [category] = await owner`select name from categories where id = ${fixture.categoryB}`;
     const [group] = await owner`select name from groups where id = ${fixture.groupB}`;
-    const [task] = await owner`select id from tasks where id = ${fixture.taskB}`;
-    const [alert] = await owner`select id from alerts where id = ${fixture.alertB}`;
+    const [task] = await owner`select title from tasks where id = ${fixture.taskB}`;
+    const [alert] = await owner`select offset_minutes from alerts where id = ${fixture.alertB}`;
     expect(event.title).toBe("Event B");
     expect(category.name).toBe("Space B");
     expect(group.name).toBe("Group B");
-    expect(task.id).toBe(fixture.taskB);
-    expect(alert.id).toBe(fixture.alertB);
+    expect(task.title).toBe("Task B");
+    expect(alert.offset_minutes).toBe(15);
   });
 
   it("rejects an insert that names the other user", async () => {
@@ -248,14 +244,10 @@ describe.skipIf(!ownerUrl || !appUrl)("row policies isolate two users", () => {
   });
 
   it("does not keep the caller id after the transaction commits", async () => {
-    const seen = await app.begin(async (tx) => {
-      const run = query(tx);
-      await run`select set_config('app.user_id', ${fixture.userA}, true)`;
-      return run`select id from events where id = ${fixture.eventA}`;
-    });
+    const seen = await asUser(fixture.userA, (tx) => tx`select id from events where id = ${fixture.eventA}`);
     expect(seen).toHaveLength(1);
 
-    const later = await app.begin(async (tx) => query(tx)`select id from events where id in (${fixture.eventA}, ${fixture.eventB})`);
+    const later = await asUser(null, (tx) => tx`select id from events where id in (${fixture.eventA}, ${fixture.eventB})`);
     expect(later).toHaveLength(0);
   });
 
