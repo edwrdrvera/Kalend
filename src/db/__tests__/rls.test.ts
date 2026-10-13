@@ -12,42 +12,79 @@ import postgres from "postgres";
 // (plain `bun test` will just skip it, same as having no DATABASE_URL at all)
 const hasDb = Boolean(process.env.DATABASE_URL);
 
-describe.skipIf(!hasDb)("Row Level Security on events and tasks", () => {
+const OWNED_TABLES = ["events", "tasks", "categories", "groups", "alerts"] as const;
+const ALL_TABLES = [...OWNED_TABLES, "waitlist"] as const;
+
+const roleList = (roles: unknown): string[] => {
+  if (Array.isArray(roles)) return roles.map(String);
+  return String(roles)
+    .replace(/[{}]/g, "")
+    .split(",")
+    .map((role) => role.trim())
+    .filter(Boolean);
+};
+
+describe.skipIf(!hasDb)("Row Level Security policies", () => {
   const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
 
   afterAll(async () => {
     await sql.end();
   });
 
-  it("is enabled and forced on both tables", async () => {
+  it("is enabled and forced on every app table", async () => {
     const rows = await sql`
       select relname, relrowsecurity as enabled, relforcerowsecurity as forced
       from pg_class
-      where relname in ('events', 'tasks')
+      where relname in ${sql(ALL_TABLES)}
     `;
 
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(ALL_TABLES.length);
     for (const row of rows) {
       expect(row.enabled).toBe(true);
       expect(row.forced).toBe(true);
     }
   });
 
-  it("has a select/insert/update/delete policy on both tables", async () => {
+  it("gives each owned table one policy that checks app_user_id", async () => {
     const policies = await sql`
-      select tablename, cmd
+      select tablename, policyname, cmd, roles, qual, with_check
       from pg_policies
-      where tablename in ('events', 'tasks')
+      where schemaname = 'public' and tablename in ${sql(OWNED_TABLES)}
     `;
 
-    for (const table of ["events", "tasks"]) {
-      const commands = policies
-        .filter((policy) => policy.tablename === table)
-        .map((policy) => policy.cmd);
-
-      for (const cmd of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
-        expect(commands).toContain(cmd);
-      }
+    for (const table of OWNED_TABLES) {
+      const tablePolicies = policies.filter((policy) => policy.tablename === table);
+      expect(tablePolicies).toHaveLength(1);
+      const [policy] = tablePolicies;
+      expect(policy.policyname).toBe(`${table}_owner`);
+      expect(policy.cmd).toBe("ALL");
+      expect(roleList(policy.roles)).toContain("kalend_app");
+      expect(String(policy.qual)).toContain("app_user_id");
+      expect(String(policy.with_check)).toContain("app_user_id");
+      expect(String(policy.qual)).not.toContain("auth.uid");
     }
+  });
+
+  it("keeps the waitlist policy insert-only for the app role", async () => {
+    const policies = await sql`
+      select policyname, cmd, roles, qual, with_check
+      from pg_policies
+      where schemaname = 'public' and tablename = 'waitlist'
+    `;
+
+    expect(policies).toHaveLength(1);
+    expect(policies[0].policyname).toBe("waitlist_public_insert");
+    expect(policies[0].cmd).toBe("INSERT");
+    expect(roleList(policies[0].roles)).toContain("kalend_app");
+    expect(policies[0].qual).toBeNull();
+    expect(String(policies[0].with_check)).toBe("true");
+  });
+
+  it("reads the caller id from the app.user_id setting", async () => {
+    const [fn] = await sql`
+      select pg_get_functiondef('public.app_user_id()'::regprocedure) as definition
+    `;
+    expect(fn.definition).toContain("app.user_id");
+    expect(fn.definition).toContain("current_setting");
   });
 });
