@@ -7,7 +7,6 @@ const guide = readFileSync(new URL("../../../guides/alert-push-timer.md", import
 const example = readFileSync(new URL("../../../.env.example", import.meta.url), "utf8");
 
 const ENV_NAMES = [
-  "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
   "VAPID_SUBJECT",
   "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
@@ -21,18 +20,22 @@ describe("alert push timer", () => {
     expect(timer).not.toContain("Persistent=");
   });
 
-  it("calls the check on localhost with the secret from the environment file", () => {
+  it("calls the configured address with the secret from the environment file", () => {
     expect(service).toContain("-X POST");
-    expect(service).toContain("http://127.0.0.1/api/alerts/push-due");
+    expect(service).toContain('"$ALERT_PUSH_URL"');
+    expect(service).not.toContain("127.0.0.1");
+    expect(service).not.toContain("vercel.app");
     expect(service).toContain('Authorization: Bearer $ALERT_PUSH_SECRET');
     expect(service).toContain("EnvironmentFile=/etc/kalend/alert-push.env");
     expect(service).not.toMatch(/Bearer [A-Za-z0-9+/=]{16,}/);
   });
 
-  it("tells the owner to install the systemd timer on the server", () => {
+  it("tells the owner how to aim the timer at a VPS or at Vercel", () => {
     expect(guide).toContain("once a minute");
     expect(guide).toContain("systemd");
-    expect(guide).toContain("127.0.0.1");
+    expect(guide).toContain("ALERT_PUSH_URL=http://127.0.0.1/api/alerts/push-due");
+    expect(guide).toContain("ALERT_PUSH_URL=https://your-app.vercel.app/api/alerts/push-due");
+    expect(guide).toContain("When Kalend is hosted on Vercel");
     expect(guide).toContain("systemctl enable --now kalend-alert-push.timer");
     expect(guide).toContain("The owner installs this timer");
   });
@@ -42,6 +45,7 @@ describe("alert push timer", () => {
       const line = example.split("\n").find((row) => row.startsWith(`${name}=`));
       expect(line).toBe(`${name}=`);
     }
+    expect(example.split("\n").some((row) => row.startsWith("VAPID_PUBLIC_KEY="))).toBe(false);
     expect(example).toContain("Never commit real values.");
     expect(example).toContain("Never commit it.");
   });
