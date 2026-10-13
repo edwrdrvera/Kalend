@@ -336,6 +336,62 @@ describe("Tasks API Endpoints", () => {
   });
 
   describe("PATCH /api/tasks/[id]", () => {
+    describe("title longer than the limit already in the database", () => {
+      const ID = "a0000000-0000-4000-8000-000000000001";
+      const LONG = "x".repeat(250);
+      const patch = (id: string, body: unknown) =>
+        PATCH(new Request(`http://localhost/api/tasks/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }), { params: Promise.resolve({ id }) });
+
+      it("saves a colour change that resends the unchanged long title", async () => {
+        mockDbState.rows[0].title = LONG;
+        const response = await patch(ID, { title: LONG, color: "red" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].color).toBe("red");
+        expect(mockDbState.rows[0].title).toBe(LONG);
+      });
+
+      it("still counts the title as unchanged when the resent copy has extra whitespace", async () => {
+        mockDbState.rows[0].title = LONG;
+        const response = await patch(ID, { title: `  ${LONG}  `, color: "red" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].color).toBe("red");
+      });
+
+      it("refuses a different title over the limit and saves nothing", async () => {
+        mockDbState.rows[0].title = LONG;
+        const before = mockDbState.rows.map((row) => ({ ...row }));
+        const response = await patch(ID, { title: "y".repeat(201), color: "red" });
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ success: false, error: "title must be at most 200 characters" });
+        expect(mockDbState.rows).toEqual(before);
+      });
+
+      it("refuses a short stored title changed to one over the limit", async () => {
+        const before = mockDbState.rows.map((row) => ({ ...row }));
+        const response = await patch(ID, { title: "y".repeat(201) });
+        expect(response.status).toBe(400);
+        expect(mockDbState.rows).toEqual(before);
+      });
+
+      it("accepts a long stored title changed to one within the limit", async () => {
+        mockDbState.rows[0].title = LONG;
+        const response = await patch(ID, { title: "Short now" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].title).toBe("Short now");
+      });
+
+      it("returns 404 for another user's long-title task", async () => {
+        mockDbState.rows[1].title = LONG;
+        const response = await patch("a0000000-0000-4000-8000-000000000002", { title: LONG, color: "green" });
+        expect(response.status).toBe(404);
+        expect(mockDbState.rows[1].color).toBe("red");
+      });
+    });
+
     it("returns 400, not 500, for wrongly typed fields without updating the task", async () => {
       const before = mockDbState.rows.map((row) => ({ ...row }));
       const id = mockDbState.rows[0].id;

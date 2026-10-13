@@ -23,14 +23,35 @@ export function asBodyObject(json: unknown): ParseResult<Record<string, unknown>
   return parsed(json as Record<string, unknown>);
 }
 
-/** A title is stored trimmed and must be non-blank and at most MAX_TITLE_LENGTH characters. */
-export function title(value: unknown): ParseResult<string> {
+/** A title is stored trimmed and must be non-blank. The length cap is applied separately by `title`. */
+export function titleUncapped(value: unknown): ParseResult<string> {
   if (typeof value !== "string") return rejected("title must be a string");
   const trimmed = value.trim();
-  if (!trimmed) return rejected("title is required");
-  return trimmed.length > MAX_TITLE_LENGTH
+  return trimmed ? parsed(trimmed) : rejected("title is required");
+}
+
+/** A title is stored trimmed and must be non-blank and at most MAX_TITLE_LENGTH characters. */
+export function title(value: unknown): ParseResult<string> {
+  const result = titleUncapped(value);
+  if (!result.ok) return result;
+  return result.value.length > MAX_TITLE_LENGTH
     ? rejected(`title must be at most ${MAX_TITLE_LENGTH} characters`)
-    : parsed(trimmed);
+    : result;
+}
+
+/**
+ * The length error for a PATCH that sets `next` over a stored `current`, or null.
+ * Text the row already holds passes whatever its length, so a row saved before
+ * the cap existed can still be edited in other ways. A change is capped.
+ */
+export function capUnlessUnchanged(
+  rule: (value: unknown) => ParseResult<string>,
+  next: string | undefined,
+  current: string,
+): string | null {
+  if (next === undefined || next === current.trim()) return null;
+  const result = rule(next);
+  return result.ok ? null : result.error;
 }
 
 // A four-digit year keeps every accepted date inside Postgres's timestamp range,
@@ -68,6 +89,13 @@ export function groupId(value: unknown): ParseResult<string | null> {
   return typeof value === "string" && isUuid(value)
     ? parsed(value)
     : rejected("Group must be a valid identifier");
+}
+
+/** A Space or Group name is stored trimmed and must be non-blank. The length cap is applied separately by `name`. */
+export function nameUncapped(value: unknown): ParseResult<string> {
+  if (typeof value !== "string") return rejected("name must be a string");
+  const trimmed = value.trim();
+  return trimmed ? parsed(trimmed) : rejected("name is required");
 }
 
 /** A Space or Group name is stored trimmed and must be non-blank and at most MAX_GROUP_NAME_LENGTH characters. */

@@ -326,6 +326,62 @@ describe("Categories API Endpoints", () => {
   });
 
   describe("PATCH /api/categories/[id]", () => {
+    describe("name longer than the limit already in the database", () => {
+      const ID = "c0000000-0000-4000-8000-000000000001";
+      const LONG = "x".repeat(150);
+      const patch = (id: string, body: unknown) =>
+        PATCH(new Request(`http://localhost/api/categories/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }), { params: Promise.resolve({ id }) });
+
+      it("saves a colour change that resends the unchanged long name", async () => {
+        mockDbState.rows[0].name = LONG;
+        const response = await patch(ID, { name: LONG, color: "red" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].color).toBe("red");
+        expect(mockDbState.rows[0].name).toBe(LONG);
+      });
+
+      it("still counts the name as unchanged when the resent copy has extra whitespace", async () => {
+        mockDbState.rows[0].name = LONG;
+        const response = await patch(ID, { name: `  ${LONG}  `, color: "red" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].color).toBe("red");
+      });
+
+      it("refuses a different name over the limit and saves nothing", async () => {
+        mockDbState.rows[0].name = LONG;
+        const before = mockDbState.rows.map((row) => ({ ...row }));
+        const response = await patch(ID, { name: "y".repeat(101), color: "red" });
+        expect(response.status).toBe(400);
+        expect(await response.json()).toEqual({ success: false, error: "name must be at most 100 characters" });
+        expect(mockDbState.rows).toEqual(before);
+      });
+
+      it("refuses a short stored name changed to one over the limit", async () => {
+        const before = mockDbState.rows.map((row) => ({ ...row }));
+        const response = await patch(ID, { name: "y".repeat(101) });
+        expect(response.status).toBe(400);
+        expect(mockDbState.rows).toEqual(before);
+      });
+
+      it("accepts a long stored name changed to one within the limit", async () => {
+        mockDbState.rows[0].name = LONG;
+        const response = await patch(ID, { name: "Short now" });
+        expect(response.status).toBe(200);
+        expect(mockDbState.rows[0].name).toBe("Short now");
+      });
+
+      it("returns 404 for another user's long-name Space", async () => {
+        mockDbState.rows[1].name = LONG;
+        const response = await patch("c0000000-0000-4000-8000-000000000002", { name: LONG, color: "green" });
+        expect(response.status).toBe(404);
+        expect(mockDbState.rows[1].color).toBe("red");
+      });
+    });
+
     it("returns 401 when user is unauthenticated", async () => {
       mockCurrentUser = null;
       const req = new Request("http://localhost/api/categories/c0000000-0000-4000-8000-000000000001", {

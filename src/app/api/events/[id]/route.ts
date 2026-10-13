@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { events } from "@/db/schema/events";
 import { categories } from "@/db/schema/categories";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
+import { capUnlessUnchanged, title as titleRule } from "@/lib/api/parse-fields";
 import { parseEventPatch } from "@/lib/api/event-body";
 import { membershipErrorMessage, resolveItemMembership } from "@/lib/api/membership";
 import { membershipOf, touchesMembership } from "@/lib/membership";
@@ -23,6 +24,8 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const result = await retryTransaction(() => db.transaction(async (tx) => {
     const [existing] = await tx.select().from(events).where(and(eq(events.id, id), eq(events.user_id, user.id))).for("update");
     if (!existing) return null;
+    const titleError = capUnlessUnchanged(titleRule, body.title, existing.title);
+    if (titleError) return { titleError } as const;
     const resolved = await resolveItemMembership(tx, user, membershipOf(existing), {
       category_id: body.category_id,
       group_id: body.group_id,
@@ -49,6 +52,7 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
     return { updated } as const;
   }));
   if (!result) return fail("Event not found", 404);
+  if (result.titleError) return badRequest(result.titleError);
   if (result.membershipError) return badRequest(membershipErrorMessage(result.membershipError));
   if ("timeError" in result) return badRequest("start_at must be before end_at");
   return ok(result.updated);

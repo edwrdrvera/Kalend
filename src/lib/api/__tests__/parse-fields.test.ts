@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { date, title } from "@/lib/api/parse-fields";
+import { capUnlessUnchanged, date, title, titleUncapped } from "@/lib/api/parse-fields";
 
 describe("date", () => {
   it.each(["2026-08-10T10:00:00.000Z", "2026-08-10T10:00:00Z", "2026-08-10T12:00:00+02:00"])(
@@ -30,5 +30,25 @@ describe("title", () => {
 
   it("rejects more than 200 characters", () => {
     expect(title("a".repeat(201))).toEqual({ ok: false, error: "title must be at most 200 characters" });
+  });
+});
+
+describe("capUnlessUnchanged", () => {
+  const long = "a".repeat(250);
+
+  it("passes a title equal to the stored one after trimming, whatever its length", () => {
+    expect(capUnlessUnchanged(title, long, ` ${long} `)).toBeNull();
+  });
+
+  it("caps a title that differs from the stored one", () => {
+    expect(capUnlessUnchanged(title, "b".repeat(201), long)).toBe("title must be at most 200 characters");
+  });
+
+  it("passes when the title is not being changed", () => {
+    expect(capUnlessUnchanged(title, undefined, long)).toBeNull();
+  });
+
+  it("leaves the uncapped rule to accept any length", () => {
+    expect(titleUncapped(long)).toEqual({ ok: true, value: long });
   });
 });

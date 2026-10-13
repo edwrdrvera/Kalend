@@ -24,7 +24,8 @@ export function parseCategoryCreate(json: unknown): ParseResult<CategoryCreate> 
 export function parseCategoryPatch(json: unknown): ParseResult<CategoryPatch> {
   const body = field.asBodyObject(json);
   if (!body.ok) return body;
-  const result = field.parsePresent(body.value, categoryRules);
+  // The name's length cap is applied by the handler against the stored row.
+  const result = field.parsePresent(body.value, { ...categoryRules, name: field.nameUncapped });
   if (!result.ok) return result;
   if (Object.keys(result.value).length === 0) return rejected("No updatable fields provided");
   return result;

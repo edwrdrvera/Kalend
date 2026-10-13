@@ -4,6 +4,7 @@ import { events } from "@/db/schema/events";
 import { groups } from "@/db/schema/groups";
 import { tasks } from "@/db/schema/tasks";
 import { withUser, ok, fail } from "@/lib/api/route-handler";
+import { capUnlessUnchanged, name as nameRule } from "@/lib/api/parse-fields";
 import { parseCategoryPatch } from "@/lib/api/category-body";
 import { retryTransaction } from "@/lib/transaction-retry";
 import { and, eq } from "drizzle-orm";
@@ -20,12 +21,24 @@ export const PATCH = withUser(async (request, { params }: RouteContext, user) =>
   const parsed = parseCategoryPatch(await request.json());
   if (!parsed.ok) return fail(parsed.error, 400);
 
-  const [updatedCategory] = await db
-    .update(categories)
-    .set(parsed.value)
-    .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
-    .returning();
+  const updatedCategory = await retryTransaction(() => db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(categories)
+      .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
+      .for("update");
+    if (!existing) return null;
+    const nameError = capUnlessUnchanged(nameRule, parsed.value.name, existing.name);
+    if (nameError) return { nameError } as const;
+    const [updated] = await tx
+      .update(categories)
+      .set(parsed.value)
+      .where(and(eq(categories.id, id), eq(categories.user_id, user.id)))
+      .returning();
+    return updated ?? null;
+  }));
 
+  if (updatedCategory && "nameError" in updatedCategory) return fail(updatedCategory.nameError, 400);
   if (!updatedCategory) {
     return fail("Space not found", 404);
   }
