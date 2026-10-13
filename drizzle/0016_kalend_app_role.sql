@@ -11,9 +11,9 @@ grant usage on schema public to kalend_app;--> statement-breakpoint
 
 grant select, insert, update, delete on events, tasks, categories, groups, alerts to kalend_app;--> statement-breakpoint
 
-grant insert on waitlist to kalend_app;--> statement-breakpoint
+grant insert on waitlist to kalend_app;
 
-grant execute on function public.app_user_id() to kalend_app;
-
+-- app_user_id() keeps the default execute privilege for public. A grant to
+-- this role would only repeat it.
 -- No default privileges. A blanket grant would hand every future table to this
 -- role, including tables that must stay owner-only. Grant each new table in its own migration.
