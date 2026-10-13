@@ -226,6 +226,31 @@ ruleTester.run("scoped-query caller transaction", rule, {
       errors: [{ message: directDb }],
     },
     {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db as database } from '@/db'; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import { db } from '@/db'; const database = db; withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/app/api/events/route.ts",
+      code: "import * as database from '@/db'; withUser(async (request, context, user) => database.db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/alert-sync.ts",
+      code: "import { db } from '@/db'; withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
+      filename: "src/lib/api/membership.ts",
+      code: "import * as database from '@/db'; withUser(async (request, context, user) => database.db.update(events).set({ title }).where(eq(events.user_id, user.id)))",
+      errors: [{ message: directDb }],
+    },
+    {
       filename: "src/db/scoped.ts",
       code: "tx.execute(sql`select set_config('app.user_id', ${user.id}, false)`)",
       errors: [{ message: /Raw SQL cannot be checked/ }],

@@ -77,6 +77,9 @@ const blocked: [string, string, string][] = [
   ["component imports an HTTP library", "src/components/Example.tsx", importOf("axios")],
   ["server helper runs an unscoped task query", "src/lib/api/helper.ts", `import { db } from "@/db";\nimport { tasks } from "@/db/schema/tasks";\nimport { eq } from "drizzle-orm";\nexport const one = (id: string) => db.select().from(tasks).where(eq(tasks.id, id));\n`],
   ["route queries through the shared client", "src/app/api/events/route.ts", `import { db } from "@/db";\nimport { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport const GET = withUser(async (request, context, user) => db.select().from(events).where(eq(events.user_id, user.id)));\n`],
+  ["route queries through an aliased shared client", "src/app/api/events/route.ts", `import { db as database } from "@/db";\nimport { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport const GET = withUser(async (request, context, user) => database.select().from(events).where(eq(events.user_id, user.id)));\n`],
+  ["route queries through a namespace import of the shared client", "src/app/api/events/route.ts", `import * as database from "@/db";\nimport { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport const GET = withUser(async (request, context, user) => database.db.select().from(events).where(eq(events.user_id, user.id)));\n`],
+  ["request helper queries through the shared client", "src/lib/api/alert-sync.ts", `import { db } from "@/db";\nimport { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport async function load(user: AuthenticatedUser) { return db.select().from(events).where(eq(events.user_id, user.id)); }\n`],
 ];
 
 const allowed: [string, string, string][] = [
@@ -100,6 +103,7 @@ const allowed: [string, string, string][] = [
   ["component imports a type from the request helper", "src/components/Example.tsx", `import type { MutationResponse } from "@/lib/api";\nexport type R = MutationResponse<string>;\n`],
   ["route imports a third-party package named components", "src/app/api/tasks/route.ts", importOf("@react-email/components")],
   ["route queries through the request transaction", "src/app/api/events/route.ts", `import { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport const GET = withUser(async (request, context, user) => tx.select().from(events).where(eq(events.user_id, user.id)));\n`],
+  ["request helper queries through the request transaction", "src/lib/api/alert-sync.ts", `import { events } from "@/db/schema/events";\nimport { eq } from "drizzle-orm";\nexport async function load(tx: { select(): { from(table: unknown): { where(condition: unknown): unknown } } }, user: AuthenticatedUser) { return tx.select().from(events).where(eq(events.user_id, user.id)); }\n`],
   ["waitlist inserts through the shared client", "src/app/api/waitlist/route.ts", `import { db } from "@/db";\nimport { waitlist } from "@/db/schema/waitlist";\nexport const POST = () => db.insert(waitlist).values({ email });\n`],
 ];
 

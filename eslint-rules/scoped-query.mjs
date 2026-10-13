@@ -28,9 +28,11 @@
  * The rule cannot be disabled inline (see eslint.config.mjs); a genuine
  * exception means changing this rule, where the change gets reviewed.
  *
- * Route files must not call the shared `db` client. Queries go through the
- * transaction `asUser` opens, which is the connection that holds the caller
- * id. The waitlist route is the exception: it has no signed-in user.
+ * Route files and helpers under `src/lib/api` must not call the shared `db`
+ * client. Queries go through the transaction `asUser` opens, which is the
+ * connection that holds the caller id. The waitlist route is the exception:
+ * it has no signed-in user. The check follows a named import, an import
+ * alias, a local alias, and `namespace.db` from `import * as namespace`.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
@@ -46,7 +48,7 @@ const DIRECT_DB_METHODS = new Set([
 ]);
 
 const directDbMessage =
-  'API routes must query through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
+  'Queries must go through the per-request transaction, not the shared database client. The shared client does not set the caller id for row policies.';
 
 const ownerValueHint = (table) =>
   `Insert into "${table}" must set user_id: user.id inline in .values({...}) for every row, with no spread or computed key after it, and an onConflictDoUpdate set may only leave user_id alone or set it to user.id. This client bypasses RLS, so an insert without it can write rows into another user's account.`;
@@ -254,18 +256,46 @@ function conflictKeepsOwner(conflict, scope) {
   return ownerIsUser(set?.value, false, scope);
 }
 
-function isAppDb(node, scope) {
-  if (node?.type !== "Identifier") return false;
-  const variable = findVariable(scope, node.name);
-  const def = variable?.defs[0];
-  if (def?.type !== "ImportBinding" || def.node.type !== "ImportSpecifier") return false;
+function importedDb(def) {
+  if (def?.type !== "ImportBinding" || def.parent?.source?.value !== "@/db") return false;
+  if (def.node.type !== "ImportSpecifier") return false;
   const imported = def.node.imported.name ?? def.node.imported.value;
-  if (imported !== "db") return false;
-  return def.parent?.source?.value === "@/db";
+  return imported === "db";
+}
+
+function isDbNamespace(node, scope) {
+  if (node?.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  return (
+    def?.type === "ImportBinding" &&
+    def.node.type === "ImportNamespaceSpecifier" &&
+    def.parent?.source?.value === "@/db"
+  );
+}
+
+// The shared client, including `import { db as database }`, `const database = db`,
+// and `import * as database from "@/db"` used as `database.db`.
+function isAppDb(node, scope, seen = new Set()) {
+  if (!node || seen.has(node)) return false;
+  seen.add(node);
+  if (node.type === "MemberExpression") {
+    if (staticKey(node) !== "db") return false;
+    return isDbNamespace(node.object, scope);
+  }
+  if (node.type !== "Identifier") return false;
+  const def = findVariable(scope, node.name)?.defs[0];
+  if (!def) return false;
+  if (def.type === "ImportBinding") return importedDb(def);
+  if (def.type === "Variable" && def.node.id?.type === "Identifier" && def.node.init) {
+    return isAppDb(def.node.init, scope, seen);
+  }
+  return false;
 }
 
 function routeForbidsDirectDb(filename) {
   const path = String(filename ?? "").replaceAll("\\", "/");
+  const helper = path.indexOf("src/lib/api/");
+  if (helper !== -1 && !path.slice(helper).includes("/__tests__/")) return true;
   const marker = "src/app/api/";
   const index = path.indexOf(marker);
   if (index === -1) return false;
