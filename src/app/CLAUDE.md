@@ -19,4 +19,4 @@ This is a pre-launch MVP: there's no self-serve signup, password reset, or email
 
 ## Styling (`globals.css`)
 
-Tailwind v4 with `shadcn/tailwind.css` and the daisyUI `business` theme as the default. Theme colors are CSS variables mapped in the `@theme inline` block. Change a color by editing the variable, not by hardcoding a hex value in a component.
+Tailwind v4 with `shadcn/tailwind.css` and the kalend-ui tokens. Theme colors are CSS variables mapped in the `@theme inline` block. Change a color by editing the variable, not by hardcoding a hex value in a component.

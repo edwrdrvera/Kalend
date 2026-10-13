@@ -9,6 +9,7 @@ import MiniCalendar from "./MiniCalendar";
 import MobileSpacesBar from "./MobileSpacesBar";
 import { loadSidebarCollapsed, saveSidebarCollapsed } from "@/lib/sidebar-collapse";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
+import { Button } from "@/components/ui/button";
 
 interface CalendarSidebarProps {
   currentDate: Date;
@@ -95,7 +96,7 @@ export default function CalendarSidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Open sidebar"
-        className="absolute left-3 top-[19px] z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
+        className="absolute left-3 top-2.5 z-30 grid size-8 place-items-center rounded-md border border-border bg-card text-muted-foreground shadow-sm md:hidden"
       >
         <Menu className="size-4" />
       </button>
@@ -106,7 +107,7 @@ export default function CalendarSidebar({
           type="button"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute inset-0 z-40 bg-foreground/15 backdrop-blur-[1px] md:hidden"
+          className="absolute inset-0 z-40 bg-black/25 backdrop-blur-[1px] md:hidden"
         />
       )}
 
@@ -132,21 +133,23 @@ export default function CalendarSidebar({
         )}
       </div>
 
-      {/* Mobile sidebar: slide-out overlay with agenda + mini calendar */}
+      {/* Mobile sidebar: slide-out overlay with the agenda (no mini calendar) */}
       <aside
         className={cn(
-          "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-xl transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:hidden",
+          "absolute inset-y-0 left-0 z-50 flex h-full w-full shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-lg transition-transform duration-200 ease-in-out sm:w-[min(320px,calc(100vw-2rem))] md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-lg"
           onClick={() => setMobileOpen(false)}
           aria-label="Close sidebar"
-          className="absolute right-4 top-4 z-10 grid size-8 place-items-center rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="absolute right-4 top-4 z-10 bg-muted/50 text-muted-foreground hover:text-foreground"
         >
           <X className="size-4" />
-        </button>
+        </Button>
 
         <div className="flex min-h-0 flex-1 flex-col pt-14">
           <MobileSpacesBar
@@ -159,7 +162,6 @@ export default function CalendarSidebar({
           <div className="min-h-0 flex-1 overflow-hidden">
             <AgendaColumn {...agendaProps} />
           </div>
-          <MiniCalendar {...miniCalProps} />
         </div>
       </aside>
     </>

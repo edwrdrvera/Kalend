@@ -1,25 +1,42 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { Ellipsis, Palette, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES } from "@/lib/event-colors";
 import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
-import { ICON_BUTTON_CLS } from "./InspectorParts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { IconButton } from "./InspectorParts";
 
 interface SpacePanelHeaderProps {
   subject: PanelSubject;
   onClose: () => void;
   /** Saves a new name for the Space or Group. Resolves false when the save failed. */
   onRename: (name: string) => Promise<boolean>;
+  /** Space panels only: opens the Space editor to change its color. */
+  onChangeColor?: () => void;
+  /** Space panels only: opens the Space editor on its delete confirmation. */
+  onDeleteSpace?: () => void;
   /** Rendered under the title, inside the header (the Group chips). */
   children?: ReactNode;
 }
 
-const TITLE_CLS = "min-w-0 flex-1 truncate text-[20px] font-semibold tracking-tight text-foreground";
+const TITLE_CLS = "min-w-0 flex-1 truncate text-title font-semibold tracking-tight text-foreground";
 
-export default function SpacePanelHeader({ subject, onClose, onRename, children }: SpacePanelHeaderProps) {
+export default function SpacePanelHeader({
+  subject,
+  onClose,
+  onRename,
+  onChangeColor,
+  onDeleteSpace,
+  children,
+}: SpacePanelHeaderProps) {
   const key = subjectKey(subject);
   // The draft and a failed save each belong to the Space or Group they were
   // made for, so switching the panel hides them, and a save that finishes
@@ -50,10 +67,10 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
   return (
     <header className="border-b border-border px-4 py-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11.5px] text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
-        <button type="button" aria-label="Close panel" onClick={onClose} className={ICON_BUTTON_CLS}>
+        <p className="text-xs leading-normal text-muted-foreground">{subject.kind === "group" ? subject.spaceName : "Space"}</p>
+        <IconButton aria-label="Close panel" onClick={onClose}>
           <X className="size-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="mt-1.5 flex items-center gap-2">
@@ -62,18 +79,18 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
           className={cn("size-[10px] shrink-0 rounded-[3px]", EVENT_COLOR_SWATCH_CLASSES[subject.color])}
         />
         {text === null ? (
-          <h2 className="min-w-0 flex-1">
+          <h2 aria-label={subject.name} className="min-w-0 flex-1">
             <button
               type="button"
-              aria-label={`Rename ${subject.name}`}
               title="Click to rename"
               onClick={() => setDraft({ key, text: subject.name })}
               className={cn(
                 TITLE_CLS,
-                "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                "block w-full cursor-text rounded-md text-left transition-colors hover:text-foreground/80 focus-ring"
               )}
             >
               {subject.name}
+              <span className="sr-only"> Rename</span>
             </button>
           </h2>
         ) : (
@@ -83,7 +100,7 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
             aria-label={`${subject.name} name`}
             aria-invalid={failed || undefined}
             value={text}
-            maxLength={subject.kind === "group" ? MAX_GROUP_NAME_LENGTH : undefined}
+            maxLength={MAX_GROUP_NAME_LENGTH}
             onChange={(e) => {
               setDraft({ key, text: e.target.value });
               setFailedKey(null);
@@ -102,13 +119,35 @@ export default function SpacePanelHeader({ subject, onClose, onRename, children 
             onBlur={() => void commit()}
             className={cn(
               TITLE_CLS,
-              "-mx-1 h-[30px] rounded-md border border-foreground/30 bg-transparent px-1 outline-none"
+              "-mx-1 h-[30px] rounded-md border border-ring bg-transparent px-1 outline-none"
             )}
           />
         )}
+        {subject.kind === "space" && onChangeColor && onDeleteSpace && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Space options"
+              render={
+                <IconButton>
+                  <Ellipsis className="size-4" />
+                </IconButton>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={onChangeColor}>
+                <Palette />
+                Change color
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onClick={onDeleteSpace}>
+                <Trash2 />
+                Delete Space
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       {failed && (
-        <p role="alert" className="mt-1 text-[11.5px] text-destructive">
+        <p role="alert" className="mt-1 text-xs leading-normal text-destructive">
           Couldn&apos;t rename. Try again.
         </p>
       )}

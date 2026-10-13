@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Bell, Check, Plus } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { addDays, format, isBefore, isSameDay, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CalendarTask } from "@/lib/calendar-types";
 import { bucketTasks } from "@/lib/task-buckets";
-import { PRESS_CLS } from "./InspectorParts";
+import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
+import { CHIP_CLS, QUIET_LINK_CLS } from "./control-styles";
+import TaskCheckbox from "./TaskCheckbox";
 
 /** Rows shown before "Show more", so a long backlog doesn't flood the panel. */
 const COLLAPSED_ROWS = 5;
@@ -55,16 +58,7 @@ function dueState(task: CalendarTask, now: Date): DueState {
 /** The dashboard names the later buckets "Later" and "No date". */
 const BUCKET_LABELS: Partial<Record<string, string>> = { month: "Later", unscheduled: "No date" };
 
-const PILL_CLS = cn(
-  "h-[26px] rounded-full border px-2.5 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-  PRESS_CLS
-);
-const TEXT_BTN_CLS = cn(
-  "h-[26px] rounded-md px-2.5 text-[12px] font-semibold hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-  PRESS_CLS
-);
-const LINK_BTN_CLS =
-  "rounded-sm text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
+const TEXT_BTN_CLS = "h-[26px] px-2.5 text-xs leading-normal font-semibold";
 
 export default function PanelTasksSection({
   tasks,
@@ -106,50 +100,36 @@ export default function PanelTasksSection({
     return (
       <div key={task.id} className="-mx-4 border-b border-border/60 px-4 py-1.5 last:border-b-0">
         <div className="flex items-start gap-2.5">
-          <button
-            type="button"
-            onClick={() => onToggleComplete(task)}
-            aria-pressed={task.completed}
-            aria-label={task.completed ? `Mark ${task.title} as not done` : `Mark ${task.title} as done`}
-            className={cn(
-              "mt-0.5 flex size-[14px] shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-[background-color,border-color,transform] duration-150 ease-snappy focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60 motion-safe:active:scale-90",
-              task.completed
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border hover:border-muted-foreground"
-            )}
-          >
-            <Check
-              className={cn(
-                "size-2.5 transition-[opacity,transform] duration-150 ease-snappy",
-                task.completed ? "scale-100 opacity-100" : "scale-50 opacity-0"
-              )}
-              strokeWidth={3}
-            />
-          </button>
+          <TaskCheckbox
+            title={task.title}
+            checked={task.completed}
+            onToggle={() => onToggleComplete(task)}
+            className="mt-0.5"
+          />
           <button
             type="button"
             aria-expanded={expanded}
             aria-label={`Edit task ${task.title}`}
             onClick={() => setExpandedId(expanded ? null : task.id)}
-            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+            className="-my-0.5 min-w-0 flex-1 rounded-md px-1.5 py-0.5 text-left hover:bg-hover focus-ring"
           >
             <span
               className={cn(
-                "block truncate text-[13px] transition-colors duration-150",
+                "block truncate text-body transition-colors duration-150",
                 task.completed ? "text-muted-foreground line-through" : "text-foreground"
               )}
             >
               {task.title}
             </span>
             {pathOf?.(task) ? (
-              <span className="block truncate text-[11.5px] text-muted-foreground">{pathOf(task)}</span>
+              <span className="block truncate text-xs leading-normal text-muted-foreground">{pathOf(task)}</span>
             ) : null}
           </button>
-          {alertAt > 0 && <Bell aria-label="Alert on" className="mt-0.5 size-3 shrink-0 text-muted-foreground" />}
+          {alertAt > 0 && <Bell role="img" aria-label="Alert on"className="mt-0.5 size-3 shrink-0 text-muted-foreground" />}
           <span
             className={cn(
-              "shrink-0 whitespace-nowrap text-[11.5px] tabular-nums",
-              warning && !task.completed ? "text-amber-600" : "text-muted-foreground"
+              "shrink-0 whitespace-nowrap text-xs leading-normal tabular-nums",
+              warning && !task.completed ? "text-warning" : "text-muted-foreground"
             )}
           >
             {text}
@@ -163,49 +143,46 @@ export default function PanelTasksSection({
                   ? !!task.due_at && isSameDay(new Date(task.due_at), day)
                   : task.due_at === null;
                 return (
-                  <button
+                  <Toggle
                     key={label}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => onChangeDue(task, day)}
-                    className={cn(
-                      PILL_CLS,
-                      on
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:bg-muted"
-                    )}
+                    pressed={on}
+                    onPressedChange={() => onChangeDue(task, day)}
+                    className={cn(CHIP_CLS, "aria-pressed:border-foreground aria-pressed:bg-foreground aria-pressed:text-background aria-pressed:hover:bg-foreground aria-pressed:hover:text-background")}
                   >
                     {label}
-                  </button>
+                  </Toggle>
                 );
               })}
             </div>
             <div className="mt-2 flex items-center gap-1.5">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => setAlertIdx((q) => ({ ...q, [task.id]: (alertAt + 1) % ALERT_CHOICES.length }))}
-                className={cn(PILL_CLS, "border-border bg-card text-foreground hover:bg-muted")}
+                className={cn(CHIP_CLS, "bg-card text-foreground")}
               >
                 Alert: {ALERT_CHOICES[alertAt]}
-              </button>
+              </Button>
               <div className="flex-1" />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => onOpenTask(task)}
                 aria-label={`Open task ${task.title}`}
-                className={cn(TEXT_BTN_CLS, "text-muted-foreground hover:text-foreground")}
+                className={cn(TEXT_BTN_CLS, "text-muted-foreground")}
               >
                 Details
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => {
                   if (window.confirm(`Delete "${task.title}"?`)) onDelete(task);
                 }}
-                className={cn(TEXT_BTN_CLS, "text-destructive")}
+                className={cn(TEXT_BTN_CLS, "text-destructive hover:text-destructive")}
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -216,30 +193,29 @@ export default function PanelTasksSection({
   return (
     <section aria-label="Tasks" className="px-4 py-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[12px] font-semibold text-muted-foreground">
+        <h3 className="label-caps">
           Tasks
           <span className="font-normal"> · {tasks.length} open</span>
         </h3>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon-sm"
           aria-label="Add task"
           onClick={onAddTask}
-          className={cn(
-            "grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-            PRESS_CLS
-          )}
+          className="text-muted-foreground hover:text-foreground"
         >
           <Plus aria-hidden className="size-3.5" />
-        </button>
+        </Button>
       </div>
       {children}
-      {tasks.length === 0 && <p className="mt-2 text-[13px] text-muted-foreground">All caught up.</p>}
+      {tasks.length === 0 && <p className="mt-2 text-body text-muted-foreground">All caught up.</p>}
 
       <div className="mt-1 flex flex-col">
         {groups.map((group) => (
           <div key={group.key}>
             {group.label && (
-              <h4 className={cn("mb-0.5 mt-3 text-[12px] font-semibold", group.danger ? "text-destructive" : "text-foreground")}>
+              <h4 className={cn("mb-0.5 mt-3 text-xs leading-normal font-semibold", group.danger ? "text-destructive" : "text-foreground")}>
                 {group.label}
                 <span className="ml-1.5 font-normal text-muted-foreground">{group.tasks.length}</span>
               </h4>
@@ -249,23 +225,15 @@ export default function PanelTasksSection({
         ))}
       </div>
       {hidden > 0 || showAll ? (
-        <button
-          type="button"
-          onClick={() => setShowAll(!showAll)}
-          className={cn(LINK_BTN_CLS, "mt-2")}
-        >
+        <Button type="button" variant="link" onClick={() => setShowAll(!showAll)} className={cn(QUIET_LINK_CLS, "mt-2")}>
           {showAll ? "Show fewer" : `Show ${hidden} more`}
-        </button>
+        </Button>
       ) : null}
       {completed.length > 0 && (
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setShowCompleted(!showCompleted)}
-            className={LINK_BTN_CLS}
-          >
+          <Button type="button" variant="link" onClick={() => setShowCompleted(!showCompleted)} className={QUIET_LINK_CLS}>
             {showCompleted ? "Hide" : "Show"} completed ({completed.length})
-          </button>
+          </Button>
           {showCompleted && (
             <div className="animate-reveal-down">
               {completed.map(renderRow)}

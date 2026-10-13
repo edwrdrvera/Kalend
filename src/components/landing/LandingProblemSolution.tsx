@@ -35,7 +35,7 @@ const SOLUTIONS: Point[] = [
 
 function XIcon() {
   return (
-    <div className="mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#f0ede6]">
+    <div className="mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--kal-border)]/40">
       <svg
         width="10"
         height="10"
@@ -54,7 +54,7 @@ function XIcon() {
 
 function CheckIcon() {
   return (
-    <div className="mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#fed7aa]">
+    <div className="mt-0.5 flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--kal-cat-orange-tint)]">
       <svg
         width="10"
         height="10"
@@ -78,7 +78,7 @@ function ProblemItem({ label, desc }: Point) {
       <XIcon />
       <div>
         <p className="text-sm font-semibold text-[var(--kal-muted)]">{label}</p>
-        <p className="mt-0.5 text-sm leading-relaxed text-[var(--kal-muted)] opacity-75">{desc}</p>
+        <p className="mt-0.5 text-sm leading-relaxed text-[var(--kal-muted)]">{desc}</p>
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ function ProblemItem({ label, desc }: Point) {
 
 function SolutionItem({ label, desc }: Point) {
   return (
-    <div className="flex gap-3.5 border-b border-orange-100 py-4 last:border-none">
+    <div className="flex gap-3.5 border-b border-[var(--kal-cat-orange-tint)] py-4 last:border-none">
       <CheckIcon />
       <div>
         <p className="text-sm font-semibold text-[var(--kal-ink)]">{label}</p>
@@ -109,7 +109,7 @@ export default function LandingProblemSolution() {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 min-[760px]:grid-cols-[0.78fr_1.22fr]">
-        <div className="rounded-[18px] border border-[var(--kal-border)] bg-[#f8f6f1] p-5 min-[760px]:mt-12 min-[860px]:p-6">
+        <div className="rounded-[18px] border border-[var(--kal-border)] bg-[var(--kal-border)]/20 p-5 min-[760px]:mt-12 min-[860px]:p-6">
           <p className="mb-1 text-xs font-medium text-[var(--kal-muted)]">
             The usual setup
           </p>
@@ -118,8 +118,8 @@ export default function LandingProblemSolution() {
           ))}
         </div>
 
-        <div className="rounded-[22px] border border-[#f0e1d2] bg-[#fffbf6] p-6 min-[860px]:p-9">
-          <p className="mb-1 text-xs font-medium text-[var(--kal-accent)]">
+        <div className="rounded-[22px] border border-[var(--kal-cat-orange-tint)] bg-[var(--kal-cat-orange-tint)]/35 p-6 min-[860px]:p-9">
+          <p className="mb-1 text-xs font-medium text-[var(--kal-accent-hover)]">
             The calmer version
           </p>
           <h3 className="mt-3 mb-4 max-w-[420px] text-[1.45rem] leading-tight font-bold tracking-[-0.025em] text-[var(--kal-ink)]">

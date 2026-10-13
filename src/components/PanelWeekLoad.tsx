@@ -4,7 +4,7 @@ import { format, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { EVENT_COLOR_SWATCH_CLASSES, type EventColor } from "@/lib/event-colors";
 import type { WeekLoadDay } from "@/lib/space-overview";
-import { PRESS_CLS } from "./InspectorParts";
+import { Button } from "@/components/ui/button";
 
 /** Hours in a day at or above which the bar turns to the warning color. */
 const HEAVY_HOURS = 8;
@@ -33,8 +33,8 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
   return (
     <section aria-label="This week" className="px-4 py-3">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[12px] font-semibold text-muted-foreground">This week</h3>
-        <span className="truncate pl-3 text-[11.5px] text-muted-foreground">
+        <h3 className="label-caps">This week</h3>
+        <span className="truncate pl-3 text-xs leading-normal text-muted-foreground">
           {round1(total)}h booked in {scopeName}
         </span>
       </div>
@@ -43,17 +43,17 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
           const today = isSameDay(day, now);
           return (
             <li key={day.toISOString()} className="flex flex-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               aria-label={`${format(day, "EEEE")}, ${round1(hours)} hours`}
               onClick={() => onSelectDay(day)}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 rounded-lg pb-1.5 pt-1.5 hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
-                PRESS_CLS,
+                "h-auto flex-1 flex-col gap-1 px-0 pb-1.5 pt-1.5 font-normal",
                 today && "bg-primary/10 hover:bg-primary/15"
               )}
             >
-              <span className="text-[11px] tabular-nums text-muted-foreground">{round1(hours)}h</span>
+              <span className="text-meta tabular-nums text-muted-foreground">{round1(hours)}h</span>
               <span className="flex h-9 items-end">
                 <span
                   aria-hidden="true"
@@ -61,7 +61,7 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                   className={cn(
                     "w-3.5 rounded-[3px]",
                     hours >= HEAVY_HOURS
-                      ? "bg-amber-600"
+                      ? "bg-warning"
                       : today
                         ? "bg-primary"
                         : neutral
@@ -71,10 +71,10 @@ export default function PanelWeekLoad({ days, color, scopeName, onSelectDay, neu
                   )}
                 />
               </span>
-              <span className={cn("text-[11px]", today ? "font-semibold text-primary" : "text-muted-foreground")}>
+              <span className={cn("text-meta", today ? "font-semibold text-primary-text" : "text-muted-foreground")}>
                 {format(day, "EEEEE")}
               </span>
-            </button>
+            </Button>
             </li>
           );
         })}

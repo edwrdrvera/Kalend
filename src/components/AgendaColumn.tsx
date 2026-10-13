@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, Loader2 } from "lucide-react";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type {
   CalendarAlert,
@@ -11,6 +11,7 @@ import type {
   CalendarTask,
 } from "@/lib/calendar-types";
 import { dueSectionLabel, tasksDueOn } from "@/lib/day-agenda";
+import { eventOnDay } from "@/lib/time-grid-layout";
 import AgendaDateHeader from "./AgendaDateHeader";
 import AgendaScheduleGroup from "./AgendaScheduleGroup";
 import TaskRow from "./TaskRow";
@@ -44,15 +45,7 @@ export default function AgendaColumn({
   onOpenTask,
   onEventClick,
 }: AgendaColumnProps) {
-  const dayStart = startOfDay(selectedDate);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setHours(23, 59, 59, 999);
-
-  const dayEvents = events.filter((ev) => {
-    const start = new Date(ev.start_at);
-    const end = new Date(ev.end_at);
-    return start <= dayEnd && end >= dayStart;
-  });
+  const dayEvents = events.filter((ev) => eventOnDay(ev, selectedDate));
   const dayTasks = tasksDueOn(tasks, selectedDate);
 
   const eventCount = dayEvents.length;
@@ -83,7 +76,7 @@ export default function AgendaColumn({
       ) : isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
           <Calendar className="size-6 text-muted-foreground/50" />
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             Nothing scheduled for {format(selectedDate, "MMMM d")}
           </p>
         </div>
@@ -138,7 +131,7 @@ function DueTasksSection({
 }) {
   return (
     <section aria-label={label} className={cn(precededBySchedule && "mt-3 border-t border-border pt-2.5")}>
-      <h3 className="pb-1 text-[12px] font-semibold text-muted-foreground">{label}</h3>
+      <h3 className="label-caps pb-1">{label}</h3>
       <div className="flex flex-col">
         {tasks.map((task) => (
           <TaskRow

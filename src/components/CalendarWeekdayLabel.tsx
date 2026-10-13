@@ -10,7 +10,7 @@ export default function CalendarWeekdayLabel({
 }: CalendarWeekdayLabelProps) {
   return (
     <span
-      className={`text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground ${className ?? ""}`}
+      className={`label-caps ${className ?? ""}`}
     >
       {children}
     </span>

@@ -18,6 +18,9 @@ import {
   type EventColor,
 } from "@/lib/event-colors";
 import type { CalendarCategory, CalendarGroup } from "@/lib/calendar-types";
+import { Input } from "@/components/ui/input";
+import { FIELD_SIZE_CLS } from "@/components/DateField";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 
 /**
  * Create or edit one Space (name + color), with delete in edit mode. A single
@@ -30,6 +33,8 @@ export interface SpaceEditorTarget {
   mode: "create" | "edit";
   /** The Space being edited; omitted in create mode. */
   category?: CalendarCategory;
+  /** Open straight on the delete confirmation. */
+  confirmDelete?: boolean;
 }
 
 interface SpaceEditorDialogProps {
@@ -75,7 +80,7 @@ export default function SpaceEditorDialog({
     setError(null);
     setSubmitting(false);
     setDeleting(false);
-    setConfirmingDelete(false);
+    setConfirmingDelete(target.confirmDelete === true);
   }, [targetKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEdit = target?.mode === "edit";
@@ -135,7 +140,7 @@ export default function SpaceEditorDialog({
             <DialogTitle>Delete {target.category.name}?</DialogTitle>
           </DialogHeader>
 
-          <p className="text-[13px] text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {groupCount > 0 && `Its ${groupCount} ${groupCount === 1 ? "Group is" : "Groups are"} deleted. `}
             Its events and tasks stay, but become unassigned. This can&apos;t be undone.
           </p>
@@ -183,13 +188,14 @@ export default function SpaceEditorDialog({
               onColorChange={setColor}
               className="size-6 rounded-[7px]"
             />
-            <input
+            <Input
               value={name}
+              maxLength={MAX_GROUP_NAME_LENGTH}
               onChange={(event) => setName(event.target.value)}
               placeholder="Space name"
               aria-label="Space name"
               autoFocus
-              className={cn(APP_INPUT_CLS, "min-w-0 flex-1")}
+              className={cn(FIELD_SIZE_CLS, "min-w-0 flex-1")}
             />
           </div>
 

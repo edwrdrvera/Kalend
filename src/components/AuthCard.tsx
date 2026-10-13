@@ -44,8 +44,6 @@ export default function AuthCard() {
   const [error, setError] = useState<string | null>(
     authenticationUnavailable || searchParams.get("error") === "configuration"
       ? SUPABASE_CONFIGURATION_ERROR_MESSAGE
-      : searchParams.get("error") === "expired_link"
-      ? "That link has expired or was already used. Please try again."
       : null
   );
 
@@ -137,7 +135,7 @@ export default function AuthCard() {
           {loading ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Signing in...
+              Signing in&hellip;
             </>
           ) : (
             "Sign in"

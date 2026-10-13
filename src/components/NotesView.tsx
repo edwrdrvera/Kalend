@@ -9,7 +9,7 @@ function Inline({ part }: { part: NotesInline }) {
         href={part.href}
         target="_blank"
         rel="noopener noreferrer"
-        className="break-all text-primary underline-offset-2 hover:underline"
+        className="break-all text-primary-text underline-offset-2 hover:underline"
       >
         {part.text}
       </a>

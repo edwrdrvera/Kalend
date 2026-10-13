@@ -149,6 +149,20 @@ describe("Alerts API", () => {
       expect(alertState.rows.filter((a) => a.event_id === EVENT_ID)).toHaveLength(3);
     });
 
+    it("inserts again when the alert that blocked the insert is gone before it can be read", async () => {
+      const uniqueRule = alertState.conflictsWith;
+      let conflicts = 1;
+      alertState.conflictsWith = () => conflicts-- > 0;
+      try {
+        const response = await post({ event_id: EVENT_ID, offset_minutes: 60 });
+        const json = await response.json();
+        expect({ status: response.status, offset: json.data?.offset_minutes }).toEqual({ status: 201, offset: 60 });
+        expect(alertState.rows.filter((a) => a.event_id === EVENT_ID && a.offset_minutes === 60)).toHaveLength(1);
+      } finally {
+        alertState.conflictsWith = uniqueRule;
+      }
+    });
+
     it("returns 404 for another user's event or task and stores nothing", async () => {
       const event = await post({ event_id: OTHER_EVENT_ID, offset_minutes: 5 });
       const task = await post({ task_id: OTHER_TASK_ID, offset_minutes: 5 });

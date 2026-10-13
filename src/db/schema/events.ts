@@ -14,13 +14,21 @@ export const events = pgTable(
     created_at: timestamp("created_at").defaultNow(),
     color: text("color").default("blue"),
     color_overridden: boolean("color_overridden").notNull().default(false),
-    category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    category_id: uuid("category_id"),
     group_id: uuid("group_id"),
     location: text("location"),
     icon: text("icon"),
     description: text("description")
   },
   (table) => [
+    // The Space must belong to the item's owner. drizzle-kit emits a plain SET NULL,
+    // which would also clear the NOT NULL user_id and fail every Space delete, so the
+    // migration is hand-edited to SET NULL (category_id). See src/db/CLAUDE.md.
+    foreignKey({
+      name: "events_space_owner_fk",
+      columns: [table.category_id, table.user_id],
+      foreignColumns: [categories.id, categories.user_id]
+    }).onDelete("set null"),
     // MATCH SIMPLE skips this key while group_id is null, so Space-only and unassigned
     // items pass. drizzle-kit emits a plain SET NULL; the migration is hand-edited to
     // SET NULL (group_id) so deleting a Group does not also clear category_id.

@@ -6,6 +6,11 @@ import { cn } from "@/lib/utils";
 import { useWaitlistSignup } from "@/hooks/useWaitlistSignup";
 import { landingButtonVariants } from "./landing-button-variants";
 
+// Both states share a minimum height (form + consent line) so swapping in the
+// success message doesn't pull the calendar mockup up the page.
+const WRAPPER_CLS =
+  "flex min-h-[150px] w-full flex-col items-center justify-center min-[560px]:min-h-[76px]";
+
 export default function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -18,18 +23,20 @@ export default function WaitlistForm() {
 
   if (status === "done") {
     return (
-      <p
-        id="waitlist"
-        role="status"
-        className="kal-fade-up text-sm font-medium text-[var(--kal-ink)]"
-      >
-        You’re on the list. We’ll be in touch with Kalend launch and access updates.
-      </p>
+      <div className={WRAPPER_CLS}>
+        <p
+          id="waitlist"
+          role="status"
+          className="kal-fade-up text-sm font-medium text-[var(--kal-ink)]"
+        >
+          You’re on the list. We’ll be in touch with Kalend launch and access updates.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div id="waitlist" className="flex w-full flex-col items-center gap-2">
+    <div id="waitlist" className={cn(WRAPPER_CLS, "gap-2")}>
       <form
         onSubmit={handleSubmit}
         className="flex w-full flex-col items-stretch gap-3 min-[560px]:flex-row min-[560px]:items-center"
@@ -48,7 +55,7 @@ export default function WaitlistForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           aria-describedby="waitlist-consent waitlist-error"
-          className="min-w-0 flex-1 rounded-[10px] border border-[var(--kal-border)] bg-white px-4 py-3 text-[15px] text-[var(--kal-ink)] shadow-sm placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-[10px] border border-[var(--kal-border)] bg-[var(--kal-surface)] px-4 py-3 text-base text-[var(--kal-ink)] shadow-sm placeholder:text-[var(--kal-muted)] focus:border-[var(--kal-accent)] focus:ring-2 focus:ring-[var(--kal-accent)]/25 focus:outline-none disabled:opacity-60"
         />
         <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
           <label htmlFor="waitlist-website">Website</label>
@@ -67,7 +74,7 @@ export default function WaitlistForm() {
           disabled={status === "loading"}
           className={cn(
             landingButtonVariants({ variant: "primary", size: "hero" }),
-            "justify-center disabled:cursor-not-allowed disabled:opacity-60"
+            "justify-center min-[560px]:min-w-[176px] disabled:cursor-not-allowed disabled:opacity-60"
           )}
         >
           {status === "loading" ? (
@@ -84,7 +91,7 @@ export default function WaitlistForm() {
         We’ll use your email only to send Kalend launch and access updates.
       </p>
       {error && (
-        <p id="waitlist-error" role="alert" className="text-sm text-[var(--kal-cat-red)]">
+        <p id="waitlist-error" role="alert" className="text-sm text-[var(--destructive)]">
           {error}
         </p>
       )}

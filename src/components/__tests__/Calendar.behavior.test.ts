@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createElement, act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
-import { chooseOption, testWindow, typeInto } from "./test-dom";
+import { chooseSelectOption, alertValue, chooseAlert, testWindow, typeInto } from "./test-dom";
 
 mock.module("next/navigation", () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
@@ -467,7 +467,7 @@ describe("Calendar behavior", () => {
     const breadcrumb = () => document.querySelector("nav[aria-label='Breadcrumb']");
     const calendarPosition = () => ({
       title: document.querySelector("h1")?.textContent,
-      view: [...document.querySelectorAll("button[aria-pressed='true']")]
+      view: [...document.querySelectorAll("[role='tab'][aria-selected='true']")]
         .map((b) => b.textContent)
         .find((t) => /(Week|Month|Day)$/.test(t ?? "")),
     });
@@ -482,6 +482,7 @@ describe("Calendar behavior", () => {
       await mount();
       await switchView("Month");
       const before = calendarPosition();
+      expect(before.view).toEndWith("Month");
       await click(eventBlock("Lecture"));
       expect(breadcrumb()?.textContent).toBe("School/Lecture");
       expect(isAbsent(document.querySelector("[aria-label^='Back to']"))).toBe(true);
@@ -536,7 +537,7 @@ describe("Calendar behavior", () => {
 
   describe("Groups", () => {
     const BIO: CalendarGroup = { id: "group-bio", category_id: SPACE.id, name: "BIO 102" };
-    const panelHeading = () => document.querySelector("[role='complementary'] h2")?.textContent;
+    const panelHeading = () => document.querySelector("[role='complementary'] h2")?.getAttribute("aria-label");
 
     beforeEach(() => {
       groups = [BIO];
@@ -583,8 +584,7 @@ describe("Calendar behavior", () => {
       const trigger = () => createPopover()?.querySelector("[aria-label^='Space: ']")?.getAttribute("aria-label");
       expect(trigger()).toBe("Space: School / BIO 102");
 
-      await click(createPopover()!.querySelector("[aria-label^='Space: ']")!);
-      await click(buttonByText("No Space")!);
+      await chooseSelectOption(createPopover()!.querySelector<HTMLElement>("[aria-label^='Space: ']")!, "No Space");
       expect(trigger()).toBe("Space: No Space");
     });
 
@@ -809,7 +809,7 @@ describe("Calendar behavior", () => {
       fired_at: null,
     });
     const alertSelect = (kind: "event" | "task") =>
-      document.querySelector<HTMLSelectElement>(`#${kind}-inspector-alert`)!;
+      document.querySelector<HTMLElement>(`#${kind}-inspector-alert`)!;
     const alertCalls = () =>
       calls
         .filter((c) => c.url.startsWith("/api/alerts") && !c.url.endsWith("/claim") && c.method !== "GET")
@@ -853,20 +853,20 @@ describe("Calendar behavior", () => {
     it("sets an alert after the event saves, then shows the bell and keeps it after a reload", async () => {
       await mount();
       await click(eventBlock("Lecture"));
-      expect(alertSelect("event").value).toBe("");
+      expect(alertValue(alertSelect("event"))).toBe("");
 
-      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await chooseAlert(alertSelect("event"), "15");
       await save();
 
       expect(alertCalls()).toEqual(['POST /api/alerts {"event_id":"e1","offset_minutes":15}']);
       expect(calls.some((c) => c.method === "PATCH")).toBe(false);
-      expect(alertSelect("event").value).toBe("15");
+      expect(alertValue(alertSelect("event"))).toBe("15");
       expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
 
       await remount();
       expect(new Set(bellRows())).toEqual(new Set(["Open event: Lecture"]));
       await click(eventBlock("Lecture"));
-      expect(alertSelect("event").value).toBe("15");
+      expect(alertValue(alertSelect("event"))).toBe("15");
     });
 
     it("saves the event first and the alert second when both changed", async () => {
@@ -874,7 +874,7 @@ describe("Calendar behavior", () => {
       await mount();
       await click(eventBlock("Lecture"));
       await act(async () => typeInto(titleField(), "Lecture 2"));
-      await act(async () => chooseOption(alertSelect("event"), "60"));
+      await chooseAlert(alertSelect("event"), "60");
       await save();
 
       const writes = calls.filter((c) => c.method !== "GET" && !c.url.endsWith("/claim")).map((c) => `${c.method} ${c.url}`);
@@ -885,19 +885,19 @@ describe("Calendar behavior", () => {
       storedAlerts = [lectureAlert(15)];
       await mount();
       await click(eventBlock("Lecture"));
-      expect(alertSelect("event").value).toBe("15");
+      expect(alertValue(alertSelect("event"))).toBe("15");
 
-      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await chooseAlert(alertSelect("event"), "5");
       await save();
       expect(alertCalls()).toEqual(['POST /api/alerts {"event_id":"e1","offset_minutes":5}', "DELETE /api/alerts/a-lecture"]);
-      expect(alertSelect("event").value).toBe("5");
+      expect(alertValue(alertSelect("event"))).toBe("5");
     });
 
     it("clears an alert and removes the bell", async () => {
       storedAlerts = [lectureAlert(15)];
       await mount();
       await click(eventBlock("Lecture"));
-      await act(async () => chooseOption(alertSelect("event"), ""));
+      await chooseAlert(alertSelect("event"), "");
       await save();
 
       expect(alertCalls()).toEqual(["DELETE /api/alerts/a-lecture"]);
@@ -908,11 +908,11 @@ describe("Calendar behavior", () => {
       alertWriteStatus = 500;
       await mount();
       await click(eventBlock("Lecture"));
-      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await chooseAlert(alertSelect("event"), "15");
       await save();
 
       expect(eventDetails()!.querySelector("[role='alert']")?.textContent).toContain("Couldn't save");
-      expect(alertSelect("event").value).toBe("15");
+      expect(alertValue(alertSelect("event"))).toBe("15");
       expect(bellRows()).toEqual([]);
 
       alertWriteStatus = 200;
@@ -924,13 +924,13 @@ describe("Calendar behavior", () => {
       tasks = [ESSAY];
       await mount();
       await click(document.querySelector("button[aria-label='Open task Essay draft']")!);
-      await act(async () => chooseOption(alertSelect("task"), "0"));
+      await chooseAlert(alertSelect("task"), "0");
       await save();
       expect(alertCalls()).toEqual(['POST /api/alerts {"task_id":"t1","offset_minutes":0}']);
       expect(calls.some((c) => c.method === "PATCH")).toBe(false);
       expect(new Set(bellRows())).toEqual(new Set(["Open task Essay draft"]));
 
-      await act(async () => chooseOption(alertSelect("task"), ""));
+      await chooseAlert(alertSelect("task"), "");
       await save();
       expect(bellRows()).toEqual([]);
     });
@@ -941,12 +941,12 @@ describe("Calendar behavior", () => {
       await click(eventBlock("Lecture"));
       expect(FakeNotification.asked).toBe(0);
 
-      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await chooseAlert(alertSelect("event"), "15");
       await save();
       expect(FakeNotification.asked).toBe(1);
       expect(document.querySelector("[aria-label='Reminders']")!.textContent).toContain("only inside Kalend");
 
-      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await chooseAlert(alertSelect("event"), "5");
       await save();
       expect(FakeNotification.asked).toBe(1);
     });
@@ -955,7 +955,7 @@ describe("Calendar behavior", () => {
       FakeNotification.answer = "granted";
       await mount();
       await click(eventBlock("Lecture"));
-      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await chooseAlert(alertSelect("event"), "15");
       await save();
       expect(FakeNotification.asked).toBe(1);
       expect(document.querySelector("[aria-label='Reminders']")!.textContent).toBe("");
@@ -966,7 +966,7 @@ describe("Calendar behavior", () => {
       storedAlerts = [lectureAlert(15)];
       await mount();
       await click(eventBlock("Lecture"));
-      await act(async () => chooseOption(alertSelect("event"), "5"));
+      await chooseAlert(alertSelect("event"), "5");
       await save();
       expect(FakeNotification.asked).toBe(0);
       expect(document.querySelector("[aria-label='Reminders']")!.textContent).toBe("");
@@ -976,7 +976,7 @@ describe("Calendar behavior", () => {
       delete (globalThis as Record<string, unknown>).Notification;
       await mount();
       await click(eventBlock("Lecture"));
-      await act(async () => chooseOption(alertSelect("event"), "15"));
+      await chooseAlert(alertSelect("event"), "15");
       await save();
       expect(document.querySelector("[aria-label='Reminders']")!.textContent).toContain("only inside Kalend");
     });

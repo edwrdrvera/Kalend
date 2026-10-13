@@ -1,14 +1,11 @@
 "use client";
 
 import { isPast } from "date-fns";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TaskCheckbox from "./TaskCheckbox";
+import SpaceDot from "./SpaceDot";
 import { DIMMED_ITEM_CLASS } from "@/lib/space-focus";
-import {
-  EVENT_COLOR_SWATCH_CLASSES,
-  isEventColor,
-  resolveDisplayColor,
-} from "@/lib/event-colors";
+import { resolveDisplayColor } from "@/lib/event-colors";
 import type { CalendarCategory, CalendarTask } from "@/lib/calendar-types";
 
 interface TaskChipProps {
@@ -41,12 +38,12 @@ export default function TaskChip({
     categories
   );
 
-  // Both buttons stop propagation: a click on the chip must not also reach
+  // The checkbox and title both stop propagation: a click on the chip must not also reach
   // the day cell underneath, which would select that day.
   return (
     <div
       className={cn(
-        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-[11px] font-medium transition-colors hover:bg-muted/70",
+        "group flex min-h-7 w-full min-w-0 items-center gap-1.5 rounded-sm px-1.5 text-meta font-medium transition-colors hover:bg-hover",
         task.completed
           ? "text-muted-foreground"
           : overdue
@@ -56,34 +53,14 @@ export default function TaskChip({
         className
       )}
     >
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleComplete(task);
-        }}
-        aria-pressed={task.completed}
-        aria-label={`${task.completed ? "Mark as not done" : "Mark as done"}: ${task.title}`}
-        className={cn(
-          "flex size-3.5 shrink-0 items-center justify-center rounded-[3px] border outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring/60",
-          task.completed
-            ? "border-muted-foreground bg-muted-foreground text-background"
-            : overdue
-              ? "border-destructive text-transparent hover:bg-destructive/10"
-              : "border-muted-foreground/70 text-transparent hover:border-foreground"
-        )}
-      >
-        <Check className="size-3" strokeWidth={3} />
-      </button>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "size-1.5 shrink-0 rounded-[2px]",
-          isEventColor(displayColor)
-            ? EVENT_COLOR_SWATCH_CLASSES[displayColor]
-            : "bg-muted-foreground/70"
-        )}
+      <TaskCheckbox
+        title={task.title}
+        checked={task.completed}
+        onToggle={() => onToggleComplete(task)}
+        onClick={(e) => e.stopPropagation()}
+        overdue={Boolean(overdue)}
       />
+      <SpaceDot color={displayColor} overdue={Boolean(overdue)} />
       <button
         type="button"
         title={task.title}
@@ -91,9 +68,9 @@ export default function TaskChip({
           e.stopPropagation();
           onOpen(task);
         }}
-        aria-label={`Open task ${task.title}`}
+        aria-label={overdue ? `Open task ${task.title}, Overdue` : `Open task ${task.title}`}
         className={cn(
-          "min-w-0 flex-1 truncate rounded-sm text-left outline-none focus-visible:ring-1 focus-visible:ring-ring/60",
+          "min-w-0 flex-1 truncate rounded-sm text-left focus-ring",
           task.completed && "line-through"
         )}
       >

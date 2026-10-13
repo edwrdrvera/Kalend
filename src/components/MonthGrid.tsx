@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import {
   format,
   addMonths,
@@ -8,8 +9,6 @@ import {
   startOfMonth,
   endOfWeek,
   endOfMonth,
-  startOfDay,
-  endOfDay,
   isSameMonth,
   isSameDay,
   addDays,
@@ -17,8 +16,11 @@ import {
 import type { CalendarCategory, CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import { tasksDueOn } from "@/lib/day-agenda";
 import { cn } from "@/lib/utils";
+import { createWheelPager } from "@/lib/wheel-pager";
 import { dimClass, isEmphasized, type SpaceFocus } from "@/lib/space-focus";
 import { getEventColorClasses, resolveDisplayColor } from "@/lib/event-colors";
+import { eventAccessibleName } from "@/lib/event-accessible-name";
+import { eventOnDay } from "@/lib/time-grid-layout";
 import CalendarHeader from "./CalendarHeader";
 import CalendarWeekdayLabel from "./CalendarWeekdayLabel";
 import type { CalendarView } from "./ViewSwitcher";
@@ -44,17 +46,9 @@ interface MonthGridProps {
 
 const MAX_VISIBLE_EVENTS = 3;
 
-/** Events whose [start_at, end_at] range overlaps this day at all — so a
- *  multi-day event shows up on every day it spans, not just the first. */
+/** A multi-day event shows up on every day it spans, not just the first. */
 function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
-  const dayStart = startOfDay(day);
-  const dayEnd = endOfDay(day);
-
-  return events.filter((event) => {
-    const eventStart = new Date(event.start_at);
-    const eventEnd = new Date(event.end_at);
-    return eventStart <= dayEnd && eventEnd >= dayStart;
-  });
+  return events.filter((event) => eventOnDay(event, day));
 }
 
 /** Tasks due on this exact day. Unlike events, a task's due date is a
@@ -62,9 +56,9 @@ function getEventsForDay(day: Date, events: CalendarEvent[]): CalendarEvent[] {
 function DaysOfWeekRow() {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return (
-    <div className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
+    <div role="row" className="mb-2 grid h-8 shrink-0 grid-cols-7 gap-2 px-2 pt-2">
       {days.map((day) => (
-        <div key={day} className="flex items-center justify-center">
+        <div key={day} role="columnheader" className="flex items-center justify-center">
           <CalendarWeekdayLabel>{day}</CalendarWeekdayLabel>
         </div>
       ))}
@@ -73,7 +67,7 @@ function DaysOfWeekRow() {
 }
 
 function getCellClasses(day: Date, viewMonth: Date): string {
-  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden transition-colors";
+  const base = "flex flex-col items-start gap-1 rounded-[10px] border p-2 text-left overflow-hidden";
   const isTodayDay = isSameDay(day, new Date());
 
   if (!isSameMonth(day, viewMonth)) {
@@ -89,7 +83,7 @@ function getCellClasses(day: Date, viewMonth: Date): string {
 
   // Weekends get a slightly darker fill than weekdays, in-month only.
   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:bg-muted/40 cursor-pointer`;
+  return `${base} border-border ${isWeekend ? "bg-muted/30" : "bg-card"} hover:border-foreground/25 cursor-pointer`;
 }
 
 function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): string {
@@ -108,7 +102,7 @@ function getDayNumberClasses(day: Date, viewMonth: Date, selectedDate: Date): st
   if (isTodayDay) {
     // Today: bold accent-colored text, no fill. The cell itself carries
     // the today highlight (tinted border + wash).
-    return `${base} text-primary font-bold`;
+    return `${base} text-primary-text font-bold`;
   }
 
   if (!isCurrentMonth) {
@@ -147,6 +141,13 @@ function emphasizedFirst(events: CalendarEvent[], focus: SpaceFocus): CalendarEv
     ...events.filter((event) => isEmphasized(event, focus)),
     ...events.filter((event) => !isEmphasized(event, focus)),
   ];
+}
+
+/** True when the target sits on an event chip. The day-number button is not a
+ *  chip: a double-click or right-click on it acts like one on the empty cell. */
+function isOnChip(target: EventTarget): boolean {
+  const button = (target as HTMLElement).closest("button");
+  return button !== null && !button.hasAttribute("data-day-number");
 }
 
 function DayCell({
@@ -201,43 +202,41 @@ function DayCell({
   };
 
   const handleCellDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest("button")) return;
+    if (isOnChip(e.target)) return;
     onCreateEvent(day, e.currentTarget.getBoundingClientRect());
   };
 
-  const handleCellKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onDateSelect(day);
-    }
-  };
-
-  // Not a <button> — event chips inside are their own <button>s, and
-  // buttons can't nest. role="button" + onKeyDown keeps the empty-area
-  // click keyboard-accessible.
+  // The cell is a plain gridcell, not a button, because the day number and the
+  // event chips inside it are their own buttons and buttons can't nest. The
+  // day-number button is the keyboard way to select the day; its click
+  // bubbles to the cell's click handler. Mouse users still click the empty
+  // part of the cell.
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
+      role="gridcell"
       onClick={handleCellClick}
       onDoubleClick={handleCellDoubleClick}
       onContextMenu={(e) => {
-        if ((e.target as HTMLElement).closest("button")) return;
+        if (isOnChip(e.target)) return;
         e.preventDefault();
         onDayContextMenu?.(day, e.clientX, e.clientY);
       }}
-      onKeyDown={handleCellKeyDown}
       className={getCellClasses(day, monthStart)}
     >
-      <span className={getDayNumberClasses(day, monthStart, selectedDate)}>
+      <button
+        type="button"
+        data-day-number
+        aria-label={`Select ${format(day, "EEEE, MMMM d, yyyy")}`}
+        className={cn("focus-ring", getDayNumberClasses(day, monthStart, selectedDate))}
+      >
         {format(day, "d")}
-      </span>
+      </button>
       <div className="flex w-full min-w-0 flex-col gap-0.5">
         {visibleEvents.map((event) => (
           <button
             key={event.id}
             type="button"
+            aria-label={eventAccessibleName(event, categories.find((c) => c.id === event.category_id)?.name ?? null)}
             title={event.location ? `${event.title} (${event.location})` : event.title}
             onClick={(e) => {
               e.stopPropagation();
@@ -249,13 +248,12 @@ function DayCell({
             }}
             onContextMenu={(e) => {
               e.preventDefault();
-              e.stopPropagation();
               onEventContextMenu?.(event, e.clientX, e.clientY);
             }}
             className={cn(
-              "w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-[10px] font-semibold transition-transform active:scale-[0.98]",
+              "focus-ring w-full min-w-0 overflow-hidden rounded-sm px-1.5 py-0.5 text-left text-meta font-medium leading-tight",
               getEventColorClasses(resolveDisplayColor(event.color, event.category_id, event.color_overridden, categories)),
-              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1",
+              selectedEventIds?.has(event.id) && "ring-2 ring-primary ring-offset-1 ring-offset-background",
               dimClass(event, spaceFocus)
             )}
           >
@@ -264,7 +262,7 @@ function DayCell({
           </button>
         ))}
         {summary && (
-          <span className="truncate px-1.5 text-left text-[10px] font-medium text-muted-foreground">{summary}</span>
+          <span className="truncate px-1.5 text-left text-meta font-medium text-muted-foreground">{summary}</span>
         )}
       </div>
     </div>
@@ -291,9 +289,18 @@ export default function MonthGrid({
 }: MonthGridProps) {
   const monthStart = startOfMonth(viewDate);
   const days = getGridDays(viewDate);
+  const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
+  const wheelPager = useRef(createWheelPager());
+
+  // Scroll down for the next month, up for the previous. Pinch-zoom and sideways scrolls don't count.
+  function handleWheel(e: React.WheelEvent) {
+    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const step = wheelPager.current.push(e.deltaY, e.timeStamp);
+    if (step !== 0) onViewDateChange(addMonths(monthStart, step));
+  }
 
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
+    <div onWheel={handleWheel} className="flex h-full min-h-0 min-w-0 flex-1 select-none flex-col">
       <CalendarHeader
         title={format(viewDate, "MMMM yyyy")}
         onPrev={() => onViewDateChange(subMonths(monthStart, 1))}
@@ -302,27 +309,39 @@ export default function MonthGrid({
         view={view}
         onViewChange={onViewChange}
       />
-      <DaysOfWeekRow />
-      <div className="grid min-h-0 flex-1 grid-cols-7 grid-rows-6 gap-2 px-2 pb-2">
-        {days.map((day) => (
-          <DayCell
-            key={day.getTime()}
-            day={day}
-            monthStart={monthStart}
-            selectedDate={selectedDate}
-            events={events}
-            tasks={tasks}
-            categories={categories}
-            spaceFocus={spaceFocus}
-            onDateSelect={onDateSelect}
-            onCreateEvent={onCreateEvent}
-            onEventClick={onEventClick}
-            onDayContextMenu={onDayContextMenu}
-            onEventShiftClick={onEventShiftClick}
-            onEventContextMenu={onEventContextMenu}
-            selectedEventIds={selectedEventIds}
-          />
-        ))}
+      <div
+        id="calendar-grid"
+        role="grid"
+        aria-label={format(viewDate, "MMMM yyyy")}
+        tabIndex={-1}
+        className="flex min-h-0 flex-1 flex-col outline-hidden"
+      >
+        <DaysOfWeekRow />
+        <div className="grid min-h-0 flex-1 grid-rows-6 gap-2 px-2 pb-2">
+          {weeks.map((week) => (
+            <div key={week[0].getTime()} role="row" className="grid min-h-0 grid-cols-7 gap-2">
+              {week.map((day) => (
+                <DayCell
+                  key={day.getTime()}
+                  day={day}
+                  monthStart={monthStart}
+                  selectedDate={selectedDate}
+                  events={events}
+                  tasks={tasks}
+                  categories={categories}
+                  spaceFocus={spaceFocus}
+                  onDateSelect={onDateSelect}
+                  onCreateEvent={onCreateEvent}
+                  onEventClick={onEventClick}
+                  onDayContextMenu={onDayContextMenu}
+                  onEventShiftClick={onEventShiftClick}
+                  onEventContextMenu={onEventContextMenu}
+                  selectedEventIds={selectedEventIds}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

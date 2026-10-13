@@ -17,7 +17,7 @@ import SettingsMenu from "./SettingsMenu";
 import SpaceEditorDialog, { type SpaceEditorTarget } from "./SpaceEditorDialog";
 import GroupEditorDialog, { type GroupEditorTarget } from "./GroupEditorDialog";
 import TaskCreateDialog from "./TaskCreateDialog";
-import ContextMenu, { type ContextMenuItem } from "./ContextMenu";
+import ContextMenu, { useContextMenu, type ContextMenuItem } from "./ContextMenu";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,13 +56,16 @@ function ErrorToast({
   onRetry?: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border">
+    <div
+      role="alert"
+      className="flex items-center gap-3 rounded-lg bg-muted px-4 py-2.5 text-sm text-foreground shadow-lg ring-1 ring-border"
+    >
       <span>{message}</span>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="shrink-0 font-medium text-primary transition-colors hover:text-primary/80"
+          className="shrink-0 font-medium text-primary-text transition-colors hover:text-primary-text/80"
         >
           Retry
         </button>
@@ -81,8 +84,9 @@ function ErrorToast({
 
 function LoadingSpinner() {
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div role="status" className="flex h-full w-full items-center justify-center">
       <div className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-primary" />
+      <span className="sr-only">Loading calendar</span>
     </div>
   );
 }
@@ -105,11 +109,7 @@ export default function Calendar() {
   // Group create/rename/delete dialog: null when closed.
   const [groupEditor, setGroupEditor] = useState<GroupEditorTarget | null>(null);
   // Right-click context menu (day/slot/event), and quick task creation.
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    items: ContextMenuItem[];
-  } | null>(null);
+  const contextMenu = useContextMenu();
   const [taskCreateDay, setTaskCreateDay] = useState<Date | null>(null);
   const events = useCalendarEvents(viewDate);
   const tasks = useTasks();
@@ -176,11 +176,9 @@ export default function Calendar() {
   useAlertDelivery(alerts.dispatch, openAlertItem);
   const itemAlerts = useAlerts(alerts.notify);
 
-  // Open the Space editor in edit mode for a given Space id (used by the panel
-  // overflow/footer and the rail context menu). No-op if the Space is gone.
-  const handleEditSpaceById = (spaceId: string) => {
+  const openSpaceEditor = (spaceId: string, confirmDelete: boolean) => {
     const category = categories.data.find((c) => c.id === spaceId);
-    if (category) setSpaceEditor({ mode: "edit", category });
+    if (category) setSpaceEditor({ mode: "edit", category, confirmDelete });
   };
 
   // ── Right-click menus + event multi-select (Phase 2) ────────────────
@@ -206,40 +204,28 @@ export default function Calendar() {
   ];
 
   const handleDayContextMenu = (day: Date, x: number, y: number) =>
-    setContextMenu({
-      x,
-      y,
-      items: calendarMenuItems(day, () => editor.openCreate(day, cursorRect(x, y))),
-    });
+    contextMenu.show(calendarMenuItems(day, () => editor.openCreate(day, cursorRect(x, y))));
 
   const handleSlotContextMenu = (day: Date, hour: number, x: number, y: number) =>
-    setContextMenu({
-      x,
-      y,
-      items: calendarMenuItems(day, () =>
-        editor.openCreate(setHours(day, hour), cursorRect(x, y))
-      ),
-    });
+    contextMenu.show(
+      calendarMenuItems(day, () => editor.openCreate(setHours(day, hour), cursorRect(x, y)))
+    );
 
-  const handleEventContextMenu = (event: CalendarEvent, x: number, y: number) => {
+  const handleEventContextMenu = (event: CalendarEvent) => {
     const ids = selection.idsForContextMenu(event);
-    setContextMenu({
-      x,
-      y,
-      items: [
-        {
-          label: "Open details",
-          icon: <PanelRight className="size-3.5" />,
-          onSelect: () => handleEventClick(event),
-        },
-        {
-          label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
-          destructive: true,
-          icon: <Trash2 className="size-3.5" />,
-          onSelect: () => selection.requestDelete(ids),
-        },
-      ],
-    });
+    contextMenu.show([
+      {
+        label: "Open details",
+        icon: <PanelRight className="size-3.5" />,
+        onSelect: () => handleEventClick(event),
+      },
+      {
+        label: ids.length > 1 ? `Delete ${ids.length} events` : "Delete event",
+        destructive: true,
+        icon: <Trash2 className="size-3.5" />,
+        onSelect: () => selection.requestDelete(ids),
+      },
+    ]);
   };
 
   if (!mounted) return null;
@@ -384,12 +370,20 @@ export default function Calendar() {
           }
           onCreateTask={(title) => tasks.createTask(title, undefined, membershipForSubject(subject))}
           onOpenSettings={() => {
-            if (subject.kind === "space") handleEditSpaceById(subject.spaceId);
-            else {
-              const group = groups.data.find((g) => g.id === subject.groupId);
-              if (group) openGroupEditor(group);
-            }
+            if (subject.kind !== "group") return;
+            const group = groups.data.find((g) => g.id === subject.groupId);
+            if (group) openGroupEditor(group);
           }}
+          onChangeColor={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, false)
+              : undefined
+          }
+          onDeleteSpace={
+            subject.kind === "space"
+              ? () => openSpaceEditor(subject.spaceId, true)
+              : undefined
+          }
           onRename={handleRenameSubject}
           onSaveDescription={handleSaveSpaceDescription}
           onDirtyChange={panel.setEditorDirty}
@@ -495,7 +489,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="right"
               align="end"
-              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
+              triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-body font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
               triggerChildren="E"
             />
           }
@@ -504,7 +498,7 @@ export default function Calendar() {
               triggerLabel="Account"
               side="bottom"
               align="end"
-              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-[13px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+              triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-body font-semibold text-foreground transition-colors hover:bg-hover"
               triggerChildren="E"
             />
           }
@@ -514,8 +508,9 @@ export default function Calendar() {
             <LoadingSpinner />
           </div>
         ) : (
-          <div
-            ref={calendarContentRef}
+          <ContextMenu
+            menu={contextMenu}
+            triggerRef={calendarContentRef}
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-card"
           >
             {/* Flat, edge to edge: columns are separated by hairlines, as in the sidebar redesign. */}
@@ -593,7 +588,7 @@ export default function Calendar() {
               />
             )}
             </div>
-          </div>
+          </ContextMenu>
         )}
 
         {/* Space Panel (fourth region). Pinned: an in-flow column whose width
@@ -616,11 +611,11 @@ export default function Calendar() {
                 type="button"
                 aria-label="Close panel"
                 onClick={panel.close}
-                className="absolute inset-0 z-40 bg-foreground/20 motion-safe:animate-[fadeIn_180ms_ease-out]"
+                className="absolute inset-0 z-40 bg-black/30"
               />
               <div
                 className={cn(
-                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)] motion-reduce:animate-[fadeIn_180ms_ease-out]",
+                  "absolute inset-y-0 right-0 z-50 motion-safe:animate-[sheetIn_280ms_var(--ease-drawer)]",
                   panel.panelMode === "fullscreen" ? "inset-x-0 w-full" : "w-[360px]"
                 )}
               >
@@ -686,15 +681,6 @@ export default function Calendar() {
         onClearMissed={alerts.clearMissed}
       />
 
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          items={contextMenu.items}
-          onClose={() => setContextMenu(null)}
-        />
-      )}
-
       {selection.pendingEventDeletion && (
         <Dialog open onOpenChange={selection.cancelDelete}>
           <DialogContent className="sm:max-w-xs">
@@ -705,7 +691,7 @@ export default function Calendar() {
                   : "Delete this event?"}
               </DialogTitle>
             </DialogHeader>
-            <p className="text-[13px] text-muted-foreground">This can&apos;t be undone.</p>
+            <p className="text-body text-muted-foreground">This can&apos;t be undone.</p>
             <div className="flex items-center justify-end gap-2 pt-1">
               <Button
                 variant="outline"

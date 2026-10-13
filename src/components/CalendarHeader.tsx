@@ -2,6 +2,9 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ViewSwitcher, { type CalendarView } from "./ViewSwitcher";
+import { Button } from "@/components/ui/button";
+
+const VIEW_UNIT: Record<CalendarView, string> = { month: "month", week: "week", day: "day" };
 
 interface CalendarHeaderProps {
   title: string;
@@ -24,34 +27,41 @@ export default function CalendarHeader({
   view,
   onViewChange,
 }: CalendarHeaderProps) {
+  const unit = VIEW_UNIT[view];
   return (
-    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-2 pl-14 md:pl-4">
+    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 pl-14 h-[53px] md:pl-4">
       <div className="flex items-center">
         <div className="flex items-center gap-1.5">
-          <button
+          <Button
+            variant="outline"
+            size="icon-lg"
             onClick={onPrev}
-            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
-            aria-label="Previous"
+            aria-label={`Previous ${unit}`}
+            title={`Previous ${unit}`}
           >
             <ChevronLeft size={17} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
             onClick={onToday}
-            className="hidden h-8 items-center rounded-md border border-border px-3 text-xs font-semibold text-foreground transition-colors hover:bg-muted md:inline-flex"
+            className="hidden text-xs font-semibold md:inline-flex"
           >
             Today
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-lg"
             onClick={onNext}
-            className="grid size-8 place-items-center rounded-md border border-border text-foreground transition-colors hover:bg-muted"
-            aria-label="Next"
+            aria-label={`Next ${unit}`}
+            title={`Next ${unit}`}
           >
             <ChevronRight size={17} />
-          </button>
+          </Button>
         </div>
       </div>
       <div className="flex min-w-0 items-center">
-        <h1 className="min-w-0 truncate text-base font-extrabold tracking-[-0.035em] text-foreground md:text-xl">
+        <h1 className="min-w-0 truncate text-base font-bold tracking-[-0.02em] [word-spacing:0.06em] text-foreground md:text-xl">
           {title}
         </h1>
       </div>

@@ -174,11 +174,48 @@ describe("TimeGrid create-drag", () => {
   });
 });
 
+describe("TimeGrid create anchor with the week-wide now line", () => {
+  it("anchors on the dragged column even though the now line is a grid sibling", async () => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const today = new Date();
+    const days = [today, new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)];
+    const creates: DOMRect[] = [];
+
+    await act(() =>
+      root?.render(
+        createElement(TimeGrid, {
+          days,
+          events: [],
+          categories: [],
+          spaceFocus: initialSpaceFocus,
+          onSlotDragCreate: (_s, _e, rect) => creates.push(rect),
+        })
+      )
+    );
+
+    const columns = document.querySelectorAll<HTMLElement>("[data-day-index]");
+    expect(columns.length).toBe(2);
+    columns.forEach((col, i) => {
+      col.getBoundingClientRect = () => new DOMRect(i * 500, 0, 400, 100);
+    });
+
+    const slot = columns[1]!.querySelector<HTMLDivElement>('div[role="button"]')!;
+    await act(async () => pointer("pointerdown", PX_PER_HOUR * 2, slot));
+    await windowPointer("pointermove", PX_PER_HOUR * 4);
+    await windowPointer("pointerup", PX_PER_HOUR * 4);
+
+    expect(creates.length).toBe(1);
+    expect(creates[0]!.left).toBe(500);
+  });
+});
+
 describe("TimeGrid Space emphasis", () => {
   it("dims an event outside the selected Space and still lets it be dragged", async () => {
     const handlers = await renderGrid({ selectedSpaceId: "other" });
     const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
-    expect(block?.className).toContain("opacity-50");
+    expect(block?.className).toContain("opacity-80");
 
     await act(async () => pointer("pointerdown", 100, block!));
     await windowPointer("pointermove", 100 + PX_PER_HOUR);
@@ -189,6 +226,6 @@ describe("TimeGrid Space emphasis", () => {
   it("keeps full strength when no Space is selected", async () => {
     await renderGrid();
     const block = document.querySelector<HTMLButtonElement>('button[title="Biology lecture"]');
-    expect(block?.className).not.toContain("opacity-50");
+    expect(block?.className).not.toContain("opacity-80");
   });
 });

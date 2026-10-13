@@ -55,7 +55,10 @@ async function renderMonth(events: CalendarEvent[], selectedSpaceId: string | nu
 }
 
 function chipTitles(el: HTMLElement) {
-  return [...el.querySelectorAll<HTMLButtonElement>("button[title]")].map((b) => b.title);
+  // The header's Previous and Next buttons also carry a title, so skip them.
+  return [...el.querySelectorAll<HTMLButtonElement>("button[title]")]
+    .filter((b) => !/^(Previous|Next) /.test(b.getAttribute("aria-label") ?? ""))
+    .map((b) => b.title);
 }
 
 afterEach(async () => {
@@ -77,7 +80,7 @@ describe("MonthGrid Space emphasis", () => {
     const el = await renderMonth(events, "work");
     const chip = el.querySelector<HTMLButtonElement>('button[title="mine"]');
     expect(chip).not.toBeNull();
-    expect(chip?.className).not.toContain("opacity-50");
+    expect(chip?.className).not.toContain("opacity-80");
     expect(el.textContent).toContain("+1 more");
   });
 
@@ -130,5 +133,77 @@ describe("MonthGrid overflow row", () => {
   it("shows only the task count when every event fits", async () => {
     const el = await renderMonth([makeEvent("a", "x")], null, [makeTask("t1")]);
     expect(footer(el)).toEqual(["1 task"]);
+  });
+});
+
+describe("MonthGrid keyboard structure", () => {
+  it("never nests a button inside a role=button element", async () => {
+    const el = await renderMonth([makeEvent("a", "work")], null);
+    const roleButtons = [...el.querySelectorAll('[role="button"]')];
+    for (const outer of roleButtons) {
+      expect(outer.querySelector("button, [role='button']")).toBeNull();
+    }
+    for (const button of el.querySelectorAll("button")) {
+      expect(button.parentElement?.closest("button")).toBeNull();
+    }
+  });
+
+  it("lays the days out as a grid of 6 rows and 7 column headers", async () => {
+    const el = await renderMonth([], null);
+    expect(el.querySelectorAll('[role="grid"] [role="row"]').length).toBe(7);
+    expect(el.querySelectorAll('[role="columnheader"]').length).toBe(7);
+    expect(el.querySelectorAll('[role="gridcell"]').length).toBe(42);
+  });
+
+  it("gives each day a named button beside its event buttons", async () => {
+    const el = await renderMonth([makeEvent("a", "work")], null);
+    const cell = [...el.querySelectorAll('[role="gridcell"]')].find((c) =>
+      c.querySelector("button[title='a']")
+    )!;
+    const names = [...cell.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"));
+    expect(names[0]).toBe("Select Monday, September 9, 2030");
+    expect(names.length).toBe(2);
+  });
+
+  it("selects the day when its number button is clicked", async () => {
+    const picked: Date[] = [];
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(() =>
+      root?.render(
+        createElement(MonthGrid, {
+          viewDate: DAY,
+          selectedDate: DAY,
+          events: [],
+          tasks: [],
+          categories: [],
+          spaceFocus: { selectedSpaceId: null },
+          onDateSelect: (d: Date) => picked.push(d),
+          onViewDateChange: () => {},
+          onCreateEvent: () => {},
+          onEventClick: () => {},
+          view: "month",
+          onViewChange: () => {},
+        })
+      )
+    );
+    const button = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Select Tuesday, September 10, 2030"]'
+    )!;
+    await act(() => button.click());
+    expect(picked.map((d) => d.getDate())).toEqual([10]);
+  });
+});
+
+describe("MonthGrid day boundary", () => {
+  it("shows an event that ends at midnight on its start day only", async () => {
+    const late: CalendarEvent = {
+      ...makeEvent("late", "work"),
+      start_at: new Date(2030, 8, 9, 22).toISOString(),
+      end_at: new Date(2030, 8, 10, 0).toISOString(),
+    };
+    const el = await renderMonth([late], null);
+    expect(chipTitles(el)).toEqual(["late"]);
   });
 });

@@ -9,6 +9,7 @@ const { typeInto } = await import("./test-dom");
 const { createRoot } = await import("react-dom/client");
 const { default: SpacePanelHeader } = await import("../SpacePanelHeader");
 import type { PanelSubject } from "@/lib/panel-subject";
+import { MAX_GROUP_NAME_LENGTH } from "@/lib/group-name";
 
 const SPACE: PanelSubject = { kind: "space", spaceId: "school", name: "School", color: "blue", description: "Databases & Information Systems." };
 const GROUP: PanelSubject = { kind: "group", groupId: "cs340", name: "CS 340", spaceId: "school", spaceName: "School", color: "blue" };
@@ -61,14 +62,14 @@ describe("SpacePanelHeader", () => {
     await renderHeader(GROUP);
 
     expect(container?.textContent).toContain("School");
-    expect(container?.querySelector("h2")?.textContent).toBe("CS 340");
+    expect(container?.querySelector("h2")?.getAttribute("aria-label")).toBe("CS 340");
     expect(container?.textContent).not.toContain("Databases & Information Systems");
   });
 
   it("shows only the Space name as the heading for a Space", async () => {
     await renderHeader(SPACE);
 
-    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
     const paragraphs = Array.from(document.querySelectorAll("p"));
     expect(paragraphs.map((p) => p.textContent)).toEqual(["Space"]);
   });
@@ -82,9 +83,15 @@ describe("SpacePanelHeader", () => {
     expect(interactions.closed).toBe(true);
   });
 
+  it("stops a Space name at the length the server accepts", async () => {
+    await renderHeader(SPACE);
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
+    expect((byLabel("School name") as HTMLInputElement).maxLength).toBe(MAX_GROUP_NAME_LENGTH);
+  });
+
   it("renames a Group once when Enter is followed by the box losing focus", async () => {
     const interactions = await renderHeader(GROUP);
-    await act(() => byLabel("Rename CS 340")?.click());
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
     const input = byLabel("CS 340 name") as HTMLInputElement;
     await act(() => typeInto(input, "CS 341"));
     await act(async () => {
@@ -113,7 +120,7 @@ describe("SpacePanelHeader rename across a panel switch", () => {
     document.body.appendChild(container);
     root = createRoot(container);
     await mount(GROUP);
-    await act(() => byLabel("Rename CS 340")?.click());
+    await act(() => document.querySelector<HTMLElement>("h2 button")?.click());
     const input = byLabel("CS 340 name") as HTMLInputElement;
     await act(() => typeInto(input, "CS 341"));
     await act(async () => {
@@ -123,7 +130,7 @@ describe("SpacePanelHeader rename across a panel switch", () => {
     await mount(SPACE);
     await act(async () => finishRename(false));
 
-    expect(document.querySelector("h2")?.textContent).toBe("School");
+    expect(document.querySelector("h2")?.getAttribute("aria-label")).toBe("School");
     expect(container?.textContent).not.toContain("Couldn't rename");
   });
 });

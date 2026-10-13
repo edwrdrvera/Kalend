@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { APP_INPUT_CLS } from "@/components/DateField";
+import { APP_INPUT_CLS, FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS } from "@/components/DateField";
 import { subjectKey, type PanelSubject } from "@/lib/panel-subject";
 import type { CalendarEvent, CalendarTask } from "@/lib/calendar-types";
 import type { UpcomingDay, WeekLoadDay } from "@/lib/space-overview";
@@ -18,6 +18,8 @@ import PanelTasksSection from "./PanelTasksSection";
 import PanelResourcesTab from "./PanelResourcesTab";
 import PanelAlertsTab from "./PanelAlertsTab";
 import SpacePanelFooter from "./SpacePanelFooter";
+import { Input } from "@/components/ui/input";
+import { MAX_TITLE_LENGTH } from "@/lib/title";
 
 interface SpacePanelProps {
   subject: PanelSubject;
@@ -43,6 +45,9 @@ interface SpacePanelProps {
   onCreateTask: (title: string) => Promise<void>;
   /** Opens the editor for the open Space or Group (the footer row). */
   onOpenSettings: () => void;
+  /** Space panels only: the title-row menu opens the Space editor. */
+  onChangeColor?: () => void;
+  onDeleteSpace?: () => void;
   /** Renames the open Space or Group from its title. Resolves false when the save failed. */
   onRename: (name: string) => Promise<boolean>;
   /** Saves the Space's description (null removes it). Resolves false when the save failed. */
@@ -79,6 +84,8 @@ export default function SpacePanel({
   onCreateEvent,
   onCreateTask,
   onOpenSettings,
+  onChangeColor,
+  onDeleteSpace,
   onRename,
   onSaveDescription,
   onDirtyChange,
@@ -116,7 +123,13 @@ export default function SpacePanel({
       modal={modal}
       onClose={onClose}
     >
-      <SpacePanelHeader subject={subject} onClose={onClose} onRename={onRename}>
+      <SpacePanelHeader
+        subject={subject}
+        onClose={onClose}
+        onRename={onRename}
+        onChangeColor={onChangeColor}
+        onDeleteSpace={onDeleteSpace}
+      >
         {groupNav && <PanelGroupChips subject={subject} nav={groupNav} />}
         <PanelTabs tabs={TABS} value={tab} onChange={setTab} />
       </SpacePanelHeader>
@@ -126,7 +139,7 @@ export default function SpacePanel({
           Keyed on the subject so swapping Spaces and Groups cross-fades the body. */}
       <div
         key={key}
-        className="min-h-0 flex-1 divide-y divide-border overflow-y-auto motion-safe:animate-[fadeIn_180ms_ease-out]"
+        className="min-h-0 flex-1 divide-y divide-border overflow-y-auto"
       >
         {subject.kind === "space" && (
           <SpacePanelDescription
@@ -153,9 +166,10 @@ export default function SpacePanel({
             >
               {composerOpen && (
                 <form onSubmit={handleCreateTask} className="mt-2">
-                  <input
+                  <Input
                     autoFocus
                     value={newTitle}
+                    maxLength={MAX_TITLE_LENGTH}
                     onChange={(e) => setNewTitle(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") {
@@ -170,7 +184,7 @@ export default function SpacePanel({
                     }}
                     aria-label="New task title"
                     placeholder="New task"
-                    className={cn(APP_INPUT_CLS, "w-full")}
+                    className={cn(FIELD_SIZE_CLS, FIELD_INLINE_RING_CLS, "w-full")}
                   />
                 </form>
               )}
@@ -179,11 +193,11 @@ export default function SpacePanel({
               <button
                 type="button"
                 onClick={() => setTab("resources")}
-                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60"
+                className="flex w-full items-center justify-between rounded-xl border border-border p-3 text-left transition-colors hover:border-muted-foreground/50 focus-ring"
               >
                 <span>
-                  <span className="block text-[12px] font-semibold text-muted-foreground">Files and links</span>
-                  <span className="mt-1 block text-[13px] text-foreground">Open Resources</span>
+                  <span className="block text-xs leading-normal font-semibold text-muted-foreground">Files and links</span>
+                  <span className="mt-1 block text-body text-foreground">Open Resources</span>
                 </span>
                 <ChevronRight aria-hidden className="size-4 text-muted-foreground" />
               </button>
@@ -196,10 +210,9 @@ export default function SpacePanel({
         )}
       </div>
 
-      <SpacePanelFooter
-        label={subject.kind === "group" ? "Group settings" : "Space settings"}
-        onOpenSettings={onOpenSettings}
-      />
+      {subject.kind === "group" && (
+        <SpacePanelFooter label="Group settings" onOpenSettings={onOpenSettings} />
+      )}
     </PanelShell>
   );
 }

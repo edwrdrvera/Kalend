@@ -4,8 +4,10 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { descriptionProblem } from "@/lib/description";
 import { APP_INPUT_CLS } from "./DateField";
+import { Label } from "@/components/ui/label";
 import { FIELD_LABEL_CLS } from "./InspectorParts";
 import NotesView from "./NotesView";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DescriptionFieldProps {
   id: string;
@@ -32,10 +34,10 @@ export function DescriptionTextarea({
   const problem = descriptionProblem(value);
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className={FIELD_LABEL_CLS}>
+      <Label htmlFor={id} className={FIELD_LABEL_CLS}>
         {label}
-      </label>
-      <textarea
+      </Label>
+      <Textarea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -45,10 +47,10 @@ export function DescriptionTextarea({
         rows={3}
         aria-invalid={problem !== null || undefined}
         aria-describedby={problem ? `${id}-problem` : undefined}
-        className={cn(APP_INPUT_CLS, "min-h-20 w-full resize-y px-3 py-2 leading-relaxed")}
+        className="min-h-14 w-full resize-y px-3 py-2 text-body leading-relaxed focus-ring md:text-body"
       />
       {problem && (
-        <p id={`${id}-problem`} className="text-[12px] text-destructive">
+        <p id={`${id}-problem`} className="text-xs leading-normal text-destructive">
           {problem}
         </p>
       )}
@@ -57,7 +59,7 @@ export function DescriptionTextarea({
 }
 
 export const ADD_DESCRIPTION_CLS =
-  "flex w-fit items-center gap-1 rounded-md text-[11.5px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/60";
+  "flex w-fit items-center gap-1 rounded-md text-xs leading-normal text-muted-foreground transition-colors hover:text-foreground focus-ring";
 
 /** A description box that is always shown, empty or not. With `formatted`,
  *  saved text renders as formatted notes until clicked. */
@@ -91,9 +93,12 @@ export default function DescriptionField({
             if (!(e.target as HTMLElement).closest("a")) startEditing();
           }}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target === e.currentTarget) startEditing();
+            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+              e.preventDefault();
+              startEditing();
+            }
           }}
-          className="min-h-20 cursor-text rounded-sm border border-input px-3 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors hover:border-foreground/20 focus-visible:border-foreground/30"
+          className="min-h-14 cursor-text rounded-lg border border-input px-3 py-2 text-body leading-relaxed text-foreground transition-colors hover:border-foreground/20 focus-visible:border-ring focus-ring"
         >
           <NotesView value={value} />
         </div>
