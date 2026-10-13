@@ -32,7 +32,8 @@
  * client. Queries go through the transaction `asUser` opens, which is the
  * connection that holds the caller id. The waitlist route is the exception:
  * it has no signed-in user. The check follows a named import, an import
- * alias, a local alias, and `namespace.db` from `import * as namespace`.
+ * alias, a local alias, `namespace.db`, `const { db } = namespace`, and
+ * `await import("@/db")`.
  */
 
 const TARGET_TABLES = new Set(["events", "tasks", "categories", "alerts", "groups"]);
@@ -263,31 +264,62 @@ function importedDb(def) {
   return imported === "db";
 }
 
-function isDbNamespace(node, scope) {
-  if (node?.type !== "Identifier") return false;
+function isImportOfAppDb(node) {
+  return node?.type === "ImportExpression" && node.source?.type === "Literal" && node.source.value === "@/db";
+}
+
+// The module object from `import * as ns from "@/db"` or `await import("@/db")`,
+// including a local binding of that object.
+function isDbModule(node, scope, seen) {
+  if (!node || seen.has(node)) return false;
+  if (node.type === "AwaitExpression" || node.type === "ChainExpression") {
+    return isDbModule(node.argument ?? node.expression, scope, seen);
+  }
+  if (isImportOfAppDb(node)) return true;
+  if (node.type !== "Identifier") return false;
   const def = findVariable(scope, node.name)?.defs[0];
-  return (
+  if (
     def?.type === "ImportBinding" &&
     def.node.type === "ImportNamespaceSpecifier" &&
     def.parent?.source?.value === "@/db"
-  );
+  ) {
+    return true;
+  }
+  if (def?.type === "Variable" && def.node.id?.type === "Identifier" && def.node.init) {
+    seen.add(node);
+    return isDbModule(def.node.init, scope, seen);
+  }
+  return false;
 }
 
-// The shared client, including `import { db as database }`, `const database = db`,
-// and `import * as database from "@/db"` used as `database.db`.
+function destructuresDb(pattern, localName) {
+  if (pattern?.type !== "ObjectPattern") return false;
+  return pattern.properties.some((prop) => {
+    if (prop.type !== "Property" || prop.computed) return false;
+    const value = prop.value.type === "AssignmentPattern" ? prop.value.left : prop.value;
+    if (value.type !== "Identifier" || value.name !== localName) return false;
+    const key = prop.key.type === "Identifier" ? prop.key.name : prop.key.type === "Literal" ? prop.key.value : null;
+    return key === "db";
+  });
+}
+
+// The shared client, including an alias, `namespace.db`, `const { db } = namespace`,
+// and `const { db } = await import("@/db")`.
 function isAppDb(node, scope, seen = new Set()) {
   if (!node || seen.has(node)) return false;
   seen.add(node);
+  if (node.type === "ChainExpression") return isAppDb(node.expression, scope, seen);
   if (node.type === "MemberExpression") {
     if (staticKey(node) !== "db") return false;
-    return isDbNamespace(node.object, scope);
+    return isDbModule(node.object, scope, seen);
   }
   if (node.type !== "Identifier") return false;
   const def = findVariable(scope, node.name)?.defs[0];
   if (!def) return false;
   if (def.type === "ImportBinding") return importedDb(def);
-  if (def.type === "Variable" && def.node.id?.type === "Identifier" && def.node.init) {
-    return isAppDb(def.node.init, scope, seen);
+  if (def.type === "Variable" && def.node.init) {
+    if (def.node.id?.type === "Identifier") return isAppDb(def.node.init, scope, seen);
+    if (destructuresDb(def.node.id, node.name)) return isDbModule(def.node.init, scope, seen);
   }
   return false;
 }
