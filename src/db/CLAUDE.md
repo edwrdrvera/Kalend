@@ -28,7 +28,7 @@ One file per table, all re-exported from `schema/index.ts`. When adding a table,
 
 - `seed.ts` runs via `bun run db:seed`.
 - `data/data.csv` is sample event data loaded by `seed.ts`. It has no color column: each event takes its Space's color once `seed-spaces.ts` links it.
-- `drizzle/rollback/` holds hand-run reverse SQL for migrations that need one (`0012_flashy_mandroid.down.sql`, `0014_space_owner_key.down.sql`). drizzle-kit never reads it.
+- `drizzle/rollback/` holds hand-run reverse SQL for migrations that need one (`0012_flashy_mandroid.down.sql`, `0014_space_owner_key.down.sql`, `0015_import_event_identity.down.sql`). drizzle-kit never reads it. `events.import_uid` and `events.import_occurrence` mark a row that came from a calendar file. The partial unique index ignores rows where `import_uid` is null, so events typed in by hand are not part of it.
 - `__tests__/rls.test.ts` covers the policies, not the app client's queries.
 - `waitlist` (`schema/waitlist.ts`) is the exception to the `user_id`-scoping rule above: it's public, unauthenticated signups from the landing page (`POST /api/waitlist`, no auth check by design), not owned by any user.
 

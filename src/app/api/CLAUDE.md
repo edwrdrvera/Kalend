@@ -18,6 +18,8 @@ Copy `events/route.ts` and `events/[id]/route.ts` when adding an endpoint. They 
 
 `alerts/` has an extra shape: `POST /api/alerts/claim` is the delivery path. One `UPDATE ... RETURNING` marks due alerts fired as it hands them out, so each fires once across tabs and reloads. Routes that change an event's `start_at` or a task's `due_at` call `rescheduleAlerts` (`src/lib/api/alert-sync.ts`) in the same transaction.
 
+`POST /api/events/import` takes a calendar file as `text/calendar` (not JSON) plus a `tz` query parameter. `parseIcs` in `src/lib/api/ics-import.ts` checks the file before the handler opens a transaction. The handler still scopes every read and write with `eq(events.user_id, user.id)`, and an update that moves `start_at` calls `rescheduleAlerts` in that same transaction. A file that fails the check writes nothing.
+
 ## Response envelope
 
 Always `{ success: true, data }` or `{ success: false, error }`. Status codes: 201 on create, 200 otherwise, 400 validation, 401 unauthenticated, 404 not found, 500 server error.
