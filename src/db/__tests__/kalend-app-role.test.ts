@@ -10,6 +10,10 @@ const appUrl = process.env.APP_DATABASE_URL;
 const OWNED = ["events", "tasks", "categories", "groups", "alerts"] as const;
 const WRITE = ["SELECT", "INSERT", "UPDATE", "DELETE"] as const;
 
+// Public tables the app role must not be granted. A new table fails this
+// check until it is granted, or added here because it must stay owner-only.
+const UNGRANTED: readonly string[] = [];
+
 describe.skipIf(!ownerUrl)("kalend_app role", () => {
   const sql = postgres(ownerUrl!, { prepare: false });
 
@@ -43,21 +47,45 @@ describe.skipIf(!ownerUrl)("kalend_app role", () => {
       byTable.set(name, privileges);
     }
 
-    for (const table of OWNED) {
-      expect(byTable.get(table)).toEqual(new Set(WRITE));
+    const expected = new Map<string, Set<string>>(
+      OWNED.map((table) => [table, new Set<string>(WRITE)]),
+    );
+    expected.set("waitlist", new Set(["INSERT"]));
+
+    const tables = await sql`
+      select tablename from pg_tables where schemaname = 'public'
+    `;
+    const publicTables = tables.map((table) => String(table.tablename));
+    expect(publicTables.length).toBeGreaterThan(0);
+
+    for (const name of publicTables) {
+      if (UNGRANTED.includes(name)) {
+        expect(byTable.has(name)).toBe(false);
+        continue;
+      }
+      expect(expected.has(name), `${name} has no grant and is not excluded`).toBe(true);
+      expect(byTable.get(name)).toEqual(expected.get(name));
     }
-    expect(byTable.get("waitlist")).toEqual(new Set(["INSERT"]));
-    expect(byTable.size).toBe(OWNED.length + 1);
+    for (const name of byTable.keys()) {
+      expect(publicTables).toContain(name);
+    }
   });
 
   it("can use the public schema and call the caller id function", async () => {
     const [row] = await sql`
       select
         has_schema_privilege('kalend_app', 'public', 'usage') as usage,
-        has_function_privilege('kalend_app', 'public.app_user_id()', 'execute') as execute
+        has_function_privilege('kalend_app', 'public.app_user_id()', 'execute') as execute,
+        (
+          select p.proacl::text
+          from pg_proc p
+          join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and p.proname = 'app_user_id'
+        ) as acl
     `;
     expect(row.usage).toBe(true);
     expect(row.execute).toBe(true);
+    expect(String(row.acl ?? "")).not.toContain("kalend_app");
   });
 });
 

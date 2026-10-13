@@ -4,7 +4,6 @@
 BEGIN;
 
 revoke all privileges on table events, tasks, categories, groups, alerts, waitlist from kalend_app;
-revoke execute on function public.app_user_id() from kalend_app;
 revoke usage on schema public from kalend_app;
 alter role kalend_app with nologin password null;
 

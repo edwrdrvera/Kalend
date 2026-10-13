@@ -86,5 +86,21 @@ describe.skipIf(!hasDb)("Row Level Security policies", () => {
     `;
     expect(fn.definition).toContain("app.user_id");
     expect(fn.definition).toContain("current_setting");
+    expect(fn.definition).toContain("invalid_text_representation");
+  });
+
+  it("returns null when the caller setting is empty or not a uuid", async () => {
+    const callerId = async (value: string) => {
+      const [row] = await sql`
+        select public.app_user_id() as id
+        from (select set_config('app.user_id', ${value}, true)) as configured
+      `;
+      return row.id;
+    };
+
+    expect(await callerId("")).toBeNull();
+    expect(await callerId("not-a-uuid")).toBeNull();
+    const id = crypto.randomUUID();
+    expect(await callerId(id)).toBe(id);
   });
 });

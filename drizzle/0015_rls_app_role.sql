@@ -6,12 +6,21 @@ do $$ begin
   end if;
 end $$;--> statement-breakpoint
 
--- One place that answers "who is the caller" for a policy. The setting is
--- empty when nobody has set it, and the cast then yields null.
+-- One place that answers "who is the caller" for a policy. An empty setting
+-- or a value that is not a uuid yields null, so the policy denies the row
+-- instead of raising.
 create or replace function public.app_user_id() returns uuid
-  language sql
+  language plpgsql
   stable
-  as $$ select nullif(current_setting('app.user_id', true), '')::uuid $$;--> statement-breakpoint
+  set search_path = pg_catalog
+  as $fn$
+begin
+  return nullif(current_setting('app.user_id', true), '')::uuid;
+exception
+  when invalid_text_representation then
+    return null;
+end
+$fn$;--> statement-breakpoint
 
 drop policy "Users can only select their own events" on events;--> statement-breakpoint
 drop policy "Users can only insert their own events" on events;--> statement-breakpoint

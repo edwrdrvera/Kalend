@@ -1,6 +1,10 @@
 -- Reverses drizzle/0015_rls_app_role.sql. Run by hand; drizzle-kit never reads this folder.
 -- If the later grant migration was applied, run its reverse script first.
--- Restoring the previous policies needs auth.uid(), which Supabase and CI provide.
+--
+-- The policies this migration replaced call auth.uid(). That function exists
+-- on the Supabase schema and in the CI stub, and not on a plain Postgres.
+-- This script always removes the new policies, the helper, and the role.
+-- It restores the old policies only when auth.uid() is already there.
 BEGIN;
 
 drop policy if exists events_owner on events;
@@ -10,20 +14,29 @@ drop policy if exists groups_owner on groups;
 drop policy if exists alerts_owner on alerts;
 drop policy if exists waitlist_public_insert on waitlist;
 
-create policy "Users can only select their own events" on events for select using (auth.uid() = user_id);
-create policy "Users can only insert their own events" on events for insert with check (auth.uid() = user_id);
-create policy "Users can only update their own events" on events for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users can only delete their own events" on events for delete using (auth.uid() = user_id);
+do $restore$
+begin
+  if to_regprocedure('auth.uid()') is null then
+    raise notice 'auth.uid() is absent, so the previous policies were not restored';
+    return;
+  end if;
 
-create policy "Users can only select their own tasks" on tasks for select using (auth.uid() = user_id);
-create policy "Users can only insert their own tasks" on tasks for insert with check (auth.uid() = user_id);
-create policy "Users can only update their own tasks" on tasks for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users can only delete their own tasks" on tasks for delete using (auth.uid() = user_id);
+  execute $p$create policy "Users can only select their own events" on events for select using (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only insert their own events" on events for insert with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only update their own events" on events for update using (auth.uid() = user_id) with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only delete their own events" on events for delete using (auth.uid() = user_id)$p$;
 
-create policy "Users can only select their own categories" on categories for select using (auth.uid() = user_id);
-create policy "Users can only insert their own categories" on categories for insert with check (auth.uid() = user_id);
-create policy "Users can only update their own categories" on categories for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users can only delete their own categories" on categories for delete using (auth.uid() = user_id);
+  execute $p$create policy "Users can only select their own tasks" on tasks for select using (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only insert their own tasks" on tasks for insert with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only update their own tasks" on tasks for update using (auth.uid() = user_id) with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only delete their own tasks" on tasks for delete using (auth.uid() = user_id)$p$;
+
+  execute $p$create policy "Users can only select their own categories" on categories for select using (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only insert their own categories" on categories for insert with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only update their own categories" on categories for update using (auth.uid() = user_id) with check (auth.uid() = user_id)$p$;
+  execute $p$create policy "Users can only delete their own categories" on categories for delete using (auth.uid() = user_id)$p$;
+end
+$restore$;
 
 drop function if exists public.app_user_id();
 drop role if exists kalend_app;
