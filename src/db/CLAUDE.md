@@ -26,7 +26,7 @@ One file per table, all re-exported from `schema/index.ts`. When adding a table,
 
 ## Other
 
-- `seed.ts` runs via `bun run db:seed`.
+- `seed.ts` runs via `bun run db:seed`. It and `seed-spaces.ts` use `owner.ts` (`DATABASE_URL_MIGRATE`, falling back to `DATABASE_URL`), not the app client. The app client still connects as the owner today. The restricted role cannot skip row policies, so seeds must not use it.
 - `data/data.csv` is sample event data loaded by `seed.ts`. It has no color column: each event takes its Space's color once `seed-spaces.ts` links it.
 - `drizzle/rollback/` holds hand-run reverse SQL for migrations that need one (`0012_flashy_mandroid.down.sql`, `0014_space_owner_key.down.sql`). drizzle-kit never reads it.
 - `__tests__/rls.test.ts` covers the policies, not the app client's queries.

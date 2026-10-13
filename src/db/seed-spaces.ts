@@ -25,7 +25,7 @@
 // errors if there are zero or more than one, so it never guesses).
 
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-import { db } from "./index";
+import { ownerDb as db } from "./owner";
 import { categories } from "./schema/categories";
 import { events } from "./schema/events";
 import { tasks } from "./schema/tasks";

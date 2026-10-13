@@ -7,6 +7,7 @@ describe.skipIf(!process.env.CI)("CI database", () => {
     expect({
       DATABASE_URL: Boolean(process.env.DATABASE_URL),
       SCHEMA_TEST_DATABASE_URL: Boolean(process.env.SCHEMA_TEST_DATABASE_URL),
-    }).toEqual({ DATABASE_URL: true, SCHEMA_TEST_DATABASE_URL: true });
+      APP_DATABASE_URL: Boolean(process.env.APP_DATABASE_URL),
+    }).toEqual({ DATABASE_URL: true, SCHEMA_TEST_DATABASE_URL: true, APP_DATABASE_URL: true });
   });
 });
