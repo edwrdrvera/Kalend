@@ -2,15 +2,16 @@ import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import journal from "../../../drizzle/meta/_journal.json";
 
-const sql = readFileSync(new URL("../../../drizzle/0017_push_subscriptions.sql", import.meta.url), "utf8");
-const down = readFileSync(new URL("../../../drizzle/rollback/0017_push_subscriptions.down.sql", import.meta.url), "utf8");
+const sql = readFileSync(new URL("../../../drizzle/0018_push_subscriptions.sql", import.meta.url), "utf8");
+const down = readFileSync(new URL("../../../drizzle/rollback/0018_push_subscriptions.down.sql", import.meta.url), "utf8");
 
 describe("push subscription migration", () => {
   it("is the next migration after the ones already on develop", () => {
     const tags = journal.entries.map((entry) => entry.tag);
-    expect(tags.at(-1)).toBe("0017_push_subscriptions");
+    expect(tags.at(-1)).toBe("0018_push_subscriptions");
     expect(tags).toContain("0015_rls_app_role");
     expect(tags).toContain("0016_kalend_app_role");
+    expect(tags).toContain("0017_import_event_identity");
     expect(new Set(tags).size).toBe(tags.length);
     expect(journal.entries.map((entry) => entry.idx)).toEqual(journal.entries.map((_, index) => index));
   });

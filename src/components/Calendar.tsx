@@ -491,6 +491,7 @@ export default function Calendar() {
               align="end"
               triggerClassName="grid size-[30px] place-items-center rounded-full bg-muted text-body font-semibold text-muted-foreground transition-colors hover:bg-hover hover:text-foreground"
               triggerChildren="E"
+              onImported={events.retry}
             />
           }
           mobileAccountMenu={
@@ -500,6 +501,7 @@ export default function Calendar() {
               align="end"
               triggerClassName="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-body font-semibold text-foreground transition-colors hover:bg-hover"
               triggerChildren="E"
+              onImported={events.retry}
             />
           }
         />

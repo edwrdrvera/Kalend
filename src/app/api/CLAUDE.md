@@ -22,6 +22,8 @@ Copy `events/route.ts` and `events/[id]/route.ts` when adding an endpoint. They 
 
 `POST` and `DELETE /api/push/subscriptions` are ordinary `withUser` routes. They parse the body with `parsePushSubscription` and `parsePushUnsubscribe` before any query. The endpoint must be an https URL of at most 2048 characters. Saving upserts on the endpoint and sets `user_id: user.id` to the caller. Deleting filters on both the endpoint and `user.id`.
 
+`POST /api/events/import` takes a calendar file as `text/calendar` (not JSON) plus a `tz` query parameter. `parseIcs` in `src/lib/api/ics-import.ts` checks the file before the handler opens a transaction. A file over 2 MB is refused while it is read, including a chunked upload with no length header. The handler still scopes every read and write with `eq(events.user_id, user.id)`. It uses the shared owner client, which skips row policies, until a request can run as the app role. New rows are inserted in one statement. The read does not lock existing rows. The identity index skips a row another import stored first. An event the calendar already has is left as it is, including title, time, place, and description, and an occurrence the new file no longer contains stays. A second import that lands on the same new event skips that row instead of failing the request. A file that fails the check writes nothing.
+
 ## Response envelope
 
 Always `{ success: true, data }` or `{ success: false, error }`. Status codes: 201 on create, 200 otherwise, 400 validation, 401 unauthenticated, 404 not found, 500 server error.

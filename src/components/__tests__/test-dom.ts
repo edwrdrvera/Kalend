@@ -28,6 +28,8 @@ const browserGlobals = [
   "HTMLSelectElement",
   "HTMLFormElement",
   "DOMRect",
+  "File",
+  "DataTransfer",
 ] as const;
 
 const globals = globalThis as Record<string, unknown>;

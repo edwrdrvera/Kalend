@@ -20,7 +20,7 @@ const networkFiles = ["src/hooks/**", "src/lib/api.ts"];
 // Written with [/] instead of an escaped slash so the same source works inside
 // an esquery selector for dynamic import().
 const serverOnly =
-  "^(drizzle-orm|postgres|next[/]headers)([/]|$)|(^|[/])(db|supabase[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
+  "^(drizzle-orm|postgres|next[/]headers|ical\\.js)([/]|$)|(^|[/])(db|supabase[/](server|auth-user|middleware))([/.]|$)|(^|[/])api[/]";
 const serverOnlyMessage =
   "Server-only module. Browser code reads and changes data through a hook in src/hooks that calls an /api route; server code belongs under src/app/api.";
 const networkMessage =

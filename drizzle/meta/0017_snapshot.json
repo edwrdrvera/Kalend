@@ -1,5 +1,5 @@
 {
-  "id": "dd77a8a9-2210-4c2e-a75a-3c577ed6a5f5",
+  "id": "d716ae09-2254-4877-aaa1-c419a9dfb765",
   "prevId": "c98d6b6d-b85c-4cda-b9c5-dc4804f56bdc",
   "version": "7",
   "dialect": "postgresql",
@@ -289,6 +289,18 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "import_uid": {
+          "name": "import_uid",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "import_occurrence": {
+          "name": "import_occurrence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -304,6 +316,34 @@
           ],
           "isUnique": false,
           "where": "\"events\".\"group_id\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "events_import_identity_idx": {
+          "name": "events_import_identity_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "import_uid",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "import_occurrence",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"events\".\"import_uid\" is not null",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -350,6 +390,10 @@
         "events_group_needs_space": {
           "name": "events_group_needs_space",
           "value": "\"events\".\"group_id\" is null or \"events\".\"category_id\" is not null"
+        },
+        "events_import_identity_pair": {
+          "name": "events_import_identity_pair",
+          "value": "(\"events\".\"import_uid\" is null) = (\"events\".\"import_occurrence\" is null)"
         }
       },
       "isRLSEnabled": true
@@ -448,90 +492,6 @@
         "groups_name_not_blank": {
           "name": "groups_name_not_blank",
           "value": "btrim(\"groups\".\"name\") <> '' and char_length(\"groups\".\"name\") <= 100"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.push_subscriptions": {
-      "name": "push_subscriptions",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "p256dh": {
-          "name": "p256dh",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "auth": {
-          "name": "auth",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "push_subscriptions_user_idx": {
-          "name": "push_subscriptions_user_idx",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "push_subscriptions_endpoint_key": {
-          "name": "push_subscriptions_endpoint_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "endpoint"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "push_subscriptions_endpoint_https": {
-          "name": "push_subscriptions_endpoint_https",
-          "value": "left(\"push_subscriptions\".\"endpoint\", 8) = 'https://' and char_length(\"push_subscriptions\".\"endpoint\") between 9 and 2048 and position(' ' in \"push_subscriptions\".\"endpoint\") = 0"
-        },
-        "push_subscriptions_keys_bounded": {
-          "name": "push_subscriptions_keys_bounded",
-          "value": "char_length(\"push_subscriptions\".\"p256dh\") between 1 and 200 and char_length(\"push_subscriptions\".\"auth\") between 1 and 200"
         }
       },
       "isRLSEnabled": true

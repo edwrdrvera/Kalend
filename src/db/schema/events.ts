@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { categories } from "./categories";
 import { groups } from "./groups";
 
@@ -18,7 +18,11 @@ export const events = pgTable(
     group_id: uuid("group_id"),
     location: text("location"),
     icon: text("icon"),
-    description: text("description")
+    description: text("description"),
+    // Set together when the row came from a calendar file. Null on events typed in by hand,
+    // so the identity index below does not apply to them.
+    import_uid: text("import_uid"),
+    import_occurrence: text("import_occurrence"),
   },
   (table) => [
     // The Space must belong to the item's owner. drizzle-kit emits a plain SET NULL,
@@ -42,7 +46,12 @@ export const events = pgTable(
     check("events_group_needs_space", sql`${table.group_id} is null or ${table.category_id} is not null`),
     index("events_group_idx")
       .on(table.group_id)
-      .where(sql`${table.group_id} is not null`)
+      .where(sql`${table.group_id} is not null`),
+    uniqueIndex("events_import_identity_idx")
+      .on(table.user_id, table.import_uid, table.import_occurrence)
+      .where(sql`${table.import_uid} is not null`),
+    // The index above ignores a row with no uid, so an occurrence on its own would not be unique.
+    check("events_import_identity_pair", sql`(${table.import_uid} is null) = (${table.import_occurrence} is null)`),
   ]
 ).enableRLS();
 

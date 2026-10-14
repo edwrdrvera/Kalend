@@ -26,3 +26,4 @@ affected builds.
 - `time-grid-layout.ts` — overlap and percentage-position math for the week/day time grid, plus `isMultiDayEvent` (multi-day events render in the all-day row instead).
 - `auth-validation.ts` — `validateAuthForm()`, the login form's email/password checks. No password-strength rule: there's no signup in this MVP (see `src/app/CLAUDE.md`), just a demo account whose password is already set.
 - `utils.ts` — `cn()` (clsx + tailwind-merge).
+- `ics-limits.ts` — the size and count caps for calendar import, shared by the browser and the server. The parser itself is `api/ics-import.ts` (`parseIcs`): it stays on the server because it imports `ical.js`. Repeating events cover six months from the start of today in the zone the browser sent, skipped dates are left out, and an all-day date becomes local midnight to the next local midnight.
