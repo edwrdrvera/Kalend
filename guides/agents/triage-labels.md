@@ -8,6 +8,7 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | `needs-info`               | `needs-info`         | Waiting on reporter for more information |
 | `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
 | `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
+| (Kalend only)              | `needs-claude`       | Local-only or high-tier work for the Claude `kalend-builder` agent. Without it, the cloud Builder bot owns the issue |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
