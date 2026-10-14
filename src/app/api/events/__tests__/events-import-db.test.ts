@@ -61,7 +61,6 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
       END;
       $fn$;
     `);
-    await sql`delete from alerts where user_id in (${USER}, ${OTHER})`;
     await sql`delete from events where user_id in (${USER}, ${OTHER})`;
     await sql`
       insert into events (user_id, title, start_at, end_at, import_uid, import_occurrence)
@@ -75,21 +74,16 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
 
   afterAll(async () => {
     await sql`drop trigger if exists import_race_pause on events`;
-    await sql`drop trigger if exists import_race_alert on events`;
     await sql`drop function if exists import_race_pause()`;
-    await sql`drop function if exists import_race_alert()`;
     await sql`drop table if exists import_race_log`;
-    await sql`delete from alerts where user_id in (${USER}, ${OTHER})`;
     await sql`delete from events where user_id in (${USER}, ${OTHER})`;
     await sql.end();
     await appClient?.end({ timeout: 5 });
   });
 
   async function withRace<T>(body: () => Promise<T>): Promise<T> {
-    await sql`delete from alerts where event_id in (select id from events where user_id = ${USER} and import_uid is not null)`;
     await sql`delete from events where user_id = ${USER} and import_uid is not null`;
     await sql`drop trigger if exists import_race_pause on events`;
-    await sql`drop trigger if exists import_race_alert on events`;
     await sql`delete from import_race_log`;
     await sql`
       create trigger import_race_pause before insert on events
@@ -99,7 +93,6 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
       return await body();
     } finally {
       await sql`drop trigger if exists import_race_pause on events`;
-      await sql`drop trigger if exists import_race_alert on events`;
     }
   }
 
@@ -143,5 +136,36 @@ describe.skipIf(!url || !appClient)("calendar import on the real database", () =
     `;
     expect(secret?.title).toBe("Secret");
     expect(typed).toMatchObject({ title: "Typed by hand", import_uid: null });
+  }, 15_000);
+
+  it("keeps the first copy when two imports of one new event use different titles", async () => {
+    const original = `BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20270601T150000Z
+DTEND:20270601T160000Z
+SUMMARY:Seminar
+UID:seminar-race@school
+END:VEVENT
+END:VCALENDAR`;
+    const renamed = original.replace("SUMMARY:Seminar", "SUMMARY:Seminar moved");
+
+    const [first, second, races] = await withRace(async () => {
+      const responses = await Promise.all([post(original), post(renamed)]);
+      const [left, right] = await Promise.all(responses.map(responseCounts));
+      const [{ races }] = await sql<{ races: number }[]>`select count(*)::int as races from import_race_log`;
+      return [left, right, Number(races)] as const;
+    });
+
+    const rows = await sql<{ title: string; import_occurrence: string }[]>`
+      select title, import_occurrence from events
+      where user_id = ${USER} and import_uid = 'seminar-race@school'
+    `;
+    expect(rows).toHaveLength(1);
+    expect(new Set(rows.map((row) => row.import_occurrence)).size).toBe(rows.length);
+    expect(races).toBe(2);
+    expect(first.imported + second.imported).toBe(1);
+    expect(first.imported + first.unchanged).toBe(1);
+    expect(second.imported + second.unchanged).toBe(1);
+    expect(rows[0].title).toBe(first.imported === 1 ? "Seminar" : "Seminar moved");
   }, 15_000);
 });
