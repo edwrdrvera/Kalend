@@ -16,7 +16,9 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import ImportCalendarDialog from "@/components/ImportCalendarDialog";
+import { useClosedAlerts } from "@/hooks/useClosedAlerts";
 import { useImportCalendar } from "@/hooks/useImportCalendar";
+import ClosedAlertsSetting from "./ClosedAlertsSetting";
 
 interface SettingsMenuProps {
   /** Content rendered inside the trigger button. Defaults to a gear icon. */
@@ -51,6 +53,7 @@ export default function SettingsMenu({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme, mounted, toggleTheme } = useTheme();
+  const closedAlerts = useClosedAlerts();
   const importer = useImportCalendar(onImported);
 
   async function handleLogout() {
@@ -83,7 +86,7 @@ export default function SettingsMenu({
       >
         {triggerChildren ?? <Settings className="size-4" />}
       </PopoverTrigger>
-      <PopoverContent align={align} side={side} className="w-52">
+      <PopoverContent align={align} side={side} className="w-72">
         <PopoverHeader>
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription className="text-meta">Manage your Kalend preferences and session.</PopoverDescription>
@@ -126,6 +129,7 @@ export default function SettingsMenu({
             />
           </span>
         </Button>
+        <ClosedAlertsSetting control={closedAlerts} />
         <Button
           type="button"
           variant="outline"

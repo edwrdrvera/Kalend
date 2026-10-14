@@ -17,6 +17,11 @@ describe("proxy matcher", () => {
     expect(runsProxy("/api/ping")).toBe(false);
     expect(runsProxy("/api/waitlist")).toBe(false);
     expect(runsProxy("/api/dev/sign-in")).toBe(false);
+    expect(runsProxy("/api/alerts/push-due")).toBe(false);
+    expect(runsProxy("/api/alerts/push-due/extra")).toBe(true);
+    expect(runsProxy("/api/alerts/push-due-other")).toBe(true);
+    expect(runsProxy("/api/alerts/claim")).toBe(true);
+    expect(runsProxy("/api/push/subscriptions")).toBe(true);
     expect(runsProxy("/logo.png")).toBe(false);
     expect(runsProxy("/icons/check.svg")).toBe(false);
   });

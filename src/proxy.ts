@@ -15,10 +15,11 @@ export const config = {
      * - api/ping (health check endpoint)
      * - api/waitlist (public landing-page signup, no auth)
      * - api/dev/sign-in (dev-only demo sign-in; 404 unless enabled, see its route)
+     * - api/alerts/push-due (minute check from the server timer; bearer secret, no session)
      * - Static asset files (.svg, .png, .jpg, .jpeg, .gif, .webp) outside /api.
      *   An API path must always run the proxy: it is what strips a forged
      *   x-kalend-user-id header before a route handler trusts it.
      */
-    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/dev/sign-in|(?!api/).*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/ping|api/waitlist|api/dev/sign-in|api/alerts/push-due$|(?!api/).*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
