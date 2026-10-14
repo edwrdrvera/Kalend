@@ -28,6 +28,7 @@ const importOf = (source: string) => `import x from "${source}";\nexport default
 
 const blocked: [string, string, string][] = [
   ["component imports the db client", "src/components/Example.tsx", importOf("@/db")],
+  ["component imports the calendar parser library", "src/components/Example.tsx", importOf("ical.js")],
   ["component imports a db schema", "src/components/landing/Example.tsx", importOf("@/db/schema/tasks")],
   ["component imports db by relative path", "src/components/Example.tsx", importOf("../db")],
   ["component imports the server supabase client", "src/components/Example.tsx", importOf("../../lib/supabase/server")],
@@ -87,6 +88,7 @@ const allowed: [string, string, string][] = [
   ["hook writes through the request helper", "src/hooks/useExample.ts", `import { mutateResource } from "@/lib/api";\nexport const m = mutateResource;\n`],
   ["request helper calls fetch", "src/lib/api.ts", `export const load = () => fetch("/api/tasks");\n`],
   ["route imports the db", "src/app/api/tasks/route.ts", importOf("@/db")],
+  ["server parser imports the calendar parser library", "src/lib/api/ics-import.ts", importOf("ical.js")],
   ["route calls fetch", "src/app/api/tasks/route.ts", `export const load = () => fetch("https://example.com");\n`],
   ["server helper calls fetch", "src/lib/api/event-body.ts", `export const load = () => fetch("https://example.com");\n`],
   ["component signs out with the browser supabase client", "src/components/Example.tsx", `import { createClient } from "@/lib/supabase/client";\nexport const out = () => createClient().auth.signOut();\n`],

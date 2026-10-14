@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, LogOut, Moon, Settings, Sun } from "lucide-react";
+import { Loader2, LogOut, Moon, Settings, Sun, Upload } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,6 +15,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
+import ImportCalendarDialog from "@/components/ImportCalendarDialog";
+import { useImportCalendar } from "@/hooks/useImportCalendar";
 
 interface SettingsMenuProps {
   /** Content rendered inside the trigger button. Defaults to a gear icon. */
@@ -27,6 +29,7 @@ interface SettingsMenuProps {
   /** Popover placement relative to the trigger. */
   side?: "top" | "right" | "bottom" | "left";
   align?: "start" | "center" | "end";
+  onImported: () => void;
 }
 
 const DEFAULT_TRIGGER_CLS =
@@ -40,11 +43,15 @@ export default function SettingsMenu({
   triggerLabel = "Settings",
   side = "top",
   align = "start",
-}: SettingsMenuProps = {}) {
+  onImported,
+}: SettingsMenuProps) {
   const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { theme, mounted, toggleTheme } = useTheme();
+  const importer = useImportCalendar(onImported);
 
   async function handleLogout() {
     setError(null);
@@ -68,7 +75,7 @@ export default function SettingsMenu({
   }
 
   return (
-    <Popover>
+    <Popover open={menuOpen} onOpenChange={setMenuOpen}>
       <PopoverTrigger
         aria-label={triggerLabel}
         title={triggerLabel}
@@ -81,6 +88,19 @@ export default function SettingsMenu({
           <PopoverTitle>Settings</PopoverTitle>
           <PopoverDescription className="text-meta">Manage your Kalend preferences and session.</PopoverDescription>
         </PopoverHeader>
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          onClick={() => {
+            setMenuOpen(false);
+            setImportOpen(true);
+          }}
+          className="mb-2 w-full justify-start gap-2 px-3 text-body"
+        >
+          <Upload className="size-4" />
+          Import calendar
+        </Button>
         <Button
           type="button"
           variant="outline"
@@ -119,6 +139,14 @@ export default function SettingsMenu({
         </Button>
         {error ? <p className="mt-1 text-sm text-destructive">{error}</p> : null}
       </PopoverContent>
+      <ImportCalendarDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        busy={importer.busy}
+        error={importer.error}
+        result={importer.result}
+        onFile={importer.importFile}
+      />
     </Popover>
   );
 }

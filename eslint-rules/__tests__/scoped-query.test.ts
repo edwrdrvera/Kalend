@@ -57,6 +57,9 @@ ruleTester.run("scoped-query", rule, {
     // A spread before user_id can't override it.
     "db.insert(tasks).values({ ...(due ? { due_at: due } : {}), user_id: user.id })",
     "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b, user_id: user.id }])",
+    // A mapped batch is one insert. Every object the callback returns still names the signed-in user.
+    "db.insert(events).values(rows.map((event) => ({ title: event.title, user_id: user.id })))",
+    "db.insert(events).values(rows.map((event) => { return { title: event.title, user_id: user.id } }))",
     // An upsert may leave the owner alone or keep it as the signed-in user.
     "db.insert(tasks).values({ title, user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title } })",
     "db.insert(tasks).values({ title, user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { title, user_id: user.id } })",
@@ -120,6 +123,10 @@ ruleTester.run("scoped-query", rule, {
     { code: "db.insert(tasks).values({ user_id: user.id }).onConflictDoUpdate({ target: tasks.id, set: { ...body } })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     // One row in a batch without the owner is enough to leak.
     { code: "db.insert(categories).values([{ name: a, user_id: user.id }, { name: b }])", errors: [{ message: /Insert into "categories" must set user_id: user\.id/ }] },
+    // A mapped batch with no owner, or a callback whose object we cannot see.
+    { code: "db.insert(events).values(rows.map((event) => ({ title: event.title })))", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values(rows.map((event) => event))", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
+    { code: "db.insert(events).values(rows.map((event) => ({ user_id: user.id, ...event })))", errors: [{ message: /Insert into "events" must set user_id: user\.id/ }] },
     // An insert whose values never appear in the chain.
     { code: "db.insert(tasks)", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },
     { code: "const t = tasks; tx.insert(t).values({ title })", errors: [{ message: /Insert into "tasks" must set user_id: user\.id/ }] },

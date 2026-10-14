@@ -30,6 +30,8 @@ export interface MockDbState<T extends BaseRow> {
   shouldFailOnDelete?: boolean;
   transactionCount?: number;
   lockCount?: number;
+  /** How many insert statements ran against this table. */
+  insertCalls?: number;
   /** Apply the route's real `where` condition to this table's rows (see
    *  where-matcher.ts) instead of the id and user_id heuristics. */
   evaluateWhere?: boolean;
@@ -63,6 +65,21 @@ function comparedValue(condition: unknown, column: string): unknown {
 }
 
 // ── Mock setup ──────────────────────────────────────────────────────────
+
+function columnName(column: unknown): string | null {
+  if (!column || typeof column !== "object" || !("name" in column)) return null;
+  return typeof column.name === "string" ? column.name : null;
+}
+
+// NULL never matches in a unique index, including the partial import identity.
+function sameIdentity(row: BaseRow, incoming: Record<string, unknown>, names: string[]): boolean {
+  return names.every((name) => {
+    const left = (row as unknown as Record<string, unknown>)[name];
+    const right = incoming[name];
+    if (left === null || left === undefined || right === null || right === undefined) return false;
+    return left === right;
+  });
+}
 
 /** Drizzle table objects expose their name via `Symbol(drizzle:Name)`. */
 function tableNameOf(table: unknown): string | null {
@@ -114,6 +131,7 @@ export function setupMockDb<T extends BaseRow>(
     getAuthenticatedUser: mock(async () => getUser()),
   }));
 
+  let inserted = 0;
   mock.module("@/db", () => {
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
@@ -183,33 +201,44 @@ export function setupMockDb<T extends BaseRow>(
         }),
       }),
       insert: (table: unknown) => ({
-        values: (vals: Record<string, unknown>) => {
+        values: (vals: Record<string, unknown> | Record<string, unknown>[]) => {
           let skipDuplicates = false;
+          // Columns named by onConflictDoNothing({ target }). A match is skipped.
+          // NULL never matches, same as the partial import identity index.
+          let nothingTarget: unknown[] = [];
           const builder = {
-            onConflictDoNothing: () => {
+            onConflictDoNothing: (config?: { target?: unknown }) => {
               skipDuplicates = true;
+              nothingTarget = Array.isArray(config?.target) ? config.target : config?.target ? [config.target] : [];
               return builder;
             },
             returning: mock(async () => {
               const insertState = stateFor(table);
+              insertState.insertCalls = (insertState.insertCalls ?? 0) + 1;
               if (insertState.shouldFail) throw new Error("DB Insert failed");
-              if (skipDuplicates && insertState.conflictsWith) {
-                const collides = insertState.conflictsWith;
-                if (insertState.rows.some((row) => collides(row, vals))) return [];
+              const incomingRows = Array.isArray(vals) ? vals : [vals];
+              const results: T[] = [];
+              for (const incoming of incomingRows) {
+                const payload = filterUndefined
+                  ? Object.fromEntries(Object.entries(incoming).filter(([, v]) => v !== undefined))
+                  : incoming;
+                if (skipDuplicates) {
+                  const names = nothingTarget.map(columnName).filter((name) => name !== null);
+                  const collides = names.length > 0
+                    ? (row: BaseRow) => sameIdentity(row, payload, names)
+                    : insertState.conflictsWith;
+                  if (collides && insertState.rows.some((row) => collides(row, payload))) continue;
+                }
+                const row = {
+                  id: `${idPrefix}uuid-${++inserted}`,
+                  created_at: new Date(),
+                  ...insertDefaults,
+                  ...payload,
+                } as T;
+                insertState.rows.push(row as unknown as BaseRow);
+                results.push(row);
               }
-              const payload = filterUndefined
-                ? Object.fromEntries(
-                    Object.entries(vals).filter(([, v]) => v !== undefined)
-                  )
-                : vals;
-              const row = {
-                id: `${idPrefix}uuid-1`,
-                created_at: new Date(),
-                ...insertDefaults,
-                ...payload,
-              } as T;
-              insertState.rows.push(row as unknown as BaseRow);
-              return [row];
+              return results;
             }),
           };
           return builder;
