@@ -76,6 +76,7 @@ Start with what you need from me (decisions, logins, anything blocked), then wha
 | Writing any code | `guides/code-style.md` |
 | Adding a pattern, fixing a repeated mistake, or reviewing code health | `guides/agent-rules.md` |
 | Branching, committing, PR flow, resume notes | `guides/git-workflow.md` |
+| Running pstack, dispatching the Kalend agents, trimming token cost | `guides/pstack.md` |
 | Writing a PR body or GitHub issue | `guides/github-writing.md` |
 | Editing the schema or running migrations | the `db-migrate` skill |
 
@@ -83,7 +84,7 @@ Start with what you need from me (decisions, logins, anything blocked), then wha
 
 Read in this order before doing anything else:
 
-1. `HANDOFF.md` (repo root, local-only, may be missing): your handoff from the last session
+1. The pinned GitHub issue "Current state" (#333): shared state any machine or bot can read. Then `HANDOFF.md` (repo root, local-only, may be missing): your handoff from the last session
 2. `CLAUDE.md` (this file)
 3. `docs/project_overview.md` (local-only, may be missing): product plan
 4. Your agent's memory index, if it keeps one: cross-session notes

@@ -47,6 +47,7 @@ next-env.d.ts
 # Local coding-agent state and overrides (project skills are shared; installed skills come from skills-lock.json)
 .claude/*
 !.claude/launch.json
+!.claude/agents/
 !.claude/settings.json
 !.claude/skills/
 .claude/skills/*
@@ -55,7 +56,8 @@ next-env.d.ts
 !.claude/skills/security-review/
 !.claude/skills/verify/
 .codex/
-.agents/
+.agents/*
+!.agents/playbooks/
 
 # Local coding-agent hand-off notes
 /HANDOFF*.md
