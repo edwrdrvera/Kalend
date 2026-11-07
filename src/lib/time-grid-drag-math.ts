@@ -28,6 +28,24 @@ export function minutesFromMidnight(date: Date): number {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+/**
+ * The moment `minutes` after midnight on `day`'s date, counted on the wall
+ * clock the grid draws. Adding elapsed time instead lands an hour off on the
+ * days the clocks change.
+ */
+export function atMinutesOfDay(day: Date, minutes: number): Date {
+  const date = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  date.setMinutes(minutes);
+  return date;
+}
+
+/** Inverse of `atMinutesOfDay`: wall-clock minutes from `day`'s midnight to `date`, negative before it. */
+export function minutesOfDayAt(day: Date, date: Date): number {
+  const midnight = atMinutesOfDay(day, 0);
+  const elapsed = (date.getTime() - midnight.getTime()) / 60_000;
+  return elapsed + (midnight.getTimezoneOffset() - date.getTimezoneOffset());
+}
+
 /** Round a minute value to the nearest SNAP_MINUTES mark. */
 export function snapMinutes(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;

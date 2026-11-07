@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { format, isSameDay, startOfDay, addMinutes } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { dimClass, type SpaceFocus } from "@/lib/space-focus";
 import type { CalendarCategory, CalendarEvent } from "@/lib/calendar-types";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/lib/event-colors";
 import { layoutDayEvents } from "@/lib/time-grid-layout";
 import { eventAccessibleName } from "@/lib/event-accessible-name";
-import { MINUTES_PER_DAY, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
+import { MINUTES_PER_DAY, atMinutesOfDay, computeCreateRange, minutesFromMidnight } from "@/lib/time-grid-drag-math";
 import { useCreateDrag } from "@/hooks/useCreateDrag";
 import { useResizeDrag } from "@/hooks/useResizeDrag";
 import { useMoveDrag } from "@/hooks/useMoveDrag";
@@ -289,7 +289,7 @@ export default function TimeGrid({
                       height: `${((hi - lo) / MINUTES_PER_DAY) * 100}%`,
                     }}
                   >
-                    {format(addMinutes(startOfDay(day), lo), "h:mm")} – {format(addMinutes(startOfDay(day), hi), "h:mm")}
+                    {format(atMinutesOfDay(day, lo), "h:mm")} – {format(atMinutesOfDay(day, hi), "h:mm")}
                   </div>
                 );
               })()}

@@ -5,12 +5,12 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { addMinutes, startOfDay } from "date-fns";
 import {
   MINUTES_PER_DAY,
   clamp,
   computeCreateRange,
   passedDragThreshold,
+  atMinutesOfDay,
   pointerToMinutes,
   snapMinutes,
 } from "@/lib/time-grid-drag-math";
@@ -114,7 +114,6 @@ export function useCreateDrag({
       // open the creator for the spanned range (min 15 min).
       suppressSlotClickUntilRef.current = Date.now() + CLICK_SUPPRESS_WINDOW_MS;
       const { lo, hi } = computeCreateRange(drag.anchorMinutes, drag.liveMinutes);
-      const dayStart = startOfDay(drag.day);
       const gridEl = gridRef.current;
       const columnEl = gridEl?.querySelector<HTMLElement>(`:scope > [data-day-index="${drag.dayIndex}"]`) ?? undefined;
       const column = columnEl?.getBoundingClientRect() ?? gridEl?.getBoundingClientRect();
@@ -123,7 +122,7 @@ export function useCreateDrag({
         const top = gridTop + (lo / MINUTES_PER_DAY) * dayHeight;
         const bottom = gridTop + (hi / MINUTES_PER_DAY) * dayHeight;
         const rect = new DOMRect(column.left, top, column.width, bottom - top);
-        onSlotDragCreateRef.current?.(addMinutes(dayStart, lo), addMinutes(dayStart, hi), rect);
+        onSlotDragCreateRef.current?.(atMinutesOfDay(drag.day, lo), atMinutesOfDay(drag.day, hi), rect);
       }
     }
 
