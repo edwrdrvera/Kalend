@@ -39,12 +39,14 @@ interface Harness {
   deletes: string[];
   /** What the next save resolves to. */
   saveResult: boolean;
+  /** Apply the patch before the save settles and undo it on failure, as useTasks does. */
+  optimistic: boolean;
 }
 
 // Wires the inspector to the real panel reducer and a single tasks state,
 // the way Calendar does, plus an outside control that requests a close.
 async function renderInspector(initial: { task?: CalendarTask; alertOffset?: AlertOffset } = {}) {
-  const harness: Harness = { saves: [], alertSaves: [], toggles: [], deletes: [], saveResult: true };
+  const harness: Harness = { saves: [], alertSaves: [], toggles: [], deletes: [], saveResult: true, optimistic: false };
 
   function App() {
     const [task, setTask] = useState(initial.task ?? TASK);
@@ -71,6 +73,12 @@ async function renderInspector(initial: { task?: CalendarTask; alertOffset?: Ale
           onSave: async (t, patch, wantedAlert) => {
             harness.saves.push(patch);
             harness.alertSaves.push(wantedAlert);
+            if (harness.optimistic) {
+              setTask({ ...t, ...patch });
+              await Promise.resolve();
+              if (!harness.saveResult) setTask(t);
+              return harness.saveResult;
+            }
             if (harness.saveResult) {
               setTask({ ...t, ...patch });
               setAlertOffset(wantedAlert);
@@ -133,6 +141,23 @@ describe("TaskInspector", () => {
 
     expect(harness.saves).toEqual([{ title: "Submit lab report" }]);
     expect(button("Save")?.disabled).toBe(true);
+    expect(alertText()).toBe("");
+  });
+
+  it("keeps the edit and an enabled Retry when an optimistic save is rolled back", async () => {
+    const harness = await renderInspector();
+    harness.optimistic = true;
+    harness.saveResult = false;
+    await editTitle("Submit lab report");
+    await click("Save");
+
+    expect(titleInput().value).toBe("Submit lab report");
+    expect(alertText()).toContain("Couldn't save");
+    expect(button("Retry")?.disabled).toBe(false);
+
+    harness.saveResult = true;
+    await click("Retry");
+    expect(harness.saves).toEqual([{ title: "Submit lab report" }, { title: "Submit lab report" }]);
     expect(alertText()).toBe("");
   });
 

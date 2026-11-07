@@ -80,13 +80,26 @@ export default function TaskInspector({
     setSeen(saved);
     setDraft((d) => rebaseTaskDraft(d, seen, saved));
   }
+  // A failed optimistic save rolls the task back, and the rebase above would
+  // then reset the edited fields to the old values. Put the attempted draft
+  // back so the edit stays in the form and Retry can send it again.
+  const [failedDraft, setFailedDraft] = useState<TaskDraft | null>(null);
+  if (failedDraft) {
+    setFailedDraft(null);
+    setDraft(failedDraft);
+  }
   const patch = draftPatch(task, draft);
   const dirty = isTaskDraftDirty(saved, draft);
   const titleMissing = draft.title.trim() === "";
   const { saving, saveError, clearError, handleSubmit, saveAndProceed } = useInspectorSave({
     dirty,
     invalidReason: titleMissing ? "Add a title before saving." : null,
-    persist: () => onSave(task, patch, wantedAlert(draft)),
+    persist: async () => {
+      const attempted = draft;
+      const ok = await onSave(task, patch, wantedAlert(draft)).catch(() => false);
+      if (!ok) setFailedDraft(attempted);
+      return ok;
+    },
     onDirtyChange,
     onProceed,
     onStay,
