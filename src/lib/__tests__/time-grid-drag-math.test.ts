@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import {
   DRAG_THRESHOLD_PX,
+  atMinutesOfDay,
+  minutesOfDayAt,
   MIN_DURATION_MINUTES,
   MINUTES_PER_DAY,
   SNAP_MINUTES,
@@ -235,5 +237,44 @@ describe("computeCreateRange", () => {
 
   it("keeps a range already longer than the minimum", () => {
     expect(computeCreateRange(600, 900)).toEqual({ lo: 600, hi: 900 });
+  });
+});
+
+describe("wall-clock minutes on daylight saving days", () => {
+  // Deleting TZ leaves Bun on New York, so restore the zone it resolved.
+  const originalTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  beforeAll(() => {
+    process.env.TZ = "America/Chicago";
+  });
+  afterAll(() => {
+    process.env.TZ = originalTz;
+  });
+
+  const clock = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // Built when read, after beforeAll has switched the zone.
+  const fallBack = () => new Date(2026, 10, 1);
+  const springForward = () => new Date(2026, 2, 8);
+
+  it("puts 10:00 on the 10 AM clock on the fall-back day", () => {
+    expect(clock(atMinutesOfDay(fallBack(), 600))).toBe("2026-11-1 10:00");
+    expect(clock(atMinutesOfDay(fallBack(), 15 * 60 + 15))).toBe("2026-11-1 15:15");
+  });
+
+  it("puts 10:00 on the 10 AM clock on the spring-forward day", () => {
+    expect(clock(atMinutesOfDay(springForward(), 600))).toBe("2026-3-8 10:00");
+    expect(clock(atMinutesOfDay(springForward(), 15 * 60))).toBe("2026-3-8 15:00");
+  });
+
+  it("ends a full-day range at the next midnight", () => {
+    expect(clock(atMinutesOfDay(fallBack(), 1440))).toBe("2026-11-2 0:00");
+    expect(clock(atMinutesOfDay(springForward(), 1440))).toBe("2026-3-9 0:00");
+  });
+
+  it("reads minutes back the way the grid draws them", () => {
+    for (const day of [fallBack(), springForward()]) {
+      for (const minutes of [0, 90, 600, 14 * 60, 23 * 60 + 45]) {
+        expect(minutesOfDayAt(day, atMinutesOfDay(day, minutes))).toBe(minutes);
+      }
+    }
   });
 });

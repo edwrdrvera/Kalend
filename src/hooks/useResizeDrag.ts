@@ -4,9 +4,8 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { addMinutes, startOfDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
-import { MINUTES_PER_DAY, computeResizeEdgeMinutes } from "@/lib/time-grid-drag-math";
+import { MINUTES_PER_DAY, atMinutesOfDay, computeResizeEdgeMinutes } from "@/lib/time-grid-drag-math";
 import { lockBodyForDrag, restoreBodyAfterDrag } from "@/lib/body-drag-lock";
 
 /** Tracks an in-progress top/bottom edge drag on one event block. Minutes are
@@ -153,11 +152,10 @@ export function useResizeDrag({ dayHeight, onEventResize }: UseResizeDragParams)
       const drag = resizeDragRef.current;
       if (!drag) return;
 
-      const dayStart = startOfDay(drag.day);
       onEventResizeRef.current?.(
         drag.event,
-        addMinutes(dayStart, drag.liveStartMinutes),
-        addMinutes(dayStart, drag.liveEndMinutes)
+        atMinutesOfDay(drag.day, drag.liveStartMinutes),
+        atMinutesOfDay(drag.day, drag.liveEndMinutes)
       );
       setResizeDrag(null);
     }

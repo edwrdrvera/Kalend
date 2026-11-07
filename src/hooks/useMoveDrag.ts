@@ -5,12 +5,13 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { addMinutes, startOfDay } from "date-fns";
 import type { CalendarEvent } from "@/lib/calendar-types";
 import {
+  atMinutesOfDay,
   computeDayIndexFromX,
   computeGhostDelta,
   computeMoveStartMinutes,
+  minutesOfDayAt,
   passedDragThreshold,
   pointerToMinutes,
 } from "@/lib/time-grid-drag-math";
@@ -168,9 +169,8 @@ export function useMoveDrag({
     if (!onEventMove || e.button !== 0 || blockedByResize) return;
     e.stopPropagation();
 
-    const dayStart = startOfDay(day);
-    const originalStartMinutes = (new Date(event.start_at).getTime() - dayStart.getTime()) / 60_000;
-    const originalEndMinutes = (new Date(event.end_at).getTime() - dayStart.getTime()) / 60_000;
+    const originalStartMinutes = minutesOfDayAt(day, new Date(event.start_at));
+    const originalEndMinutes = minutesOfDayAt(day, new Date(event.end_at));
 
     // Capture column pixel metrics at pickup so the ghost and day-index
     // calculations stay correct even with CSS grid gaps between columns.
@@ -292,11 +292,11 @@ export function useMoveDrag({
           suppressClearTimeoutRef.current = null;
         }, CLICK_SUPPRESS_WINDOW_MS);
 
-        const dayStart = startOfDay(daysRef.current[target.dayIndex]);
+        const targetDay = daysRef.current[target.dayIndex];
         onEventMoveRef.current?.(
           drag.event,
-          addMinutes(dayStart, target.startMinutes),
-          addMinutes(dayStart, target.startMinutes + drag.durationMinutes)
+          atMinutesOfDay(targetDay, target.startMinutes),
+          atMinutesOfDay(targetDay, target.startMinutes + drag.durationMinutes)
         );
       }
       setMoveDrag(null);

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 import { renderHook } from "@/test-utils/render-hook";
 import { useCreateDrag } from "../useCreateDrag";
@@ -69,5 +69,39 @@ describe("useCreateDrag", () => {
     await hook.act(() => hook.result.current.onSlotPointerDown(pointerDown(2, 100), 0, DAY));
 
     expect(hook.result.current.preview).toBeNull();
+  });
+});
+
+describe("useCreateDrag on daylight saving days", () => {
+  // Deleting TZ leaves Bun on New York, so restore the zone it resolved.
+  const originalTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  beforeAll(() => {
+    process.env.TZ = "America/Chicago";
+  });
+  afterAll(() => {
+    process.env.TZ = originalTz;
+  });
+
+  // The grid is 2400px for 24 hours, so 100px is one hour.
+  async function dragFrom(day: Date, fromY: number, toY: number) {
+    const hook = renderCreateDrag();
+    await hook.act(() => {});
+    await hook.act(() => hook.result.current.onSlotPointerDown(pointerDown(0, fromY), 0, day));
+    await hook.act(() => fireWindow("pointermove", toY));
+    await hook.act(() => fireWindow("pointerup", toY));
+    return hook.created[0];
+  }
+  const clock = (d: Date) => `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  it("starts in the 10 AM row on the fall-back Sunday", async () => {
+    const [start, end] = await dragFrom(new Date(2026, 10, 1), 1000, 1200);
+    expect(clock(start)).toBe("10:00");
+    expect(clock(end)).toBe("12:00");
+  });
+
+  it("starts in the 10 AM row on the spring-forward Sunday", async () => {
+    const [start, end] = await dragFrom(new Date(2026, 2, 8), 1000, 1200);
+    expect(clock(start)).toBe("10:00");
+    expect(clock(end)).toBe("12:00");
   });
 });
