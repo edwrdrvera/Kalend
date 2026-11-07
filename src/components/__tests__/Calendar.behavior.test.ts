@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, mock, setDefaultTimeout } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createElement, act } from "react";
 import type { Root } from "react-dom/client";
 import type { CalendarAlert, CalendarCategory, CalendarEvent, CalendarGroup, CalendarTask } from "@/lib/calendar-types";
@@ -9,12 +9,6 @@ mock.module("next/navigation", () => ({
 }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-// Each test renders the whole Calendar several times. That takes about 100 ms
-// here but 7 to 21 s on a CPU-starved CI runner, past bun's 5 s default. A
-// timed-out test keeps running into the next one, and the overlapping act()
-// calls then fail every test after it.
-setDefaultTimeout(60_000);
 
 const { createRoot } = await import("react-dom/client");
 const { default: Calendar } = await import("../Calendar");
