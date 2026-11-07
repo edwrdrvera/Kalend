@@ -7,7 +7,7 @@ import postgres from "postgres";
 const ownerUrl = process.env.DATABASE_URL;
 const appUrl = process.env.APP_DATABASE_URL;
 
-const OWNED = ["events", "tasks", "categories", "groups", "alerts"] as const;
+const OWNED = ["events", "tasks", "categories", "groups", "alerts", "push_subscriptions"] as const;
 const WRITE = ["SELECT", "INSERT", "UPDATE", "DELETE"] as const;
 
 // Public tables the app role must not be granted. A new table fails this

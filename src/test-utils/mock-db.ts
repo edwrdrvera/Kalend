@@ -136,9 +136,7 @@ export function setupMockDb<T extends BaseRow>(
     const stateFor = (table: unknown): MockDbState<BaseRow> =>
       relatedStates[tableNameOf(table) ?? ""] ?? (dbState as MockDbState<BaseRow>);
 
-    const queryClient = {
-      select: () => ({
-        from: (table: unknown) => ({
+    const fromRows = (table: unknown) => ({
           // The mock does NOT filter by user_id itself. It checks whether
           // the handler's where condition contains the authenticated user's
           // ID. If the handler forgot eq(table.user_id, user.id), the
@@ -198,11 +196,23 @@ export function setupMockDb<T extends BaseRow>(
             };
             return promise;
           }),
-        }),
-      }),
+          // A select with no where lists every row. The push check uses it to
+          // read owner ids only, then scopes every later query.
+          then(onFulfilled: (rows: BaseRow[]) => unknown, onRejected?: (error: unknown) => unknown) {
+            const selectedState = stateFor(table);
+            if (selectedState.shouldFail) {
+              return Promise.reject(new Error("DB Connection failed")).then(onFulfilled, onRejected);
+            }
+            return Promise.resolve(selectedState.rows).then(onFulfilled, onRejected);
+          },
+    });
+    const queryClient = {
+      select: () => ({ from: fromRows }),
+      selectDistinct: () => ({ from: fromRows }),
       insert: (table: unknown) => ({
         values: (vals: Record<string, unknown> | Record<string, unknown>[]) => {
           let skipDuplicates = false;
+          let conflictUpdate: Record<string, unknown> | null = null;
           // Columns named by onConflictDoNothing({ target }). A match is skipped.
           // NULL never matches, same as the partial import identity index.
           let nothingTarget: unknown[] = [];
@@ -210,6 +220,10 @@ export function setupMockDb<T extends BaseRow>(
             onConflictDoNothing: (config?: { target?: unknown }) => {
               skipDuplicates = true;
               nothingTarget = Array.isArray(config?.target) ? config.target : config?.target ? [config.target] : [];
+              return builder;
+            },
+            onConflictDoUpdate: (config: { set?: Record<string, unknown> }) => {
+              conflictUpdate = config.set ?? {};
               return builder;
             },
             returning: mock(async () => {
@@ -228,6 +242,15 @@ export function setupMockDb<T extends BaseRow>(
                     ? (row: BaseRow) => sameIdentity(row, payload, names)
                     : insertState.conflictsWith;
                   if (collides && insertState.rows.some((row) => collides(row, payload))) continue;
+                }
+                if (conflictUpdate && insertState.conflictsWith) {
+                  const index = insertState.rows.findIndex((row) => insertState.conflictsWith!(row, payload));
+                  if (index !== -1) {
+                    const updated = { ...insertState.rows[index], ...conflictUpdate };
+                    insertState.rows[index] = updated;
+                    results.push(updated as T);
+                    continue;
+                  }
                 }
                 const row = {
                   id: `${idPrefix}uuid-${++inserted}`,

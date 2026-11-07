@@ -1,0 +1,418 @@
+import { afterEach, beforeEach, describe, expect, it, mock, setSystemTime } from "bun:test";
+import { setupMockDb, type MockAuthUser, type MockDbState } from "@/test-utils/mock-db";
+import { MISSED_AFTER_MS } from "@/lib/alerts";
+import { PUSH_LEASE_SLACK_MS, PUSH_SEND_TIMEOUT_MS, PUSH_USER_CONCURRENCY, pushDueAlerts } from "@/lib/api/push-due";
+import type { PushSendResult, PushTarget } from "@/lib/api/send-push";
+
+interface MockAlert {
+  id: string;
+  user_id: string;
+  event_id: string | null;
+  task_id: string | null;
+  offset_minutes: number;
+  fire_at: Date;
+  fired_at: Date | null;
+}
+interface MockItem {
+  id: string;
+  user_id: string;
+  title: string;
+}
+interface MockSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
+
+const ME = "user-uuid-123";
+const OTHER = "other-user-456";
+const EVENT_ID = "11111111-1111-4111-8111-111111111111";
+const OTHER_EVENT_ID = "11111111-1111-4111-8111-222222222222";
+const TASK_ID = "33333333-3333-4333-8333-111111111111";
+const NOW = new Date("2026-08-10T10:00:00Z");
+const SECRET = "test-push-secret";
+const MINE = "https://push.example.com/device/mine";
+const MINE_OTHER = "https://push.example.com/device/mine-2";
+const THEIRS = "https://push.example.com/device/theirs";
+const minutesFromNow = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
+
+let mockCurrentUser: MockAuthUser | null = { id: ME, email: "student@university.edu" };
+const sendPushMock = mock(async (target: PushTarget): Promise<PushSendResult> => (
+  typeof target.endpoint === "string" ? { ok: true } : { ok: false, gone: false, status: 400 }
+));
+
+mock.module("@/lib/api/send-push", () => ({
+  sendPush: (target: PushTarget) => sendPushMock(target),
+}));
+
+const alertState: MockDbState<MockAlert> = { rows: [], shouldFail: false, evaluateWhere: true };
+const eventState: MockDbState<MockItem> = { rows: [], shouldFail: false, evaluateWhere: true };
+const taskState: MockDbState<MockItem> = { rows: [], shouldFail: false, evaluateWhere: true };
+const subscriptionState: MockDbState<MockSubscription> = { rows: [], shouldFail: false, evaluateWhere: true };
+
+setupMockDb("alert-", alertState, () => mockCurrentUser, {}, false, () => [], {
+  events: eventState,
+  tasks: taskState,
+  push_subscriptions: subscriptionState,
+});
+
+import { POST as claimAlerts } from "../../claim/route";
+import { DELETE as removeSubscription } from "../../../push/subscriptions/route";
+import { POST as pushDue } from "../route";
+
+const envKeys = ["ALERT_PUSH_SECRET", "NEXT_PUBLIC_VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
+const savedEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+
+const alertRow = (id: string, over: Partial<MockAlert> = {}): MockAlert => ({
+  id,
+  user_id: ME,
+  event_id: EVENT_ID,
+  task_id: null,
+  offset_minutes: 5,
+  fire_at: minutesFromNow(0),
+  fired_at: null,
+  ...over,
+});
+
+const device = (id: string, userId: string, endpoint: string): MockSubscription => ({
+  id,
+  user_id: userId,
+  endpoint,
+  p256dh: `${id}-p256dh`,
+  auth: `${id}-auth`,
+});
+
+const push = (authorization?: string) =>
+  pushDue(new Request("http://localhost/api/alerts/push-due", {
+    method: "POST",
+    headers: authorization === undefined ? {} : { authorization },
+  }));
+
+const firedAt = (id: string) => alertState.rows.find((row) => row.id === id)?.fired_at ?? null;
+
+function pushed(): { endpoint: string; alert: { id: string; kind: string; itemId: string; message: string } }[] {
+  return sendPushMock.mock.calls.map((call) => {
+    const target = call[0] as PushTarget;
+    return { endpoint: target.endpoint, alert: JSON.parse(target.payload) as { id: string; kind: string; itemId: string; message: string } };
+  });
+}
+
+describe("POST /api/alerts/push-due", () => {
+  beforeEach(() => {
+    setSystemTime(NOW);
+    mockCurrentUser = { id: ME, email: "student@university.edu" };
+    process.env.ALERT_PUSH_SECRET = SECRET;
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY = "test-public-key";
+    process.env.VAPID_PRIVATE_KEY = "test-private-key";
+    process.env.VAPID_SUBJECT = "mailto:alerts@example.com";
+    sendPushMock.mockReset();
+    sendPushMock.mockImplementation(async () => ({ ok: true }));
+    eventState.rows = [
+      { id: EVENT_ID, user_id: ME, title: "CS 101 Lecture" },
+      { id: OTHER_EVENT_ID, user_id: OTHER, title: "Private seminar" },
+    ];
+    taskState.rows = [{ id: TASK_ID, user_id: ME, title: "Essay" }];
+    alertState.rows = [];
+    subscriptionState.rows = [device("sub-mine", ME, MINE)];
+    alertState.shouldFail = false;
+    eventState.shouldFail = false;
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    for (const key of envKeys) {
+      const value = savedEnv[key];
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
+  it("returns 503 when the secret is unset and does not fire alerts", async () => {
+    delete process.env.ALERT_PUSH_SECRET;
+    alertState.rows = [alertRow("a-due")];
+    expect((await push(`Bearer ${SECRET}`)).status).toBe(503);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("returns 401 for a missing or wrong secret and does not fire alerts", async () => {
+    alertState.rows = [alertRow("a-due")];
+    expect((await push()).status).toBe(401);
+    expect((await push("Bearer wrong-secret")).status).toBe(401);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("returns 503 when the push keys are unset and does not fire alerts", async () => {
+    delete process.env.VAPID_PRIVATE_KEY;
+    alertState.rows = [alertRow("a-due")];
+    expect((await push(`Bearer ${SECRET}`)).status).toBe(503);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("pushes an alert that is due five minutes before the event, and not a future one", async () => {
+    alertState.rows = [
+      alertRow("a-five", { offset_minutes: 5, fire_at: minutesFromNow(0) }),
+      alertRow("a-later", { offset_minutes: 15, fire_at: minutesFromNow(10) }),
+    ];
+    const response = await push(`Bearer ${SECRET}`);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 1 } });
+    expect(pushed()).toEqual([
+      {
+        endpoint: MINE,
+        alert: expect.objectContaining({
+          id: "a-five",
+          kind: "event",
+          itemId: EVENT_ID,
+          message: "CS 101 Lecture starts in 5 min",
+        }),
+      },
+    ]);
+    expect(firedAt("a-five")?.toISOString()).toBe(NOW.toISOString());
+    expect(firedAt("a-later")).toBeNull();
+  });
+
+  it("sends one alert to each of the user's devices", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-2", ME, MINE_OTHER)];
+    alertState.rows = [alertRow("a-due")];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.endpoint).sort()).toEqual([MINE, MINE_OTHER].sort());
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-due", "a-due"]);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("delivers each alert once whether the open tab or the push check claims it first", async () => {
+    alertState.rows = [alertRow("a-due")];
+    const [claimResponse, pushResponse] = await Promise.all([
+      claimAlerts(new Request("http://localhost/api/alerts/claim", { method: "POST" })),
+      push(`Bearer ${SECRET}`),
+    ]);
+    expect(claimResponse.status).toBe(200);
+    expect(pushResponse.status).toBe(200);
+    const claimJson = await claimResponse.json();
+    const claimed = [...claimJson.data.due, ...claimJson.data.missed].map((alert: { id: string }) => alert.id);
+    const sent = pushed().map((item) => item.alert.id);
+    expect([...claimed, ...sent]).toEqual(["a-due"]);
+
+    sendPushMock.mockClear();
+    const again = await push(`Bearer ${SECRET}`);
+    const claimAgain = await (await claimAlerts(new Request("http://localhost/api/alerts/claim", { method: "POST" }))).json();
+    expect(await again.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(claimAgain.data).toEqual({ due: [], missed: [] });
+    expect(sendPushMock).not.toHaveBeenCalled();
+  });
+
+  it("still pushes an alert that became due exactly five minutes ago", async () => {
+    alertState.rows = [alertRow("a-edge", { offset_minutes: 0, fire_at: minutesFromNow(-5) })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-edge"]);
+    expect(firedAt("a-edge")).not.toBeNull();
+  });
+
+  it("does not push a missed alert, and leaves it for the open tab", async () => {
+    alertState.rows = [alertRow("a-late", { offset_minutes: 60, fire_at: minutesFromNow(-6) })];
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-late")).toBeNull();
+  });
+
+  it("sends nothing and leaves the alert unfired when the device is turned off", async () => {
+    alertState.rows = [alertRow("a-due")];
+    const removed = await removeSubscription(new Request("http://localhost/api/push/subscriptions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: MINE }),
+    }));
+    expect(await removed.json()).toEqual({ success: true, data: { removed: true } });
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("never sends one user's alert to another user's device", async () => {
+    subscriptionState.rows = [device("sub-mine", ME, MINE), device("sub-theirs", OTHER, THEIRS)];
+    alertState.rows = [
+      alertRow("a-mine"),
+      alertRow("a-theirs", { user_id: OTHER, event_id: OTHER_EVENT_ID, fire_at: minutesFromNow(-1) }),
+    ];
+    await push(`Bearer ${SECRET}`);
+    const byEndpoint = new Map(pushed().map((item) => [item.endpoint, item.alert]));
+    expect(byEndpoint.get(MINE)).toMatchObject({ id: "a-mine", itemId: EVENT_ID });
+    expect(byEndpoint.get(THEIRS)).toMatchObject({ id: "a-theirs", itemId: OTHER_EVENT_ID, message: "Private seminar starts in 5 min" });
+    expect(pushed().some((item) => item.endpoint === MINE && item.alert.id === "a-theirs")).toBe(false);
+    expect(pushed().some((item) => item.endpoint === THEIRS && item.alert.id === "a-mine")).toBe(false);
+  });
+
+  it("drops a device the push service no longer knows", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-gone", ME, "https://push.example.com/device/gone")];
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async (target) =>
+      target.endpoint.endsWith("/gone") ? { ok: false, gone: true } : { ok: true }
+    );
+    await push(`Bearer ${SECRET}`);
+    expect(subscriptionState.rows.map((row) => row.id)).toEqual(["sub-1"]);
+    expect(pushed().some((item) => item.endpoint === MINE)).toBe(true);
+  });
+
+  it("keeps the alert fired when one device gets it and another send fails", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-2", ME, MINE_OTHER)];
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async (target) =>
+      target.endpoint === MINE_OTHER ? { ok: false, gone: false, status: 500 } : { ok: true }
+    );
+    await push(`Bearer ${SECRET}`);
+    expect(subscriptionState.rows).toHaveLength(2);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("releases the claim when every send fails so the alert is not lost", async () => {
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async () => ({ ok: false, gone: false, status: 500 }));
+    const failed = await push(`Bearer ${SECRET}`);
+    expect(await failed.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(subscriptionState.rows).toHaveLength(1);
+    expect(firedAt("a-due")).toBeNull();
+
+    sendPushMock.mockReset();
+    sendPushMock.mockImplementation(async () => ({ ok: true }));
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-due"]);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("contacts one user's devices together instead of waiting for each", async () => {
+    subscriptionState.rows = [device("sub-1", ME, MINE), device("sub-2", ME, MINE_OTHER)];
+    alertState.rows = [alertRow("a-due")];
+    const release: Array<(result: PushSendResult) => void> = [];
+    sendPushMock.mockImplementation(() => new Promise((resolve) => {
+      release.push(resolve);
+    }));
+    const pending = push(`Bearer ${SECRET}`);
+    for (let attempt = 0; attempt < 30 && release.length < 2; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(2);
+    for (const resolve of release) resolve({ ok: true });
+    expect((await pending).status).toBe(200);
+    expect(firedAt("a-due")).not.toBeNull();
+  });
+
+  it("checks several users at once, and holds the rest until a slot is free", async () => {
+    const total = PUSH_USER_CONCURRENCY + 1;
+    const ids = Array.from({ length: total }, (_, index) => {
+      const suffix = String(index).padStart(12, "0");
+      return {
+        userId: `10000000-0000-4000-8000-${suffix}`,
+        eventId: `20000000-0000-4000-8000-${suffix}`,
+        endpoint: `https://push.example.com/device/user-${index}`,
+      };
+    });
+    subscriptionState.rows = ids.map((row, index) => device(`sub-${index}`, row.userId, row.endpoint));
+    eventState.rows = ids.map((row, index) => ({ id: row.eventId, user_id: row.userId, title: `Class ${index}` }));
+    alertState.rows = ids.map((row, index) => alertRow(`a-${index}`, { user_id: row.userId, event_id: row.eventId }));
+    const release: Array<(result: PushSendResult) => void> = [];
+    sendPushMock.mockImplementation(() => new Promise((resolve) => {
+      release.push(resolve);
+    }));
+    const pending = push(`Bearer ${SECRET}`);
+    for (let attempt = 0; attempt < 40 && release.length < PUSH_USER_CONCURRENCY; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(PUSH_USER_CONCURRENCY);
+    release[0]({ ok: true });
+    for (let attempt = 0; attempt < 40 && release.length < total; attempt += 1) {
+      await Promise.resolve();
+    }
+    expect(release).toHaveLength(total);
+    for (const resolve of release.slice(1)) resolve({ ok: true });
+    expect((await pending).status).toBe(200);
+    expect(pushed()).toHaveLength(total);
+  });
+
+  it("stops waiting when a send hangs and leaves the alert unfired", async () => {
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(() => new Promise(() => {}));
+    const result = await pushDueAlerts({ sendTimeoutMs: 25 });
+    expect(result).toEqual({ sent: 0 });
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("sends a claim whose previous send never finished", async () => {
+    alertState.rows = [alertRow("a-stuck", { fired_at: new Date(NOW.getTime() + 60_000) })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-stuck"]);
+    expect(firedAt("a-stuck")?.toISOString()).toBe(NOW.toISOString());
+
+    sendPushMock.mockClear();
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves a lease alone until the send timeout and the follow-up pause have both passed", async () => {
+    const stillWorking = new Date(NOW.getTime() + MISSED_AFTER_MS - PUSH_SEND_TIMEOUT_MS);
+    alertState.rows = [alertRow("a-working", { fired_at: stillWorking })];
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-working")?.getTime()).toBe(stillWorking.getTime());
+  });
+
+  it("sends a lease once that pause has passed", async () => {
+    const ready = new Date(NOW.getTime() + MISSED_AFTER_MS - PUSH_SEND_TIMEOUT_MS - PUSH_LEASE_SLACK_MS);
+    alertState.rows = [alertRow("a-ready", { fired_at: ready })];
+    await push(`Bearer ${SECRET}`);
+    expect(pushed().map((item) => item.alert.id)).toEqual(["a-ready"]);
+    expect(firedAt("a-ready")?.toISOString()).toBe(NOW.toISOString());
+  });
+
+  it("does not confirm a send after the alert was rescheduled", async () => {
+    alertState.rows = [alertRow("a-due")];
+    sendPushMock.mockImplementation(async () => {
+      const row = alertState.rows.find((alert) => alert.id === "a-due");
+      if (row) row.fired_at = null;
+      return { ok: true };
+    });
+    await push(`Bearer ${SECRET}`);
+    expect(firedAt("a-due")).toBeNull();
+  });
+
+  it("does not release an alert a later check already confirmed", async () => {
+    alertState.rows = [alertRow("a-due")];
+    const confirmed = new Date(NOW.getTime() + 1_000);
+    sendPushMock.mockImplementation(async () => {
+      const row = alertState.rows.find((alert) => alert.id === "a-due");
+      if (row) row.fired_at = confirmed;
+      return { ok: false, gone: false, status: 500 };
+    });
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(firedAt("a-due")?.toISOString()).toBe(confirmed.toISOString());
+  });
+
+  it("does not send a claim that just started or that the open tab already took", async () => {
+    alertState.rows = [
+      alertRow("a-live", { fired_at: new Date(NOW.getTime() + MISSED_AFTER_MS) }),
+      alertRow("a-shown", { fired_at: NOW, event_id: null, task_id: TASK_ID }),
+    ];
+    await push(`Bearer ${SECRET}`);
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-live")?.getTime()).toBe(NOW.getTime() + MISSED_AFTER_MS);
+    expect(firedAt("a-shown")?.toISOString()).toBe(NOW.toISOString());
+  });
+
+  it("releases a stuck claim that is already too late to push", async () => {
+    alertState.rows = [alertRow("a-old", {
+      fire_at: minutesFromNow(-6),
+      fired_at: new Date(NOW.getTime() + 60_000),
+    })];
+    const response = await push(`Bearer ${SECRET}`);
+    expect(await response.json()).toEqual({ success: true, data: { sent: 0 } });
+    expect(sendPushMock).not.toHaveBeenCalled();
+    expect(firedAt("a-old")).toBeNull();
+  });
+});

@@ -12,7 +12,7 @@ import postgres from "postgres";
 // (plain `bun test` will just skip it, same as having no DATABASE_URL at all)
 const hasDb = Boolean(process.env.DATABASE_URL);
 
-const OWNED_TABLES = ["events", "tasks", "categories", "groups", "alerts"] as const;
+const OWNED_TABLES = ["events", "tasks", "categories", "groups", "alerts", "push_subscriptions"] as const;
 const ALL_TABLES = [...OWNED_TABLES, "waitlist"] as const;
 
 const roleList = (roles: unknown): string[] => {

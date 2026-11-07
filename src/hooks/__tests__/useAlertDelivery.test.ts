@@ -64,6 +64,8 @@ beforeEach(() => {
   );
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   (globalThis as Record<string, unknown>).Notification = FakeNotification;
+  workerBus = new WorkerBus();
+  Object.defineProperty(navigator, "serviceWorker", { configurable: true, value: workerBus });
   globalThis.setInterval = ((tick: () => void, ms: number) => {
     intervals.push({ tick, ms, cleared: false });
     return intervals.length;
@@ -82,6 +84,9 @@ afterEach(() => {
 
 import { ALERT_POLL_MS, useAlertDelivery } from "../useAlertDelivery";
 import { useAlertTray } from "../useAlertTray";
+
+class WorkerBus extends EventTarget {}
+let workerBus: WorkerBus;
 
 function useDelivery(onOpen: (kind: AlertKind, id: string) => void) {
   const tray = useAlertTray();
@@ -226,6 +231,75 @@ describe("useAlertDelivery", () => {
     claim = { due: [LECTURE], missed: [] };
     await act(() => intervals[0].tick());
     expect(result.current.tray.due).toHaveLength(1);
+    unmount();
+  });
+
+  it("shows a pushed alert once in an open tab, even if the poll returns it too", async () => {
+    const alert = {
+      id: LECTURE.id,
+      kind: "event" as const,
+      itemId: LECTURE.item_id,
+      title: LECTURE.title,
+      message: "CS 101 Lecture starts in 15 min",
+      offsetMinutes: 15 as const,
+      fireAt: LECTURE.fire_at,
+    };
+    claim = { due: [LECTURE], missed: [] };
+    const { result, act, unmount } = mount();
+    await act(() => {});
+    await act(() => {
+      workerBus.dispatchEvent(new MessageEvent("message", { data: { type: "kalend-alert", alert } }));
+    });
+
+    expect(result.current.tray.due).toHaveLength(1);
+    expect(FakeNotification.shown).toHaveLength(1);
+    expect(FakeNotification.shown[0].options?.tag).toBe(LECTURE.id);
+    unmount();
+  });
+
+  it("shows a pushed alert when the poll has not claimed it", async () => {
+    const alert = {
+      id: LECTURE.id,
+      kind: "event" as const,
+      itemId: LECTURE.item_id,
+      title: LECTURE.title,
+      message: "CS 101 Lecture starts in 15 min",
+      offsetMinutes: 15 as const,
+      fireAt: LECTURE.fire_at,
+    };
+    const { result, act, unmount } = mount();
+    await act(() => {});
+    await act(() => {
+      workerBus.dispatchEvent(new MessageEvent("message", { data: { type: "kalend-alert", alert } }));
+    });
+    expect(result.current.tray.due.map((message) => message.text)).toEqual(["CS 101 Lecture starts in 15 min"]);
+    expect(FakeNotification.shown).toHaveLength(1);
+    unmount();
+  });
+
+  it("opens the event from the address the notification click loads", async () => {
+    const eventId = "11111111-1111-4111-8111-111111111111";
+    window.history.pushState(null, "", `/app?alert=event:${eventId}`);
+    const onOpen = mock<(kind: AlertKind, id: string) => void>();
+    const { act, unmount } = mount(onOpen);
+    await act(() => {});
+    expect(onOpen).toHaveBeenCalledWith("event", eventId);
+    expect(window.location.search).toBe("");
+    unmount();
+    window.history.pushState(null, "", "/");
+  });
+
+  it("opens the task when a notification click focuses this tab", async () => {
+    const taskId = "33333333-3333-4333-8333-111111111111";
+    const onOpen = mock<(kind: AlertKind, id: string) => void>();
+    const { act, unmount } = mount(onOpen);
+    await act(() => {});
+    await act(() => {
+      workerBus.dispatchEvent(new MessageEvent("message", {
+        data: { type: "kalend-open-alert", kind: "task", itemId: taskId },
+      }));
+    });
+    expect(onOpen).toHaveBeenCalledWith("task", taskId);
     unmount();
   });
 
