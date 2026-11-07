@@ -150,9 +150,20 @@ afterEach(async () => {
   globalThis.fetch = originalFetch;
 });
 
+// Waits until the page stops changing. A fixed number of timer ticks was not
+// enough on a slow CI runner: fetches resolved after the ticks ran out and the
+// test read a half-rendered page.
 async function settle() {
+  const quietTicks = 5;
+  const giveUpAt = Date.now() + 20_000;
   await act(async () => {
-    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+    let last = document.body.innerHTML;
+    for (let quiet = 0; quiet < quietTicks && Date.now() < giveUpAt; ) {
+      await new Promise((r) => setTimeout(r, 0));
+      const now = document.body.innerHTML;
+      quiet = now === last ? quiet + 1 : 0;
+      last = now;
+    }
   });
 }
 
